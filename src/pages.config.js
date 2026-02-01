@@ -59,6 +59,7 @@ import RevisionForm from './pages/RevisionForm';
 import RevisionDetail from './pages/RevisionDetail';
 import Revisions from './pages/Revisions';
 import Buildings from './pages/Buildings';
+import Settings from './pages/Settings';
 
 
 export const PAGES = {
@@ -74,6 +75,7 @@ export const PAGES = {
     "RevisionDetail": RevisionDetail,
     "Revisions": Revisions,
     "Buildings": Buildings,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
