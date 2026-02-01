@@ -64,6 +64,7 @@ import Incidents from './pages/Incidents';
 import IncidentForm from './pages/IncidentForm';
 import IncidentDetail from './pages/IncidentDetail';
 import Calendar from './pages/Calendar';
+import RevisionFieldSettings from './pages/RevisionFieldSettings';
 
 
 export const PAGES = {
@@ -84,6 +85,7 @@ export const PAGES = {
     "IncidentForm": IncidentForm,
     "IncidentDetail": IncidentDetail,
     "Calendar": Calendar,
+    "RevisionFieldSettings": RevisionFieldSettings,
 }
 
 export const pagesConfig = {
