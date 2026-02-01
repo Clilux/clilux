@@ -1,0 +1,41 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Card } from "@/components/ui/card";
+import { MapPin, Layers, Thermometer, ChevronRight } from 'lucide-react';
+import { createPageUrl } from '@/utils';
+import StatusBadge from '../ui/StatusBadge';
+
+export default function BuildingCard({ building, equipmentCount = 0 }) {
+  return (
+    <Link to={createPageUrl(`BuildingDetail?id=${building.id}`)}>
+      <Card className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="font-semibold text-slate-800 text-lg">{building.name}</h3>
+              <StatusBadge status={building.status || 'active'} />
+            </div>
+            
+            <div className="flex flex-wrap gap-4 text-sm text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" />
+                <span>{building.address}, {building.city}</span>
+              </div>
+              {building.floors && (
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-4 w-4" />
+                  <span>{building.floors} plantas</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Thermometer className="h-4 w-4" />
+                <span>{equipmentCount} equipo{equipmentCount !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
