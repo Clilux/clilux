@@ -60,6 +60,10 @@ import RevisionDetail from './pages/RevisionDetail';
 import Revisions from './pages/Revisions';
 import Buildings from './pages/Buildings';
 import Settings from './pages/Settings';
+import Incidents from './pages/Incidents';
+import IncidentForm from './pages/IncidentForm';
+import IncidentDetail from './pages/IncidentDetail';
+import Calendar from './pages/Calendar';
 
 
 export const PAGES = {
@@ -76,6 +80,10 @@ export const PAGES = {
     "Revisions": Revisions,
     "Buildings": Buildings,
     "Settings": Settings,
+    "Incidents": Incidents,
+    "IncidentForm": IncidentForm,
+    "IncidentDetail": IncidentDetail,
+    "Calendar": Calendar,
 }
 
 export const pagesConfig = {
