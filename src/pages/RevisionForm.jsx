@@ -92,6 +92,19 @@ export default function RevisionForm() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
+  const { data: fieldConfigs = [] } = useQuery({
+    queryKey: ['revision-field-configs'],
+    queryFn: () => base44.entities.RevisionFieldConfig.list(),
+  });
+
+  // Obtener el tipo de equipo seleccionado
+  const selectedEquipment = equipment.find(e => e.id === formData.equipment_id);
+  const equipmentType = selectedEquipment?.equipment_type || '';
+  
+  // Obtener la configuración de campos para el tipo de equipo
+  const fieldConfig = fieldConfigs.find(c => c.equipment_type === equipmentType);
+  const enabledFields = fieldConfig?.fields?.filter(f => f.enabled) || [];
+
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
     : buildings;
@@ -343,223 +356,278 @@ export default function RevisionForm() {
 
           {(formData.revision_type === 'it3_rite' || formData.revision_type === 'preventive') && (
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-4">Datos IT3 RITE</h3>
-              <Tabs defaultValue="temperatures" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="temperatures">Temperaturas</TabsTrigger>
-                  <TabsTrigger value="pressures">Presiones</TabsTrigger>
-                  <TabsTrigger value="status">Estado</TabsTrigger>
-                </TabsList>
+              <h3 className="font-semibold text-slate-800 mb-4">
+                Datos IT3 RITE
+                {equipmentType && <span className="text-sm font-normal text-slate-500 ml-2">({equipmentType})</span>}
+              </h3>
+              
+              {enabledFields.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {enabledFields.map(field => (
+                    <div key={field.field_key}>
+                      <Label>{field.field_label}</Label>
+                      {field.field_type === 'number' && (
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data[field.field_key] || ''}
+                          onChange={(e) => handleIT3Change(field.field_key, e.target.value)}
+                          className="mt-1"
+                        />
+                      )}
+                      {field.field_type === 'text' && (
+                        <Input
+                          value={formData.it3_data[field.field_key] || ''}
+                          onChange={(e) => handleIT3Change(field.field_key, e.target.value)}
+                          className="mt-1"
+                        />
+                      )}
+                      {field.field_type === 'select' && (
+                        <Select 
+                          value={formData.it3_data[field.field_key] || ''} 
+                          onValueChange={(v) => handleIT3Change(field.field_key, v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {field.field_type === 'checkbox' && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Checkbox
+                            id={field.field_key}
+                            checked={formData.it3_data[field.field_key] || false}
+                            onCheckedChange={(v) => handleIT3Change(field.field_key, v)}
+                          />
+                          <Label htmlFor={field.field_key} className="text-sm text-slate-600">Sí</Label>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Tabs defaultValue="temperatures" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="temperatures">Temperaturas</TabsTrigger>
+                    <TabsTrigger value="pressures">Presiones</TabsTrigger>
+                    <TabsTrigger value="status">Estado</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="temperatures" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Temp. Impulsión (°C)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.temp_impulsion}
-                        onChange={(e) => handleIT3Change('temp_impulsion', e.target.value)}
-                        className="mt-1"
-                      />
+                  <TabsContent value="temperatures" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Temp. Impulsión (°C)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.temp_impulsion}
+                          onChange={(e) => handleIT3Change('temp_impulsion', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Temp. Retorno (°C)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.temp_retorno}
+                          onChange={(e) => handleIT3Change('temp_retorno', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Temp. Exterior (°C)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.temp_exterior}
+                          onChange={(e) => handleIT3Change('temp_exterior', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Humedad Relativa (%)</Label>
+                        <Input
+                          type="number"
+                          value={formData.it3_data.humedad_relativa}
+                          onChange={(e) => handleIT3Change('humedad_relativa', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Caudal de Aire (m³/h)</Label>
+                        <Input
+                          type="number"
+                          value={formData.it3_data.caudal_aire}
+                          onChange={(e) => handleIT3Change('caudal_aire', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Consumo Eléctrico (kW)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.consumo_electrico}
+                          onChange={(e) => handleIT3Change('consumo_electrico', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label>Temp. Retorno (°C)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.temp_retorno}
-                        onChange={(e) => handleIT3Change('temp_retorno', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Temp. Exterior (°C)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.temp_exterior}
-                        onChange={(e) => handleIT3Change('temp_exterior', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Humedad Relativa (%)</Label>
-                      <Input
-                        type="number"
-                        value={formData.it3_data.humedad_relativa}
-                        onChange={(e) => handleIT3Change('humedad_relativa', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Caudal de Aire (m³/h)</Label>
-                      <Input
-                        type="number"
-                        value={formData.it3_data.caudal_aire}
-                        onChange={(e) => handleIT3Change('caudal_aire', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Consumo Eléctrico (kW)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.consumo_electrico}
-                        onChange={(e) => handleIT3Change('consumo_electrico', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent value="pressures" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Presión Alta (bar)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.presion_alta}
-                        onChange={(e) => handleIT3Change('presion_alta', e.target.value)}
-                        className="mt-1"
-                      />
+                  <TabsContent value="pressures" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Presión Alta (bar)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.presion_alta}
+                          onChange={(e) => handleIT3Change('presion_alta', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Presión Baja (bar)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.it3_data.presion_baja}
+                          onChange={(e) => handleIT3Change('presion_baja', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label>Presión Baja (bar)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.it3_data.presion_baja}
-                        onChange={(e) => handleIT3Change('presion_baja', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent value="status" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Estado de Filtros</Label>
-                      <Select 
-                        value={formData.it3_data.estado_filtros} 
-                        onValueChange={(v) => handleIT3Change('estado_filtros', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bueno">Bueno</SelectItem>
-                          <SelectItem value="aceptable">Aceptable</SelectItem>
-                          <SelectItem value="sucio">Sucio</SelectItem>
-                          <SelectItem value="cambiar">Requiere cambio</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <TabsContent value="status" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Estado de Filtros</Label>
+                        <Select 
+                          value={formData.it3_data.estado_filtros} 
+                          onValueChange={(v) => handleIT3Change('estado_filtros', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bueno">Bueno</SelectItem>
+                            <SelectItem value="aceptable">Aceptable</SelectItem>
+                            <SelectItem value="sucio">Sucio</SelectItem>
+                            <SelectItem value="cambiar">Requiere cambio</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Estado de Correas</Label>
+                        <Select 
+                          value={formData.it3_data.estado_correas} 
+                          onValueChange={(v) => handleIT3Change('estado_correas', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bueno">Bueno</SelectItem>
+                            <SelectItem value="desgastado">Desgastado</SelectItem>
+                            <SelectItem value="cambiar">Requiere cambio</SelectItem>
+                            <SelectItem value="na">N/A</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Nivel de Aceite</Label>
+                        <Select 
+                          value={formData.it3_data.nivel_aceite} 
+                          onValueChange={(v) => handleIT3Change('nivel_aceite', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="correcto">Correcto</SelectItem>
+                            <SelectItem value="bajo">Bajo</SelectItem>
+                            <SelectItem value="na">N/A</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Estado Aislamiento</Label>
+                        <Select 
+                          value={formData.it3_data.estado_aislamiento} 
+                          onValueChange={(v) => handleIT3Change('estado_aislamiento', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bueno">Bueno</SelectItem>
+                            <SelectItem value="deteriorado">Deteriorado</SelectItem>
+                            <SelectItem value="reparar">Requiere reparación</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Limpieza Unidad</Label>
+                        <Select 
+                          value={formData.it3_data.limpieza_unidad} 
+                          onValueChange={(v) => handleIT3Change('limpieza_unidad', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="limpia">Limpia</SelectItem>
+                            <SelectItem value="aceptable">Aceptable</SelectItem>
+                            <SelectItem value="sucia">Sucia</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Vibraciones</Label>
+                        <Select 
+                          value={formData.it3_data.vibraciones} 
+                          onValueChange={(v) => handleIT3Change('vibraciones', v)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="normales">Normales</SelectItem>
+                            <SelectItem value="elevadas">Elevadas</SelectItem>
+                            <SelectItem value="excesivas">Excesivas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Estado de Correas</Label>
-                      <Select 
-                        value={formData.it3_data.estado_correas} 
-                        onValueChange={(v) => handleIT3Change('estado_correas', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bueno">Bueno</SelectItem>
-                          <SelectItem value="desgastado">Desgastado</SelectItem>
-                          <SelectItem value="cambiar">Requiere cambio</SelectItem>
-                          <SelectItem value="na">N/A</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex gap-6 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="fugas"
+                          checked={formData.it3_data.fugas_refrigerante}
+                          onCheckedChange={(v) => handleIT3Change('fugas_refrigerante', v)}
+                        />
+                        <Label htmlFor="fugas">Fugas de refrigerante detectadas</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="ruidos"
+                          checked={formData.it3_data.ruidos_anomalos}
+                          onCheckedChange={(v) => handleIT3Change('ruidos_anomalos', v)}
+                        />
+                        <Label htmlFor="ruidos">Ruidos anómalos</Label>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Nivel de Aceite</Label>
-                      <Select 
-                        value={formData.it3_data.nivel_aceite} 
-                        onValueChange={(v) => handleIT3Change('nivel_aceite', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="correcto">Correcto</SelectItem>
-                          <SelectItem value="bajo">Bajo</SelectItem>
-                          <SelectItem value="na">N/A</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Estado Aislamiento</Label>
-                      <Select 
-                        value={formData.it3_data.estado_aislamiento} 
-                        onValueChange={(v) => handleIT3Change('estado_aislamiento', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bueno">Bueno</SelectItem>
-                          <SelectItem value="deteriorado">Deteriorado</SelectItem>
-                          <SelectItem value="reparar">Requiere reparación</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Limpieza Unidad</Label>
-                      <Select 
-                        value={formData.it3_data.limpieza_unidad} 
-                        onValueChange={(v) => handleIT3Change('limpieza_unidad', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="limpia">Limpia</SelectItem>
-                          <SelectItem value="aceptable">Aceptable</SelectItem>
-                          <SelectItem value="sucia">Sucia</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Vibraciones</Label>
-                      <Select 
-                        value={formData.it3_data.vibraciones} 
-                        onValueChange={(v) => handleIT3Change('vibraciones', v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="normales">Normales</SelectItem>
-                          <SelectItem value="elevadas">Elevadas</SelectItem>
-                          <SelectItem value="excesivas">Excesivas</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex gap-6 mt-4">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="fugas"
-                        checked={formData.it3_data.fugas_refrigerante}
-                        onCheckedChange={(v) => handleIT3Change('fugas_refrigerante', v)}
-                      />
-                      <Label htmlFor="fugas">Fugas de refrigerante detectadas</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="ruidos"
-                        checked={formData.it3_data.ruidos_anomalos}
-                        onCheckedChange={(v) => handleIT3Change('ruidos_anomalos', v)}
-                      />
-                      <Label htmlFor="ruidos">Ruidos anómalos</Label>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  </TabsContent>
+                </Tabs>
+              )}
             </Card>
           )}
 
