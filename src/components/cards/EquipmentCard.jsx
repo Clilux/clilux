@@ -22,12 +22,14 @@ const equipmentTypeIcons = {
 };
 
 const equipmentTypeLabels = {
+  split_mural: 'Split Mural',
+  split_cassette: 'Split Cassette',
+  split_conductos: 'Split Conductos',
   climatizador: 'Climatizador',
   enfriadora: 'Enfriadora',
   caldera: 'Caldera',
   bomba_calor: 'Bomba de calor',
-  split: 'Split',
-  vrf: 'VRF',
+  vrf: 'VRF / Caudal Variable',
   fancoil: 'Fancoil',
   uta: 'UTA',
   rooftop: 'Rooftop',

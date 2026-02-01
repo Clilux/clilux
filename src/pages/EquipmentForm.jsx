@@ -14,12 +14,14 @@ import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
 const equipmentTypes = [
+  { value: 'split_mural', label: 'Split Mural' },
+  { value: 'split_cassette', label: 'Split Cassette' },
+  { value: 'split_conductos', label: 'Split Conductos' },
   { value: 'climatizador', label: 'Climatizador' },
   { value: 'enfriadora', label: 'Enfriadora' },
   { value: 'caldera', label: 'Caldera' },
   { value: 'bomba_calor', label: 'Bomba de calor' },
-  { value: 'split', label: 'Split' },
-  { value: 'vrf', label: 'VRF' },
+  { value: 'vrf', label: 'VRF / Caudal Variable' },
   { value: 'fancoil', label: 'Fancoil' },
   { value: 'uta', label: 'UTA' },
   { value: 'rooftop', label: 'Rooftop' },
