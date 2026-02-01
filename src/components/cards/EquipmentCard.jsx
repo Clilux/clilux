@@ -8,11 +8,13 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const equipmentTypeIcons = {
+  split_mural: Wind,
+  split_cassette: Wind,
+  split_conductos: Wind,
   climatizador: Wind,
   enfriadora: Snowflake,
   caldera: Flame,
   bomba_calor: Wind,
-  split: Wind,
   vrf: Wind,
   fancoil: Wind,
   uta: Wind,
