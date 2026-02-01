@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -160,6 +162,15 @@ export default function Settings() {
               Clientes
             </TabsTrigger>
           </TabsList>
+
+          {/* Link a configuración avanzada de campos de revisión */}
+          <div className="flex justify-end">
+            <Link to={createPageUrl('RevisionFieldSettings')}>
+              <Button variant="outline" size="sm">
+                Configurar campos por tipo de equipo →
+              </Button>
+            </Link>
+          </div>
 
           <TabsContent value="appearance">
             <Card className="p-6 bg-white border-0 shadow-sm">
