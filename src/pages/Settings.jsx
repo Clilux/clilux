@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -162,15 +162,6 @@ export default function Settings() {
               Clientes
             </TabsTrigger>
           </TabsList>
-
-          {/* Link a configuración avanzada de campos de revisión */}
-          <div className="flex justify-end">
-            <Link to={createPageUrl('RevisionFieldSettings')}>
-              <Button variant="outline" size="sm">
-                Configurar campos por tipo de equipo →
-              </Button>
-            </Link>
-          </div>
 
           <TabsContent value="appearance">
             <Card className="p-6 bg-white border-0 shadow-sm">
@@ -334,9 +325,26 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="revisions">
+            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-slate-800">Campos por Tipo de Equipo</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Configura qué campos IT3 aparecen en cada tipo de equipo (split, enfriadora, caldera, etc.)
+                  </p>
+                </div>
+                <Link to={createPageUrl('RevisionFieldSettings')}>
+                  <Button variant="outline">
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Configurar campos por equipo
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+
             <Card className="p-6 bg-white border-0 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-slate-800">Campos Personalizados de Revisión</h3>
+                <h3 className="font-semibold text-slate-800">Campos Personalizados Adicionales</h3>
                 <Button onClick={addRevisionField} variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   Añadir campo
