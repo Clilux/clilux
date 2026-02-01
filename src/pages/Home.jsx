@@ -51,7 +51,8 @@ export default function Home() {
         const buildings = await base44.entities.Building.filter({ client_id: client.id });
         const equipment = await base44.entities.Equipment.filter({ client_id: client.id });
         const revisions = await base44.entities.Revision.filter({ client_id: client.id }, '-revision_date', 5);
-        return { client, buildings, equipment, revisions };
+        const incidents = await base44.entities.Incident.filter({ client_id: client.id }, '-created_date', 5);
+        return { client, buildings, equipment, revisions, incidents };
       }
       return null;
     },
@@ -128,7 +129,7 @@ export default function Home() {
             </div>
           ) : clientData ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard 
                   title="Edificios" 
                   value={clientData.buildings.length} 
@@ -147,7 +148,27 @@ export default function Home() {
                   icon={ClipboardCheck}
                   color="purple"
                 />
+                <StatCard 
+                  title="Incidencias" 
+                  value={clientData.incidents?.filter(i => i.status !== 'closed').length || 0} 
+                  icon={AlertCircle}
+                  color="amber"
+                  subtitle="Activas"
+                />
               </div>
+
+              {/* Botón reportar incidencia */}
+              <Link to={createPageUrl('IncidentForm')}>
+                <Card className="p-4 bg-red-50 border-red-200 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-6 w-6 text-red-600" />
+                    <div>
+                      <h3 className="font-medium text-red-800">Reportar Incidencia</h3>
+                      <p className="text-sm text-red-600">¿Tienes un problema con algún equipo? Notifícanos</p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="p-6 bg-white border-0 shadow-sm">
