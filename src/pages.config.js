@@ -55,6 +55,10 @@ import BuildingForm from './pages/BuildingForm';
 import BuildingDetail from './pages/BuildingDetail';
 import EquipmentForm from './pages/EquipmentForm';
 import EquipmentDetail from './pages/EquipmentDetail';
+import RevisionForm from './pages/RevisionForm';
+import RevisionDetail from './pages/RevisionDetail';
+import Revisions from './pages/Revisions';
+import Buildings from './pages/Buildings';
 
 
 export const PAGES = {
@@ -66,6 +70,10 @@ export const PAGES = {
     "BuildingDetail": BuildingDetail,
     "EquipmentForm": EquipmentForm,
     "EquipmentDetail": EquipmentDetail,
+    "RevisionForm": RevisionForm,
+    "RevisionDetail": RevisionDetail,
+    "Revisions": Revisions,
+    "Buildings": Buildings,
 }
 
 export const pagesConfig = {
