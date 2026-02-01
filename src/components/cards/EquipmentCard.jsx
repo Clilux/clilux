@@ -11,7 +11,7 @@ const equipmentTypeIcons = {
   climatizador: Wind,
   enfriadora: Snowflake,
   caldera: Flame,
-  bomba_calor: Thermometer,
+  bomba_calor: Wind,
   split: Wind,
   vrf: Wind,
   fancoil: Wind,
@@ -34,8 +34,6 @@ const equipmentTypeLabels = {
   torre_refrigeracion: 'Torre de refrigeración',
   otro: 'Otro',
 };
-
-import { Thermometer } from 'lucide-react';
 
 export default function EquipmentCard({ equipment }) {
   const Icon = equipmentTypeIcons[equipment.equipment_type] || Wind;
