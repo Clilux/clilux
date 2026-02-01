@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, Building2, Thermometer, ClipboardCheck, 
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut
+  Calendar, LogOut, AlertCircle
 } from 'lucide-react';
 import StatCard from '../components/cards/StatCard';
 import ClientCard from '../components/cards/ClientCard';
@@ -76,6 +76,13 @@ export default function Home() {
     enabled: userRole === 'technician',
   });
 
+  const { data: incidents = [] } = useQuery({
+    queryKey: ['incidents'],
+    queryFn: () => base44.entities.Incident.list('-created_date'),
+    enabled: userRole === 'technician',
+  });
+
+  const pendingIncidents = incidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
   const pendingEquipment = equipment.filter(e => e.status === 'maintenance_needed' || e.status === 'out_of_service');
 
   const handleLogout = () => {
@@ -287,31 +294,52 @@ export default function Home() {
         </div>
 
         {/* Alertas */}
-        {pendingEquipment.length > 0 && (
-          <Card className="p-5 bg-amber-50 border-amber-200">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-              <div>
-                <h3 className="font-medium text-amber-800">
-                  {pendingEquipment.length} equipo{pendingEquipment.length > 1 ? 's' : ''} requiere{pendingEquipment.length === 1 ? '' : 'n'} atención
-                </h3>
-                <p className="text-sm text-amber-700">
-                  Hay equipos que necesitan mantenimiento o están fuera de servicio
-                </p>
-              </div>
-            </div>
-          </Card>
+        {(pendingEquipment.length > 0 || pendingIncidents.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingIncidents.length > 0 && (
+              <Link to={createPageUrl('Incidents')}>
+                <Card className="p-5 bg-red-50 border-red-200 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <div>
+                      <h3 className="font-medium text-red-800">
+                        {pendingIncidents.length} incidencia{pendingIncidents.length > 1 ? 's' : ''} pendiente{pendingIncidents.length > 1 ? 's' : ''}
+                      </h3>
+                      <p className="text-sm text-red-700">
+                        Incidencias reportadas por clientes sin resolver
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            )}
+            {pendingEquipment.length > 0 && (
+              <Card className="p-5 bg-amber-50 border-amber-200">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  <div>
+                    <h3 className="font-medium text-amber-800">
+                      {pendingEquipment.length} equipo{pendingEquipment.length > 1 ? 's' : ''} requiere{pendingEquipment.length === 1 ? '' : 'n'} atención
+                    </h3>
+                    <p className="text-sm text-amber-700">
+                      Equipos que necesitan mantenimiento
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Link to={createPageUrl('ClientForm')}>
             <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer group">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
                   <Plus className="h-5 w-5 text-blue-600" />
                 </div>
-                <span className="font-medium text-slate-700">Nuevo Cliente</span>
+                <span className="font-medium text-slate-700 text-sm">Nuevo Cliente</span>
               </div>
             </Card>
           </Link>
@@ -321,7 +349,7 @@ export default function Home() {
                 <div className="p-2 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors">
                   <Users className="h-5 w-5 text-slate-600" />
                 </div>
-                <span className="font-medium text-slate-700">Ver Clientes</span>
+                <span className="font-medium text-slate-700 text-sm">Clientes</span>
               </div>
             </Card>
           </Link>
@@ -331,17 +359,37 @@ export default function Home() {
                 <div className="p-2 rounded-lg bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
                   <ClipboardCheck className="h-5 w-5 text-emerald-600" />
                 </div>
-                <span className="font-medium text-slate-700">Nueva Revisión</span>
+                <span className="font-medium text-slate-700 text-sm">Nueva Revisión</span>
+              </div>
+            </Card>
+          </Link>
+          <Link to={createPageUrl('Incidents')}>
+            <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-100 group-hover:bg-red-200 transition-colors">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <span className="font-medium text-slate-700 text-sm">Incidencias</span>
+              </div>
+            </Card>
+          </Link>
+          <Link to={createPageUrl('Calendar')}>
+            <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
+                <span className="font-medium text-slate-700 text-sm">Calendario</span>
               </div>
             </Card>
           </Link>
           <Link to={createPageUrl('Revisions')}>
             <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer group">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                  <Calendar className="h-5 w-5 text-purple-600" />
+                <div className="p-2 rounded-lg bg-amber-100 group-hover:bg-amber-200 transition-colors">
+                  <ClipboardCheck className="h-5 w-5 text-amber-600" />
                 </div>
-                <span className="font-medium text-slate-700">Historial</span>
+                <span className="font-medium text-slate-700 text-sm">Historial</span>
               </div>
             </Card>
           </Link>
