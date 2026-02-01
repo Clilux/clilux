@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, MapPin, Calendar, FileText, 
-  Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck
+  Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck, FileBarChart
 } from 'lucide-react';
+import RevisionReport from '../components/reports/RevisionReport';
 import NavHeader from '../components/navigation/NavHeader';
 import RevisionCard from '../components/cards/RevisionCard';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -33,6 +34,7 @@ const equipmentTypeLabels = {
 export default function EquipmentDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
+  const [showReport, setShowReport] = useState(false);
 
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
@@ -56,6 +58,15 @@ export default function EquipmentDetail() {
     queryKey: ['revisions-equipment', equipmentId],
     queryFn: () => base44.entities.Revision.filter({ equipment_id: equipmentId }, '-revision_date'),
     enabled: !!equipmentId,
+  });
+
+  const { data: client } = useQuery({
+    queryKey: ['client-equipment', equipment?.client_id],
+    queryFn: async () => {
+      const clients = await base44.entities.Client.filter({ id: equipment.client_id });
+      return clients[0] || null;
+    },
+    enabled: !!equipment?.client_id,
   });
 
   if (isLoading) {
@@ -201,17 +212,23 @@ export default function EquipmentDetail() {
         </Card>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
               Historial de Revisiones ({revisions.length})
             </h2>
-            <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-              <Button className="bg-slate-800 hover:bg-slate-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Revisión
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowReport(true)}>
+                <FileBarChart className="h-4 w-4 mr-2" />
+                Generar Informe
               </Button>
-            </Link>
+              <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
+                <Button className="bg-slate-800 hover:bg-slate-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Revisión
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {revisions.length === 0 ? (
@@ -238,6 +255,16 @@ export default function EquipmentDetail() {
             </div>
           )}
         </div>
+
+        {showReport && (
+          <RevisionReport
+            equipment={equipment}
+            revisions={revisions}
+            building={building}
+            client={client}
+            onClose={() => setShowReport(false)}
+          />
+        )}
       </div>
     </div>
   );
