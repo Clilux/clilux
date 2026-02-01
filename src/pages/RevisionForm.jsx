@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -10,10 +10,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Upload, X } from 'lucide-react';
+import { Loader2, Save, Upload, X, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+
+const defaultFieldsConfig = [
+  { field_key: 'temp_impulsion', field_label: 'Temp. Impulsión (°C)', field_type: 'number', enabled: true },
+  { field_key: 'temp_retorno', field_label: 'Temp. Retorno (°C)', field_type: 'number', enabled: true },
+  { field_key: 'temp_exterior', field_label: 'Temp. Exterior (°C)', field_type: 'number', enabled: true },
+  { field_key: 'presion_alta', field_label: 'Presión Alta (bar)', field_type: 'number', enabled: true },
+  { field_key: 'presion_baja', field_label: 'Presión Baja (bar)', field_type: 'number', enabled: true },
+  { field_key: 'consumo_electrico', field_label: 'Consumo Eléctrico (kW)', field_type: 'number', enabled: true },
+  { field_key: 'caudal_aire', field_label: 'Caudal de Aire (m³/h)', field_type: 'number', enabled: true },
+  { field_key: 'humedad_relativa', field_label: 'Humedad Relativa (%)', field_type: 'number', enabled: true },
+  { field_key: 'estado_filtros', field_label: 'Estado de Filtros', field_type: 'select', options: ['bueno', 'aceptable', 'sucio', 'cambiar'], enabled: true },
+  { field_key: 'estado_correas', field_label: 'Estado de Correas', field_type: 'select', options: ['bueno', 'desgastado', 'cambiar', 'na'], enabled: true },
+  { field_key: 'fugas_refrigerante', field_label: 'Fugas de Refrigerante', field_type: 'checkbox', enabled: true },
+  { field_key: 'nivel_aceite', field_label: 'Nivel de Aceite', field_type: 'select', options: ['correcto', 'bajo', 'na'], enabled: true },
+  { field_key: 'vibraciones', field_label: 'Vibraciones', field_type: 'select', options: ['normales', 'elevadas', 'excesivas'], enabled: true },
+  { field_key: 'ruidos_anomalos', field_label: 'Ruidos Anómalos', field_type: 'checkbox', enabled: true },
+  { field_key: 'estado_aislamiento', field_label: 'Estado Aislamiento', field_type: 'select', options: ['bueno', 'deteriorado', 'reparar'], enabled: true },
+  { field_key: 'limpieza_unidad', field_label: 'Limpieza Unidad', field_type: 'select', options: ['limpia', 'aceptable', 'sucia'], enabled: true },
+];
 
 export default function RevisionForm() {
   const navigate = useNavigate();
@@ -97,13 +116,17 @@ export default function RevisionForm() {
     queryFn: () => base44.entities.RevisionFieldConfig.list(),
   });
 
-  // Obtener el tipo de equipo seleccionado
+  // Obtener el equipo seleccionado y sus campos configurados
   const selectedEquipment = equipment.find(e => e.id === formData.equipment_id);
-  const equipmentType = selectedEquipment?.equipment_type || '';
-  
-  // Obtener la configuración de campos para el tipo de equipo
-  const fieldConfig = fieldConfigs.find(c => c.equipment_type === equipmentType);
-  const enabledFields = fieldConfig?.fields?.filter(f => f.enabled) || [];
+  const activeFields = useMemo(() => {
+    if (!selectedEquipment) return defaultFieldsConfig.filter(f => f.enabled);
+    
+    const config = fieldConfigs.find(c => c.equipment_type === selectedEquipment.equipment_type);
+    if (config && config.fields) {
+      return config.fields.filter(f => f.enabled);
+    }
+    return defaultFieldsConfig.filter(f => f.enabled);
+  }, [selectedEquipment, fieldConfigs]);
 
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
@@ -354,19 +377,30 @@ export default function RevisionForm() {
             </div>
           </Card>
 
-          {(formData.revision_type === 'it3_rite' || formData.revision_type === 'preventive') && (
+          {(formData.revision_type === 'it3_rite' || formData.revision_type === 'preventive') && activeFields.length > 0 && (
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-4">
-                Datos IT3 RITE
-                {equipmentType && <span className="text-sm font-normal text-slate-500 ml-2">({equipmentType})</span>}
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-800">Datos IT3 RITE</h3>
+                <Link to={createPageUrl('RevisionFieldSettings')}>
+                  <Button variant="ghost" size="sm">
+                    <Settings className="h-4 w-4 mr-1" />
+                    Configurar campos
+                  </Button>
+                </Link>
+              </div>
               
-              {enabledFields.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {enabledFields.map(field => (
-                    <div key={field.field_key}>
-                      <Label>{field.field_label}</Label>
-                      {field.field_type === 'number' && (
+              {selectedEquipment && (
+                <p className="text-sm text-slate-500 mb-4">
+                  Campos configurados para: <span className="font-medium">{selectedEquipment.equipment_type}</span>
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activeFields.map(field => {
+                  if (field.field_type === 'number') {
+                    return (
+                      <div key={field.field_key}>
+                        <Label>{field.field_label}</Label>
                         <Input
                           type="number"
                           step="0.1"
@@ -374,15 +408,13 @@ export default function RevisionForm() {
                           onChange={(e) => handleIT3Change(field.field_key, e.target.value)}
                           className="mt-1"
                         />
-                      )}
-                      {field.field_type === 'text' && (
-                        <Input
-                          value={formData.it3_data[field.field_key] || ''}
-                          onChange={(e) => handleIT3Change(field.field_key, e.target.value)}
-                          className="mt-1"
-                        />
-                      )}
-                      {field.field_type === 'select' && (
+                      </div>
+                    );
+                  }
+                  if (field.field_type === 'select' && field.options) {
+                    return (
+                      <div key={field.field_key}>
+                        <Label>{field.field_label}</Label>
                         <Select 
                           value={formData.it3_data[field.field_key] || ''} 
                           onValueChange={(v) => handleIT3Change(field.field_key, v)}
@@ -391,243 +423,41 @@ export default function RevisionForm() {
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                           <SelectContent>
-                            {field.options?.map(opt => (
+                            {field.options.map(opt => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
-                      {field.field_type === 'checkbox' && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <Checkbox
-                            id={field.field_key}
-                            checked={formData.it3_data[field.field_key] || false}
-                            onCheckedChange={(v) => handleIT3Change(field.field_key, v)}
-                          />
-                          <Label htmlFor={field.field_key} className="text-sm text-slate-600">Sí</Label>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Tabs defaultValue="temperatures" className="space-y-4">
-                  <TabsList>
-                    <TabsTrigger value="temperatures">Temperaturas</TabsTrigger>
-                    <TabsTrigger value="pressures">Presiones</TabsTrigger>
-                    <TabsTrigger value="status">Estado</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="temperatures" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Temp. Impulsión (°C)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.temp_impulsion}
-                          onChange={(e) => handleIT3Change('temp_impulsion', e.target.value)}
-                          className="mt-1"
-                        />
                       </div>
-                      <div>
-                        <Label>Temp. Retorno (°C)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.temp_retorno}
-                          onChange={(e) => handleIT3Change('temp_retorno', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Temp. Exterior (°C)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.temp_exterior}
-                          onChange={(e) => handleIT3Change('temp_exterior', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Humedad Relativa (%)</Label>
-                        <Input
-                          type="number"
-                          value={formData.it3_data.humedad_relativa}
-                          onChange={(e) => handleIT3Change('humedad_relativa', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Caudal de Aire (m³/h)</Label>
-                        <Input
-                          type="number"
-                          value={formData.it3_data.caudal_aire}
-                          onChange={(e) => handleIT3Change('caudal_aire', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Consumo Eléctrico (kW)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.consumo_electrico}
-                          onChange={(e) => handleIT3Change('consumo_electrico', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="pressures" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Presión Alta (bar)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.presion_alta}
-                          onChange={(e) => handleIT3Change('presion_alta', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Presión Baja (bar)</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.it3_data.presion_baja}
-                          onChange={(e) => handleIT3Change('presion_baja', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="status" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Estado de Filtros</Label>
-                        <Select 
-                          value={formData.it3_data.estado_filtros} 
-                          onValueChange={(v) => handleIT3Change('estado_filtros', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bueno">Bueno</SelectItem>
-                            <SelectItem value="aceptable">Aceptable</SelectItem>
-                            <SelectItem value="sucio">Sucio</SelectItem>
-                            <SelectItem value="cambiar">Requiere cambio</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Estado de Correas</Label>
-                        <Select 
-                          value={formData.it3_data.estado_correas} 
-                          onValueChange={(v) => handleIT3Change('estado_correas', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bueno">Bueno</SelectItem>
-                            <SelectItem value="desgastado">Desgastado</SelectItem>
-                            <SelectItem value="cambiar">Requiere cambio</SelectItem>
-                            <SelectItem value="na">N/A</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Nivel de Aceite</Label>
-                        <Select 
-                          value={formData.it3_data.nivel_aceite} 
-                          onValueChange={(v) => handleIT3Change('nivel_aceite', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="correcto">Correcto</SelectItem>
-                            <SelectItem value="bajo">Bajo</SelectItem>
-                            <SelectItem value="na">N/A</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Estado Aislamiento</Label>
-                        <Select 
-                          value={formData.it3_data.estado_aislamiento} 
-                          onValueChange={(v) => handleIT3Change('estado_aislamiento', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bueno">Bueno</SelectItem>
-                            <SelectItem value="deteriorado">Deteriorado</SelectItem>
-                            <SelectItem value="reparar">Requiere reparación</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Limpieza Unidad</Label>
-                        <Select 
-                          value={formData.it3_data.limpieza_unidad} 
-                          onValueChange={(v) => handleIT3Change('limpieza_unidad', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="limpia">Limpia</SelectItem>
-                            <SelectItem value="aceptable">Aceptable</SelectItem>
-                            <SelectItem value="sucia">Sucia</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Vibraciones</Label>
-                        <Select 
-                          value={formData.it3_data.vibraciones} 
-                          onValueChange={(v) => handleIT3Change('vibraciones', v)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="normales">Normales</SelectItem>
-                            <SelectItem value="elevadas">Elevadas</SelectItem>
-                            <SelectItem value="excesivas">Excesivas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="flex gap-6 mt-4">
-                      <div className="flex items-center gap-2">
+                    );
+                  }
+                  if (field.field_type === 'checkbox') {
+                    return (
+                      <div key={field.field_key} className="flex items-center gap-2 pt-6">
                         <Checkbox
-                          id="fugas"
-                          checked={formData.it3_data.fugas_refrigerante}
-                          onCheckedChange={(v) => handleIT3Change('fugas_refrigerante', v)}
+                          id={field.field_key}
+                          checked={formData.it3_data[field.field_key] || false}
+                          onCheckedChange={(v) => handleIT3Change(field.field_key, v)}
                         />
-                        <Label htmlFor="fugas">Fugas de refrigerante detectadas</Label>
+                        <Label htmlFor={field.field_key}>{field.field_label}</Label>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="ruidos"
-                          checked={formData.it3_data.ruidos_anomalos}
-                          onCheckedChange={(v) => handleIT3Change('ruidos_anomalos', v)}
+                    );
+                  }
+                  if (field.field_type === 'text') {
+                    return (
+                      <div key={field.field_key}>
+                        <Label>{field.field_label}</Label>
+                        <Input
+                          value={formData.it3_data[field.field_key] || ''}
+                          onChange={(e) => handleIT3Change(field.field_key, e.target.value)}
+                          className="mt-1"
                         />
-                        <Label htmlFor="ruidos">Ruidos anómalos</Label>
                       </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              )}
+                    );
+                  }
+                  return null;
+                })}
+              </div>
             </Card>
           )}
 
