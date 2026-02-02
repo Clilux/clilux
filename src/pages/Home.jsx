@@ -3,7 +3,6 @@ import { createPageUrl } from '@/utils';
 
 export default function Home() {
   useEffect(() => {
-    // Redirigir al menú de inicio
     window.location.href = createPageUrl('MenuInicio');
   }, []);
 
@@ -13,25 +12,6 @@ export default function Home() {
     </div>
   );
 }
-
-/* Original Home code moved to HomeTecnico and HomeCliente */
-function OriginalHome() {
-  const [user, setUser] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-        const clients = await base44.entities.Client.filter({ user_email: currentUser.email });
-        setUserRole(clients.length > 0 ? 'client' : 'technician');
-      } catch (error) {
-        console.error('Error loading user:', error);
-      }
-    };
-    loadUser();
-  }, []);
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
