@@ -47,45 +47,47 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Home from './pages/Home';
-import Clients from './pages/Clients';
-import ClientForm from './pages/ClientForm';
-import ClientDetail from './pages/ClientDetail';
-import BuildingForm from './pages/BuildingForm';
 import BuildingDetail from './pages/BuildingDetail';
-import EquipmentForm from './pages/EquipmentForm';
-import EquipmentDetail from './pages/EquipmentDetail';
-import RevisionForm from './pages/RevisionForm';
-import RevisionDetail from './pages/RevisionDetail';
-import Revisions from './pages/Revisions';
+import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
-import Settings from './pages/Settings';
-import Incidents from './pages/Incidents';
-import IncidentForm from './pages/IncidentForm';
-import IncidentDetail from './pages/IncidentDetail';
 import Calendar from './pages/Calendar';
+import ClientDetail from './pages/ClientDetail';
+import ClientForm from './pages/ClientForm';
+import Clients from './pages/Clients';
+import EquipmentDetail from './pages/EquipmentDetail';
+import EquipmentForm from './pages/EquipmentForm';
+import Home from './pages/Home';
+import IncidentDetail from './pages/IncidentDetail';
+import IncidentForm from './pages/IncidentForm';
+import Incidents from './pages/Incidents';
+import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
+import RevisionForm from './pages/RevisionForm';
+import Revisions from './pages/Revisions';
+import Settings from './pages/Settings';
+import TechnicianManagement from './pages/TechnicianManagement';
 
 
 export const PAGES = {
-    "Home": Home,
-    "Clients": Clients,
-    "ClientForm": ClientForm,
-    "ClientDetail": ClientDetail,
-    "BuildingForm": BuildingForm,
     "BuildingDetail": BuildingDetail,
-    "EquipmentForm": EquipmentForm,
-    "EquipmentDetail": EquipmentDetail,
-    "RevisionForm": RevisionForm,
-    "RevisionDetail": RevisionDetail,
-    "Revisions": Revisions,
+    "BuildingForm": BuildingForm,
     "Buildings": Buildings,
-    "Settings": Settings,
-    "Incidents": Incidents,
-    "IncidentForm": IncidentForm,
-    "IncidentDetail": IncidentDetail,
     "Calendar": Calendar,
+    "ClientDetail": ClientDetail,
+    "ClientForm": ClientForm,
+    "Clients": Clients,
+    "EquipmentDetail": EquipmentDetail,
+    "EquipmentForm": EquipmentForm,
+    "Home": Home,
+    "IncidentDetail": IncidentDetail,
+    "IncidentForm": IncidentForm,
+    "Incidents": Incidents,
+    "RevisionDetail": RevisionDetail,
     "RevisionFieldSettings": RevisionFieldSettings,
+    "RevisionForm": RevisionForm,
+    "Revisions": Revisions,
+    "Settings": Settings,
+    "TechnicianManagement": TechnicianManagement,
 }
 
 export const pagesConfig = {

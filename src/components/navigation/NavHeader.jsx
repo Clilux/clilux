@@ -15,21 +15,21 @@ export default function NavHeader({ title, showBack = true, showHome = true }) {
             variant="ghost"
             size="icon"
             onClick={() => navigate(-1)}
-            className="rounded-full hover:bg-slate-100"
+            className="rounded-full hover:bg-white/10 text-white"
           >
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
-        <h1 className="text-2xl font-semibold text-slate-800">{title}</h1>
+        <h1 className="text-2xl font-semibold text-white">{title}</h1>
       </div>
       {showHome && (
         <Link to={createPageUrl('Home')}>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full hover:bg-slate-100"
+            className="rounded-full hover:bg-white/10 text-white"
           >
-            <Home className="h-5 w-5 text-slate-600" />
+            <Home className="h-5 w-5" />
           </Button>
         </Link>
       )}
