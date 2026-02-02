@@ -57,18 +57,20 @@ import Clients from './pages/Clients';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
 import Home from './pages/Home';
+import HomeCliente from './pages/HomeCliente';
+import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
+import MenuInicio from './pages/MenuInicio';
 import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
-import HomeTecnico from './pages/HomeTecnico';
-import HomeCliente from './pages/HomeCliente';
-import MenuInicio from './pages/MenuInicio';
+import MaintenanceForm from './pages/MaintenanceForm';
+import MaintenanceDetail from './pages/MaintenanceDetail';
 
 
 export const PAGES = {
@@ -82,18 +84,20 @@ export const PAGES = {
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
     "Home": Home,
+    "HomeCliente": HomeCliente,
+    "HomeTecnico": HomeTecnico,
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
+    "MenuInicio": MenuInicio,
     "RevisionDetail": RevisionDetail,
     "RevisionFieldSettings": RevisionFieldSettings,
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
     "Settings": Settings,
     "TechnicianManagement": TechnicianManagement,
-    "HomeTecnico": HomeTecnico,
-    "HomeCliente": HomeCliente,
-    "MenuInicio": MenuInicio,
+    "MaintenanceForm": MaintenanceForm,
+    "MaintenanceDetail": MaintenanceDetail,
 }
 
 export const pagesConfig = {
