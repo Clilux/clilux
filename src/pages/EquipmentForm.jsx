@@ -13,7 +13,7 @@ import { Loader2, Save, Upload } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
-const equipmentTypes = [
+const defaultEquipmentTypes = [
   { value: 'split_mural', label: 'Split Mural' },
   { value: 'split_cassette', label: 'Split Cassette' },
   { value: 'split_conductos', label: 'Split Conductos' },
@@ -69,6 +69,20 @@ export default function EquipmentForm() {
     queryKey: ['buildings'],
     queryFn: () => base44.entities.Building.list(),
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    },
+  });
+
+  // Combine default types with custom types from settings
+  const equipmentTypes = [
+    ...defaultEquipmentTypes,
+    ...(settings?.equipment_types || []).map(t => ({ value: t, label: t })),
+  ];
 
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
