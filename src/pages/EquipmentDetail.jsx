@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, MapPin, Calendar, FileText, 
-  Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck, FileBarChart
+  Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck, FileBarChart,
+  Wrench, Settings, Shield
 } from 'lucide-react';
 import RevisionReport from '../components/reports/RevisionReport';
 import NavHeader from '../components/navigation/NavHeader';
 import RevisionCard from '../components/cards/RevisionCard';
 import StatusBadge from '../components/ui/StatusBadge';
+import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
+import MaintenanceHistory from '../components/equipment/MaintenanceHistory';
+import MaintenanceConfig from '../components/equipment/MaintenanceConfig';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -33,10 +38,17 @@ const equipmentTypeLabels = {
   otro: 'Otro',
 };
 
+const statusInfo = {
+  operational: { label: 'Operativo', color: 'bg-emerald-100 text-emerald-800', icon: '✓' },
+  maintenance_needed: { label: 'Requiere mantenimiento', color: 'bg-amber-100 text-amber-800', icon: '⚠' },
+  out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-800', icon: '✕' },
+};
+
 export default function EquipmentDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
   const [showReport, setShowReport] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
@@ -97,6 +109,7 @@ export default function EquipmentDetail() {
       <div className="max-w-5xl mx-auto">
         <NavHeader title={`${equipment.brand} ${equipment.model}`} />
 
+        {/* Status Overview Card */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
           <div className="flex flex-col md:flex-row gap-6">
             {equipment.photo_url && (
@@ -137,6 +150,56 @@ export default function EquipmentDetail() {
                     Editar
                   </Button>
                 </Link>
+              </div>
+
+              {/* Status Summary */}
+              <div className="grid grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-slate-50">
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
+                    equipment.status === 'operational' ? 'bg-emerald-100' :
+                    equipment.status === 'maintenance_needed' ? 'bg-amber-100' : 'bg-red-100'
+                  }`}>
+                    <Shield className={`h-5 w-5 ${
+                      equipment.status === 'operational' ? 'text-emerald-600' :
+                      equipment.status === 'maintenance_needed' ? 'text-amber-600' : 'text-red-600'
+                    }`} />
+                  </div>
+                  <p className="text-xs text-slate-500">Estado</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {statusInfo[equipment.status]?.label || 'Operativo'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 bg-blue-100">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <p className="text-xs text-slate-500">Última revisión</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {equipment.last_revision_date 
+                      ? format(new Date(equipment.last_revision_date), 'dd/MM/yy')
+                      : 'Sin datos'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
+                    equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                      ? 'bg-red-100' : 'bg-purple-100'
+                  }`}>
+                    <Wrench className={`h-5 w-5 ${
+                      equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                        ? 'text-red-600' : 'text-purple-600'
+                    }`} />
+                  </div>
+                  <p className="text-xs text-slate-500">Próxima revisión</p>
+                  <p className={`text-sm font-medium ${
+                    equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                      ? 'text-red-600' : 'text-slate-700'
+                  }`}>
+                    {equipment.next_revision_date 
+                      ? format(new Date(equipment.next_revision_date), 'dd/MM/yy')
+                      : 'No programada'}
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -213,50 +276,91 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5" />
-              Historial de Revisiones ({revisions.length})
-            </h2>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowReport(true)}>
-                <FileBarChart className="h-4 w-4 mr-2" />
-                Generar Informe
-              </Button>
-              <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-                <Button className="bg-slate-800 hover:bg-slate-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nueva Revisión
-                </Button>
-              </Link>
-            </div>
-          </div>
+        <Tabs defaultValue="maintenance" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="maintenance" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Mantenimiento
+            </TabsTrigger>
+            <TabsTrigger value="revisions" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Revisiones IT3 ({revisions.length})
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Documentos
+            </TabsTrigger>
+            <TabsTrigger value="config" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Configuración
+            </TabsTrigger>
+          </TabsList>
 
-          {revisions.length === 0 ? (
-            <Card className="p-8 text-center">
-              <ClipboardCheck className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 mb-4">No hay revisiones registradas</p>
-              <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear primera revisión
-                </Button>
-              </Link>
-            </Card>
-          ) : (
+          <TabsContent value="maintenance">
+            <MaintenanceHistory equipmentId={equipment.id} />
+          </TabsContent>
+
+          <TabsContent value="revisions">
             <div className="space-y-4">
-              {revisions.map(revision => (
-                <RevisionCard 
-                  key={revision.id} 
-                  revision={revision}
-                  equipmentName={`${equipment.brand} ${equipment.model}`}
-                  buildingName={building?.name}
-                />
-              ))}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <ClipboardCheck className="h-5 w-5" />
+                  Historial de Revisiones IT3/RITE ({revisions.length})
+                </h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowReport(true)}>
+                    <FileBarChart className="h-4 w-4 mr-2" />
+                    Generar Informe
+                  </Button>
+                  <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
+                    <Button className="bg-slate-800 hover:bg-slate-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Revisión
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {revisions.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <ClipboardCheck className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500 mb-4">No hay revisiones registradas</p>
+                  <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear primera revisión
+                    </Button>
+                  </Link>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {revisions.map(revision => (
+                    <RevisionCard 
+                      key={revision.id} 
+                      revision={revision}
+                      equipmentName={`${equipment.brand} ${equipment.model}`}
+                      buildingName={building?.name}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <EquipmentDocuments 
+              equipment={equipment} 
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
+            />
+          </TabsContent>
+
+          <TabsContent value="config">
+            <MaintenanceConfig 
+              equipment={equipment}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
+            />
+          </TabsContent>
+        </Tabs>
 
         {showReport && (
           <RevisionReport
