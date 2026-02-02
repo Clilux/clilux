@@ -245,7 +245,7 @@ export default function HomeTecnico() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <Link to={createPageUrl('ClientForm')}>
               <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
                 <div className="flex flex-col items-center gap-3 text-center">
@@ -253,6 +253,16 @@ export default function HomeTecnico() {
                     <Plus className="h-6 w-6 text-blue-400" />
                   </div>
                   <span className="font-medium text-white text-sm">Nuevo Cliente</span>
+                </div>
+              </Card>
+            </Link>
+            <Link to={createPageUrl('EquipmentForm')}>
+              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Thermometer className="h-6 w-6 text-cyan-400" />
+                  </div>
+                  <span className="font-medium text-white text-sm">Nuevo Equipo</span>
                 </div>
               </Card>
             </Link>

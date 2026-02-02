@@ -85,49 +85,49 @@ export default function Settings() {
   // Gestión de tipos de equipos personalizados
   const addEquipmentType = () => {
     const newType = prompt('Nombre del nuevo tipo de equipo:');
-    if (newType) {
-      handleChange('equipment_types', [...(formData.equipment_types || []), newType]);
+    if (newType && newType.trim()) {
+      const newTypes = [...(formData.equipment_types || []), newType.trim()];
+      setFormData(prev => ({ ...prev, equipment_types: newTypes }));
     }
   };
 
   const removeEquipmentType = (index) => {
-    handleChange('equipment_types', formData.equipment_types.filter((_, i) => i !== index));
+    const filtered = (formData.equipment_types || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, equipment_types: filtered }));
   };
 
   // Gestión de campos personalizados de revisión
   const addRevisionField = () => {
-    handleChange('revision_fields', [
-      ...(formData.revision_fields || []),
-      { field_name: '', field_label: '', field_type: 'text', required: false }
-    ]);
+    const newFields = [...(formData.revision_fields || []), { field_name: '', field_label: '', field_type: 'text', required: false }];
+    setFormData(prev => ({ ...prev, revision_fields: newFields }));
   };
 
   const updateRevisionField = (index, field, value) => {
     const updated = [...(formData.revision_fields || [])];
     updated[index] = { ...updated[index], [field]: value };
-    handleChange('revision_fields', updated);
+    setFormData(prev => ({ ...prev, revision_fields: updated }));
   };
 
   const removeRevisionField = (index) => {
-    handleChange('revision_fields', formData.revision_fields.filter((_, i) => i !== index));
+    const filtered = (formData.revision_fields || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, revision_fields: filtered }));
   };
 
   // Gestión de campos personalizados de cliente
   const addClientField = () => {
-    handleChange('client_fields', [
-      ...(formData.client_fields || []),
-      { field_name: '', field_label: '', field_type: 'text', required: false }
-    ]);
+    const newFields = [...(formData.client_fields || []), { field_name: '', field_label: '', field_type: 'text', required: false }];
+    setFormData(prev => ({ ...prev, client_fields: newFields }));
   };
 
   const updateClientField = (index, field, value) => {
     const updated = [...(formData.client_fields || [])];
     updated[index] = { ...updated[index], [field]: value };
-    handleChange('client_fields', updated);
+    setFormData(prev => ({ ...prev, client_fields: updated }));
   };
 
   const removeClientField = (index) => {
-    handleChange('client_fields', formData.client_fields.filter((_, i) => i !== index));
+    const filtered = (formData.client_fields || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, client_fields: filtered }));
   };
 
   if (isLoading) {

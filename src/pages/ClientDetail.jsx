@@ -148,7 +148,7 @@ export default function ClientDetail() {
         </Card>
 
         <Tabs defaultValue="buildings" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <TabsList>
               <TabsTrigger value="buildings" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
@@ -159,12 +159,20 @@ export default function ClientDetail() {
                 Equipos ({equipment.length})
               </TabsTrigger>
             </TabsList>
-            <Link to={createPageUrl(`BuildingForm?client_id=${client.id}`)}>
-              <Button className="bg-slate-800 hover:bg-slate-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Edificio
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link to={createPageUrl(`EquipmentForm?client_id=${client.id}`)}>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Equipo
+                </Button>
+              </Link>
+              <Link to={createPageUrl(`BuildingForm?client_id=${client.id}`)}>
+                <Button className="bg-slate-800 hover:bg-slate-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Edificio
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <TabsContent value="buildings">
