@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect } from 'react';
 import { createPageUrl } from '@/utils';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Users, Building2, Thermometer, ClipboardCheck, 
-  Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock
-} from 'lucide-react';
-import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 export default function Home() {
+  useEffect(() => {
+    // Redirigir al menú de inicio
+    window.location.href = createPageUrl('MenuInicio');
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="text-white">Cargando...</div>
+    </div>
+  );
+}
+
+/* Original Home code moved to HomeTecnico and HomeCliente */
+function OriginalHome() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
 

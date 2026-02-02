@@ -68,6 +68,7 @@ import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
 import HomeTecnico from './pages/HomeTecnico';
 import HomeCliente from './pages/HomeCliente';
+import MenuInicio from './pages/MenuInicio';
 
 
 export const PAGES = {
@@ -92,6 +93,7 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "HomeTecnico": HomeTecnico,
     "HomeCliente": HomeCliente,
+    "MenuInicio": MenuInicio,
 }
 
 export const pagesConfig = {
