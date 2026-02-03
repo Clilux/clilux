@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, Building2, Thermometer, ClipboardCheck, 
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText
 } from 'lucide-react';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -313,6 +313,16 @@ export default function HomeTecnico() {
                     <ClipboardCheck className="h-6 w-6 text-amber-400" />
                   </div>
                   <span className="font-medium text-white text-sm">Historial</span>
+                </div>
+              </Card>
+            </Link>
+            <Link to={createPageUrl('Reports')}>
+              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FileText className="h-6 w-6 text-indigo-400" />
+                  </div>
+                  <span className="font-medium text-white text-sm">Informes</span>
                 </div>
               </Card>
             </Link>
