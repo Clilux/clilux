@@ -28,28 +28,35 @@ const defaultEquipmentTypes = [
 ];
 
 const defaultFields = [
-  { field_key: 'temp_impulsion', field_label: 'Temp. Impulsión (°C)', field_type: 'number', enabled: true },
-  { field_key: 'temp_retorno', field_label: 'Temp. Retorno (°C)', field_type: 'number', enabled: true },
-  { field_key: 'temp_exterior', field_label: 'Temp. Exterior (°C)', field_type: 'number', enabled: true },
-  { field_key: 'presion_alta', field_label: 'Presión Alta (bar)', field_type: 'number', enabled: true },
-  { field_key: 'presion_baja', field_label: 'Presión Baja (bar)', field_type: 'number', enabled: true },
-  { field_key: 'consumo_electrico', field_label: 'Consumo Eléctrico (kW)', field_type: 'number', enabled: true },
-  { field_key: 'caudal_aire', field_label: 'Caudal de Aire (m³/h)', field_type: 'number', enabled: true },
-  { field_key: 'humedad_relativa', field_label: 'Humedad Relativa (%)', field_type: 'number', enabled: true },
-  { field_key: 'estado_filtros', field_label: 'Estado de Filtros', field_type: 'select', options: ['bueno', 'aceptable', 'sucio', 'cambiar'], enabled: true },
-  { field_key: 'estado_correas', field_label: 'Estado de Correas', field_type: 'select', options: ['bueno', 'desgastado', 'cambiar', 'na'], enabled: true },
-  { field_key: 'fugas_refrigerante', field_label: 'Fugas de Refrigerante', field_type: 'checkbox', enabled: true },
-  { field_key: 'nivel_aceite', field_label: 'Nivel de Aceite', field_type: 'select', options: ['correcto', 'bajo', 'na'], enabled: true },
-  { field_key: 'vibraciones', field_label: 'Vibraciones', field_type: 'select', options: ['normales', 'elevadas', 'excesivas'], enabled: true },
-  { field_key: 'ruidos_anomalos', field_label: 'Ruidos Anómalos', field_type: 'checkbox', enabled: true },
-  { field_key: 'estado_aislamiento', field_label: 'Estado Aislamiento', field_type: 'select', options: ['bueno', 'deteriorado', 'reparar'], enabled: true },
-  { field_key: 'limpieza_unidad', field_label: 'Limpieza Unidad', field_type: 'select', options: ['limpia', 'aceptable', 'sucia'], enabled: true },
-  { field_key: 'temp_agua_entrada', field_label: 'Temp. Agua Entrada (°C)', field_type: 'number', enabled: false },
-  { field_key: 'temp_agua_salida', field_label: 'Temp. Agua Salida (°C)', field_type: 'number', enabled: false },
-  { field_key: 'caudal_agua', field_label: 'Caudal Agua (l/h)', field_type: 'number', enabled: false },
-  { field_key: 'estado_quemador', field_label: 'Estado del Quemador', field_type: 'select', options: ['bueno', 'ajustar', 'reparar'], enabled: false },
-  { field_key: 'analisis_combustion', field_label: 'Análisis de Combustión', field_type: 'text', enabled: false },
+  { field_key: 'temp_impulsion', field_label: 'Temp. Impulsión (°C)', field_type: 'number', enabled: true, periods: ['monthly', 'quarterly', 'biannual', 'annual'] },
+  { field_key: 'temp_retorno', field_label: 'Temp. Retorno (°C)', field_type: 'number', enabled: true, periods: ['monthly', 'quarterly', 'biannual', 'annual'] },
+  { field_key: 'temp_exterior', field_label: 'Temp. Exterior (°C)', field_type: 'number', enabled: true, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'presion_alta', field_label: 'Presión Alta (bar)', field_type: 'number', enabled: true, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'presion_baja', field_label: 'Presión Baja (bar)', field_type: 'number', enabled: true, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'consumo_electrico', field_label: 'Consumo Eléctrico (kW)', field_type: 'number', enabled: true, periods: ['biannual', 'annual'] },
+  { field_key: 'caudal_aire', field_label: 'Caudal de Aire (m³/h)', field_type: 'number', enabled: true, periods: ['biannual', 'annual'] },
+  { field_key: 'humedad_relativa', field_label: 'Humedad Relativa (%)', field_type: 'number', enabled: true, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'estado_filtros', field_label: 'Estado de Filtros', field_type: 'select', options: ['bueno', 'aceptable', 'sucio', 'cambiar'], enabled: true, periods: ['monthly', 'quarterly', 'biannual', 'annual'] },
+  { field_key: 'estado_correas', field_label: 'Estado de Correas', field_type: 'select', options: ['bueno', 'desgastado', 'cambiar', 'na'], enabled: true, periods: ['biannual', 'annual'] },
+  { field_key: 'fugas_refrigerante', field_label: 'Fugas de Refrigerante', field_type: 'checkbox', enabled: true, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'nivel_aceite', field_label: 'Nivel de Aceite', field_type: 'select', options: ['correcto', 'bajo', 'na'], enabled: true, periods: ['biannual', 'annual'] },
+  { field_key: 'vibraciones', field_label: 'Vibraciones', field_type: 'select', options: ['normales', 'elevadas', 'excesivas'], enabled: true, periods: ['biannual', 'annual'] },
+  { field_key: 'ruidos_anomalos', field_label: 'Ruidos Anómalos', field_type: 'checkbox', enabled: true, periods: ['monthly', 'quarterly', 'biannual', 'annual'] },
+  { field_key: 'estado_aislamiento', field_label: 'Estado Aislamiento', field_type: 'select', options: ['bueno', 'deteriorado', 'reparar'], enabled: true, periods: ['annual'] },
+  { field_key: 'limpieza_unidad', field_label: 'Limpieza Unidad', field_type: 'select', options: ['limpia', 'aceptable', 'sucia'], enabled: true, periods: ['monthly', 'quarterly', 'biannual', 'annual'] },
+  { field_key: 'temp_agua_entrada', field_label: 'Temp. Agua Entrada (°C)', field_type: 'number', enabled: false, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'temp_agua_salida', field_label: 'Temp. Agua Salida (°C)', field_type: 'number', enabled: false, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'caudal_agua', field_label: 'Caudal Agua (l/h)', field_type: 'number', enabled: false, periods: ['biannual', 'annual'] },
+  { field_key: 'estado_quemador', field_label: 'Estado del Quemador', field_type: 'select', options: ['bueno', 'ajustar', 'reparar'], enabled: false, periods: ['quarterly', 'biannual', 'annual'] },
+  { field_key: 'analisis_combustion', field_label: 'Análisis de Combustión', field_type: 'text', enabled: false, periods: ['biannual', 'annual'] },
 ];
+
+const periodLabels = {
+  monthly: 'Mensual',
+  quarterly: 'Trimestral',
+  biannual: 'Semestral',
+  annual: 'Anual',
+};
 
 export default function RevisionFieldSettings() {
   const queryClient = useQueryClient();
@@ -149,7 +156,19 @@ export default function RevisionFieldSettings() {
       field_type: 'text',
       enabled: true,
       custom: true,
+      periods: ['monthly', 'quarterly', 'biannual', 'annual'],
     }]);
+  };
+
+  const togglePeriod = (index, period) => {
+    setFields(prev => prev.map((f, i) => {
+      if (i !== index) return f;
+      const periods = f.periods || ['monthly', 'quarterly', 'biannual', 'annual'];
+      if (periods.includes(period)) {
+        return { ...f, periods: periods.filter(p => p !== period) };
+      }
+      return { ...f, periods: [...periods, period] };
+    }));
   };
 
   const updateField = (index, key, value) => {
@@ -215,42 +234,62 @@ export default function RevisionFieldSettings() {
 
               <div className="space-y-3">
                 {fields.map((field, index) => (
-                  <div key={field.field_key} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50">
-                    <Switch
-                      checked={field.enabled}
-                      onCheckedChange={() => toggleField(index)}
-                    />
-                    <div className="flex-1 grid grid-cols-3 gap-4">
-                      <Input
-                        value={field.field_label}
-                        onChange={(e) => updateField(index, 'field_label', e.target.value)}
-                        className="bg-white"
-                        placeholder="Etiqueta"
+                  <div key={field.field_key} className="p-4 rounded-lg bg-slate-50 space-y-3">
+                    <div className="flex items-center gap-4">
+                      <Switch
+                        checked={field.enabled}
+                        onCheckedChange={() => toggleField(index)}
                       />
-                      <Select value={field.field_type} onValueChange={(v) => updateField(index, 'field_type', v)}>
-                        <SelectTrigger className="bg-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Texto</SelectItem>
-                          <SelectItem value="number">Número</SelectItem>
-                          <SelectItem value="select">Selección</SelectItem>
-                          <SelectItem value="checkbox">Casilla</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {field.field_type === 'select' && (
+                      <div className="flex-1 grid grid-cols-3 gap-4">
                         <Input
-                          value={field.options?.join(', ') || ''}
-                          onChange={(e) => updateField(index, 'options', e.target.value.split(',').map(s => s.trim()))}
+                          value={field.field_label}
+                          onChange={(e) => updateField(index, 'field_label', e.target.value)}
                           className="bg-white"
-                          placeholder="Opciones (separadas por coma)"
+                          placeholder="Etiqueta"
                         />
+                        <Select value={field.field_type} onValueChange={(v) => updateField(index, 'field_type', v)}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Texto</SelectItem>
+                            <SelectItem value="number">Número</SelectItem>
+                            <SelectItem value="select">Selección</SelectItem>
+                            <SelectItem value="checkbox">Casilla</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {field.field_type === 'select' && (
+                          <Input
+                            value={field.options?.join(', ') || ''}
+                            onChange={(e) => updateField(index, 'options', e.target.value.split(',').map(s => s.trim()))}
+                            className="bg-white"
+                            placeholder="Opciones (separadas por coma)"
+                          />
+                        )}
+                      </div>
+                      {field.custom && (
+                        <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
                       )}
                     </div>
-                    {field.custom && (
-                      <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                    {field.enabled && (
+                      <div className="flex items-center gap-2 pl-12">
+                        <span className="text-xs text-slate-500 mr-2">Aparece en:</span>
+                        {['monthly', 'quarterly', 'biannual', 'annual'].map(period => (
+                          <button
+                            key={period}
+                            onClick={() => togglePeriod(index, period)}
+                            className={`px-2 py-1 text-xs rounded ${
+                              (field.periods || []).includes(period)
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {periodLabels[period]}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}

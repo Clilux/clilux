@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
+import ExportButton from '../components/ExportButton';
 
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +49,21 @@ export default function Clients() {
               className="pl-10 bg-white"
             />
           </div>
+          <ExportButton
+            data={clients}
+            filename="clientes"
+            columns={[
+              { key: 'name', label: 'Nombre' },
+              { key: 'cif', label: 'CIF' },
+              { key: 'address', label: 'Dirección' },
+              { key: 'city', label: 'Ciudad' },
+              { key: 'province', label: 'Provincia' },
+              { key: 'phone', label: 'Teléfono' },
+              { key: 'email', label: 'Email' },
+              { key: 'contact_person', label: 'Contacto' },
+              { key: 'status', label: 'Estado' },
+            ]}
+          />
           <Link to={createPageUrl('ClientForm')}>
             <Button className="bg-slate-800 hover:bg-slate-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
