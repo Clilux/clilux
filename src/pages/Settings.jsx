@@ -319,6 +319,77 @@ export default function Settings() {
                     </label>
                   </div>
                 </div>
+              </div>
+
+              <h4 className="font-medium text-slate-700 mt-8 mb-4">Colores de la Interfaz</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Color de Fondo</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={formData.background_color || '#0f172a'}
+                      onChange={(e) => handleChange('background_color', e.target.value)}
+                      className="h-10 w-16 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={formData.background_color || '#0f172a'}
+                      onChange={(e) => handleChange('background_color', e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Color de Botones</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={formData.button_color || '#3b82f6'}
+                      onChange={(e) => handleChange('button_color', e.target.value)}
+                      className="h-10 w-16 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={formData.button_color || '#3b82f6'}
+                      onChange={(e) => handleChange('button_color', e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Color de Texto</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={formData.text_color || '#ffffff'}
+                      onChange={(e) => handleChange('text_color', e.target.value)}
+                      className="h-10 w-16 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={formData.text_color || '#ffffff'}
+                      onChange={(e) => handleChange('text_color', e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Color de Iconos</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={formData.icon_color || '#60a5fa'}
+                      onChange={(e) => handleChange('icon_color', e.target.value)}
+                      className="h-10 w-16 rounded border cursor-pointer"
+                    />
+                    <Input
+                      value={formData.icon_color || '#60a5fa'}
+                      onChange={(e) => handleChange('icon_color', e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
 
                 <div>
                   <Label>Color Primario</Label>
@@ -332,23 +403,6 @@ export default function Settings() {
                     <Input
                       value={formData.primary_color || '#1e293b'}
                       onChange={(e) => handleChange('primary_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color Secundario</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.secondary_color || '#3b82f6'}
-                      onChange={(e) => handleChange('secondary_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.secondary_color || '#3b82f6'}
-                      onChange={(e) => handleChange('secondary_color', e.target.value)}
                       className="flex-1"
                     />
                   </div>
@@ -372,24 +426,24 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="mt-6 p-4 rounded-lg bg-slate-50">
-                <p className="text-sm text-slate-600 mb-2">Vista previa de colores:</p>
-                <div className="flex gap-4">
+              <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: formData.background_color || '#0f172a' }}>
+                <p className="text-sm mb-3" style={{ color: formData.text_color || '#ffffff' }}>Vista previa:</p>
+                <div className="flex gap-4 flex-wrap">
                   <div 
-                    className="w-24 h-12 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                    style={{ backgroundColor: formData.primary_color }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium"
+                    style={{ backgroundColor: formData.button_color || '#3b82f6', color: '#fff' }}
+                  >
+                    Botón
+                  </div>
+                  <div 
+                    className="px-4 py-2 rounded-lg text-sm font-medium"
+                    style={{ backgroundColor: formData.primary_color || '#1e293b', color: '#fff' }}
                   >
                     Primario
                   </div>
                   <div 
-                    className="w-24 h-12 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                    style={{ backgroundColor: formData.secondary_color }}
-                  >
-                    Secundario
-                  </div>
-                  <div 
-                    className="w-24 h-12 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                    style={{ backgroundColor: formData.accent_color }}
+                    className="px-4 py-2 rounded-lg text-sm font-medium"
+                    style={{ backgroundColor: formData.accent_color || '#10b981', color: '#fff' }}
                   >
                     Acento
                   </div>

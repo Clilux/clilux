@@ -1,7 +1,7 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,15 +9,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, Thermometer
+  User, FileText, Thermometer, Trash2, Download
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
 import StatusBadge from '../components/ui/StatusBadge';
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
+import ExportButton from '../components/ExportButton';
+import { toast } from 'sonner';
 
 export default function ClientDetail() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('id');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Client.delete(clientId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente eliminado');
+      navigate(createPageUrl('Clients'));
+    },
+    onError: () => toast.error('Error al eliminar el cliente'),
+  });
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['client', clientId],
@@ -89,6 +107,10 @@ export default function ClientDetail() {
                   Editar
                 </Button>
               </Link>
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </Button>
             </div>
           </div>
 
@@ -228,6 +250,15 @@ export default function ClientDetail() {
             )}
           </TabsContent>
         </Tabs>
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="¿Eliminar cliente?"
+          description={`Se eliminará "${client.name}" y todos sus datos asociados. Esta acción no se puede deshacer.`}
+          onConfirm={() => deleteMutation.mutate()}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );
