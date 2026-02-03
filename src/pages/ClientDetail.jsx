@@ -199,6 +199,22 @@ export default function ClientDetail() {
               </div>
             </div>
           )}
+
+          {clientPortalUser && (
+            <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">Acceso Portal Cliente</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-blue-600">Email:</span>
+                  <p className="font-mono text-blue-900">{clientPortalUser.email}</p>
+                </div>
+                <div>
+                  <span className="text-blue-600">Contraseña:</span>
+                  <p className="font-mono text-blue-900">{clientPortalUser.password}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <Tabs defaultValue="buildings" className="space-y-4">
