@@ -8,46 +8,67 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { 
   Building2, Thermometer, ClipboardCheck, 
-  ChevronRight, LogOut, AlertCircle
+  LogOut, AlertCircle, Eye, Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function HomeCliente() {
-  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [clientId, setClientId] = useState(null);
+  const [loginError, setLoginError] = useState('');
 
-  const { data: clients = [], isLoading: loadingClients } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date'),
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    },
   });
 
   const { data: clientData, isLoading: loadingClientData } = useQuery({
-    queryKey: ['client-data', selectedClientId],
+    queryKey: ['client-data', clientId],
     queryFn: async () => {
-      if (!selectedClientId) return null;
-      const clientList = await base44.entities.Client.filter({ id: selectedClientId });
+      if (!clientId) return null;
+      const clientList = await base44.entities.Client.filter({ id: clientId });
       if (clientList.length > 0) {
         const client = clientList[0];
         const buildings = await base44.entities.Building.filter({ client_id: client.id });
         const equipment = await base44.entities.Equipment.filter({ client_id: client.id });
-        const revisions = await base44.entities.Revision.filter({ client_id: client.id }, '-revision_date', 5);
-        const incidents = await base44.entities.Incident.filter({ client_id: client.id }, '-created_date', 5);
+        const revisions = await base44.entities.Revision.filter({ client_id: client.id }, '-revision_date', 10);
+        const incidents = await base44.entities.Incident.filter({ client_id: client.id }, '-created_date', 10);
         return { client, buildings, equipment, revisions, incidents };
       }
       return null;
     },
-    enabled: !!selectedClientId,
+    enabled: !!clientId,
   });
 
-  const handleLogout = () => {
-    window.location.href = createPageUrl('Login');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    
+    // Check client credentials from settings
+    const clientUsers = settings?.client_users || [];
+    const user = clientUsers.find(u => u.email === credentials.email && u.password === credentials.password);
+    
+    if (user) {
+      setClientId(user.client_id);
+    } else {
+      setLoginError('Credenciales incorrectas');
+    }
   };
 
-  // Pantalla de selección de cliente
-  if (!selectedClientId) {
+  const handleLogout = () => {
+    setClientId(null);
+    setCredentials({ email: '', password: '' });
+  };
+
+  // Login screen
+  if (!clientId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
         <div className="fixed top-10 right-10 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl" />
@@ -59,31 +80,44 @@ export default function HomeCliente() {
               <Building2 className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">Portal del Cliente</h1>
-            <p className="text-slate-400 mt-2">Selecciona tu empresa para continuar</p>
+            <p className="text-slate-400 mt-2">Accede con tus credenciales</p>
           </div>
 
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <Label className="text-white mb-2 block">Seleccionar Cliente</Label>
-            {loadingClients ? (
-              <Skeleton className="h-10 bg-white/10" />
-            ) : (
-              <Select onValueChange={(value) => setSelectedClientId(value)}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="Selecciona tu empresa..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label className="text-white">Email</Label>
+                <Input
+                  type="email"
+                  value={credentials.email}
+                  onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                  className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <Label className="text-white">Contraseña</Label>
+                <Input
+                  type="password"
+                  value={credentials.password}
+                  onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                  className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {loginError && (
+                <p className="text-red-400 text-sm">{loginError}</p>
+              )}
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
+                Acceder
+              </Button>
+            </form>
           </Card>
 
           <div className="mt-6 text-center">
-            <Link to={createPageUrl('Login')}>
+            <Link to={createPageUrl('MenuInicio')}>
               <Button variant="ghost" className="text-slate-400 hover:text-white">
                 <LogOut className="h-4 w-4 mr-2" />
                 Volver al inicio
@@ -95,7 +129,7 @@ export default function HomeCliente() {
     );
   }
 
-  // Vista del cliente
+  // Client view (read-only)
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
       <div className="fixed top-10 right-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
@@ -174,12 +208,12 @@ export default function HomeCliente() {
                 </Card>
               </div>
 
-              {/* Report incident */}
-              <Link to={createPageUrl(`IncidentForm?client_id=${selectedClientId}`)}>
+              {/* Report incident - only action allowed */}
+              <Link to={createPageUrl(`IncidentForm?client_id=${clientId}&mode=client`)}>
                 <Card className="p-5 bg-red-500/20 border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-full bg-red-500/30 flex items-center justify-center">
-                      <AlertCircle className="h-7 w-7 text-red-400" />
+                      <Plus className="h-7 w-7 text-red-400" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-white">Reportar Incidencia</h3>
@@ -189,88 +223,140 @@ export default function HomeCliente() {
                 </Card>
               </Link>
 
-              {/* Buildings and revisions */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-white">Mis Edificios</h2>
-                  </div>
-                  <div className="space-y-3">
-                    {clientData.buildings.map(building => (
-                      <Link 
-                        key={building.id} 
-                        to={createPageUrl(`BuildingDetail?id=${building.id}`)}
-                        className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                      >
-                        <h3 className="font-medium text-white">{building.name}</h3>
-                        <p className="text-sm text-slate-400">{building.address}, {building.city}</p>
-                      </Link>
-                    ))}
-                    {clientData.buildings.length === 0 && (
-                      <p className="text-slate-400 text-center py-4">No hay edificios registrados</p>
-                    )}
-                  </div>
-                </Card>
+              {/* Buildings (read-only) */}
+              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Mis Edificios</h2>
+                  <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {clientData.buildings.map(building => (
+                    <div 
+                      key={building.id} 
+                      className="p-4 rounded-xl bg-white/5 border border-white/10"
+                    >
+                      <h3 className="font-medium text-white">{building.name}</h3>
+                      <p className="text-sm text-slate-400">{building.address}, {building.city}</p>
+                      <p className="text-xs text-slate-500 mt-2">
+                        {clientData.equipment.filter(e => e.building_id === building.id).length} equipos
+                      </p>
+                    </div>
+                  ))}
+                  {clientData.buildings.length === 0 && (
+                    <p className="text-slate-400 col-span-full text-center py-4">No hay edificios registrados</p>
+                  )}
+                </div>
+              </Card>
 
-                <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-                  <h2 className="text-lg font-semibold text-white mb-4">Últimas Revisiones</h2>
-                  <div className="space-y-3">
-                    {clientData.revisions.map(revision => {
-                      const eq = clientData.equipment.find(e => e.id === revision.equipment_id);
-                      return (
-                        <Link 
-                          key={revision.id} 
-                          to={createPageUrl(`RevisionDetail?id=${revision.id}`)}
-                          className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                        >
-                          <div className="flex items-center justify-between">
+              {/* Equipment (read-only) */}
+              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Estado de Equipos</h2>
+                  <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {clientData.equipment.map(eq => {
+                    const building = clientData.buildings.find(b => b.id === eq.building_id);
+                    return (
+                      <div 
+                        key={eq.id}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium text-white">{eq.brand} {eq.model}</h3>
+                          <span className={`w-3 h-3 rounded-full ${
+                            eq.status === 'operational' ? 'bg-emerald-500' :
+                            eq.status === 'maintenance_needed' ? 'bg-amber-500' : 'bg-red-500'
+                          }`} />
+                        </div>
+                        <p className="text-sm text-slate-400">{eq.location}</p>
+                        <p className="text-xs text-slate-500">{building?.name}</p>
+                        {eq.next_revision_date && (
+                          <p className="text-xs text-blue-400 mt-2">
+                            Próxima revisión: {format(new Date(eq.next_revision_date), 'dd/MM/yyyy')}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {clientData.equipment.length === 0 && (
+                    <p className="text-slate-400 col-span-full text-center py-4">No hay equipos registrados</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Revisions (read-only) */}
+              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Últimas Revisiones</h2>
+                  <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
+                </div>
+                <div className="space-y-3">
+                  {clientData.revisions.map(revision => {
+                    const eq = clientData.equipment.find(e => e.id === revision.equipment_id);
+                    return (
+                      <div 
+                        key={revision.id} 
+                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
                             <h3 className="font-medium text-white">
                               {format(new Date(revision.revision_date), "dd MMM yyyy", { locale: es })}
                             </h3>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              revision.general_status === 'good' ? 'bg-emerald-500/20 text-emerald-400' :
-                              revision.general_status === 'acceptable' ? 'bg-blue-500/20 text-blue-400' :
-                              revision.general_status === 'needs_repair' ? 'bg-amber-500/20 text-amber-400' :
-                              'bg-red-500/20 text-red-400'
-                            }`}>
-                              {revision.general_status === 'good' ? 'Bueno' :
-                               revision.general_status === 'acceptable' ? 'Aceptable' :
-                               revision.general_status === 'needs_repair' ? 'Reparación' : 'Crítico'}
-                            </span>
+                            <p className="text-sm text-slate-400">{eq?.brand} {eq?.model}</p>
                           </div>
-                          <p className="text-sm text-slate-400">{eq?.brand} {eq?.model}</p>
-                        </Link>
-                      );
-                    })}
-                    {clientData.revisions.length === 0 && (
-                      <p className="text-slate-400 text-center py-4">No hay revisiones registradas</p>
-                    )}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Equipment */}
-              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-                <h2 className="text-lg font-semibold text-white mb-4">Estado de Equipos</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {clientData.equipment.map(eq => (
-                    <Link 
-                      key={eq.id}
-                      to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}
-                      className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-medium text-white">{eq.brand} {eq.model}</h3>
-                        <span className={`w-3 h-3 rounded-full ${
-                          eq.status === 'operational' ? 'bg-emerald-500' :
-                          eq.status === 'maintenance_needed' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            revision.general_status === 'good' ? 'bg-emerald-500/20 text-emerald-400' :
+                            revision.general_status === 'acceptable' ? 'bg-blue-500/20 text-blue-400' :
+                            revision.general_status === 'needs_repair' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {revision.general_status === 'good' ? 'Bueno' :
+                             revision.general_status === 'acceptable' ? 'Aceptable' :
+                             revision.general_status === 'needs_repair' ? 'Reparación' : 'Crítico'}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-slate-400">{eq.location}</p>
-                    </Link>
-                  ))}
-                  {clientData.equipment.length === 0 && (
-                    <p className="text-slate-400 col-span-full text-center py-4">No hay equipos registrados</p>
+                    );
+                  })}
+                  {clientData.revisions.length === 0 && (
+                    <p className="text-slate-400 text-center py-4">No hay revisiones registradas</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Incidents (read-only list) */}
+              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Mis Incidencias</h2>
+                </div>
+                <div className="space-y-3">
+                  {clientData.incidents?.map(incident => (
+                    <div 
+                      key={incident.id} 
+                      className="p-4 rounded-xl bg-white/5 border border-white/10"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-white">{incident.title}</h3>
+                          <p className="text-sm text-slate-400">{incident.description?.substring(0, 100)}...</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          incident.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                          incident.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                          incident.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' :
+                          'bg-slate-500/20 text-slate-400'
+                        }`}>
+                          {incident.status === 'pending' ? 'Pendiente' :
+                           incident.status === 'in_progress' ? 'En progreso' :
+                           incident.status === 'resolved' ? 'Resuelto' : 'Cerrado'}
+                        </span>
+                      </div>
+                    </div>
+                  )) || []}
+                  {(!clientData.incidents || clientData.incidents.length === 0) && (
+                    <p className="text-slate-400 text-center py-4">No hay incidencias registradas</p>
                   )}
                 </div>
               </Card>

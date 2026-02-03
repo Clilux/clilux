@@ -62,6 +62,8 @@ import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
+import MaintenanceDetail from './pages/MaintenanceDetail';
+import MaintenanceForm from './pages/MaintenanceForm';
 import MenuInicio from './pages/MenuInicio';
 import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
@@ -69,8 +71,6 @@ import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
-import MaintenanceForm from './pages/MaintenanceForm';
-import MaintenanceDetail from './pages/MaintenanceDetail';
 
 
 export const PAGES = {
@@ -89,6 +89,8 @@ export const PAGES = {
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
+    "MaintenanceDetail": MaintenanceDetail,
+    "MaintenanceForm": MaintenanceForm,
     "MenuInicio": MenuInicio,
     "RevisionDetail": RevisionDetail,
     "RevisionFieldSettings": RevisionFieldSettings,
@@ -96,8 +98,6 @@ export const PAGES = {
     "Revisions": Revisions,
     "Settings": Settings,
     "TechnicianManagement": TechnicianManagement,
-    "MaintenanceForm": MaintenanceForm,
-    "MaintenanceDetail": MaintenanceDetail,
 }
 
 export const pagesConfig = {

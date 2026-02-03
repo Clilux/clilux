@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2 } from 'lucide-react';
+import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2, Users, Download, UploadCloud, Eye, EyeOff } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
 export default function Settings() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+
+  const [showPassword, setShowPassword] = useState({});
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -30,8 +32,20 @@ export default function Settings() {
         equipment_types: [],
         revision_fields: [],
         client_fields: [],
+        client_users: [],
+        maintenance_periods: {
+          monthly: true,
+          quarterly: true,
+          biannual: true,
+          annual: true,
+        },
       };
     },
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list(),
   });
 
   const [formData, setFormData] = useState(settings || {});
@@ -130,6 +144,95 @@ export default function Settings() {
     setFormData(prev => ({ ...prev, client_fields: filtered }));
   };
 
+  // Gestión de usuarios del portal cliente
+  const addClientUser = () => {
+    const newUsers = [...(formData.client_users || []), { email: '', password: '', client_id: '' }];
+    setFormData(prev => ({ ...prev, client_users: newUsers }));
+  };
+
+  const updateClientUser = (index, field, value) => {
+    const updated = [...(formData.client_users || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData(prev => ({ ...prev, client_users: updated }));
+  };
+
+  const removeClientUser = (index) => {
+    const filtered = (formData.client_users || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, client_users: filtered }));
+  };
+
+  // Copia de seguridad
+  const handleExportBackup = async () => {
+    try {
+      const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, maintenanceData, settingsData, fieldConfigsData] = await Promise.all([
+        base44.entities.Client.list(),
+        base44.entities.Building.list(),
+        base44.entities.Equipment.list(),
+        base44.entities.Revision.list(),
+        base44.entities.Incident.list(),
+        base44.entities.MaintenanceRecord.list(),
+        base44.entities.AppSettings.list(),
+        base44.entities.RevisionFieldConfig.list(),
+      ]);
+
+      const backup = {
+        version: '1.0',
+        date: new Date().toISOString(),
+        data: {
+          clients: clientsData,
+          buildings: buildingsData,
+          equipment: equipmentData,
+          revisions: revisionsData,
+          incidents: incidentsData,
+          maintenanceRecords: maintenanceData,
+          settings: settingsData,
+          fieldConfigs: fieldConfigsData,
+        },
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clilux_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Copia de seguridad descargada');
+    } catch (error) {
+      toast.error('Error al crear copia de seguridad');
+    }
+  };
+
+  const handleImportBackup = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+
+      if (!backup.version || !backup.data) {
+        throw new Error('Formato de backup inválido');
+      }
+
+      // Restore data
+      if (backup.data.clients?.length) {
+        await base44.entities.Client.bulkCreate(backup.data.clients.map(({ id, created_date, updated_date, ...rest }) => rest));
+      }
+      if (backup.data.buildings?.length) {
+        await base44.entities.Building.bulkCreate(backup.data.buildings.map(({ id, created_date, updated_date, ...rest }) => rest));
+      }
+      if (backup.data.equipment?.length) {
+        await base44.entities.Equipment.bulkCreate(backup.data.equipment.map(({ id, created_date, updated_date, ...rest }) => rest));
+      }
+
+      toast.success('Copia de seguridad restaurada. Algunos datos pueden requerir ajustes manuales.');
+      queryClient.invalidateQueries();
+    } catch (error) {
+      toast.error('Error al restaurar: ' + error.message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
@@ -144,7 +247,7 @@ export default function Settings() {
         <NavHeader title="Configuración" />
 
         <Tabs defaultValue="appearance" className="space-y-6">
-          <TabsList className="bg-white">
+          <TabsList className="bg-white flex-wrap">
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               Apariencia
@@ -160,6 +263,14 @@ export default function Settings() {
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Clientes
+            </TabsTrigger>
+            <TabsTrigger value="portal" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Portal Cliente
+            </TabsTrigger>
+            <TabsTrigger value="backup" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Copias
             </TabsTrigger>
           </TabsList>
 
@@ -423,7 +534,7 @@ export default function Settings() {
               </div>
               
               <p className="text-sm text-slate-500 mb-4">
-                Añade campos adicionales a la ficha de cliente.
+                Estos campos aparecerán en el formulario de clientes.
               </p>
 
               {formData.client_fields?.length > 0 ? (
@@ -454,7 +565,7 @@ export default function Settings() {
                           <select
                             value={field.field_type}
                             onChange={(e) => updateClientField(index, 'field_type', e.target.value)}
-                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
+                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-slate-800"
                           >
                             <option value="text">Texto</option>
                             <option value="number">Número</option>
@@ -480,6 +591,140 @@ export default function Settings() {
                   No hay campos personalizados para clientes.
                 </p>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="portal">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-semibold text-slate-800">Usuarios del Portal Cliente</h3>
+                <Button onClick={addClientUser} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Añadir usuario
+                </Button>
+              </div>
+              
+              <p className="text-sm text-slate-500 mb-4">
+                Configura las credenciales de acceso para el portal de clientes.
+              </p>
+
+              {formData.client_users?.length > 0 ? (
+                <div className="space-y-4">
+                  {formData.client_users.map((user, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                          <Label className="text-xs">Cliente</Label>
+                          <select
+                            value={user.client_id}
+                            onChange={(e) => updateClientUser(index, 'client_id', e.target.value)}
+                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-slate-800"
+                          >
+                            <option value="">Seleccionar cliente...</option>
+                            {clients.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Email</Label>
+                          <Input
+                            type="email"
+                            value={user.email}
+                            onChange={(e) => updateClientUser(index, 'email', e.target.value)}
+                            placeholder="cliente@email.com"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Contraseña</Label>
+                          <div className="relative">
+                            <Input
+                              type={showPassword[index] ? 'text' : 'password'}
+                              value={user.password}
+                              onChange={(e) => updateClientUser(index, 'password', e.target.value)}
+                              placeholder="••••••••"
+                              className="mt-1 pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-1 h-8 w-8"
+                              onClick={() => setShowPassword(prev => ({ ...prev, [index]: !prev[index] }))}
+                            >
+                              {showPassword[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-end">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => removeClientUser(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-slate-400">
+                  No hay usuarios configurados para el portal de clientes.
+                </p>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="backup">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 border rounded-lg text-center">
+                  <Download className="h-12 w-12 mx-auto text-blue-500 mb-4" />
+                  <h4 className="font-medium text-slate-800 mb-2">Exportar Copia</h4>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Descarga todos los datos de la aplicación en formato JSON
+                  </p>
+                  <Button onClick={handleExportBackup} className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Descargar Copia
+                  </Button>
+                </div>
+
+                <div className="p-6 border rounded-lg text-center">
+                  <UploadCloud className="h-12 w-12 mx-auto text-emerald-500 mb-4" />
+                  <h4 className="font-medium text-slate-800 mb-2">Restaurar Copia</h4>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Importa datos desde un archivo de copia de seguridad
+                  </p>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportBackup}
+                    className="hidden"
+                    id="backup-upload"
+                  />
+                  <label htmlFor="backup-upload">
+                    <Button variant="outline" className="w-full" asChild>
+                      <span>
+                        <UploadCloud className="h-4 w-4 mr-2" />
+                        Seleccionar Archivo
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Nota:</strong> La restauración añadirá nuevos registros sin eliminar los existentes. 
+                  Se recomienda hacer una copia de seguridad antes de restaurar.
+                </p>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
