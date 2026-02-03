@@ -189,14 +189,35 @@ export default function ClientDetail() {
           </div>
 
           {client.notes && (
-            <div className="mt-4 p-3 rounded-lg bg-slate-50">
+            <div className="mt-4 p-4 rounded-lg bg-slate-50">
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
-                <div>
-                  <p className="text-sm text-slate-500">Observaciones</p>
-                  <p className="text-slate-700">{client.notes}</p>
+                <div className="w-full">
+                  <p className="text-sm font-medium text-slate-600 mb-2">Observaciones</p>
+                  <p className="text-slate-700 whitespace-pre-wrap">{client.notes}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Campos personalizados */}
+          {client.custom_fields && Object.keys(client.custom_fields).length > 0 && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(client.custom_fields).map(([key, value]) => {
+                const fieldConfig = settings?.client_fields?.find(f => f.field_name === key);
+                if (!value || !fieldConfig) return null;
+                
+                return (
+                  <div key={key} className="p-3 rounded-lg bg-slate-50">
+                    <p className="text-sm text-slate-500">{fieldConfig.field_label}</p>
+                    <p className="text-slate-700">
+                      {fieldConfig.field_type === 'checkbox' 
+                        ? (value ? '✓ Sí' : '✗ No')
+                        : value}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
 

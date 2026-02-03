@@ -31,7 +31,7 @@ export default function MenuInicio() {
                   <Wrench className="h-8 w-8 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Empresa</h2>
+                  <h2 className="text-xl font-semibold text-white">Técnico</h2>
                   <p className="text-sm text-slate-400">Acceso para empresas y técnicos</p>
                 </div>
               </div>

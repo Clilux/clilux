@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, UserPlus } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
@@ -32,7 +33,18 @@ export default function ClientForm() {
     contact_person: '',
     notes: '',
     status: 'active',
+    custom_fields: {},
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    },
+  });
+
+  const customFields = settings?.client_fields || [];
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
@@ -90,6 +102,16 @@ export default function ClientForm() {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCustomFieldChange = (fieldName, value) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [fieldName]: value
+      }
+    }));
   };
 
   return (
@@ -216,6 +238,40 @@ export default function ClientForm() {
                   rows={3}
                 />
               </div>
+
+              {/* Campos personalizados */}
+              {customFields.map(field => (
+                <div key={field.field_name} className={field.field_type === 'text' ? 'md:col-span-2' : ''}>
+                  <Label htmlFor={field.field_name}>{field.field_label}</Label>
+                  {field.field_type === 'text' ? (
+                    <Input
+                      id={field.field_name}
+                      value={formData.custom_fields?.[field.field_name] || ''}
+                      onChange={(e) => handleCustomFieldChange(field.field_name, e.target.value)}
+                      className="mt-1"
+                    />
+                  ) : field.field_type === 'number' ? (
+                    <Input
+                      id={field.field_name}
+                      type="number"
+                      value={formData.custom_fields?.[field.field_name] || ''}
+                      onChange={(e) => handleCustomFieldChange(field.field_name, e.target.value)}
+                      className="mt-1"
+                    />
+                  ) : field.field_type === 'checkbox' ? (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Checkbox
+                        id={field.field_name}
+                        checked={formData.custom_fields?.[field.field_name] || false}
+                        onCheckedChange={(checked) => handleCustomFieldChange(field.field_name, checked)}
+                      />
+                      <label htmlFor={field.field_name} className="text-sm text-slate-600">
+                        {field.field_label}
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
