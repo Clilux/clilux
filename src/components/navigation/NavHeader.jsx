@@ -23,7 +23,7 @@ export default function NavHeader({ title, showBack = true, showHome = true }) {
         <h1 className="text-2xl font-semibold text-white">{title}</h1>
       </div>
       {showHome && (
-        <Link to={createPageUrl('Home')}>
+        <Link to={createPageUrl('HomeTecnico')}>
           <Button
             variant="ghost"
             size="icon"

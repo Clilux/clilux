@@ -57,6 +57,7 @@ import Clients from './pages/Clients';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
 import Home from './pages/Home';
+import HomeCliente from './pages/HomeCliente';
 import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
@@ -70,7 +71,7 @@ import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
-import HomeCliente from './pages/HomeCliente';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -84,6 +85,7 @@ export const PAGES = {
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
     "Home": Home,
+    "HomeCliente": HomeCliente,
     "HomeTecnico": HomeTecnico,
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
@@ -97,10 +99,10 @@ export const PAGES = {
     "Revisions": Revisions,
     "Settings": Settings,
     "TechnicianManagement": TechnicianManagement,
-    "HomeCliente": HomeCliente,
 }
 
 export const pagesConfig = {
     mainPage: "Home",
     Pages: PAGES,
+    Layout: __Layout,
 };

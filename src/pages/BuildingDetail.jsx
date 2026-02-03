@@ -15,6 +15,7 @@ import EquipmentCard from '../components/cards/EquipmentCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ExportButton from '../components/ExportButton';
+import ImportButton from '../components/ImportButton';
 import { toast } from 'sonner';
 
 export default function BuildingDetail() {
@@ -191,7 +192,25 @@ export default function BuildingDetail() {
               <Thermometer className="h-5 w-5" />
               Equipos ({equipment.length})
             </h2>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <ImportButton 
+                onImport={async (data) => {
+                  const equipmentData = data.map(row => ({
+                    building_id: building.id,
+                    client_id: building.client_id,
+                    brand: row.Marca || row.brand || '',
+                    model: row.Modelo || row.model || '',
+                    serial_number: row['Nº Serie'] || row.serial_number || '',
+                    equipment_type: row.Tipo || row.equipment_type || '',
+                    location: row.Ubicación || row.location || '',
+                    status: row.Estado || row.status || 'operational',
+                    installation_date: row['Fecha Instalación'] || row.installation_date || null,
+                  }));
+                  await base44.entities.Equipment.bulkCreate(equipmentData);
+                  queryClient.invalidateQueries({ queryKey: ['equipment-building', buildingId] });
+                }} 
+                label="Importar"
+              />
               <ExportButton
                 data={equipment}
                 filename={`equipos_${building.name}`}

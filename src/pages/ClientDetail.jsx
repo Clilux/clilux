@@ -26,11 +26,34 @@ export default function ClientDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      // Eliminar en cascada: equipos, edificios y cliente
+      const clientBuildings = await base44.entities.Building.filter({ client_id: clientId });
+      const clientEquipment = await base44.entities.Equipment.filter({ client_id: clientId });
+      const clientRevisions = await base44.entities.Revision.filter({ client_id: clientId });
+      const clientIncidents = await base44.entities.Incident.filter({ client_id: clientId });
+      const clientMaintenance = await base44.entities.MaintenanceRecord.filter({ client_id: clientId });
+      
+      // Eliminar todo
+      for (const eq of clientEquipment) {
+        await base44.entities.Equipment.delete(eq.id);
+      }
+      for (const rev of clientRevisions) {
+        await base44.entities.Revision.delete(rev.id);
+      }
+      for (const inc of clientIncidents) {
+        await base44.entities.Incident.delete(inc.id);
+      }
+      for (const maint of clientMaintenance) {
+        await base44.entities.MaintenanceRecord.delete(maint.id);
+      }
+      for (const building of clientBuildings) {
+        await base44.entities.Building.delete(building.id);
+      }
       await base44.entities.Client.delete(clientId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente eliminado');
+      toast.success('Cliente y todos sus datos eliminados');
       navigate(createPageUrl('Clients'));
     },
     onError: () => toast.error('Error al eliminar el cliente'),
@@ -56,6 +79,16 @@ export default function ClientDetail() {
     queryFn: () => base44.entities.Equipment.filter({ client_id: clientId }),
     enabled: !!clientId,
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    },
+  });
+
+  const clientPortalUser = settings?.client_users?.find(u => u.client_id === clientId);
 
   const getEquipmentCount = (buildingId) => {
     return equipment.filter(e => e.building_id === buildingId).length;
