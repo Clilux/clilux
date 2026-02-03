@@ -1,19 +1,21 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Calendar, User, ClipboardCheck, FileText,
-  Thermometer, Gauge, CheckCircle, XCircle, AlertTriangle
+  Thermometer, Gauge, CheckCircle, XCircle, AlertTriangle, Trash2
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const statusLabels = {
   bueno: 'Bueno',
@@ -34,8 +36,23 @@ const statusLabels = {
 };
 
 export default function RevisionDetail() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const revisionId = urlParams.get('id');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Revision.delete(revisionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['revisions'] });
+      toast.success('Revisión eliminada');
+      navigate(-1);
+    },
+    onError: () => toast.error('Error al eliminar la revisión'),
+  });
 
   const { data: revision, isLoading } = useQuery({
     queryKey: ['revision', revisionId],
@@ -124,6 +141,9 @@ export default function RevisionDetail() {
                   Editar
                 </Button>
               </Link>
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -335,6 +355,15 @@ export default function RevisionDetail() {
             </div>
           </Card>
         )}
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="¿Eliminar revisión?"
+          description="Esta revisión se eliminará permanentemente. Esta acción no se puede deshacer."
+          onConfirm={() => deleteMutation.mutate()}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );
