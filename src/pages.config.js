@@ -70,6 +70,7 @@ import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
+import HomeCliente from './pages/HomeCliente';
 
 
 export const PAGES = {
@@ -96,6 +97,7 @@ export const PAGES = {
     "Revisions": Revisions,
     "Settings": Settings,
     "TechnicianManagement": TechnicianManagement,
+    "HomeCliente": HomeCliente,
 }
 
 export const pagesConfig = {
