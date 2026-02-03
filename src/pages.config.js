@@ -70,8 +70,8 @@ import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
-import TechnicianManagement from './pages/TechnicianManagement';
 import StelOrderIntegration from './pages/StelOrderIntegration';
+import TechnicianManagement from './pages/TechnicianManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -99,8 +99,8 @@ export const PAGES = {
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
     "Settings": Settings,
-    "TechnicianManagement": TechnicianManagement,
     "StelOrderIntegration": StelOrderIntegration,
+    "TechnicianManagement": TechnicianManagement,
 }
 
 export const pagesConfig = {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ const statusConfig = {
 };
 
 export default function IncidentDetail() {
+  const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const incidentId = urlParams.get('id');
   const queryClient = useQueryClient();
@@ -41,6 +43,7 @@ export default function IncidentDetail() {
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [newPriority, setNewPriority] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     const checkRole = async () => {
@@ -116,6 +119,18 @@ export default function IncidentDetail() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Incident.delete(incidentId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      toast.success('Incidencia eliminada');
+      navigate(-1);
+    },
+    onError: () => toast.error('Error al eliminar la incidencia'),
+  });
+
   const handleUpdate = () => {
     updateMutation.mutate({
       priority: newPriority,
@@ -155,26 +170,33 @@ export default function IncidentDetail() {
         <NavHeader title="Detalle de Incidencia" />
 
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-          <div className="flex items-start gap-4 mb-6">
-            <div className={cn(
-              "p-4 rounded-2xl",
-              incident.priority === 'urgent' ? 'bg-red-50' : 
-              incident.priority === 'high' ? 'bg-orange-50' : 'bg-slate-100'
-            )}>
-              <AlertTriangle className={cn(
-                "h-8 w-8",
-                incident.priority === 'urgent' ? 'text-red-600' : 
-                incident.priority === 'high' ? 'text-orange-600' : 'text-slate-600'
-              )} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap mb-2">
-                <h2 className="text-xl font-semibold text-slate-800">{incident.title}</h2>
-                <Badge className={priority.color}>{priority.label}</Badge>
-                <Badge className={status.color}>{status.label}</Badge>
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start gap-4">
+              <div className={cn(
+                "p-4 rounded-2xl",
+                incident.priority === 'urgent' ? 'bg-red-50' : 
+                incident.priority === 'high' ? 'bg-orange-50' : 'bg-slate-100'
+              )}>
+                <AlertTriangle className={cn(
+                  "h-8 w-8",
+                  incident.priority === 'urgent' ? 'text-red-600' : 
+                  incident.priority === 'high' ? 'text-orange-600' : 'text-slate-600'
+                )} />
               </div>
-              <p className="text-slate-600">{incident.description}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 flex-wrap mb-2">
+                  <h2 className="text-xl font-semibold text-slate-800">{incident.title}</h2>
+                  <Badge className={priority.color}>{priority.label}</Badge>
+                  <Badge className={status.color}>{status.label}</Badge>
+                </div>
+                <p className="text-slate-600">{incident.description}</p>
+              </div>
             </div>
+            {userRole === 'technician' && (
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -308,6 +330,15 @@ export default function IncidentDetail() {
             </div>
           </Card>
         )}
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="¿Eliminar incidencia?"
+          description="Esta incidencia se eliminará permanentemente. Esta acción no se puede deshacer."
+          onConfirm={() => deleteMutation.mutate()}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );

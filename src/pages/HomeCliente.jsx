@@ -163,48 +163,56 @@ export default function HomeCliente() {
             </div>
           ) : clientData ? (
             <>
-              {/* Stats */}
+              {/* Stats - Clickable cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden">
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/30 rounded-full blur-xl" />
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
-                      <Building2 className="h-6 w-6 text-blue-400" />
+                <a href="#buildings">
+                  <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/30 rounded-full blur-xl" />
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
+                        <Building2 className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <p className="text-3xl font-bold text-white">{clientData.buildings.length}</p>
+                      <p className="text-sm text-slate-400">Edificios</p>
                     </div>
-                    <p className="text-3xl font-bold text-white">{clientData.buildings.length}</p>
-                    <p className="text-sm text-slate-400">Edificios</p>
-                  </div>
-                </Card>
-                <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden">
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-emerald-500/30 rounded-full blur-xl" />
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
-                      <Thermometer className="h-6 w-6 text-emerald-400" />
+                  </Card>
+                </a>
+                <a href="#equipment">
+                  <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-emerald-500/30 rounded-full blur-xl" />
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                        <Thermometer className="h-6 w-6 text-emerald-400" />
+                      </div>
+                      <p className="text-3xl font-bold text-white">{clientData.equipment.length}</p>
+                      <p className="text-sm text-slate-400">Equipos</p>
                     </div>
-                    <p className="text-3xl font-bold text-white">{clientData.equipment.length}</p>
-                    <p className="text-sm text-slate-400">Equipos</p>
-                  </div>
-                </Card>
-                <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden">
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-500/30 rounded-full blur-xl" />
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
-                      <ClipboardCheck className="h-6 w-6 text-purple-400" />
+                  </Card>
+                </a>
+                <a href="#revisions">
+                  <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-500/30 rounded-full blur-xl" />
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
+                        <ClipboardCheck className="h-6 w-6 text-purple-400" />
+                      </div>
+                      <p className="text-3xl font-bold text-white">{clientData.revisions.length}</p>
+                      <p className="text-sm text-slate-400">Revisiones</p>
                     </div>
-                    <p className="text-3xl font-bold text-white">{clientData.revisions.length}</p>
-                    <p className="text-sm text-slate-400">Revisiones</p>
-                  </div>
-                </Card>
-                <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden">
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-amber-500/30 rounded-full blur-xl" />
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
-                      <AlertCircle className="h-6 w-6 text-amber-400" />
+                  </Card>
+                </a>
+                <a href="#incidents">
+                  <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-amber-500/30 rounded-full blur-xl" />
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
+                        <AlertCircle className="h-6 w-6 text-amber-400" />
+                      </div>
+                      <p className="text-3xl font-bold text-white">{clientData.incidents?.filter(i => i.status !== 'closed').length || 0}</p>
+                      <p className="text-sm text-slate-400">Incidencias</p>
                     </div>
-                    <p className="text-3xl font-bold text-white">{clientData.incidents?.filter(i => i.status !== 'closed').length || 0}</p>
-                    <p className="text-sm text-slate-400">Incidencias</p>
-                  </div>
-                </Card>
+                  </Card>
+                </a>
               </div>
 
               {/* Report incident - only action allowed */}
@@ -223,7 +231,7 @@ export default function HomeCliente() {
               </Link>
 
               {/* Buildings (read-only) */}
-              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+              <Card id="buildings" className="p-6 bg-white/10 backdrop-blur-sm border-white/20 scroll-mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-white">Mis Edificios</h2>
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
@@ -248,7 +256,7 @@ export default function HomeCliente() {
               </Card>
 
               {/* Equipment (read-only) */}
-              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+              <Card id="equipment" className="p-6 bg-white/10 backdrop-blur-sm border-white/20 scroll-mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-white">Estado de Equipos</h2>
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
@@ -285,7 +293,7 @@ export default function HomeCliente() {
               </Card>
 
               {/* Revisions (read-only) */}
-              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+              <Card id="revisions" className="p-6 bg-white/10 backdrop-blur-sm border-white/20 scroll-mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-white">Últimas Revisiones</h2>
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
@@ -326,7 +334,7 @@ export default function HomeCliente() {
               </Card>
 
               {/* Incidents */}
-              <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+              <Card id="incidents" className="p-6 bg-white/10 backdrop-blur-sm border-white/20 scroll-mt-6">
                 <h2 className="text-lg font-semibold text-white mb-4">Mis Incidencias</h2>
                 <div className="space-y-3">
                   {clientData.incidents?.map(incident => (
