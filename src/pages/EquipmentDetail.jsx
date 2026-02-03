@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, MapPin, Calendar, FileText, 
   Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck, FileBarChart,
-  Wrench, Settings, Shield
+  Wrench, Settings, Shield, Trash2
 } from 'lucide-react';
 import RevisionReport from '../components/reports/RevisionReport';
 import NavHeader from '../components/navigation/NavHeader';
@@ -19,8 +19,10 @@ import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import MaintenanceHistory from '../components/equipment/MaintenanceHistory';
 import MaintenanceConfig from '../components/equipment/MaintenanceConfig';
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const equipmentTypeLabels = {
   split_mural: 'Split Mural',
@@ -45,10 +47,24 @@ const statusInfo = {
 };
 
 export default function EquipmentDetail() {
+  const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
   const [showReport, setShowReport] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Equipment.delete(equipmentId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      toast.success('Equipo eliminado');
+      navigate(-1);
+    },
+    onError: () => toast.error('Error al eliminar el equipo'),
+  });
 
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
@@ -144,12 +160,17 @@ export default function EquipmentDetail() {
                     </Link>
                   )}
                 </div>
-                <Link to={createPageUrl(`EquipmentForm?id=${equipment.id}`)}>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
+                <div className="flex gap-2">
+                  <Link to={createPageUrl(`EquipmentForm?id=${equipment.id}`)}>
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                  </Link>
+                  <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                    <Trash2 className="h-4 w-4" />
                   </Button>
-                </Link>
+                </div>
               </div>
 
               {/* Status Summary */}
@@ -371,6 +392,15 @@ export default function EquipmentDetail() {
             onClose={() => setShowReport(false)}
           />
         )}
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="¿Eliminar equipo?"
+          description={`Se eliminará "${equipment.brand} ${equipment.model}". Esta acción no se puede deshacer.`}
+          onConfirm={() => deleteMutation.mutate()}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );

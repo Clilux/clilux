@@ -1,22 +1,40 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
-  Layers, Square, FileText, Thermometer
+  Layers, Square, FileText, Thermometer, Trash2, Download
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
 import StatusBadge from '../components/ui/StatusBadge';
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
+import ExportButton from '../components/ExportButton';
+import { toast } from 'sonner';
 
 export default function BuildingDetail() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const buildingId = urlParams.get('id');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Building.delete(buildingId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      toast.success('Edificio eliminado');
+      navigate(-1);
+    },
+    onError: () => toast.error('Error al eliminar el edificio'),
+  });
 
   const { data: building, isLoading } = useQuery({
     queryKey: ['building', buildingId],
@@ -94,6 +112,10 @@ export default function BuildingDetail() {
                   Editar
                 </Button>
               </Link>
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </Button>
             </div>
           </div>
 
@@ -164,17 +186,33 @@ export default function BuildingDetail() {
         </Card>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <Thermometer className="h-5 w-5" />
               Equipos ({equipment.length})
             </h2>
-            <Link to={createPageUrl(`EquipmentForm?building_id=${building.id}&client_id=${building.client_id}`)}>
-              <Button className="bg-slate-800 hover:bg-slate-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Equipo
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <ExportButton
+                data={equipment}
+                filename={`equipos_${building.name}`}
+                columns={[
+                  { key: 'brand', label: 'Marca' },
+                  { key: 'model', label: 'Modelo' },
+                  { key: 'serial_number', label: 'Nº Serie' },
+                  { key: 'equipment_type', label: 'Tipo' },
+                  { key: 'location', label: 'Ubicación' },
+                  { key: 'status', label: 'Estado' },
+                  { key: 'installation_date', label: 'Fecha Instalación' },
+                ]}
+                label="Exportar"
+              />
+              <Link to={createPageUrl(`EquipmentForm?building_id=${building.id}&client_id=${building.client_id}`)}>
+                <Button className="bg-slate-800 hover:bg-slate-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Equipo
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {equipment.length === 0 ? (
@@ -196,6 +234,15 @@ export default function BuildingDetail() {
             </div>
           )}
         </div>
+
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          title="¿Eliminar edificio?"
+          description={`Se eliminará "${building.name}". Esta acción no se puede deshacer.`}
+          onConfirm={() => deleteMutation.mutate()}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );
