@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
-  Layers, Square, FileText, Thermometer, Trash2, Download
+  Layers, Square, FileText, Thermometer, Trash2
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';

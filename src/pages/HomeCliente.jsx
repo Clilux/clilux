@@ -15,7 +15,6 @@ import {
   LogOut, AlertCircle, Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 export default function HomeCliente() {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -302,7 +301,7 @@ export default function HomeCliente() {
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-medium text-white">
-                              {format(new Date(revision.revision_date), "dd MMM yyyy", { locale: es })}
+                              {format(new Date(revision.revision_date), "dd MMM yyyy")}
                             </h3>
                             <p className="text-sm text-slate-400">{eq?.brand} {eq?.model}</p>
                           </div>

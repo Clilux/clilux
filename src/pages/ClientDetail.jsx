@@ -9,13 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, Thermometer, Trash2, Download
+  User, FileText, Thermometer, Trash2
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
-import ExportButton from '../components/ExportButton';
 import { toast } from 'sonner';
 
 export default function ClientDetail() {
