@@ -144,7 +144,14 @@ export default function RevisionForm() {
       const loadRevision = async () => {
         const revisions = await base44.entities.Revision.filter({ id: revisionId });
         if (revisions.length > 0) {
-          setFormData(revisions[0]);
+          const loadedRevision = revisions[0];
+          // Asegurar que it3_data existe y tiene estructura
+          setFormData({
+            ...loadedRevision,
+            it3_data: loadedRevision.it3_data || {},
+            photos: loadedRevision.photos || [],
+            additional_photos: loadedRevision.additional_photos || [],
+          });
         }
       };
       loadRevision();

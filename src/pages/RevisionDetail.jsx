@@ -183,102 +183,28 @@ export default function RevisionDetail() {
               Mantenimiento
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Temperaturas */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <Thermometer className="h-4 w-4" />
-                  Temperaturas
-                </h4>
-                {it3.temp_impulsion && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Impulsión</span>
-                    <span className="font-medium">{it3.temp_impulsion}°C</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(it3).map(([key, value]) => {
+                if (value === null || value === undefined || value === '' || value === false) return null;
+                
+                // Formatear label
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                // Formatear valor
+                let displayValue = value;
+                if (typeof value === 'boolean') {
+                  displayValue = value ? 'Sí' : 'No';
+                } else if (typeof value === 'string' && statusLabels[value]) {
+                  displayValue = statusLabels[value];
+                }
+                
+                return (
+                  <div key={key} className="flex justify-between text-sm p-3 rounded-lg bg-slate-50">
+                    <span className="text-slate-600 font-medium">{label}</span>
+                    <span className="text-slate-800">{displayValue}</span>
                   </div>
-                )}
-                {it3.temp_retorno && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Retorno</span>
-                    <span className="font-medium">{it3.temp_retorno}°C</span>
-                  </div>
-                )}
-                {it3.temp_exterior && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Exterior</span>
-                    <span className="font-medium">{it3.temp_exterior}°C</span>
-                  </div>
-                )}
-                {it3.humedad_relativa && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Humedad</span>
-                    <span className="font-medium">{it3.humedad_relativa}%</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Presiones */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <Gauge className="h-4 w-4" />
-                  Presiones
-                </h4>
-                {it3.presion_alta && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Presión alta</span>
-                    <span className="font-medium">{it3.presion_alta} bar</span>
-                  </div>
-                )}
-                {it3.presion_baja && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Presión baja</span>
-                    <span className="font-medium">{it3.presion_baja} bar</span>
-                  </div>
-                )}
-                {it3.caudal_aire && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Caudal aire</span>
-                    <span className="font-medium">{it3.caudal_aire} m³/h</span>
-                  </div>
-                )}
-                {it3.consumo_electrico && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Consumo</span>
-                    <span className="font-medium">{it3.consumo_electrico} kW</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Estado de componentes */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Estado
-                </h4>
-                {it3.estado_filtros && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Filtros</span>
-                    <span className="font-medium">{statusLabels[it3.estado_filtros] || it3.estado_filtros}</span>
-                  </div>
-                )}
-                {it3.estado_correas && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Correas</span>
-                    <span className="font-medium">{statusLabels[it3.estado_correas] || it3.estado_correas}</span>
-                  </div>
-                )}
-                {it3.nivel_aceite && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Aceite</span>
-                    <span className="font-medium">{statusLabels[it3.nivel_aceite] || it3.nivel_aceite}</span>
-                  </div>
-                )}
-                {it3.limpieza_unidad && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Limpieza</span>
-                    <span className="font-medium">{statusLabels[it3.limpieza_unidad] || it3.limpieza_unidad}</span>
-                  </div>
-                )}
-              </div>
+                );
+              })}
             </div>
 
             {/* Alertas */}

@@ -245,7 +245,7 @@ export default function HomeCliente() {
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {clientData.buildings.map(building => (
+                  {clientData?.buildings?.map(building => (
                     <div 
                       key={building.id} 
                       className="p-4 rounded-xl bg-white/5 border border-white/10"
@@ -253,11 +253,11 @@ export default function HomeCliente() {
                       <h3 className="font-medium text-white">{building.name}</h3>
                       <p className="text-sm text-slate-400">{building.address}, {building.city}</p>
                       <p className="text-xs text-slate-500 mt-2">
-                        {clientData.equipment.filter(e => e.building_id === building.id).length} equipos
+                        {clientData.equipment?.filter(e => e.building_id === building.id).length || 0} equipos
                       </p>
                     </div>
                   ))}
-                  {clientData.buildings.length === 0 && (
+                  {(!clientData?.buildings || clientData.buildings.length === 0) && (
                     <p className="text-slate-400 col-span-full text-center py-4">No hay edificios registrados</p>
                   )}
                 </div>
@@ -270,8 +270,8 @@ export default function HomeCliente() {
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {clientData.equipment.map(eq => {
-                    const building = clientData.buildings.find(b => b.id === eq.building_id);
+                  {clientData?.equipment?.map(eq => {
+                    const building = clientData.buildings?.find(b => b.id === eq.building_id);
                     return (
                       <div 
                         key={eq.id}
@@ -294,7 +294,7 @@ export default function HomeCliente() {
                       </div>
                     );
                   })}
-                  {clientData.equipment.length === 0 && (
+                  {(!clientData?.equipment || clientData.equipment.length === 0) && (
                     <p className="text-slate-400 col-span-full text-center py-4">No hay equipos registrados</p>
                   )}
                 </div>
@@ -307,8 +307,8 @@ export default function HomeCliente() {
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
                 </div>
                 <div className="space-y-3">
-                  {clientData.revisions.map(revision => {
-                    const eq = clientData.equipment.find(e => e.id === revision.equipment_id);
+                  {clientData?.revisions?.map(revision => {
+                    const eq = clientData.equipment?.find(e => e.id === revision.equipment_id);
                     return (
                       <div 
                         key={revision.id} 
@@ -335,7 +335,7 @@ export default function HomeCliente() {
                       </div>
                     );
                   })}
-                  {clientData.revisions.length === 0 && (
+                  {(!clientData?.revisions || clientData.revisions.length === 0) && (
                     <p className="text-slate-400 text-center py-4">No hay revisiones registradas</p>
                   )}
                 </div>
