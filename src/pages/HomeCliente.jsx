@@ -263,19 +263,20 @@ export default function HomeCliente() {
                 </div>
               </Card>
 
-              {/* Equipment (read-only) */}
+              {/* Equipment (read-only, clickable) */}
               <Card id="equipment" className="p-6 bg-white/10 backdrop-blur-sm border-white/20 scroll-mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-white">Estado de Equipos</h2>
-                  <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
+                  <Badge className="bg-white/10 text-slate-300">Clic para ver detalles</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {clientData?.equipment?.map(eq => {
                     const building = clientData.buildings?.find(b => b.id === eq.building_id);
                     return (
-                      <div 
+                      <Link 
                         key={eq.id}
-                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                        to={createPageUrl(`ClientEquipmentDetail?id=${eq.id}&client_id=${clientId}`)}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-medium text-white">{eq.brand} {eq.model}</h3>
@@ -291,7 +292,7 @@ export default function HomeCliente() {
                             Próxima revisión: {format(new Date(eq.next_revision_date), 'dd/MM/yyyy')}
                           </p>
                         )}
-                      </div>
+                      </Link>
                     );
                   })}
                   {(!clientData?.equipment || clientData.equipment.length === 0) && (

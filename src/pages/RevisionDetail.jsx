@@ -187,8 +187,22 @@ export default function RevisionDetail() {
               {Object.entries(it3).map(([key, value]) => {
                 if (value === null || value === undefined || value === '' || value === false) return null;
                 
-                // Formatear label
-                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                // Buscar label configurado en los campos del equipo
+                let label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                // Si el key empieza con "custom_", buscar el label real en la configuración
+                if (equipment) {
+                  // Intentar obtener configuración de campos del equipo
+                  const fieldConfigs = equipment.maintenance_config?.monthly_fields || 
+                                      equipment.maintenance_config?.quarterly_fields || 
+                                      equipment.maintenance_config?.biannual_fields || 
+                                      equipment.maintenance_config?.annual_fields || [];
+                  
+                  const fieldConfig = fieldConfigs.find(f => f.field_key === key);
+                  if (fieldConfig && fieldConfig.field_label) {
+                    label = fieldConfig.field_label;
+                  }
+                }
                 
                 // Formatear valor
                 let displayValue = value;
@@ -196,6 +210,9 @@ export default function RevisionDetail() {
                   displayValue = value ? 'Sí' : 'No';
                 } else if (typeof value === 'string' && statusLabels[value]) {
                   displayValue = statusLabels[value];
+                } else if (typeof value === 'string') {
+                  // Capitalizar primera letra si es texto
+                  displayValue = value.charAt(0).toUpperCase() + value.slice(1);
                 }
                 
                 return (
