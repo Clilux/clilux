@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, Building2, Thermometer, ClipboardCheck, 
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine
 } from 'lucide-react';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -245,7 +245,17 @@ export default function HomeTecnico() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <Link to={createPageUrl('ScanEquipment')}>
+              <Card className="p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm border-blue-400/40 hover:from-blue-500/30 hover:to-purple-500/30 transition-all cursor-pointer group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ScanLine className="h-6 w-6 text-blue-300" />
+                  </div>
+                  <span className="font-medium text-white text-sm">Escanear</span>
+                </div>
+              </Card>
+            </Link>
             <Link to={createPageUrl('ClientForm')}>
               <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
                 <div className="flex flex-col items-center gap-3 text-center">
