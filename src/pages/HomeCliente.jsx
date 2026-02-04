@@ -33,18 +33,26 @@ export default function HomeCliente() {
     queryKey: ['client-data', clientId],
     queryFn: async () => {
       if (!clientId) return null;
-      const clientList = await base44.entities.Client.filter({ id: clientId });
-      if (clientList.length > 0) {
-        const client = clientList[0];
-        const buildings = await base44.entities.Building.filter({ client_id: client.id });
-        const equipment = await base44.entities.Equipment.filter({ client_id: client.id });
-        const revisions = await base44.entities.Revision.filter({ client_id: client.id }, '-revision_date', 10);
-        const incidents = await base44.entities.Incident.filter({ client_id: client.id }, '-created_date', 10);
-        return { client, buildings, equipment, revisions, incidents };
+      try {
+        const clientList = await base44.entities.Client.filter({ id: clientId });
+        if (clientList.length > 0) {
+          const client = clientList[0];
+          const [buildings, equipment, revisions, incidents] = await Promise.all([
+            base44.entities.Building.filter({ client_id: client.id }),
+            base44.entities.Equipment.filter({ client_id: client.id }),
+            base44.entities.Revision.filter({ client_id: client.id }),
+            base44.entities.Incident.filter({ client_id: client.id })
+          ]);
+          return { client, buildings, equipment, revisions, incidents };
+        }
+      } catch (error) {
+        console.error('Error loading client data:', error);
       }
       return null;
     },
     enabled: !!clientId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const handleLogin = async (e) => {

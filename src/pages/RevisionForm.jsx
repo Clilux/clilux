@@ -153,23 +153,29 @@ export default function RevisionForm() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Limpiar y preparar datos
+      const cleanedIt3Data = {};
+      Object.keys(data.it3_data || {}).forEach(key => {
+        const value = data.it3_data[key];
+        if (value !== '' && value !== null && value !== undefined) {
+          // Convertir números
+          if (typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+            cleanedIt3Data[key] = Number(value);
+          } else {
+            cleanedIt3Data[key] = value;
+          }
+        }
+      });
+
       const cleanData = {
         ...data,
-        it3_data: {
-          ...data.it3_data,
-          temp_impulsion: data.it3_data.temp_impulsion ? Number(data.it3_data.temp_impulsion) : null,
-          temp_retorno: data.it3_data.temp_retorno ? Number(data.it3_data.temp_retorno) : null,
-          temp_exterior: data.it3_data.temp_exterior ? Number(data.it3_data.temp_exterior) : null,
-          presion_alta: data.it3_data.presion_alta ? Number(data.it3_data.presion_alta) : null,
-          presion_baja: data.it3_data.presion_baja ? Number(data.it3_data.presion_baja) : null,
-          consumo_electrico: data.it3_data.consumo_electrico ? Number(data.it3_data.consumo_electrico) : null,
-          caudal_aire: data.it3_data.caudal_aire ? Number(data.it3_data.caudal_aire) : null,
-          humedad_relativa: data.it3_data.humedad_relativa ? Number(data.it3_data.humedad_relativa) : null,
-        },
+        it3_data: cleanedIt3Data,
       };
       
       if (isEditing) {
-        return base44.entities.Revision.update(revisionId, cleanData);
+        await base44.entities.Revision.update(revisionId, cleanData);
+      } else {
+        await base44.entities.Revision.create(cleanData);
       }
       
       // Actualizar fecha de última revisión del equipo
@@ -181,8 +187,6 @@ export default function RevisionForm() {
                   data.general_status === 'needs_repair' ? 'maintenance_needed' : 'operational',
         });
       }
-      
-      return base44.entities.Revision.create(cleanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['revisions'] });
@@ -424,10 +428,10 @@ export default function RevisionForm() {
             </div>
           </Card>
 
-          {(formData.revision_type === 'it3_rite' || formData.revision_type === 'preventive') && activeFields.length > 0 && (
+          {activeFields.length > 0 && (
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">Datos de Mantenimiento</h3>
+                <h3 className="font-semibold text-slate-800">Mantenimiento</h3>
                 <Link to={createPageUrl('RevisionFieldSettings')}>
                   <Button variant="ghost" size="sm">
                     <Settings className="h-4 w-4 mr-1" />

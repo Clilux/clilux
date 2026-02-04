@@ -112,23 +112,35 @@ export default function Reports() {
     try {
       const doc = new jsPDF();
       const data = getReportData();
+      const pageWidth = doc.internal.pageSize.width;
       
-      // Header
-      doc.setFontSize(20);
-      doc.text('Clilux M - Informe', 20, 20);
+      // Header con diseño elegante
+      doc.setFillColor(30, 41, 59); // slate-800
+      doc.rect(0, 0, pageWidth, 35, 'F');
       
-      doc.setFontSize(12);
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Clilux M', 20, 15);
+      
+      doc.setFontSize(14);
       const reportTitles = {
         maintenance: 'Historial de Mantenimiento',
         revisions: 'Historial de Revisiones',
         incidents: 'Registro de Incidencias',
         equipment: 'Inventario de Equipos'
       };
-      doc.text(reportTitles[reportType], 20, 30);
+      doc.text(reportTitles[reportType], 20, 25);
+      
+      // Fecha de generación
+      doc.setFontSize(9);
+      doc.text(format(new Date(), "dd/MM/yyyy HH:mm"), pageWidth - 20, 15, { align: 'right' });
+      
+      // Resetear color de texto
+      doc.setTextColor(0, 0, 0);
       
       // Filters applied
       doc.setFontSize(10);
-      let yPos = 40;
+      let yPos = 45;
       
       if (filters.clientId) {
         const client = clients.find(c => c.id === filters.clientId);
@@ -152,8 +164,14 @@ export default function Reports() {
         yPos += 6;
       }
       
-      doc.text(`Total de registros: ${data.length}`, 20, yPos);
-      yPos += 10;
+      // Total de registros en un recuadro destacado
+      doc.setFillColor(241, 245, 249); // slate-100
+      doc.roundedRect(20, yPos, pageWidth - 40, 10, 2, 2, 'F');
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Total de registros: ${data.length}`, 25, yPos + 6);
+      doc.setFont(undefined, 'normal');
+      yPos += 15;
       
       // Data table
       doc.setFontSize(9);
@@ -161,7 +179,7 @@ export default function Reports() {
       
       if (reportType === 'maintenance') {
         data.forEach((item, index) => {
-          if (yPos > pageHeight - 20) {
+          if (yPos > pageHeight - 30) {
             doc.addPage();
             yPos = 20;
           }
@@ -169,14 +187,20 @@ export default function Reports() {
           const eq = equipment.find(e => e.id === item.equipment_id);
           const building = buildings.find(b => b.id === item.building_id);
           
-          doc.text(`${index + 1}. ${format(new Date(item.maintenance_date), 'dd/MM/yyyy')}`, 20, yPos);
-          doc.text(`${eq?.brand || ''} ${eq?.model || ''} - ${building?.name || ''}`, 25, yPos + 5);
-          doc.text(`Tipo: ${item.maintenance_type} | Técnico: ${item.technician_name || 'N/A'}`, 25, yPos + 10);
-          yPos += 18;
+          // Recuadro para cada registro
+          doc.setDrawColor(203, 213, 225); // slate-300
+          doc.roundedRect(20, yPos, pageWidth - 40, 20, 2, 2, 'S');
+          
+          doc.setFont(undefined, 'bold');
+          doc.text(`${index + 1}. ${format(new Date(item.maintenance_date), 'dd/MM/yyyy')}`, 25, yPos + 6);
+          doc.setFont(undefined, 'normal');
+          doc.text(`${eq?.brand || ''} ${eq?.model || ''} - ${building?.name || ''}`, 25, yPos + 11);
+          doc.text(`Tipo: ${item.maintenance_type} | Técnico: ${item.technician_name || 'N/A'}`, 25, yPos + 16);
+          yPos += 25;
         });
       } else if (reportType === 'revisions') {
         data.forEach((item, index) => {
-          if (yPos > pageHeight - 20) {
+          if (yPos > pageHeight - 50) {
             doc.addPage();
             yPos = 20;
           }
@@ -184,10 +208,31 @@ export default function Reports() {
           const eq = equipment.find(e => e.id === item.equipment_id);
           const building = buildings.find(b => b.id === item.building_id);
           
-          doc.text(`${index + 1}. ${format(new Date(item.revision_date), 'dd/MM/yyyy')}`, 20, yPos);
-          doc.text(`${eq?.brand || ''} ${eq?.model || ''} - ${building?.name || ''}`, 25, yPos + 5);
-          doc.text(`Estado: ${item.general_status} | Tipo: ${item.revision_type}`, 25, yPos + 10);
-          yPos += 18;
+          // Recuadro con header destacado
+          doc.setFillColor(248, 250, 252); // slate-50
+          doc.roundedRect(20, yPos, pageWidth - 40, 35, 2, 2, 'F');
+          doc.setDrawColor(203, 213, 225);
+          doc.roundedRect(20, yPos, pageWidth - 40, 35, 2, 2, 'S');
+          
+          // Cabecera del registro
+          doc.setFillColor(241, 245, 249);
+          doc.roundedRect(20, yPos, pageWidth - 40, 8, 2, 2, 'F');
+          doc.setFont(undefined, 'bold');
+          doc.text(`${index + 1}. ${format(new Date(item.revision_date), 'dd/MM/yyyy')} - ${eq?.brand || ''} ${eq?.model || ''}`, 25, yPos + 5);
+          doc.setFont(undefined, 'normal');
+          
+          // Datos del equipo
+          doc.setFontSize(8);
+          doc.text(`Edificio: ${building?.name || 'N/A'}`, 25, yPos + 13);
+          doc.text(`Ubicación: ${eq?.location || 'N/A'}`, 25, yPos + 18);
+          doc.text(`Estado: ${item.general_status} | Tipo: ${item.revision_type}`, 25, yPos + 23);
+          
+          if (item.observations) {
+            doc.text(`Observaciones: ${item.observations.substring(0, 80)}...`, 25, yPos + 28);
+          }
+          
+          doc.setFontSize(9);
+          yPos += 40;
         });
       } else if (reportType === 'incidents') {
         data.forEach((item, index) => {
