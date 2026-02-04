@@ -62,8 +62,6 @@ import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
-import MaintenanceDetail from './pages/MaintenanceDetail';
-import MaintenanceForm from './pages/MaintenanceForm';
 import MenuInicio from './pages/MenuInicio';
 import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
@@ -92,8 +90,6 @@ export const PAGES = {
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
-    "MaintenanceDetail": MaintenanceDetail,
-    "MaintenanceForm": MaintenanceForm,
     "MenuInicio": MenuInicio,
     "Reports": Reports,
     "RevisionDetail": RevisionDetail,
