@@ -146,7 +146,7 @@ export default function Settings() {
 
   // Gestión de usuarios del portal cliente
   const addClientUser = () => {
-    const newUsers = [...(formData.client_users || []), { email: '', password: '', client_id: '' }];
+    const newUsers = [...(formData.client_users || []), { email: '', password: '', client_id: '', can_edit: false }];
     setFormData(prev => ({ ...prev, client_users: newUsers }));
   };
 
@@ -164,15 +164,15 @@ export default function Settings() {
   // Copia de seguridad
   const handleExportBackup = async () => {
     try {
-      const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, maintenanceData, settingsData, fieldConfigsData] = await Promise.all([
+      const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, settingsData, fieldConfigsData, techniciansData] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Building.list(),
         base44.entities.Equipment.list(),
         base44.entities.Revision.list(),
         base44.entities.Incident.list(),
-        base44.entities.MaintenanceRecord.list(),
         base44.entities.AppSettings.list(),
         base44.entities.RevisionFieldConfig.list(),
+        base44.entities.Technician.list(),
       ]);
 
       const backup = {
@@ -184,9 +184,9 @@ export default function Settings() {
           equipment: equipmentData,
           revisions: revisionsData,
           incidents: incidentsData,
-          maintenanceRecords: maintenanceData,
           settings: settingsData,
           fieldConfigs: fieldConfigsData,
+          technicians: techniciansData,
         },
       };
 
@@ -263,6 +263,10 @@ export default function Settings() {
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Clientes
+            </TabsTrigger>
+            <TabsTrigger value="technicians" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Técnicos
             </TabsTrigger>
             <TabsTrigger value="portal" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -648,6 +652,25 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="technicians">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-semibold text-slate-800">Gestión de Técnicos</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Los técnicos podrán ser asignados a revisiones e incidencias
+                  </p>
+                </div>
+                <Link to={createPageUrl('Technicians')}>
+                  <Button>
+                    <Users className="h-4 w-4 mr-2" />
+                    Gestionar Técnicos
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="portal">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <div className="flex items-center justify-between mb-6">
@@ -691,34 +714,45 @@ export default function Settings() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">Contraseña</Label>
-                          <div className="relative">
-                            <Input
-                              type={showPassword[index] ? 'text' : 'password'}
-                              value={user.password}
-                              onChange={(e) => updateClientUser(index, 'password', e.target.value)}
-                              placeholder="••••••••"
-                              className="mt-1 pr-10"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-1 h-8 w-8"
-                              onClick={() => setShowPassword(prev => ({ ...prev, [index]: !prev[index] }))}
-                            >
-                              {showPassword[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
+                         <Label className="text-xs">Contraseña</Label>
+                         <div className="relative">
+                           <Input
+                             type={showPassword[index] ? 'text' : 'password'}
+                             value={user.password}
+                             onChange={(e) => updateClientUser(index, 'password', e.target.value)}
+                             placeholder="••••••••"
+                             className="mt-1 pr-10"
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="icon"
+                             className="absolute right-0 top-1 h-8 w-8"
+                             onClick={() => setShowPassword(prev => ({ ...prev, [index]: !prev[index] }))}
+                           >
+                             {showPassword[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </Button>
+                         </div>
+                        </div>
+                        <div>
+                         <Label className="text-xs">Permisos</Label>
+                         <select
+                           value={user.can_edit ? 'edit' : 'view'}
+                           onChange={(e) => updateClientUser(index, 'can_edit', e.target.value === 'edit')}
+                           className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
+                         >
+                           <option value="view">Solo lectura</option>
+                           <option value="edit">Puede editar</option>
+                         </select>
                         </div>
                         <div className="flex items-end">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeClientUser(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                         <Button 
+                           variant="ghost" 
+                           size="icon"
+                           onClick={() => removeClientUser(index)}
+                         >
+                           <Trash2 className="h-4 w-4 text-red-500" />
+                         </Button>
                         </div>
                       </div>
                     </div>

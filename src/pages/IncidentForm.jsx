@@ -33,6 +33,7 @@ export default function IncidentForm() {
     description: '',
     priority: 'medium',
     status: 'pending',
+    assigned_technician_id: '',
     photos: [],
   });
 
@@ -72,6 +73,12 @@ export default function IncidentForm() {
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment'],
     queryFn: () => base44.entities.Equipment.list(),
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.filter({ status: 'active' }),
+    enabled: userRole === 'technician',
   });
 
   useEffect(() => {
@@ -199,20 +206,35 @@ export default function IncidentForm() {
               </div>
 
               {userRole === 'technician' && (
-                <div>
-                  <Label>Prioridad</Label>
-                  <Select value={formData.priority} onValueChange={(v) => handleChange('priority', v)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Baja</SelectItem>
-                      <SelectItem value="medium">Media</SelectItem>
-                      <SelectItem value="high">Alta</SelectItem>
-                      <SelectItem value="urgent">Urgente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div>
+                    <Label>Prioridad</Label>
+                    <Select value={formData.priority} onValueChange={(v) => handleChange('priority', v)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Baja</SelectItem>
+                        <SelectItem value="medium">Media</SelectItem>
+                        <SelectItem value="high">Alta</SelectItem>
+                        <SelectItem value="urgent">Urgente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Asignar Técnico</Label>
+                    <Select value={formData.assigned_technician_id} onValueChange={(v) => handleChange('assigned_technician_id', v)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Seleccionar técnico" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {technicians.map(tech => (
+                          <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               <div className="md:col-span-2">

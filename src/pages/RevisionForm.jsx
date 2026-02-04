@@ -49,30 +49,12 @@ export default function RevisionForm() {
     equipment_id: preselectedEquipmentId || '',
     building_id: preselectedBuildingId || '',
     client_id: preselectedClientId || '',
-    technician_email: '',
-    technician_name: '',
+    technician_id: '',
     revision_date: new Date().toISOString().split('T')[0],
     revision_type: 'preventive',
     general_status: 'good',
     annual_revision_completed: false,
-    it3_data: {
-      temp_impulsion: '',
-      temp_retorno: '',
-      temp_exterior: '',
-      presion_alta: '',
-      presion_baja: '',
-      consumo_electrico: '',
-      caudal_aire: '',
-      humedad_relativa: '',
-      estado_filtros: '',
-      estado_correas: '',
-      fugas_refrigerante: false,
-      nivel_aceite: '',
-      vibraciones: '',
-      ruidos_anomalos: false,
-      estado_aislamiento: '',
-      limpieza_unidad: '',
-    },
+    it3_data: {},
     observations: '',
     actions_taken: '',
     recommendations: '',
@@ -84,20 +66,10 @@ export default function RevisionForm() {
 
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      if (!isEditing) {
-        setFormData(prev => ({
-          ...prev,
-          technician_email: currentUser.email,
-          technician_name: currentUser.full_name || '',
-        }));
-      }
-    };
-    loadUser();
-  }, [isEditing]);
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.filter({ status: 'active' }),
+  });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -130,6 +102,21 @@ export default function RevisionForm() {
     }
     return defaultFieldsConfig.filter(f => f.enabled);
   }, [selectedEquipment, fieldConfigs]);
+
+  // Inicializar it3_data con campos activos cuando cambia el equipo
+  useEffect(() => {
+    if (selectedEquipment && !isEditing) {
+      const newIt3Data = {};
+      activeFields.forEach(field => {
+        if (field.field_type === 'checkbox') {
+          newIt3Data[field.field_key] = false;
+        } else {
+          newIt3Data[field.field_key] = '';
+        }
+      });
+      setFormData(prev => ({ ...prev, it3_data: newIt3Data }));
+    }
+  }, [selectedEquipment?.id, activeFields.length]);
 
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
@@ -181,8 +168,7 @@ export default function RevisionForm() {
         equipment_id: data.equipment_id,
         building_id: data.building_id,
         client_id: data.client_id,
-        technician_email: data.technician_email || '',
-        technician_name: data.technician_name || '',
+        technician_id: data.technician_id || '',
         revision_date: data.revision_date,
         revision_type: data.revision_type,
         general_status: data.general_status,
@@ -430,11 +416,16 @@ export default function RevisionForm() {
 
               <div>
                 <Label>Técnico</Label>
-                <Input
-                  value={formData.technician_name}
-                  onChange={(e) => handleChange('technician_name', e.target.value)}
-                  className="mt-1"
-                />
+                <Select value={formData.technician_id} onValueChange={(v) => handleChange('technician_id', v)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Seleccionar técnico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {technicians.map(tech => (
+                      <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="md:col-span-2">

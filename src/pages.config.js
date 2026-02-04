@@ -71,6 +71,7 @@ import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
+import Technicians from './pages/Technicians';
 import __Layout from './Layout.jsx';
 
 
@@ -99,6 +100,7 @@ export const PAGES = {
     "Settings": Settings,
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
+    "Technicians": Technicians,
 }
 
 export const pagesConfig = {
