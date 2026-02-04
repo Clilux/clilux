@@ -17,8 +17,6 @@ import NavHeader from '../components/navigation/NavHeader';
 import RevisionCard from '../components/cards/RevisionCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
-import MaintenanceHistory from '../components/equipment/MaintenanceHistory';
-import MaintenanceConfig from '../components/equipment/MaintenanceConfig';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -297,29 +295,17 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        <Tabs defaultValue="maintenance" className="space-y-4">
+        <Tabs defaultValue="revisions" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="maintenance" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Mantenimiento
-            </TabsTrigger>
             <TabsTrigger value="revisions" className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4" />
-              Revisiones IT3 ({revisions.length})
+              Revisiones ({revisions.length})
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Documentos
             </TabsTrigger>
-            <TabsTrigger value="config" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Configuración
-            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="maintenance">
-            <MaintenanceHistory equipmentId={equipment.id} />
-          </TabsContent>
 
           <TabsContent value="revisions">
             <div className="space-y-4">
@@ -371,13 +357,6 @@ export default function EquipmentDetail() {
           <TabsContent value="documents">
             <EquipmentDocuments 
               equipment={equipment} 
-              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
-            />
-          </TabsContent>
-
-          <TabsContent value="config">
-            <MaintenanceConfig 
-              equipment={equipment}
               onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
             />
           </TabsContent>
