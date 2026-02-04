@@ -482,7 +482,7 @@ export default function RevisionForm() {
                       <div key={field.field_key}>
                         <Label>{field.field_label}</Label>
                         <Select 
-                          value={formData.it3_data[field.field_key] || ''} 
+                          value={String(formData.it3_data[field.field_key] || '')} 
                           onValueChange={(v) => handleIT3Change(field.field_key, v)}
                         >
                           <SelectTrigger className="mt-1">
@@ -490,7 +490,9 @@ export default function RevisionForm() {
                           </SelectTrigger>
                           <SelectContent>
                             {field.options.map(opt => (
-                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              <SelectItem key={opt} value={opt}>
+                                {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

@@ -68,11 +68,11 @@ import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
+import ScanEquipment from './pages/ScanEquipment';
 import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
-import ScanEquipment from './pages/ScanEquipment';
 import __Layout from './Layout.jsx';
 
 
@@ -98,11 +98,11 @@ export const PAGES = {
     "RevisionFieldSettings": RevisionFieldSettings,
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
+    "ScanEquipment": ScanEquipment,
     "Settings": Settings,
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
-    "ScanEquipment": ScanEquipment,
 }
 
 export const pagesConfig = {

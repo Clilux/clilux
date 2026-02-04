@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserPlus, Users, Mail, Shield, Loader2, Copy, Check } from 'lucide-react';
+import { UserPlus, Users, Shield, Loader2, Check } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -25,8 +25,6 @@ export default function TechnicianManagement() {
   const [showDialog, setShowDialog] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [generatedPassword, setGeneratedPassword] = useState('');
-  const [copied, setCopied] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
@@ -53,9 +51,7 @@ export default function TechnicianManagement() {
   const handleOpenDialog = () => {
     setEmail('');
     setFullName('');
-    setGeneratedPassword(generatePassword());
     setInviteSuccess(false);
-    setCopied(false);
     setShowDialog(true);
   };
 
@@ -67,38 +63,7 @@ export default function TechnicianManagement() {
     inviteMutation.mutate({ email, role: 'admin' });
   };
 
-  const handleCopyCredentials = () => {
-    const text = `Email: ${email}\nContraseña: ${generatedPassword}\n\nAccede a la aplicación Clilux M con estas credenciales.`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast.success('Credenciales copiadas');
-  };
 
-  const handleSendEmail = async () => {
-    try {
-      await base44.integrations.Core.SendEmail({
-        to: email,
-        subject: 'Bienvenido a Clilux M - Credenciales de acceso',
-        body: `
-Hola ${fullName || ''},
-
-Has sido invitado como técnico a la aplicación Clilux M.
-
-Tus credenciales de acceso son:
-Email: ${email}
-Contraseña inicial: ${generatedPassword}
-
-Por favor, cambia tu contraseña después de iniciar sesión por primera vez.
-
-Saludos,
-Equipo Clilux
-        `.trim()
-      });
-      toast.success('Email enviado correctamente');
-    } catch (error) {
-      toast.error('Error al enviar email');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -125,15 +90,6 @@ Equipo Clilux
               {!inviteSuccess ? (
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label>Nombre completo</Label>
-                    <Input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nombre del técnico"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
                     <Label>Email *</Label>
                     <Input
                       type="email"
@@ -143,25 +99,9 @@ Equipo Clilux
                       className="mt-1"
                     />
                   </div>
-                  <div>
-                    <Label>Contraseña generada</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        value={generatedPassword}
-                        readOnly
-                        className="font-mono"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setGeneratedPassword(generatePassword())}
-                      >
-                        🔄
-                      </Button>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Esta contraseña se enviará al técnico por email
-                    </p>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                    <p className="font-medium mb-1">ℹ️ Cómo funciona:</p>
+                    <p className="text-xs">El técnico recibirá un email de invitación con un enlace para crear su contraseña y acceder a la aplicación.</p>
                   </div>
                   <Button 
                     onClick={handleInvite} 
@@ -180,34 +120,18 @@ Equipo Clilux
                 <div className="space-y-4 py-4">
                   <div className="text-center p-4 bg-emerald-50 rounded-lg">
                     <Check className="h-12 w-12 text-emerald-600 mx-auto mb-2" />
-                    <p className="font-medium text-emerald-800">¡Técnico invitado!</p>
-                    <p className="text-sm text-emerald-600">
-                      Envía las credenciales al nuevo técnico
+                    <p className="font-medium text-emerald-800 mb-2">¡Invitación enviada!</p>
+                    <p className="text-sm text-emerald-700">
+                      {email} recibirá un email con instrucciones para crear su contraseña y acceder a la aplicación.
                     </p>
                   </div>
                   
-                  <div className="p-4 bg-slate-100 rounded-lg font-mono text-sm">
-                    <p><strong>Email:</strong> {email}</p>
-                    <p><strong>Contraseña:</strong> {generatedPassword}</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleCopyCredentials}
-                      className="flex-1"
-                    >
-                      {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                      {copied ? 'Copiado' : 'Copiar'}
-                    </Button>
-                    <Button
-                      onClick={handleSendEmail}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Enviar por Email
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => setShowDialog(false)}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Cerrar
+                  </Button>
                 </div>
               )}
             </DialogContent>
