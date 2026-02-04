@@ -199,41 +199,164 @@ export default function Reports() {
           yPos += 25;
         });
       } else if (reportType === 'revisions') {
-        data.forEach((item, index) => {
-          if (yPos > pageHeight - 50) {
-            doc.addPage();
-            yPos = 20;
-          }
-          
+        for (let index = 0; index < data.length; index++) {
+          const item = data[index];
           const eq = equipment.find(e => e.id === item.equipment_id);
           const building = buildings.find(b => b.id === item.building_id);
           
-          // Recuadro con header destacado
-          doc.setFillColor(248, 250, 252); // slate-50
-          doc.roundedRect(20, yPos, pageWidth - 40, 35, 2, 2, 'F');
-          doc.setDrawColor(203, 213, 225);
-          doc.roundedRect(20, yPos, pageWidth - 40, 35, 2, 2, 'S');
+          // Nueva página para cada revisión
+          if (index > 0) {
+            doc.addPage();
+          }
+          yPos = 45;
           
-          // Cabecera del registro
-          doc.setFillColor(241, 245, 249);
-          doc.roundedRect(20, yPos, pageWidth - 40, 8, 2, 2, 'F');
+          // Título de la revisión
+          doc.setFontSize(16);
           doc.setFont(undefined, 'bold');
-          doc.text(`${index + 1}. ${format(new Date(item.revision_date), 'dd/MM/yyyy')} - ${eq?.brand || ''} ${eq?.model || ''}`, 25, yPos + 5);
-          doc.setFont(undefined, 'normal');
+          doc.text(`Informe de Revisión`, 20, yPos);
+          yPos += 8;
           
-          // Datos del equipo
-          doc.setFontSize(8);
-          doc.text(`Edificio: ${building?.name || 'N/A'}`, 25, yPos + 13);
-          doc.text(`Ubicación: ${eq?.location || 'N/A'}`, 25, yPos + 18);
-          doc.text(`Estado: ${item.general_status} | Tipo: ${item.revision_type}`, 25, yPos + 23);
+          doc.setFontSize(12);
+          doc.setTextColor(100, 116, 139);
+          doc.text(format(new Date(item.revision_date), 'dd/MM/yyyy'), 20, yPos);
+          doc.setTextColor(0, 0, 0);
+          yPos += 10;
           
-          if (item.observations) {
-            doc.text(`Observaciones: ${item.observations.substring(0, 80)}...`, 25, yPos + 28);
+          // Sección del equipo con foto
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(20, yPos, pageWidth - 40, 50, 3, 3, 'F');
+          doc.setDrawColor(226, 232, 240);
+          doc.roundedRect(20, yPos, pageWidth - 40, 50, 3, 3, 'S');
+          
+          // Foto del equipo si existe
+          if (eq?.photo_url || item.equipment_photo) {
+            try {
+              const photoUrl = item.equipment_photo || eq?.photo_url;
+              doc.addImage(photoUrl, 'JPEG', 25, yPos + 5, 40, 40);
+            } catch (e) {
+              // Si falla la imagen, continuar sin ella
+            }
           }
           
-          doc.setFontSize(9);
-          yPos += 40;
-        });
+          // Datos del equipo
+          const dataX = eq?.photo_url || item.equipment_photo ? 70 : 25;
+          doc.setFontSize(14);
+          doc.setFont(undefined, 'bold');
+          doc.text(`${eq?.brand || 'N/A'} ${eq?.model || ''}`, dataX, yPos + 10);
+          
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Tipo: ${eq?.equipment_type || 'N/A'}`, dataX, yPos + 18);
+          doc.text(`Edificio: ${building?.name || 'N/A'}`, dataX, yPos + 24);
+          doc.text(`Ubicación: ${eq?.location || 'N/A'}`, dataX, yPos + 30);
+          doc.text(`Serie: ${eq?.serial_number || 'N/A'}`, dataX, yPos + 36);
+          yPos += 55;
+          
+          // Estado de la revisión
+          doc.setFillColor(241, 245, 249);
+          doc.roundedRect(20, yPos, pageWidth - 40, 12, 2, 2, 'F');
+          doc.setFontSize(11);
+          doc.setFont(undefined, 'bold');
+          doc.text('Estado General:', 25, yPos + 5);
+          doc.setFont(undefined, 'normal');
+          
+          const statusText = {
+            good: 'Bueno',
+            acceptable: 'Aceptable', 
+            needs_repair: 'Necesita Reparación',
+            critical: 'Crítico'
+          }[item.general_status] || item.general_status;
+          doc.text(statusText, 65, yPos + 5);
+          
+          doc.text('Técnico:', 120, yPos + 5);
+          doc.text(item.technician_name || 'N/A', 145, yPos + 5);
+          yPos += 17;
+          
+          // Datos de mantenimiento
+          if (item.it3_data && Object.keys(item.it3_data).length > 0) {
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Datos de Mantenimiento', 20, yPos);
+            yPos += 7;
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            const it3 = item.it3_data;
+            let col1X = 25, col2X = 110;
+            let currentY = yPos;
+            let column = 1;
+            
+            Object.entries(it3).forEach(([key, value]) => {
+              if (value !== null && value !== undefined && value !== '') {
+                if (currentY > pageHeight - 30) {
+                  doc.addPage();
+                  currentY = 20;
+                }
+                
+                // Etiqueta del campo (formatear el nombre)
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const displayValue = typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value;
+                
+                const xPos = column === 1 ? col1X : col2X;
+                doc.setFont(undefined, 'bold');
+                doc.text(label + ':', xPos, currentY);
+                doc.setFont(undefined, 'normal');
+                doc.text(String(displayValue), xPos + 35, currentY);
+                
+                if (column === 1) {
+                  column = 2;
+                } else {
+                  column = 1;
+                  currentY += 6;
+                }
+              }
+            });
+            
+            yPos = currentY + (column === 2 ? 6 : 0) + 5;
+          }
+          
+          // Observaciones
+          if (item.observations || item.actions_taken || item.recommendations) {
+            if (yPos > pageHeight - 40) {
+              doc.addPage();
+              yPos = 20;
+            }
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Observaciones', 20, yPos);
+            yPos += 7;
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            if (item.observations) {
+              const lines = doc.splitTextToSize(item.observations, pageWidth - 50);
+              doc.text(lines, 25, yPos);
+              yPos += lines.length * 5 + 5;
+            }
+            
+            if (item.actions_taken) {
+              doc.setFont(undefined, 'bold');
+              doc.text('Acciones:', 25, yPos);
+              doc.setFont(undefined, 'normal');
+              yPos += 5;
+              const lines = doc.splitTextToSize(item.actions_taken, pageWidth - 50);
+              doc.text(lines, 25, yPos);
+              yPos += lines.length * 5 + 5;
+            }
+            
+            if (item.recommendations) {
+              doc.setFont(undefined, 'bold');
+              doc.text('Recomendaciones:', 25, yPos);
+              doc.setFont(undefined, 'normal');
+              yPos += 5;
+              const lines = doc.splitTextToSize(item.recommendations, pageWidth - 50);
+              doc.text(lines, 25, yPos);
+            }
+          }
+        }
       } else if (reportType === 'incidents') {
         data.forEach((item, index) => {
           if (yPos > pageHeight - 20) {

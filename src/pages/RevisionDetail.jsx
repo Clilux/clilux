@@ -180,7 +180,7 @@ export default function RevisionDetail() {
           <Card className="p-6 bg-white border-0 shadow-sm mb-6">
             <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <Thermometer className="h-5 w-5" />
-              Datos IT3 RITE
+              Mantenimiento
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

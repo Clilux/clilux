@@ -153,23 +153,41 @@ export default function RevisionForm() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      // Limpiar y preparar datos
+      // Procesar correctamente it3_data preservando TODOS los campos
       const cleanedIt3Data = {};
-      Object.keys(data.it3_data || {}).forEach(key => {
-        const value = data.it3_data[key];
-        if (value !== '' && value !== null && value !== undefined) {
-          // Convertir números
-          if (typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
-            cleanedIt3Data[key] = Number(value);
-          } else {
-            cleanedIt3Data[key] = value;
+      if (data.it3_data && typeof data.it3_data === 'object') {
+        Object.entries(data.it3_data).forEach(([key, value]) => {
+          // Guardar el valor tal cual si existe
+          if (value !== '' && value !== null && value !== undefined) {
+            // Convertir a número si es string numérico
+            if (typeof value === 'string' && value.trim() !== '') {
+              const num = Number(value);
+              cleanedIt3Data[key] = !isNaN(num) && /^-?\d+\.?\d*$/.test(value.trim()) ? num : value;
+            } else {
+              cleanedIt3Data[key] = value;
+            }
           }
-        }
-      });
+        });
+      }
 
       const cleanData = {
-        ...data,
+        equipment_id: data.equipment_id,
+        building_id: data.building_id,
+        client_id: data.client_id,
+        technician_email: data.technician_email || '',
+        technician_name: data.technician_name || '',
+        revision_date: data.revision_date,
+        revision_type: data.revision_type,
+        general_status: data.general_status,
+        annual_revision_completed: data.annual_revision_completed || false,
         it3_data: cleanedIt3Data,
+        observations: data.observations || '',
+        actions_taken: data.actions_taken || '',
+        recommendations: data.recommendations || '',
+        next_revision_date: data.next_revision_date || '',
+        equipment_photo: data.equipment_photo || '',
+        additional_photos: data.additional_photos || [],
+        photos: data.photos || [],
       };
       
       if (isEditing) {
@@ -374,7 +392,6 @@ export default function RevisionForm() {
                   <SelectContent>
                     <SelectItem value="preventive">Preventivo</SelectItem>
                     <SelectItem value="corrective">Correctivo</SelectItem>
-                    <SelectItem value="it3_rite">IT3 RITE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
