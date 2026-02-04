@@ -54,6 +54,7 @@ export default function RevisionForm() {
     revision_date: new Date().toISOString().split('T')[0],
     revision_type: 'preventive',
     general_status: 'good',
+    annual_revision_completed: false,
     it3_data: {
       temp_impulsion: '',
       temp_retorno: '',
@@ -77,6 +78,8 @@ export default function RevisionForm() {
     recommendations: '',
     next_revision_date: '',
     photos: [],
+    equipment_photo: '',
+    additional_photos: [],
   });
 
   const [uploading, setUploading] = useState(false);
@@ -208,11 +211,14 @@ export default function RevisionForm() {
   const handleIT3Change = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      it3_data: { ...prev.it3_data, [field]: value },
+      it3_data: { 
+        ...prev.it3_data, 
+        [field]: value 
+      },
     }));
   };
 
-  const handlePhotoUpload = async (e) => {
+  const handleEquipmentPhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -221,9 +227,18 @@ export default function RevisionForm() {
       const result = await base44.integrations.Core.UploadFile({ file });
       setFormData(prev => ({
         ...prev,
-        photos: [...(prev.photos || []), result.file_url],
+        equipment_photo: result.file_url,
       }));
-      toast.success('Foto subida');
+      
+      // Actualizar foto del equipo
+      if (formData.equipment_id) {
+        await base44.entities.Equipment.update(formData.equipment_id, {
+          photo_url: result.file_url
+        });
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      }
+      
+      toast.success('Foto del equipo actualizada');
     } catch (error) {
       toast.error('Error al subir la foto');
     } finally {
@@ -231,10 +246,29 @@ export default function RevisionForm() {
     }
   };
 
-  const removePhoto = (index) => {
+  const handleAdditionalPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({
+        ...prev,
+        additional_photos: [...(prev.additional_photos || []), result.file_url],
+      }));
+      toast.success('Foto añadida');
+    } catch (error) {
+      toast.error('Error al subir la foto');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAdditionalPhoto = (index) => {
     setFormData(prev => ({
       ...prev,
-      photos: prev.photos.filter((_, i) => i !== index),
+      additional_photos: prev.additional_photos.filter((_, i) => i !== index),
     }));
   };
 
@@ -374,13 +408,26 @@ export default function RevisionForm() {
                   className="mt-1"
                 />
               </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="annual_revision"
+                    checked={formData.annual_revision_completed || false}
+                    onCheckedChange={(checked) => handleChange('annual_revision_completed', checked)}
+                  />
+                  <Label htmlFor="annual_revision" className="font-normal cursor-pointer">
+                    Revisión anual completada
+                  </Label>
+                </div>
+              </div>
             </div>
           </Card>
 
           {(formData.revision_type === 'it3_rite' || formData.revision_type === 'preventive') && activeFields.length > 0 && (
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">Datos IT3 RITE</h3>
+                <h3 className="font-semibold text-slate-800">Datos de Mantenimiento</h3>
                 <Link to={createPageUrl('RevisionFieldSettings')}>
                   <Button variant="ghost" size="sm">
                     <Settings className="h-4 w-4 mr-1" />
@@ -498,40 +545,78 @@ export default function RevisionForm() {
           </Card>
 
           <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-            <h3 className="font-semibold text-slate-800 mb-4">Fotos</h3>
-            <div className="flex flex-wrap gap-4">
-              {formData.photos?.map((photo, index) => (
-                <div key={index} className="relative">
+            <h3 className="font-semibold text-slate-800 mb-4">Fotos del Equipo</h3>
+            
+            <div className="mb-6">
+              <Label className="text-sm text-slate-600 mb-2 block">Foto Principal del Equipo</Label>
+              <p className="text-xs text-slate-500 mb-3">Esta foto se guardará como la foto principal del equipo</p>
+              <div className="flex items-center gap-4">
+                {formData.equipment_photo && (
                   <img 
-                    src={photo} 
-                    alt={`Foto ${index + 1}`}
-                    className="w-24 h-24 object-cover rounded-lg"
+                    src={formData.equipment_photo} 
+                    alt="Equipo"
+                    className="w-32 h-32 object-cover rounded-lg border-2 border-blue-500"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                id="photo-upload"
-              />
-              <label htmlFor="photo-upload">
-                <div className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors">
-                  {uploading ? (
-                    <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
-                  ) : (
-                    <Upload className="h-6 w-6 text-slate-400" />
-                  )}
-                </div>
-              </label>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEquipmentPhotoUpload}
+                  className="hidden"
+                  id="equipment-photo-upload"
+                />
+                <label htmlFor="equipment-photo-upload">
+                  <div className="w-32 h-32 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-slate-400 transition-colors">
+                    {uploading ? (
+                      <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6 text-slate-400 mb-1" />
+                        <span className="text-xs text-slate-500">Subir foto</span>
+                      </>
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm text-slate-600 mb-2 block">Fotos Adicionales de Información</Label>
+              <p className="text-xs text-slate-500 mb-3">Fotos complementarias para documentación</p>
+              <div className="flex flex-wrap gap-4">
+                {formData.additional_photos?.map((photo, index) => (
+                  <div key={index} className="relative">
+                    <img 
+                      src={photo} 
+                      alt={`Adicional ${index + 1}`}
+                      className="w-24 h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAdditionalPhoto(index)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAdditionalPhotoUpload}
+                  className="hidden"
+                  id="additional-photo-upload"
+                />
+                <label htmlFor="additional-photo-upload">
+                  <div className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-slate-400 transition-colors">
+                    {uploading ? (
+                      <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
+                    ) : (
+                      <Upload className="h-6 w-6 text-slate-400" />
+                    )}
+                  </div>
+                </label>
+              </div>
             </div>
           </Card>
 

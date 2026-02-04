@@ -65,6 +65,7 @@ import Incidents from './pages/Incidents';
 import MaintenanceDetail from './pages/MaintenanceDetail';
 import MaintenanceForm from './pages/MaintenanceForm';
 import MenuInicio from './pages/MenuInicio';
+import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
@@ -72,7 +73,6 @@ import Revisions from './pages/Revisions';
 import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
-import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +95,7 @@ export const PAGES = {
     "MaintenanceDetail": MaintenanceDetail,
     "MaintenanceForm": MaintenanceForm,
     "MenuInicio": MenuInicio,
+    "Reports": Reports,
     "RevisionDetail": RevisionDetail,
     "RevisionFieldSettings": RevisionFieldSettings,
     "RevisionForm": RevisionForm,
@@ -102,7 +103,6 @@ export const PAGES = {
     "Settings": Settings,
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
-    "Reports": Reports,
 }
 
 export const pagesConfig = {

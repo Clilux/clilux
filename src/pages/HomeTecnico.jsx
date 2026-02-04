@@ -67,7 +67,7 @@ export default function HomeTecnico() {
     .sort((a, b) => new Date(a.next_revision_date) - new Date(b.next_revision_date));
 
   const handleLogout = () => {
-    window.location.href = createPageUrl('Login');
+    window.location.href = createPageUrl('MenuInicio');
   };
 
   return (
