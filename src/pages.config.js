@@ -63,6 +63,7 @@ import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
+import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
 import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
@@ -74,7 +75,6 @@ import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
-import MenuCustomization from './pages/MenuCustomization';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +95,7 @@ export const PAGES = {
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
+    "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
     "Reports": Reports,
     "RevisionDetail": RevisionDetail,
@@ -106,7 +107,6 @@ export const PAGES = {
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
-    "MenuCustomization": MenuCustomization,
 }
 
 export const pagesConfig = {

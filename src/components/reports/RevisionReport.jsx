@@ -159,12 +159,12 @@ export default function RevisionReport({ equipment, revisions, building, client,
               <div key={revision.id} className="revision-card">
                 <div className="revision-header">
                   <div>
-                    <h3 style={{ margin: 0 }}>
+                    <h3 style={{ margin: 0, marginBottom: '4px' }}>
                       {format(new Date(revision.revision_date), "dd 'de' MMMM 'de' yyyy", { locale: es })}
                     </h3>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                    <div style={{ fontSize: '13px', color: '#64748b' }}>
                       Técnico: {revision.technician_name || '-'}
-                    </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <span className={`status-badge status-${revision.general_status}`}>

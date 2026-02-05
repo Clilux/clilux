@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserPlus, Users, Shield, Loader2, Check } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserPlus, Users, Shield, Loader2, Check, Eye, EyeOff } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
 function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@$!%*?&';
   let password = '';
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 12; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
@@ -25,7 +26,10 @@ export default function TechnicianManagement() {
   const [showDialog, setShowDialog] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [createdPassword, setCreatedPassword] = useState('');
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -48,10 +52,54 @@ export default function TechnicianManagement() {
     }
   });
 
+  const createMutation = useMutation({
+    mutationFn: async ({ email, full_name, password }) => {
+      const technicianData = { 
+        name: full_name || email.split('@')[0],
+        email: email,
+        specialty: 'Técnico HVAC',
+        status: 'active'
+      };
+      await base44.entities.Technician.create(technicianData);
+      
+      const settingsAll = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      const settings = settingsAll[0] || { setting_key: 'main', client_users: [] };
+      
+      const updatedClientUsers = [
+        ...(settings.client_users || []),
+        { email, password, can_edit: true, role: 'technician' }
+      ];
+      
+      if (settings.id) {
+        await base44.entities.AppSettings.update(settings.id, { 
+          client_users: updatedClientUsers 
+        });
+      } else {
+        await base44.entities.AppSettings.create({ 
+          setting_key: 'main',
+          client_users: updatedClientUsers 
+        });
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      setInviteSuccess(true);
+      setCreatedPassword(variables.password);
+      toast.success('Técnico creado correctamente');
+    },
+    onError: (error) => {
+      toast.error('Error al crear técnico: ' + error.message);
+    }
+  });
+
   const handleOpenDialog = () => {
     setEmail('');
     setFullName('');
+    setPassword('');
+    setShowPassword(false);
     setInviteSuccess(false);
+    setCreatedPassword('');
     setShowDialog(true);
   };
 
@@ -61,6 +109,20 @@ export default function TechnicianManagement() {
       return;
     }
     inviteMutation.mutate({ email, role: 'admin' });
+  };
+
+  const handleCreate = async () => {
+    if (!email || !password) {
+      toast.error('Introduce email y contraseña');
+      return;
+    }
+    createMutation.mutate({ email, full_name: fullName, password });
+  };
+
+  const handleGeneratePassword = () => {
+    const newPassword = generatePassword();
+    setPassword(newPassword);
+    setShowPassword(true);
   };
 
 
@@ -84,46 +146,135 @@ export default function TechnicianManagement() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Invitar Nuevo Técnico</DialogTitle>
+                <DialogTitle>Nuevo Técnico</DialogTitle>
               </DialogHeader>
               
               {!inviteSuccess ? (
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label>Email *</Label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="tecnico@ejemplo.com"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                    <p className="font-medium mb-1">ℹ️ Cómo funciona:</p>
-                    <p className="text-xs">El técnico recibirá un email de invitación con un enlace para crear su contraseña y acceder a la aplicación.</p>
-                  </div>
-                  <Button 
-                    onClick={handleInvite} 
-                    disabled={inviteMutation.isPending}
-                    className="w-full"
-                  >
-                    {inviteMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <UserPlus className="h-4 w-4 mr-2" />
-                    )}
-                    Enviar Invitación
-                  </Button>
-                </div>
+                <Tabs defaultValue="direct" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="direct">Crear Directo</TabsTrigger>
+                    <TabsTrigger value="invite">Enviar Invitación</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="direct" className="space-y-4 py-4">
+                    <div>
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tecnico@ejemplo.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label>Nombre completo</Label>
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Juan Pérez"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label>Contraseña *</Label>
+                      <div className="flex gap-2 mt-1">
+                        <div className="relative flex-1">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Contraseña segura"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
+                          </button>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGeneratePassword}
+                        >
+                          Generar
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+                      <p className="font-medium mb-1">✓ Creación directa</p>
+                      <p className="text-xs">El técnico podrá iniciar sesión inmediatamente con estas credenciales. Compártele la contraseña de forma segura.</p>
+                    </div>
+                    <Button 
+                      onClick={handleCreate} 
+                      disabled={createMutation.isPending}
+                      className="w-full"
+                    >
+                      {createMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      Crear Técnico
+                    </Button>
+                  </TabsContent>
+                  
+                  <TabsContent value="invite" className="space-y-4 py-4">
+                    <div>
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tecnico@ejemplo.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                      <p className="font-medium mb-1">ℹ️ Cómo funciona:</p>
+                      <p className="text-xs">El técnico recibirá un email desde noreply@base44.com con un enlace para crear su contraseña. Puede tardar unos minutos. Revisar spam.</p>
+                    </div>
+                    <Button 
+                      onClick={handleInvite} 
+                      disabled={inviteMutation.isPending}
+                      className="w-full"
+                    >
+                      {inviteMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      Enviar Invitación
+                    </Button>
+                  </TabsContent>
+                </Tabs>
               ) : (
                 <div className="space-y-4 py-4">
                   <div className="text-center p-4 bg-emerald-50 rounded-lg">
                     <Check className="h-12 w-12 text-emerald-600 mx-auto mb-2" />
-                    <p className="font-medium text-emerald-800 mb-2">¡Invitación enviada!</p>
-                    <p className="text-sm text-emerald-700">
-                      {email} recibirá un email con instrucciones para crear su contraseña y acceder a la aplicación.
+                    <p className="font-medium text-emerald-800 mb-2">
+                      {createdPassword ? '¡Técnico creado!' : '¡Invitación enviada!'}
                     </p>
+                    {createdPassword ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-emerald-700">
+                          Credenciales para <strong>{email}</strong>:
+                        </p>
+                        <div className="p-3 bg-white rounded-lg border border-emerald-200">
+                          <p className="text-xs text-slate-500 mb-1">Contraseña:</p>
+                          <p className="font-mono text-sm font-semibold text-slate-800 break-all">{createdPassword}</p>
+                        </div>
+                        <p className="text-xs text-emerald-600">
+                          ⚠️ Guarda esta contraseña de forma segura y compártela con el técnico.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-emerald-700">
+                        {email} recibirá un email con instrucciones para crear su contraseña.
+                      </p>
+                    )}
                   </div>
                   
                   <Button

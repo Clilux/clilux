@@ -1,24 +1,38 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import { Plus, Search, Filter } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import IncidentCard from '../components/incidents/IncidentCard';
+import { toast } from 'sonner';
 
 export default function Incidents() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [deleteId, setDeleteId] = useState(null);
 
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['incidents'],
     queryFn: () => base44.entities.Incident.list('-created_date'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Incident.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      toast.success('Incidencia eliminada');
+      setDeleteId(null);
+    },
+    onError: () => toast.error('Error al eliminar la incidencia'),
   });
 
   const { data: equipment = [] } = useQuery({
@@ -125,10 +139,20 @@ export default function Incidents() {
                 buildingName={getBuildingName(incident.building_id)}
                 showClient={true}
                 clientName={getClientName(incident.client_id)}
+                onDelete={(id) => setDeleteId(id)}
               />
             ))}
           </div>
         )}
+
+        <DeleteConfirmDialog
+          open={!!deleteId}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          title="¿Eliminar incidencia?"
+          description="Esta incidencia se eliminará permanentemente. Esta acción no se puede deshacer."
+          onConfirm={() => deleteMutation.mutate(deleteId)}
+          isLoading={deleteMutation.isPending}
+        />
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, User, ChevronRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Clock, User, ChevronRight, Trash2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,15 +23,22 @@ const statusConfig = {
   closed: { label: 'Cerrado', color: 'bg-slate-100 text-slate-600' },
 };
 
-export default function IncidentCard({ incident, equipmentName, buildingName, showClient = false, clientName }) {
+export default function IncidentCard({ incident, equipmentName, buildingName, showClient = false, clientName, onDelete }) {
   const priority = priorityConfig[incident.priority] || priorityConfig.medium;
   const status = statusConfig[incident.status] || statusConfig.pending;
+
+  const handleDelete = (e) => {
+    e.preventDefault();
+    if (onDelete) {
+      onDelete(incident.id);
+    }
+  };
 
   return (
     <Link to={createPageUrl(`IncidentDetail?id=${incident.id}`)}>
       <Card className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
         <div className="flex items-start justify-between">
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-1">
             <div className={cn(
               "p-3 rounded-xl",
               incident.priority === 'urgent' ? 'bg-red-50' : 
@@ -76,7 +84,19 @@ export default function IncidentCard({ incident, equipmentName, buildingName, sh
               </div>
             </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+          <div className="flex items-center gap-2">
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDelete}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+          </div>
         </div>
       </Card>
     </Link>
