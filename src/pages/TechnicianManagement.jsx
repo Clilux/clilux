@@ -184,7 +184,19 @@ export default function TechnicianManagement() {
           )}
         </Card>
 
-        <Card className="mt-6 p-6 bg-amber-500/10 border-amber-500/30">
+        <Card className="mt-6 p-6 bg-blue-500/10 border-blue-500/30">
+          <h3 className="font-medium text-blue-400 mb-2">ℹ️ Sobre las invitaciones</h3>
+          <p className="text-sm text-blue-300/80">
+            Las invitaciones se envían desde <strong>noreply@base44.com</strong>. Si el técnico no recibe el email:
+          </p>
+          <ul className="text-sm text-blue-300/80 list-disc list-inside mt-2 space-y-1">
+            <li>Revisa la carpeta de spam/correo no deseado</li>
+            <li>Verifica que el email sea correcto</li>
+            <li>Añade noreply@base44.com a los contactos seguros</li>
+          </ul>
+        </Card>
+
+        <Card className="mt-4 p-6 bg-amber-500/10 border-amber-500/30">
           <h3 className="font-medium text-amber-400 mb-2">Nota sobre integraciones</h3>
           <p className="text-sm text-amber-300/80">
             Para integrar con <strong>Stel Order</strong> y <strong>Google Calendar</strong>, 
