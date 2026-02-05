@@ -1,4 +1,6 @@
 import React, { useRef } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { FileText, Printer } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,8 +28,14 @@ const statusLabels = {
   excesivas: 'Excesivas',
 };
 
-export default function RevisionReport({ equipment, revisions, building, client, onClose, fieldConfigs = [] }) {
+export default function RevisionReport({ equipment, revisions, building, client, onClose }) {
   const reportRef = useRef(null);
+  
+  // Cargar fieldConfigs independientemente en lugar de recibirlos como prop
+  const { data: fieldConfigs = [] } = useQuery({
+    queryKey: ['revision-field-configs'],
+    queryFn: () => base44.entities.RevisionFieldConfig.list(),
+  });
 
   // Función para obtener el label correcto de un campo
   const getFieldLabel = (fieldKey) => {
