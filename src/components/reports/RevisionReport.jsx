@@ -82,45 +82,40 @@ export default function RevisionReport({ equipment, revisions, building, client,
     return fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const handlePrint = () => {
-    const content = reportRef.current;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Informe de Revisiones - ${equipment.brand} ${equipment.model}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-            h1 { color: #1e293b; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-            h2 { color: #475569; margin-top: 30px; }
-            h3 { color: #64748b; }
-            .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
-            .info-box { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-            .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .info-item { margin-bottom: 8px; }
-            .info-label { font-size: 12px; color: #64748b; }
-            .info-value { font-weight: 500; }
-            .revision-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; }
-            .revision-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-            .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-            .status-good { background: #dcfce7; color: #166534; }
-            .status-acceptable { background: #dbeafe; color: #1e40af; }
-            .status-needs_repair { background: #fef3c7; color: #92400e; }
-            .status-critical { background: #fee2e2; color: #991b1b; }
-            .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
-            .data-item { font-size: 13px; padding: 8px; background: #f8fafc; border-radius: 4px; }
-            .notes { background: #f8fafc; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 13px; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          ${content.innerHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+  const handleExportPDF = async () => {
+    try {
+      toast.info('Generando PDF...');
+      const jsPDF = (await import('jspdf')).default;
+      const html2canvas = (await import('html2canvas')).default;
+      
+      const element = reportRef.current;
+      if (!element) return;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 0;
+      
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`informe-${equipment.model}-${format(new Date(), 'dd-MM-yyyy')}.pdf`);
+      
+      toast.success('PDF descargado correctamente');
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      toast.error('Error al generar el PDF');
+    }
   };
 
   return (
@@ -130,9 +125,9 @@ export default function RevisionReport({ equipment, revisions, building, client,
           <h2 className="text-lg font-semibold">Vista previa del informe</h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>Cerrar</Button>
-            <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-700">
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir / PDF
+            <Button onClick={handleExportPDF} className="bg-blue-600 hover:bg-blue-700">
+              <FileText className="h-4 w-4 mr-2" />
+              Descargar PDF
             </Button>
           </div>
         </div>
