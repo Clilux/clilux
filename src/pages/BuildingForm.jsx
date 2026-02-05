@@ -28,6 +28,8 @@ export default function BuildingForm() {
     city: '',
     postal_code: '',
     province: '',
+    latitude: '',
+    longitude: '',
     contact_person: '',
     contact_phone: '',
     floors: '',
@@ -35,6 +37,7 @@ export default function BuildingForm() {
     notes: '',
     status: 'active',
   });
+  const [geocoding, setGeocoding] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -86,6 +89,39 @@ export default function BuildingForm() {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGeocode = async () => {
+    if (!formData.address || !formData.city) {
+      toast.error('Introduce dirección y ciudad primero');
+      return;
+    }
+
+    setGeocoding(true);
+    try {
+      const address = `${formData.address}, ${formData.city}, ${formData.province || ''}, España`;
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data.length > 0) {
+        const { lat, lon } = data[0];
+        setFormData(prev => ({
+          ...prev,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon)
+        }));
+        toast.success('Coordenadas obtenidas correctamente');
+      } else {
+        toast.error('No se pudo encontrar la ubicación');
+      }
+    } catch (error) {
+      console.error('Error geocoding:', error);
+      toast.error('Error al obtener coordenadas');
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   return (
@@ -191,6 +227,46 @@ export default function BuildingForm() {
                   onChange={(e) => handleChange('province', e.target.value)}
                   className="mt-1"
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Coordenadas GPS (opcional)</Label>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <Input
+                    placeholder="Latitud"
+                    type="number"
+                    step="any"
+                    value={formData.latitude}
+                    onChange={(e) => handleChange('latitude', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Longitud"
+                    type="number"
+                    step="any"
+                    value={formData.longitude}
+                    onChange={(e) => handleChange('longitude', e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGeocode}
+                  disabled={geocoding}
+                  className="mt-2"
+                >
+                  {geocoding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Obteniendo...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Obtener coordenadas automáticamente
+                    </>
+                  )}
+                </Button>
               </div>
 
               <div>

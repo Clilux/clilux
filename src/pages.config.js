@@ -77,6 +77,7 @@ import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Equipment from './pages/Equipment';
+import Maps from './pages/Maps';
 import __Layout from './Layout.jsx';
 
 
@@ -111,6 +112,7 @@ export const PAGES = {
     "Technicians": Technicians,
     "ScanEquipmentTech": ScanEquipmentTech,
     "Equipment": Equipment,
+    "Maps": Maps,
 }
 
 export const pagesConfig = {
