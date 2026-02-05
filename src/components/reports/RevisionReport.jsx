@@ -70,8 +70,8 @@ export default function RevisionReport({ equipment, revisions, building, client,
             .status-acceptable { background: #dbeafe; color: #1e40af; }
             .status-needs_repair { background: #fef3c7; color: #92400e; }
             .status-critical { background: #fee2e2; color: #991b1b; }
-            .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-            .data-item { font-size: 13px; }
+            .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+            .data-item { font-size: 13px; padding: 8px; background: #f8fafc; border-radius: 4px; }
             .notes { background: #f8fafc; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 13px; }
             .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
             @media print { body { padding: 0; } }
@@ -191,7 +191,8 @@ export default function RevisionReport({ equipment, revisions, building, client,
                       
                       return (
                         <div key={key} className="data-item">
-                          <strong>{label}:</strong> {displayValue}
+                          <div><strong>{label}:</strong></div>
+                          <div>{displayValue}</div>
                         </div>
                       );
                     })}
