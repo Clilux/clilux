@@ -97,6 +97,11 @@ export default function EquipmentDetail() {
     enabled: !!equipment?.client_id,
   });
 
+  const { data: fieldConfigs = [] } = useQuery({
+    queryKey: ['revision-field-configs'],
+    queryFn: () => base44.entities.RevisionFieldConfig.list(),
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
@@ -368,6 +373,7 @@ export default function EquipmentDetail() {
             revisions={revisions}
             building={building}
             client={client}
+            fieldConfigs={fieldConfigs}
             onClose={() => setShowReport(false)}
           />
         )}
