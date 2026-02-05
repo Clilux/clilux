@@ -81,6 +81,11 @@ export default function RevisionDetail() {
     enabled: !!revision?.building_id,
   });
 
+  const { data: fieldConfigs = [] } = useQuery({
+    queryKey: ['revision-field-configs'],
+    queryFn: () => base44.entities.RevisionFieldConfig.list(),
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
@@ -187,20 +192,17 @@ export default function RevisionDetail() {
               {Object.entries(it3).map(([key, value]) => {
                 if (value === null || value === undefined || value === '' || value === false) return null;
                 
-                // Buscar label configurado en los campos del equipo
+                // Buscar label configurado en RevisionFieldConfig
                 let label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 
-                // Si el key empieza con "custom_", buscar el label real en la configuración
-                if (equipment) {
-                  // Intentar obtener configuración de campos del equipo
-                  const fieldConfigs = equipment.maintenance_config?.monthly_fields || 
-                                      equipment.maintenance_config?.quarterly_fields || 
-                                      equipment.maintenance_config?.biannual_fields || 
-                                      equipment.maintenance_config?.annual_fields || [];
-                  
-                  const fieldConfig = fieldConfigs.find(f => f.field_key === key);
-                  if (fieldConfig && fieldConfig.field_label) {
-                    label = fieldConfig.field_label;
+                if (equipment?.equipment_type) {
+                  // Buscar en la configuración de campos para este tipo de equipo
+                  const config = fieldConfigs.find(c => c.equipment_type === equipment.equipment_type);
+                  if (config?.fields) {
+                    const fieldConfig = config.fields.find(f => f.field_key === key);
+                    if (fieldConfig?.field_label) {
+                      label = fieldConfig.field_label;
+                    }
                   }
                 }
                 

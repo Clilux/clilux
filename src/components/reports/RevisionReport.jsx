@@ -26,22 +26,19 @@ const statusLabels = {
   excesivas: 'Excesivas',
 };
 
-export default function RevisionReport({ equipment, revisions, building, client, onClose }) {
+export default function RevisionReport({ equipment, revisions, building, client, onClose, fieldConfigs = [] }) {
   const reportRef = useRef(null);
 
   // Función para obtener el label correcto de un campo
   const getFieldLabel = (fieldKey) => {
-    // Buscar en la configuración del equipo
-    if (equipment?.maintenance_config) {
-      const allFields = [
-        ...(equipment.maintenance_config.monthly_fields || []),
-        ...(equipment.maintenance_config.quarterly_fields || []),
-        ...(equipment.maintenance_config.biannual_fields || []),
-        ...(equipment.maintenance_config.annual_fields || [])
-      ];
-      const fieldConfig = allFields.find(f => f.field_key === fieldKey);
-      if (fieldConfig?.field_label) {
-        return fieldConfig.field_label;
+    // Buscar en RevisionFieldConfig para este tipo de equipo
+    if (equipment?.equipment_type) {
+      const config = fieldConfigs.find(c => c.equipment_type === equipment.equipment_type);
+      if (config?.fields) {
+        const fieldConfig = config.fields.find(f => f.field_key === fieldKey);
+        if (fieldConfig?.field_label) {
+          return fieldConfig.field_label;
+        }
       }
     }
     // Fallback: formatear el key
