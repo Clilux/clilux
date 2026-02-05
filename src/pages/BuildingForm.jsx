@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, MapPin } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -62,6 +62,8 @@ export default function BuildingForm() {
         ...data,
         floors: data.floors ? Number(data.floors) : null,
         surface_m2: data.surface_m2 ? Number(data.surface_m2) : null,
+        latitude: data.latitude ? Number(data.latitude) : null,
+        longitude: data.longitude ? Number(data.longitude) : null,
       };
       if (isEditing) {
         return base44.entities.Building.update(buildingId, cleanData);
