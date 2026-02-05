@@ -177,16 +177,18 @@ export default function HomeTecnico() {
                 <p className="text-sm text-slate-400">Edificios</p>
               </div>
             </Card>
-            <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all">
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-purple-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
-                  <Thermometer className="h-7 w-7 text-purple-400" />
+            <Link to={createPageUrl('Equipment')}>
+              <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-purple-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full bg-purple-500/20 flex items-center justify-center mb-3">
+                    <Thermometer className="h-7 w-7 text-purple-400" />
+                  </div>
+                  <p className="text-4xl font-bold text-white">{equipment.length}</p>
+                  <p className="text-sm text-slate-400">Equipos</p>
                 </div>
-                <p className="text-4xl font-bold text-white">{equipment.length}</p>
-                <p className="text-sm text-slate-400">Equipos</p>
-              </div>
-            </Card>
+              </Card>
+            </Link>
             <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all">
               <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
               <div className="relative">
