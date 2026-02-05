@@ -52,6 +52,7 @@ import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
 import Calendar from './pages/Calendar';
 import ClientDetail from './pages/ClientDetail';
+import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
 import ClientForm from './pages/ClientForm';
 import Clients from './pages/Clients';
 import EquipmentDetail from './pages/EquipmentDetail';
@@ -73,7 +74,6 @@ import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
-import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +83,7 @@ export const PAGES = {
     "Buildings": Buildings,
     "Calendar": Calendar,
     "ClientDetail": ClientDetail,
+    "ClientEquipmentDetail": ClientEquipmentDetail,
     "ClientForm": ClientForm,
     "Clients": Clients,
     "EquipmentDetail": EquipmentDetail,
@@ -104,7 +105,6 @@ export const PAGES = {
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
-    "ClientEquipmentDetail": ClientEquipmentDetail,
 }
 
 export const pagesConfig = {

@@ -29,6 +29,25 @@ const statusLabels = {
 export default function RevisionReport({ equipment, revisions, building, client, onClose }) {
   const reportRef = useRef(null);
 
+  // Función para obtener el label correcto de un campo
+  const getFieldLabel = (fieldKey) => {
+    // Buscar en la configuración del equipo
+    if (equipment?.maintenance_config) {
+      const allFields = [
+        ...(equipment.maintenance_config.monthly_fields || []),
+        ...(equipment.maintenance_config.quarterly_fields || []),
+        ...(equipment.maintenance_config.biannual_fields || []),
+        ...(equipment.maintenance_config.annual_fields || [])
+      ];
+      const fieldConfig = allFields.find(f => f.field_key === fieldKey);
+      if (fieldConfig?.field_label) {
+        return fieldConfig.field_label;
+      }
+    }
+    // Fallback: formatear el key
+    return fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const handlePrint = () => {
     const content = reportRef.current;
     const printWindow = window.open('', '_blank');
@@ -159,24 +178,26 @@ export default function RevisionReport({ equipment, revisions, building, client,
 
                 {revision.it3_data && Object.keys(revision.it3_data).some(k => revision.it3_data[k]) && (
                   <div className="data-grid">
-                    {revision.it3_data.temp_impulsion && (
-                      <div className="data-item"><strong>Temp. Impulsión:</strong> {revision.it3_data.temp_impulsion}°C</div>
-                    )}
-                    {revision.it3_data.temp_retorno && (
-                      <div className="data-item"><strong>Temp. Retorno:</strong> {revision.it3_data.temp_retorno}°C</div>
-                    )}
-                    {revision.it3_data.presion_alta && (
-                      <div className="data-item"><strong>Presión Alta:</strong> {revision.it3_data.presion_alta} bar</div>
-                    )}
-                    {revision.it3_data.presion_baja && (
-                      <div className="data-item"><strong>Presión Baja:</strong> {revision.it3_data.presion_baja} bar</div>
-                    )}
-                    {revision.it3_data.estado_filtros && (
-                      <div className="data-item"><strong>Filtros:</strong> {statusLabels[revision.it3_data.estado_filtros]}</div>
-                    )}
-                    {revision.it3_data.fugas_refrigerante && (
-                      <div className="data-item" style={{ color: '#dc2626' }}><strong>⚠️ Fugas detectadas</strong></div>
-                    )}
+                    {Object.entries(revision.it3_data).map(([key, value]) => {
+                      if (!value || value === '' || value === false) return null;
+                      
+                      const label = getFieldLabel(key);
+                      let displayValue = value;
+                      
+                      if (typeof value === 'boolean') {
+                        displayValue = '✓';
+                      } else if (typeof value === 'string' && statusLabels[value]) {
+                        displayValue = statusLabels[value];
+                      } else if (typeof value === 'string') {
+                        displayValue = value.charAt(0).toUpperCase() + value.slice(1);
+                      }
+                      
+                      return (
+                        <div key={key} className="data-item">
+                          <strong>{label}:</strong> {displayValue}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

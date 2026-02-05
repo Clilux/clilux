@@ -125,7 +125,14 @@ export default function BuildingDetail() {
               <MapPin className="h-5 w-5 text-slate-400 mt-0.5" />
               <div>
                 <p className="text-sm text-slate-500">Dirección</p>
-                <p className="text-slate-700">{building.address}</p>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${building.address}, ${building.postal_code} ${building.city}, ${building.province}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-700 hover:text-blue-600 underline transition-colors"
+                >
+                  {building.address}
+                </a>
                 {(building.city || building.province) && (
                   <p className="text-slate-600">{building.postal_code} {building.city}, {building.province}</p>
                 )}
