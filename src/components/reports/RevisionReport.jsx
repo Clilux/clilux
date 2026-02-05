@@ -31,20 +31,9 @@ export default function RevisionReport({ equipment, revisions, building, client,
 
   // Función para obtener el label correcto de un campo
   const getFieldLabel = (fieldKey) => {
-    // Buscar en todas las configuraciones de campos, no solo del tipo de equipo actual
+    // Buscar en todas las configuraciones de campos
     if (fieldConfigs.length > 0) {
-      // Primero buscar en la config del tipo de equipo actual
-      if (equipment?.equipment_type) {
-        const config = fieldConfigs.find(c => c.equipment_type === equipment.equipment_type);
-        if (config?.fields) {
-          const fieldConfig = config.fields.find(f => f.field_key === fieldKey);
-          if (fieldConfig?.field_label) {
-            return fieldConfig.field_label;
-          }
-        }
-      }
-      
-      // Si no se encuentra, buscar en todas las configuraciones
+      // Primero buscar coincidencia exacta
       for (const config of fieldConfigs) {
         if (config?.fields) {
           const fieldConfig = config.fields.find(f => f.field_key === fieldKey);
@@ -53,10 +42,31 @@ export default function RevisionReport({ equipment, revisions, building, client,
           }
         }
       }
+      
+      // Si es un campo custom (ej: "Custom 1770144909208" o "custom_1770144909208")
+      // buscar por el timestamp/número
+      if (fieldKey.includes('ustom')) { // match both "Custom" and "custom"
+        const customNumber = fieldKey.replace(/^[Cc]ustom[\s_]/, ''); // extraer el número
+        
+        for (const config of fieldConfigs) {
+          if (config?.fields) {
+            // Buscar campos que contengan ese número en su field_key
+            const fieldConfig = config.fields.find(f => 
+              f.field_key && (
+                f.field_key.includes(customNumber) ||
+                f.field_key.replace(/^custom_/, '') === customNumber
+              )
+            );
+            if (fieldConfig?.field_label) {
+              return fieldConfig.field_label;
+            }
+          }
+        }
+      }
     }
     
     // Fallback: si es un campo custom, mostrar solo "Campo personalizado"
-    if (fieldKey.startsWith('Custom ')) {
+    if (fieldKey.toLowerCase().includes('custom')) {
       return 'Campo personalizado';
     }
     
