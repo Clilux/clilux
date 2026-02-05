@@ -75,6 +75,7 @@ import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
+import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import __Layout from './Layout.jsx';
 
 
@@ -107,6 +108,7 @@ export const PAGES = {
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
+    "ScanEquipmentTech": ScanEquipmentTech,
 }
 
 export const pagesConfig = {

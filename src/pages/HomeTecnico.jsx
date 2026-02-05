@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, Building2, Thermometer, ClipboardCheck, 
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical
 } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+const defaultQuickActions = [
+  { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
+  { id: '2', label: 'Nuevo Cliente', page: 'ClientForm', icon: 'Plus', bgColor: 'bg-white/10', iconColor: 'text-blue-400', borderColor: 'border-white/20', order: 2 },
+  { id: '3', label: 'Nuevo Equipo', page: 'EquipmentForm', icon: 'Thermometer', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
+  { id: '4', label: 'Clientes', page: 'Clients', icon: 'Users', bgColor: 'bg-white/10', iconColor: 'text-slate-400', borderColor: 'border-white/20', order: 4 },
+  { id: '5', label: 'Nueva Revisión', page: 'RevisionForm', icon: 'ClipboardCheck', bgColor: 'bg-white/10', iconColor: 'text-emerald-400', borderColor: 'border-white/20', order: 5 },
+  { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 6 },
+  { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 7 },
+  { id: '8', label: 'Historial', page: 'Revisions', icon: 'ClipboardCheck', bgColor: 'bg-white/10', iconColor: 'text-amber-400', borderColor: 'border-white/20', order: 8 },
+  { id: '9', label: 'Informes', page: 'Reports', icon: 'FileText', bgColor: 'bg-white/10', iconColor: 'text-indigo-400', borderColor: 'border-white/20', order: 9 },
+];
 
 export default function HomeTecnico() {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
+  const [quickActions, setQuickActions] = useState(defaultQuickActions);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -28,6 +44,35 @@ export default function HomeTecnico() {
     };
     loadUser();
   }, []);
+
+  const { data: quickActionsConfig } = useQuery({
+    queryKey: ['home-tecnico-quick-actions'],
+    queryFn: async () => {
+      const configs = await base44.entities.AppSettings.filter({ setting_key: 'home_tecnico_actions' });
+      if (configs.length > 0 && configs[0].menu_items) {
+        setQuickActions(configs[0].menu_items);
+        return configs[0];
+      }
+      return null;
+    },
+  });
+
+  const saveActionsMutation = useMutation({
+    mutationFn: async (items) => {
+      if (quickActionsConfig) {
+        return base44.entities.AppSettings.update(quickActionsConfig.id, { menu_items: items });
+      } else {
+        return base44.entities.AppSettings.create({ 
+          setting_key: 'home_tecnico_actions',
+          menu_items: items 
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['home-tecnico-quick-actions'] });
+      toast.success('Orden guardado');
+    },
+  });
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
@@ -245,98 +290,82 @@ export default function HomeTecnico() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <Link to={createPageUrl('ScanEquipment')}>
-              <Card className="p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm border-blue-400/40 hover:from-blue-500/30 hover:to-purple-500/30 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ScanLine className="h-6 w-6 text-blue-300" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Escanear</span>
+          {user?.role === 'admin' && (
+            <div className="mb-2 text-center">
+              <p className="text-xs text-slate-400">Arrastra para reordenar (solo admin)</p>
+            </div>
+          )}
+          
+          <DragDropContext onDragEnd={(result) => {
+            if (!result.destination || user?.role !== 'admin') return;
+            
+            const items = Array.from(quickActions);
+            const [reorderedItem] = items.splice(result.source.index, 1);
+            items.splice(result.destination.index, 0, reorderedItem);
+            
+            const updatedItems = items.map((item, index) => ({
+              ...item,
+              order: index + 1
+            }));
+            
+            setQuickActions(updatedItems);
+            saveActionsMutation.mutate(updatedItems);
+          }}>
+            <Droppable droppableId="quick-actions" direction="horizontal" isDropDisabled={user?.role !== 'admin'}>
+              {(provided) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef}
+                  className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4"
+                >
+                  {quickActions.map((action, index) => {
+                    const iconMap = {
+                      'ScanLine': ScanLine,
+                      'Plus': Plus,
+                      'Thermometer': Thermometer,
+                      'Users': Users,
+                      'ClipboardCheck': ClipboardCheck,
+                      'AlertCircle': AlertCircle,
+                      'Calendar': Calendar,
+                      'FileText': FileText,
+                    };
+                    const IconComponent = iconMap[action.icon] || ScanLine;
+                    
+                    return (
+                      <Draggable key={action.id} draggableId={action.id} index={index} isDragDisabled={user?.role !== 'admin'}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={snapshot.isDragging ? 'z-50' : ''}
+                          >
+                            <Link to={createPageUrl(action.page)}>
+                              <Card className={`p-4 backdrop-blur-sm hover:bg-white/15 transition-all cursor-pointer group ${action.bgColor} ${action.borderColor || 'border-white/20'} ${
+                                snapshot.isDragging ? 'shadow-2xl scale-105' : ''
+                              }`}>
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                  {user?.role === 'admin' && (
+                                    <div {...provided.dragHandleProps} className="absolute top-1 right-1 cursor-grab active:cursor-grabbing">
+                                      <GripVertical className="h-4 w-4 text-white/20 group-hover:text-white/40" />
+                                    </div>
+                                  )}
+                                  <div className={`w-12 h-12 rounded-full ${action.bgColor === 'bg-white/10' ? 'bg-blue-500/20' : 'bg-blue-500/30'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                    <IconComponent className={`h-6 w-6 ${action.iconColor}`} />
+                                  </div>
+                                  <span className="font-medium text-white text-sm">{action.label}</span>
+                                </div>
+                              </Card>
+                            </Link>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
                 </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('ClientForm')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Plus className="h-6 w-6 text-blue-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Nuevo Cliente</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('EquipmentForm')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Thermometer className="h-6 w-6 text-cyan-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Nuevo Equipo</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('Clients')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-slate-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Users className="h-6 w-6 text-slate-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Clientes</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('RevisionForm')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ClipboardCheck className="h-6 w-6 text-emerald-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Nueva Revisión</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('Incidents')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <AlertCircle className="h-6 w-6 text-red-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Incidencias</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('Calendar')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Calendar className="h-6 w-6 text-purple-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Calendario</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('Revisions')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ClipboardCheck className="h-6 w-6 text-amber-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Historial</span>
-                </div>
-              </Card>
-            </Link>
-            <Link to={createPageUrl('Reports')}>
-              <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FileText className="h-6 w-6 text-indigo-400" />
-                  </div>
-                  <span className="font-medium text-white text-sm">Informes</span>
-                </div>
-              </Card>
-            </Link>
-          </div>
+              )}
+            </Droppable>
+          </DragDropContext>
 
           {/* Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
