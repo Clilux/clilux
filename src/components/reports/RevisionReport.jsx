@@ -32,15 +32,32 @@ export default function RevisionReport({ equipment, revisions, building, client,
   // Función para obtener el label correcto de un campo
   const getFieldLabel = (fieldKey) => {
     // Buscar en RevisionFieldConfig para este tipo de equipo
-    if (equipment?.equipment_type) {
+    if (equipment?.equipment_type && fieldConfigs.length > 0) {
       const config = fieldConfigs.find(c => c.equipment_type === equipment.equipment_type);
       if (config?.fields) {
-        const fieldConfig = config.fields.find(f => f.field_key === fieldKey);
+        // Buscar por field_key exacto primero
+        let fieldConfig = config.fields.find(f => f.field_key === fieldKey);
+        
+        // Si no se encuentra y el key empieza con "Custom ", buscar por coincidencia parcial
+        if (!fieldConfig && fieldKey.startsWith('Custom ')) {
+          // Intentar encontrar el campo custom por el timestamp
+          const customId = fieldKey.replace('Custom ', '');
+          fieldConfig = config.fields.find(f => 
+            f.field_key && (f.field_key.includes(customId) || f.field_key === fieldKey)
+          );
+        }
+        
         if (fieldConfig?.field_label) {
           return fieldConfig.field_label;
         }
       }
     }
+    
+    // Fallback: si es un campo custom, mostrar solo "Campo personalizado"
+    if (fieldKey.startsWith('Custom ')) {
+      return 'Campo personalizado';
+    }
+    
     // Fallback: formatear el key
     return fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
