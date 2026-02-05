@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Upload } from 'lucide-react';
+import { Loader2, Save, Upload, Camera } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -59,6 +59,7 @@ export default function EquipmentForm() {
   });
 
   const [uploading, setUploading] = useState(false);
+  const [extractingData, setExtractingData] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -119,7 +120,7 @@ export default function EquipmentForm() {
       if (formData.building_id) {
         navigate(createPageUrl(`BuildingDetail?id=${formData.building_id}`));
       } else {
-        navigate(-1);
+        navigate(createPageUrl('Equipment'));
       }
     },
     onError: (error) => {
@@ -152,6 +153,61 @@ export default function EquipmentForm() {
     }
   };
 
+  const handleTechSheetPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setExtractingData(true);
+    try {
+      const uploadResult = await base44.integrations.Core.UploadFile({ file });
+      toast.success('Analizando ficha técnica...');
+
+      const extractResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extrae los datos técnicos de esta ficha de equipo de climatización. 
+        Identifica: marca, modelo, número de serie, tipo de equipo, potencia frigorífica (kW), 
+        potencia calorífica (kW), tipo de refrigerante, carga de refrigerante (kg), 
+        fecha de instalación, ubicación, y cualquier otra información técnica relevante.`,
+        file_urls: [uploadResult.file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            brand: { type: "string" },
+            model: { type: "string" },
+            serial_number: { type: "string" },
+            equipment_type: { type: "string" },
+            cooling_power_kw: { type: "number" },
+            heating_power_kw: { type: "number" },
+            refrigerant_type: { type: "string" },
+            refrigerant_charge_kg: { type: "number" },
+            installation_date: { type: "string" },
+            location: { type: "string" },
+          }
+        }
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        brand: extractResult.brand || prev.brand,
+        model: extractResult.model || prev.model,
+        serial_number: extractResult.serial_number || prev.serial_number,
+        equipment_type: extractResult.equipment_type || prev.equipment_type,
+        cooling_power_kw: extractResult.cooling_power_kw || prev.cooling_power_kw,
+        heating_power_kw: extractResult.heating_power_kw || prev.heating_power_kw,
+        refrigerant_type: extractResult.refrigerant_type || prev.refrigerant_type,
+        refrigerant_charge_kg: extractResult.refrigerant_charge_kg || prev.refrigerant_charge_kg,
+        installation_date: extractResult.installation_date || prev.installation_date,
+        location: extractResult.location || prev.location,
+        photo_url: uploadResult.file_url,
+      }));
+
+      toast.success('Datos extraídos correctamente');
+    } catch (error) {
+      toast.error('Error al analizar la ficha técnica');
+    } finally {
+      setExtractingData(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-3xl mx-auto">
@@ -159,6 +215,43 @@ export default function EquipmentForm() {
 
         <Card className="p-6 bg-white border-0 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Captura de Ficha Técnica */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Camera className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-medium text-slate-900 mb-1">Capturar Ficha Técnica</h3>
+                  <p className="text-sm text-slate-600 mb-3">
+                    Sube una foto de la ficha técnica del equipo para auto-rellenar los datos
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleTechSheetPhoto}
+                    className="hidden"
+                    id="tech-sheet-upload"
+                  />
+                  <label htmlFor="tech-sheet-upload">
+                    <Button type="button" variant="outline" asChild disabled={extractingData}>
+                      <span className="bg-white">
+                        {extractingData ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Analizando...
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="h-4 w-4 mr-2" />
+                            Capturar Ficha
+                          </>
+                        )}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {!preselectedClientId && (
                 <div>
@@ -408,7 +501,13 @@ export default function EquipmentForm() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  if (formData.building_id) {
+                    navigate(createPageUrl(`BuildingDetail?id=${formData.building_id}`));
+                  } else {
+                    navigate(createPageUrl('Equipment'));
+                  }
+                }}
               >
                 Cancelar
               </Button>

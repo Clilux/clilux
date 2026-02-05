@@ -55,6 +55,7 @@ import ClientDetail from './pages/ClientDetail';
 import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
 import ClientForm from './pages/ClientForm';
 import Clients from './pages/Clients';
+import Equipment from './pages/Equipment';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
 import Home from './pages/Home';
@@ -63,6 +64,7 @@ import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
+import Maps from './pages/Maps';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
 import Reports from './pages/Reports';
@@ -71,13 +73,11 @@ import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import ScanEquipment from './pages/ScanEquipment';
+import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
-import ScanEquipmentTech from './pages/ScanEquipmentTech';
-import Equipment from './pages/Equipment';
-import Maps from './pages/Maps';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +90,7 @@ export const PAGES = {
     "ClientEquipmentDetail": ClientEquipmentDetail,
     "ClientForm": ClientForm,
     "Clients": Clients,
+    "Equipment": Equipment,
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
     "Home": Home,
@@ -98,6 +99,7 @@ export const PAGES = {
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
+    "Maps": Maps,
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
     "Reports": Reports,
@@ -106,13 +108,11 @@ export const PAGES = {
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
     "ScanEquipment": ScanEquipment,
+    "ScanEquipmentTech": ScanEquipmentTech,
     "Settings": Settings,
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
-    "ScanEquipmentTech": ScanEquipmentTech,
-    "Equipment": Equipment,
-    "Maps": Maps,
 }
 
 export const pagesConfig = {

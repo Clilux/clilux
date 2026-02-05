@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 const defaultOptions = [
   { id: '1', label: 'Técnico', page: 'HomeTecnico', icon: 'Wrench', color: 'bg-blue-500/20', textColor: 'text-blue-400', order: 1 },
   { id: '2', label: 'Cliente', page: 'HomeCliente', icon: 'Building2', color: 'bg-emerald-500/20', textColor: 'text-emerald-400', order: 2 },
-  { id: '3', label: 'Equipos', page: 'Equipment', icon: 'Thermometer', color: 'bg-purple-500/20', textColor: 'text-purple-400', order: 3 },
 ];
 
 export default function MenuInicio() {
@@ -128,8 +127,7 @@ export default function MenuInicio() {
                                   <h2 className="text-xl font-semibold text-white">{option.label}</h2>
                                   <p className="text-sm text-slate-400">
                                     {option.label === 'Técnico' ? 'Acceso para empresas y técnicos' : 
-                                     option.label === 'Cliente' ? 'Portal de cliente para ver equipos e incidencias' :
-                                     option.label === 'Equipos' ? 'Gestión completa de equipos y ubicaciones' : ''}
+                                     option.label === 'Cliente' ? 'Portal de cliente para ver equipos e incidencias' : ''}
                                   </p>
                                 </div>
                               </div>
