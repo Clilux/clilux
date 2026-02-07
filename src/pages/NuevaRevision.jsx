@@ -16,6 +16,24 @@ import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
+// Listas de autocompletado
+const marcasComunes = [
+  'Daikin', 'Mitsubishi Electric', 'Mitsubishi Heavy Industries', 'Fujitsu', 'Panasonic', 'Toshiba',
+  'LG', 'Samsung', 'Carrier', 'Trane', 'Lennox', 'Rheem', 'York', 'Goodman',
+  'Bosch', 'Vaillant', 'Junkers', 'Saunier Duval', 'Ariston', 'Baxi', 'Roca',
+  'Ciatesa', 'Climaveneta', 'Hitachi', 'Haier', 'Gree', 'Midea', 'Hisense',
+  'Aermec', 'Clivet', 'Ferroli', 'Viessmann', 'Wolf', 'De Dietrich'
+];
+
+const refrigerantesComunes = [
+  'R-32', 'R-410A', 'R-134a', 'R-404A', 'R-407C', 'R-290', 'R-600a',
+  'R-1234yf', 'R-513A', 'R-452B', 'R-454B', 'R-717', 'R-744'
+];
+
+const combustiblesComunes = [
+  'Gas natural', 'Gasóleo C', 'Gasóleo B', 'GLP', 'Biomasa', 'Pellets', 'Electricidad'
+];
+
 // Campos requeridos según IDAE por tipo de equipo
 const camposIDAE = {
   caldera: {
@@ -604,6 +622,34 @@ export default function NuevaRevision() {
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : field.key === 'marca' ? (
+                    <>
+                      <Input
+                        list="marcas-list"
+                        type={field.type}
+                        value={formData.equipment_data[field.key] || ''}
+                        onChange={(e) => handleEquipmentDataChange(field.key, e.target.value)}
+                        className="bg-white/5 border-white/20 text-white"
+                        required={field.required}
+                      />
+                      <datalist id="marcas-list">
+                        {marcasComunes.map(m => <option key={m} value={m} />)}
+                      </datalist>
+                    </>
+                  ) : field.key === 'tipo_refrigerante' ? (
+                    <>
+                      <Input
+                        list="refrigerantes-list"
+                        type={field.type}
+                        value={formData.equipment_data[field.key] || ''}
+                        onChange={(e) => handleEquipmentDataChange(field.key, e.target.value)}
+                        className="bg-white/5 border-white/20 text-white"
+                        required={field.required}
+                      />
+                      <datalist id="refrigerantes-list">
+                        {refrigerantesComunes.map(r => <option key={r} value={r} />)}
+                      </datalist>
+                    </>
                   ) : (
                     <Input
                       type={field.type}
