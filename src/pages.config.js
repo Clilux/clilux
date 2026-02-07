@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIConsulta from './pages/AIConsulta';
+import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
@@ -68,6 +69,7 @@ import Incidents from './pages/Incidents';
 import Maps from './pages/Maps';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
+import NuevaRevision from './pages/NuevaRevision';
 import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
 import RevisionFieldSettings from './pages/RevisionFieldSettings';
@@ -80,13 +82,12 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import BackupDatos from './pages/BackupDatos';
-import NuevaRevision from './pages/NuevaRevision';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIConsulta": AIConsulta,
+    "BackupDatos": BackupDatos,
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
@@ -107,6 +108,7 @@ export const PAGES = {
     "Maps": Maps,
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
+    "NuevaRevision": NuevaRevision,
     "Reports": Reports,
     "RevisionDetail": RevisionDetail,
     "RevisionFieldSettings": RevisionFieldSettings,
@@ -119,8 +121,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "BackupDatos": BackupDatos,
-    "NuevaRevision": NuevaRevision,
 }
 
 export const pagesConfig = {

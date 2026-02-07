@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -11,46 +11,126 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Save, Plus, Building2, User, Camera } from 'lucide-react';
+import { Loader2, Save, Plus, Camera, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { addMonths, addDays, format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 
-// Campos según IT3 del RITE por tipo de equipo
-const fieldsIDAE = {
+// Campos requeridos según IDAE por tipo de equipo
+const camposIDAE = {
   caldera: {
-    identificacion: ['Marca', 'Modelo', 'Nº serie', 'Potencia nominal (kW)', 'Tipo combustible', 'Año fabricación'],
-    funcionamiento: ['Temperatura impulsión (°C)', 'Temperatura retorno (°C)', 'Presión circuito (bar)', 'Temp. humos (°C)', 'CO2 humos (%)', 'CO humos (ppm)', 'Opacidad humos (índice Bacharach)', 'Rendimiento combustión (%)'],
-    elementos: ['Estado quemador', 'Estado intercambiador', 'Estado bomba circulación', 'Estado válvula seguridad', 'Estado termostato', 'Estado vaso expansión', 'Fugas circuito', 'Estado aislamiento'],
-    limpieza: ['Limpieza quemador', 'Limpieza intercambiador', 'Limpieza conductos humos'],
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'potencia_nominal', label: 'Potencia nominal (kW) *', type: 'number', required: true },
+      { key: 'tipo_combustible', label: 'Tipo combustible *', type: 'select', options: ['Gas natural', 'Gasóleo', 'Biomasa', 'GLP'], required: true },
+      { key: 'año_fabricacion', label: 'Año fabricación *', type: 'number', required: true },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_retorno', label: 'Temperatura retorno (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_circuito', label: 'Presión circuito (bar)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_humos', label: 'Temp. humos (°C)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'co2_humos', label: 'CO2 humos (%)', type: 'number', periods: ['anual'] },
+      { key: 'co_humos', label: 'CO humos (ppm)', type: 'number', periods: ['anual'] },
+      { key: 'opacidad_humos', label: 'Opacidad humos (Bacharach)', type: 'number', periods: ['anual'] },
+      { key: 'rendimiento_combustion', label: 'Rendimiento combustión (%)', type: 'number', periods: ['anual'] },
+      { key: 'estado_quemador', label: 'Estado quemador', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['trimestral', 'anual'] },
+      { key: 'estado_intercambiador', label: 'Estado intercambiador', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['anual'] },
+      { key: 'limpieza_realizada', label: 'Limpieza realizada', type: 'checkbox', periods: ['anual'] },
+    ]
   },
   enfriadora: {
-    identificacion: ['Marca', 'Modelo', 'Nº serie', 'Potencia frigorífica (kW)', 'Tipo refrigerante', 'Carga refrigerante (kg)'],
-    funcionamiento: ['Temperatura impulsión (°C)', 'Temperatura retorno (°C)', 'Presión alta (bar)', 'Presión baja (bar)', 'Temp. condensación (°C)', 'Temp. evaporación (°C)', 'Sobrecalentamiento (K)', 'Subenfriamiento (K)', 'Consumo eléctrico (kW)', 'EER'],
-    elementos: ['Estado compresor', 'Estado condensador', 'Estado evaporador', 'Estado válvula expansión', 'Estado ventiladores', 'Estado bomba', 'Fugas refrigerante', 'Nivel aceite', 'Estado filtros'],
-    limpieza: ['Limpieza condensador', 'Limpieza evaporador', 'Limpieza filtros'],
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'potencia_frigorifica', label: 'Potencia frigorífica (kW) *', type: 'number', required: true },
+      { key: 'tipo_refrigerante', label: 'Tipo refrigerante *', type: 'text', required: true },
+      { key: 'carga_refrigerante', label: 'Carga refrigerante (kg) *', type: 'number', required: true },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_retorno', label: 'Temperatura retorno (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_alta', label: 'Presión alta (bar)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_baja', label: 'Presión baja (bar)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_condensacion', label: 'Temp. condensación (°C)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'temp_evaporacion', label: 'Temp. evaporación (°C)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'consumo_electrico', label: 'Consumo eléctrico (kW)', type: 'number', periods: ['trimestral', 'anual'] },
+      { key: 'eer', label: 'EER', type: 'number', periods: ['anual'] },
+      { key: 'estado_compresor', label: 'Estado compresor', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['trimestral', 'anual'] },
+      { key: 'fugas_refrigerante', label: 'Fugas refrigerante detectadas', type: 'checkbox', periods: ['trimestral', 'anual'] },
+      { key: 'limpieza_condensador', label: 'Limpieza condensador', type: 'checkbox', periods: ['trimestral', 'anual'] },
+    ]
   },
   split: {
-    identificacion: ['Marca', 'Modelo', 'Nº serie', 'Potencia frigorífica (kW)', 'Potencia calorífica (kW)', 'Tipo refrigerante', 'Carga refrigerante (kg)'],
-    funcionamiento: ['Temperatura impulsión (°C)', 'Temperatura retorno (°C)', 'Presión alta (bar)', 'Presión baja (bar)', 'Consumo eléctrico (kW)', 'EER/COP'],
-    elementos: ['Estado compresor', 'Estado unidad interior', 'Estado unidad exterior', 'Estado filtros', 'Estado drenaje', 'Fugas refrigerante', 'Estado mando'],
-    limpieza: ['Limpieza filtros', 'Limpieza unidad interior', 'Limpieza condensador', 'Limpieza drenaje'],
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'potencia_frigorifica', label: 'Potencia frigorífica (kW) *', type: 'number', required: true },
+      { key: 'potencia_calorifica', label: 'Potencia calorífica (kW)', type: 'number', required: false },
+      { key: 'tipo_refrigerante', label: 'Tipo refrigerante *', type: 'text', required: true },
+      { key: 'carga_refrigerante', label: 'Carga refrigerante (kg)', type: 'number', required: false },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_alta', label: 'Presión alta (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'presion_baja', label: 'Presión baja (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'consumo_electrico', label: 'Consumo eléctrico (kW)', type: 'number', periods: ['trimestral', 'anual'] },
+      { key: 'estado_filtros', label: 'Estado filtros', type: 'select', options: ['Limpios', 'Sucios', 'Cambiados'], periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'estado_drenaje', label: 'Estado drenaje', type: 'select', options: ['Correcto', 'Obstruido', 'Limpiado'], periods: ['trimestral', 'anual'] },
+      { key: 'limpieza_unidad', label: 'Limpieza unidad realizada', type: 'checkbox', periods: ['trimestral', 'anual'] },
+    ]
   },
   vrf: {
-    identificacion: ['Marca', 'Modelo', 'Nº serie', 'Potencia total (kW)', 'Tipo refrigerante', 'Carga refrigerante (kg)', 'Nº unidades interiores'],
-    funcionamiento: ['Temperatura impulsión (°C)', 'Presión alta (bar)', 'Presión baja (bar)', 'Consumo eléctrico total (kW)', 'EER/COP sistema'],
-    elementos: ['Estado compresores', 'Estado unidades interiores', 'Estado tuberías', 'Estado válvulas expansión', 'Fugas refrigerante', 'Estado sistema control'],
-    limpieza: ['Limpieza filtros unidades', 'Limpieza condensadores', 'Limpieza evaporadores'],
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'potencia_total', label: 'Potencia total (kW) *', type: 'number', required: true },
+      { key: 'tipo_refrigerante', label: 'Tipo refrigerante *', type: 'text', required: true },
+      { key: 'carga_refrigerante', label: 'Carga refrigerante (kg) *', type: 'number', required: true },
+      { key: 'num_unidades_interiores', label: 'Nº unidades interiores', type: 'number', required: false },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_alta', label: 'Presión alta (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'presion_baja', label: 'Presión baja (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'consumo_total', label: 'Consumo eléctrico total (kW)', type: 'number', periods: ['trimestral', 'anual'] },
+      { key: 'estado_compresores', label: 'Estado compresores', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión'], periods: ['trimestral', 'anual'] },
+      { key: 'fugas_refrigerante', label: 'Fugas refrigerante detectadas', type: 'checkbox', periods: ['trimestral', 'anual'] },
+      { key: 'limpieza_unidades', label: 'Limpieza unidades', type: 'checkbox', periods: ['trimestral', 'anual'] },
+    ]
   },
   climatizador: {
-    identificacion: ['Marca', 'Modelo', 'Nº serie', 'Caudal nominal (m³/h)', 'Potencia frigorífica (kW)', 'Potencia calorífica (kW)'],
-    funcionamiento: ['Temperatura impulsión (°C)', 'Temperatura retorno (°C)', 'Temperatura exterior (°C)', 'Humedad relativa (%)', 'Caudal aire (m³/h)', 'Presión estática (Pa)'],
-    elementos: ['Estado ventiladores', 'Estado baterías frío', 'Estado baterías calor', 'Estado filtros', 'Estado humectador', 'Estado recuperador', 'Estado correas', 'Vibraciones'],
-    limpieza: ['Limpieza filtros', 'Limpieza baterías', 'Limpieza ventiladores', 'Limpieza bandejas'],
-  },
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'caudal_nominal', label: 'Caudal nominal (m³/h) *', type: 'number', required: true },
+      { key: 'potencia_frigorifica', label: 'Potencia frigorífica (kW)', type: 'number', required: false },
+      { key: 'potencia_calorifica', label: 'Potencia calorífica (kW)', type: 'number', required: false },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_retorno', label: 'Temperatura retorno (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'humedad_relativa', label: 'Humedad relativa (%)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'caudal_aire', label: 'Caudal aire (m³/h)', type: 'number', periods: ['trimestral', 'anual'] },
+      { key: 'estado_filtros', label: 'Estado filtros', type: 'select', options: ['Limpios', 'Sucios', 'Cambiados'], periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'estado_baterias', label: 'Estado baterías', type: 'select', options: ['Bueno', 'Aceptable', 'Limpieza necesaria'], periods: ['trimestral', 'anual'] },
+      { key: 'estado_correas', label: 'Estado correas', type: 'select', options: ['Bueno', 'Desgastado', 'Cambiado'], periods: ['trimestral', 'anual'] },
+      { key: 'limpieza_realizada', label: 'Limpieza completa realizada', type: 'checkbox', periods: ['anual'] },
+    ]
+  }
 };
 
-// Periodicidades según IT3
 const periodicidades = [
   { value: 'mensual', label: 'Mensual', months: 1 },
   { value: 'trimestral', label: 'Trimestral', months: 3 },
@@ -65,34 +145,28 @@ export default function NuevaRevision() {
   const [step, setStep] = useState(1);
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showNewBuildingDialog, setShowNewBuildingDialog] = useState(false);
-  const [showNewEquipmentDialog, setShowNewEquipmentDialog] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', cif: '', city: '' });
   const [newBuilding, setNewBuilding] = useState({ name: '', address: '' });
-  const [newEquipment, setNewEquipment] = useState({ brand: '', model: '', location: '', equipment_type: 'split' });
-  const [scanningEquipment, setScanningEquipment] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [searchingDocs, setSearchingDocs] = useState(false);
 
   const [formData, setFormData] = useState({
-    // Paso 1: Ubicación
+    // Paso 1: Tipo equipo y ubicación
+    equipment_type: '',
     client_id: '',
     building_id: '',
-    equipment_id: '',
     
-    // Paso 2: Tipo revisión
-    revision_type: 'preventive',
-    periodicidad: 'trimestral',
-    generate_schedule: true,
+    // Paso 2: Datos técnicos
+    equipment_data: {},
+    equipment_links: [],
+    
+    // Paso 3: Campos por periodicidad
+    selected_periods: [],
+    custom_fields: [],
+    
+    // Paso 4: Programación
     start_date: new Date().toISOString().split('T')[0],
-    
-    // Paso 3: Datos según IT3
-    it3_identificacion: {},
-    it3_funcionamiento: {},
-    it3_elementos: {},
-    it3_limpieza: {},
-    
-    // Paso 4: Observaciones
     observations: '',
-    actions_taken: '',
-    recommendations: '',
     general_status: 'good',
   });
 
@@ -106,22 +180,11 @@ export default function NuevaRevision() {
     queryFn: () => base44.entities.Building.list(),
   });
 
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
-  });
-
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
     : buildings;
 
-  const filteredEquipment = formData.building_id
-    ? equipment.filter(e => e.building_id === formData.building_id)
-    : equipment;
-
-  const selectedEquipment = equipment.find(e => e.id === formData.equipment_id);
-  const equipmentType = selectedEquipment?.equipment_type || '';
-  const fields = fieldsIDAE[equipmentType] || fieldsIDAE.split;
+  const equipmentFields = formData.equipment_type ? camposIDAE[formData.equipment_type] : null;
 
   const createClientMutation = useMutation({
     mutationFn: (data) => base44.entities.Client.create(data),
@@ -143,126 +206,151 @@ export default function NuevaRevision() {
     },
   });
 
-  const createEquipmentMutation = useMutation({
-    mutationFn: (data) => base44.entities.Equipment.create({ 
-      ...data, 
-      client_id: formData.client_id,
-      building_id: formData.building_id 
-    }),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setFormData(prev => ({ ...prev, equipment_id: data.id }));
-      setShowNewEquipmentDialog(false);
-      toast.success('Equipo creado');
-    },
-  });
-
   const handleScanEquipment = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setScanningEquipment(true);
+    setScanning(true);
     try {
       const uploadResult = await base44.integrations.Core.UploadFile({ file });
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extrae los datos técnicos de este equipo de climatización de la imagen. Devuelve: marca, modelo, tipo de equipo (caldera/enfriadora/split/vrf/climatizador), número de serie, potencia, tipo de refrigerante, carga de refrigerante. Si no encuentras algún dato, déjalo vacío.`,
+        prompt: `Extrae los datos técnicos de este equipo de climatización. Devuelve todos los campos que encuentres: marca, modelo, número de serie, potencia, tipo de refrigerante, carga de refrigerante, año de fabricación, etc.`,
         file_urls: [uploadResult.file_url],
         response_json_schema: {
           type: "object",
           properties: {
-            brand: { type: "string" },
-            model: { type: "string" },
-            equipment_type: { type: "string" },
-            serial_number: { type: "string" },
-            cooling_power_kw: { type: "number" },
-            refrigerant_type: { type: "string" },
-            refrigerant_charge_kg: { type: "number" }
+            marca: { type: "string" },
+            modelo: { type: "string" },
+            numero_serie: { type: "string" },
+            potencia_nominal: { type: "number" },
+            potencia_frigorifica: { type: "number" },
+            potencia_calorifica: { type: "number" },
+            tipo_refrigerante: { type: "string" },
+            carga_refrigerante: { type: "number" },
+            año_fabricacion: { type: "number" },
+            tipo_combustible: { type: "string" },
+            caudal_nominal: { type: "number" }
           }
         }
       });
 
-      setNewEquipment(prev => ({
+      setFormData(prev => ({
         ...prev,
-        brand: result.brand || prev.brand,
-        model: result.model || prev.model,
-        equipment_type: result.equipment_type || prev.equipment_type,
+        equipment_data: { ...prev.equipment_data, ...result }
       }));
+
+      toast.success('Datos escaneados');
+    } catch (error) {
+      toast.error('Error al escanear');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleSearchDocs = async () => {
+    if (!formData.equipment_data.marca || !formData.equipment_data.modelo) {
+      toast.error('Necesitas marca y modelo primero');
+      return;
+    }
+
+    setSearchingDocs(true);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Busca enlaces a documentación técnica, manuales y fichas técnicas del equipo ${formData.equipment_data.marca} ${formData.equipment_data.modelo}. Devuelve hasta 5 enlaces relevantes con título y URL.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            links: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  url: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
 
       setFormData(prev => ({
         ...prev,
-        it3_identificacion: {
-          ...prev.it3_identificacion,
-          'Nº serie': result.serial_number || '',
-          'Potencia nominal (kW)': result.cooling_power_kw || '',
-          'Tipo refrigerante': result.refrigerant_type || '',
-          'Carga refrigerante (kg)': result.refrigerant_charge_kg || '',
-        }
+        equipment_links: result.links || []
       }));
 
-      toast.success('Datos escaneados correctamente');
-      setShowNewEquipmentDialog(true);
+      toast.success(`${result.links?.length || 0} enlaces encontrados`);
     } catch (error) {
-      toast.error('Error al escanear equipo');
+      toast.error('Error al buscar documentación');
     } finally {
-      setScanningEquipment(false);
+      setSearchingDocs(false);
     }
   };
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      const startDate = data.start_date || new Date().toISOString().split('T')[0];
-      
-      // Crear revisión actual
+      // Crear equipo
+      const equipmentData = {
+        client_id: data.client_id,
+        building_id: data.building_id,
+        equipment_type: data.equipment_type,
+        brand: data.equipment_data.marca || '',
+        model: data.equipment_data.modelo || '',
+        serial_number: data.equipment_data.numero_serie || '',
+        location: data.equipment_data.ubicacion || '',
+        cooling_power_kw: data.equipment_data.potencia_frigorifica || data.equipment_data.potencia_nominal || null,
+        heating_power_kw: data.equipment_data.potencia_calorifica || null,
+        refrigerant_type: data.equipment_data.tipo_refrigerante || '',
+        refrigerant_charge_kg: data.equipment_data.carga_refrigerante || null,
+        custom_fields: data.equipment_data,
+        documents: data.equipment_links.map(link => ({
+          name: link.title,
+          url: link.url,
+          type: 'manual'
+        })),
+      };
+
+      const equipment = await base44.entities.Equipment.create(equipmentData);
+
+      // Crear primera revisión
       const revisionData = {
-        equipment_id: data.equipment_id,
+        equipment_id: equipment.id,
         building_id: data.building_id,
         client_id: data.client_id,
-        revision_date: startDate,
-        revision_type: data.revision_type,
+        revision_date: data.start_date,
+        revision_type: 'preventive',
         general_status: data.general_status,
-        it3_data: {
-          ...data.it3_identificacion,
-          ...data.it3_funcionamiento,
-          ...data.it3_elementos,
-          ...data.it3_limpieza,
-        },
+        it3_data: data.equipment_data,
         observations: data.observations,
-        actions_taken: data.actions_taken,
-        recommendations: data.recommendations,
-        annual_revision_completed: data.periodicidad === 'anual',
+        annual_revision_completed: data.selected_periods.includes('anual'),
       };
 
       await base44.entities.Revision.create(revisionData);
 
-      // Generar revisiones programadas si está activado
-      if (data.generate_schedule) {
-        const selectedPeriod = periodicidades.find(p => p.value === data.periodicidad);
-        const numRevisions = 12 / selectedPeriod.months; // Generar para el próximo año
-        
-        const scheduledRevisions = [];
-        const startingDate = new Date(startDate);
-        for (let i = 1; i <= numRevisions; i++) {
-          const nextDate = format(addMonths(startingDate, selectedPeriod.months * i), 'yyyy-MM-dd');
-          scheduledRevisions.push(nextDate);
-        }
-
-        // Actualizar equipo con próxima revisión
-        if (scheduledRevisions.length > 0) {
-          await base44.entities.Equipment.update(data.equipment_id, {
-            next_revision_date: scheduledRevisions[0],
-            last_revision_date: startDate,
+      // Generar calendario de revisiones
+      if (data.selected_periods.length > 0) {
+        const shortestPeriod = periodicidades.find(p => data.selected_periods.includes(p.value));
+        if (shortestPeriod) {
+          const numRevisions = 12 / shortestPeriod.months;
+          const startDate = new Date(data.start_date);
+          const nextDate = format(addMonths(startDate, shortestPeriod.months), 'yyyy-MM-dd');
+          
+          await base44.entities.Equipment.update(equipment.id, {
+            next_revision_date: nextDate,
+            last_revision_date: data.start_date,
           });
         }
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['revisions'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      toast.success('Revisión creada y calendario generado');
+      queryClient.invalidateQueries({ queryKey: ['revisions'] });
+      toast.success('Equipo y revisión creados');
       navigate(createPageUrl('Calendar'));
     },
     onError: () => {
-      toast.error('Error al crear la revisión');
+      toast.error('Error al crear');
     },
   });
 
@@ -270,10 +358,10 @@ export default function NuevaRevision() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleIT3Change = (section, field, value) => {
+  const handleEquipmentDataChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      [section]: { ...prev[section], [field]: value },
+      equipment_data: { ...prev.equipment_data, [field]: value }
     }));
   };
 
@@ -289,18 +377,20 @@ export default function NuevaRevision() {
     saveMutation.mutate(formData);
   };
 
-  const canProceedStep1 = formData.client_id && formData.building_id && formData.equipment_id;
-  const canProceedStep2 = formData.revision_type && formData.periodicidad;
+  const canProceedStep1 = formData.equipment_type && formData.client_id && formData.building_id;
+  const canProceedStep2 = equipmentFields?.identificacion.every(field => 
+    !field.required || formData.equipment_data[field.key]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-5xl mx-auto">
-        <NavHeader title="Nueva Revisión IT3-RITE" />
+        <NavHeader title="Crear Equipo y Primera Revisión" />
 
         {/* Progress */}
         <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 mb-6">
           <div className="flex items-center justify-between">
-            {['Ubicación', 'Tipo Revisión', 'Datos IT3', 'Finalizar'].map((label, idx) => (
+            {['Tipo y Ubicación', 'Datos Técnicos', 'Periodicidad', 'Programar'].map((label, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : 'bg-white/20'
@@ -313,19 +403,35 @@ export default function NuevaRevision() {
           </div>
         </Card>
 
-        {/* Step 1: Ubicación */}
+        {/* Step 1: Tipo y Ubicación */}
         {step === 1 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-4">Ubicación del Equipo</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">Tipo de Equipo y Ubicación</h3>
             
             <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Tipo de Equipo según IDAE *</Label>
+                <Select value={formData.equipment_type} onValueChange={(v) => handleChange('equipment_type', v)}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="caldera">Caldera</SelectItem>
+                    <SelectItem value="enfriadora">Enfriadora</SelectItem>
+                    <SelectItem value="split">Split / Multi-split</SelectItem>
+                    <SelectItem value="vrf">VRF / VRV</SelectItem>
+                    <SelectItem value="climatizador">Climatizador</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400 mt-1">Determina los datos requeridos según normativa IT3</p>
+              </div>
+
               <div>
                 <Label className="text-slate-300">Cliente *</Label>
                 <div className="flex gap-2">
                   <Select value={formData.client_id} onValueChange={(v) => {
                     handleChange('client_id', v);
                     handleChange('building_id', '');
-                    handleChange('equipment_id', '');
                   }}>
                     <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
                       <SelectValue placeholder="Seleccionar cliente" />
@@ -345,10 +451,7 @@ export default function NuevaRevision() {
               <div>
                 <Label className="text-slate-300">Edificio *</Label>
                 <div className="flex gap-2">
-                  <Select value={formData.building_id} onValueChange={(v) => {
-                    handleChange('building_id', v);
-                    handleChange('equipment_id', '');
-                  }} disabled={!formData.client_id}>
+                  <Select value={formData.building_id} onValueChange={(v) => handleChange('building_id', v)} disabled={!formData.client_id}>
                     <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
                       <SelectValue placeholder="Seleccionar edificio" />
                     </SelectTrigger>
@@ -363,42 +466,6 @@ export default function NuevaRevision() {
                   </Button>
                 </div>
               </div>
-
-              <div>
-                <Label className="text-slate-300">Equipo *</Label>
-                <div className="flex gap-2">
-                  <Select value={formData.equipment_id} onValueChange={(v) => handleChange('equipment_id', v)} disabled={!formData.building_id}>
-                    <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
-                      <SelectValue placeholder="Seleccionar equipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredEquipment.map(eq => (
-                        <SelectItem key={eq.id} value={eq.id}>
-                          {eq.brand} {eq.model} - {eq.location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleScanEquipment}
-                    className="hidden"
-                    id="scan-equipment"
-                  />
-                  <label htmlFor="scan-equipment">
-                    <Button type="button" size="icon" disabled={!formData.building_id || scanningEquipment} className="bg-purple-600" asChild>
-                      <span>
-                        {scanningEquipment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                      </span>
-                    </Button>
-                  </label>
-                  <Button type="button" size="icon" onClick={() => setShowNewEquipmentDialog(true)} disabled={!formData.building_id} className="bg-blue-600">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-end mt-6">
@@ -409,63 +476,92 @@ export default function NuevaRevision() {
           </Card>
         )}
 
-        {/* Step 2: Tipo Revisión */}
-        {step === 2 && (
+        {/* Step 2: Datos Técnicos */}
+        {step === 2 && equipmentFields && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-4">Tipo de Revisión</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label className="text-slate-300">Tipo *</Label>
-                <Select value={formData.revision_type} onValueChange={(v) => handleChange('revision_type', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="preventive">Preventiva</SelectItem>
-                    <SelectItem value="corrective">Correctiva</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Periodicidad según IT3 *</Label>
-                <Select value={formData.periodicidad} onValueChange={(v) => handleChange('periodicidad', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {periodicidades.map(p => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Fecha de inicio *</Label>
-                <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleChange('start_date', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Datos Técnicos según IDAE</h3>
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleScanEquipment}
+                  className="hidden"
+                  id="scan-photo"
                 />
-              </div>
-
-              <div className="md:col-span-2 flex items-center gap-2 pt-2">
-                <Checkbox
-                  id="generate_schedule"
-                  checked={formData.generate_schedule}
-                  onCheckedChange={(v) => handleChange('generate_schedule', v)}
-                  className="border-white/30"
-                />
-                <Label htmlFor="generate_schedule" className="text-slate-300 cursor-pointer">
-                  Generar calendario automático de revisiones desde la fecha de inicio
-                </Label>
+                <label htmlFor="scan-photo">
+                  <Button type="button" disabled={scanning} className="bg-purple-600" asChild>
+                    <span>
+                      {scanning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                      Escanear Placa
+                    </span>
+                  </Button>
+                </label>
+                <Button
+                  type="button"
+                  onClick={handleSearchDocs}
+                  disabled={searchingDocs || !formData.equipment_data.marca}
+                  className="bg-indigo-600"
+                >
+                  {searchingDocs ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LinkIcon className="h-4 w-4 mr-2" />}
+                  Buscar Docs
+                </Button>
               </div>
             </div>
 
-            <div className="flex justify-between mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {equipmentFields.identificacion.map(field => (
+                <div key={field.key}>
+                  <Label className="text-slate-300">{field.label}</Label>
+                  {field.type === 'select' ? (
+                    <Select
+                      value={formData.equipment_data[field.key] || ''}
+                      onValueChange={(v) => handleEquipmentDataChange(field.key, v)}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options?.map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      type={field.type}
+                      value={formData.equipment_data[field.key] || ''}
+                      onChange={(e) => handleEquipmentDataChange(field.key, e.target.value)}
+                      className="bg-white/5 border-white/20 text-white"
+                      required={field.required}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {formData.equipment_links.length > 0 && (
+              <div className="mb-6">
+                <Label className="text-slate-300 mb-2 block">Documentación Encontrada</Label>
+                <div className="space-y-2">
+                  {formData.equipment_links.map((link, idx) => (
+                    <a
+                      key={idx}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="text-sm">{link.title}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between">
               <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
                 Atrás
               </Button>
@@ -476,90 +572,73 @@ export default function NuevaRevision() {
           </Card>
         )}
 
-        {/* Step 3: Datos IT3 */}
-        {step === 3 && (
-          <div className="space-y-4">
-            {/* Identificación */}
-            <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-              <h4 className="font-semibold text-white mb-4">Identificación del Equipo</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {fields.identificacion?.map(field => (
-                  <div key={field}>
-                    <Label className="text-slate-300">{field}</Label>
-                    <Input
-                      value={formData.it3_identificacion[field] || ''}
-                      onChange={(e) => handleIT3Change('it3_identificacion', field, e.target.value)}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
-                  </div>
-                ))}
-              </div>
-            </Card>
+        {/* Step 3: Periodicidad */}
+        {step === 3 && equipmentFields && (
+          <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+            <h3 className="text-xl font-semibold text-white mb-6">Configurar Datos a Recoger por Período</h3>
 
-            {/* Funcionamiento */}
-            <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-              <h4 className="font-semibold text-white mb-4">Parámetros de Funcionamiento</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {fields.funcionamiento?.map(field => (
-                  <div key={field}>
-                    <Label className="text-slate-300 text-sm">{field}</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={formData.it3_funcionamiento[field] || ''}
-                      onChange={(e) => handleIT3Change('it3_funcionamiento', field, e.target.value)}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
-                  </div>
-                ))}
+            <div className="space-y-6">
+              <div>
+                <Label className="text-slate-300 mb-3 block">Selecciona las periodicidades de revisión</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {periodicidades.map(p => (
+                    <div key={p.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={p.value}
+                        checked={formData.selected_periods.includes(p.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleChange('selected_periods', [...formData.selected_periods, p.value]);
+                          } else {
+                            handleChange('selected_periods', formData.selected_periods.filter(v => v !== p.value));
+                          }
+                        }}
+                        className="border-white/30"
+                      />
+                      <Label htmlFor={p.value} className="text-slate-300">{p.label}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </Card>
 
-            {/* Elementos */}
-            <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-              <h4 className="font-semibold text-white mb-4">Estado de Elementos</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {fields.elementos?.map(field => (
-                  <div key={field}>
-                    <Label className="text-slate-300 text-sm">{field}</Label>
-                    <Select
-                      value={formData.it3_elementos[field] || ''}
-                      onValueChange={(v) => handleIT3Change('it3_elementos', field, v)}
-                    >
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bueno">Bueno</SelectItem>
-                        <SelectItem value="aceptable">Aceptable</SelectItem>
-                        <SelectItem value="revisar">Necesita revisión</SelectItem>
-                        <SelectItem value="cambiar">Cambiar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+              {formData.selected_periods.length > 0 && (
+                <div>
+                  <Label className="text-slate-300 mb-3 block">Campos disponibles por período</Label>
+                  {equipmentFields.parametros.map(param => {
+                    const availablePeriods = param.periods.filter(p => formData.selected_periods.includes(p));
+                    if (availablePeriods.length === 0) return null;
+
+                    return (
+                      <div key={param.key} className="p-3 rounded-lg bg-white/5 mb-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300 text-sm">{param.label}</span>
+                          <div className="flex gap-2">
+                            {availablePeriods.map(p => (
+                              <span key={p} className="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">
+                                {periodicidades.find(per => per.value === p)?.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <Label className="text-slate-300">Observaciones Generales</Label>
+                <Textarea
+                  value={formData.observations}
+                  onChange={(e) => handleChange('observations', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                  rows={3}
+                  placeholder="Añade cualquier observación sobre el equipo..."
+                />
               </div>
-            </Card>
+            </div>
 
-            {/* Limpieza */}
-            <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-              <h4 className="font-semibold text-white mb-4">Tareas de Limpieza</h4>
-              <div className="space-y-2">
-                {fields.limpieza?.map(field => (
-                  <div key={field} className="flex items-center gap-2">
-                    <Checkbox
-                      id={field}
-                      checked={formData.it3_limpieza[field] || false}
-                      onCheckedChange={(v) => handleIT3Change('it3_limpieza', field, v)}
-                      className="border-white/30"
-                    />
-                    <Label htmlFor={field} className="text-slate-300">{field}</Label>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-6">
               <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
                 Atrás
               </Button>
@@ -567,17 +646,30 @@ export default function NuevaRevision() {
                 Siguiente
               </Button>
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Step 4: Finalizar */}
+        {/* Step 4: Programar */}
         {step === 4 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-4">Observaciones y Finalizar</h3>
-            
+            <h3 className="text-xl font-semibold text-white mb-6">Programar Primera Revisión</h3>
+
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Estado General *</Label>
+                <Label className="text-slate-300">Fecha de Primera Revisión *</Label>
+                <Input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => handleChange('start_date', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  Se generará el calendario de revisiones desde esta fecha
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Estado Inicial del Equipo *</Label>
                 <Select value={formData.general_status} onValueChange={(v) => handleChange('general_status', v)}>
                   <SelectTrigger className="bg-white/5 border-white/20 text-white">
                     <SelectValue />
@@ -591,35 +683,19 @@ export default function NuevaRevision() {
                 </Select>
               </div>
 
-              <div>
-                <Label className="text-slate-300">Observaciones</Label>
-                <Textarea
-                  value={formData.observations}
-                  onChange={(e) => handleChange('observations', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Acciones Realizadas</Label>
-                <Textarea
-                  value={formData.actions_taken}
-                  onChange={(e) => handleChange('actions_taken', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Recomendaciones</Label>
-                <Textarea
-                  value={formData.recommendations}
-                  onChange={(e) => handleChange('recommendations', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                  rows={3}
-                />
-              </div>
+              {formData.selected_periods.length > 0 && (
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <h4 className="text-white font-medium mb-2">Calendario a Generar</h4>
+                  <p className="text-slate-300 text-sm">
+                    Periodicidades seleccionadas: {formData.selected_periods.map(p => 
+                      periodicidades.find(per => per.value === p)?.label
+                    ).join(', ')}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-2">
+                    Se programarán revisiones automáticamente en el calendario
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between mt-6">
@@ -628,9 +704,9 @@ export default function NuevaRevision() {
               </Button>
               <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-green-600">
                 {saveMutation.isPending ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
                 ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Crear Revisión</>
+                  <><Save className="h-4 w-4 mr-2" /> Crear Equipo y Revisión</>
                 )}
               </Button>
             </div>
@@ -645,7 +721,7 @@ export default function NuevaRevision() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Nombre</Label>
+                <Label className="text-slate-300">Nombre *</Label>
                 <Input
                   value={newClient.name}
                   onChange={(e) => setNewClient({...newClient, name: e.target.value})}
@@ -653,7 +729,7 @@ export default function NuevaRevision() {
                 />
               </div>
               <div>
-                <Label className="text-slate-300">CIF</Label>
+                <Label className="text-slate-300">CIF *</Label>
                 <Input
                   value={newClient.cif}
                   onChange={(e) => setNewClient({...newClient, cif: e.target.value})}
@@ -673,7 +749,7 @@ export default function NuevaRevision() {
                 disabled={!newClient.name || !newClient.cif || createClientMutation.isPending}
                 className="w-full"
               >
-                {createClientMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear'}
+                {createClientMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Cliente'}
               </Button>
             </div>
           </DialogContent>
@@ -686,7 +762,7 @@ export default function NuevaRevision() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Nombre</Label>
+                <Label className="text-slate-300">Nombre *</Label>
                 <Input
                   value={newBuilding.name}
                   onChange={(e) => setNewBuilding({...newBuilding, name: e.target.value})}
@@ -694,7 +770,7 @@ export default function NuevaRevision() {
                 />
               </div>
               <div>
-                <Label className="text-slate-300">Dirección</Label>
+                <Label className="text-slate-300">Dirección *</Label>
                 <Input
                   value={newBuilding.address}
                   onChange={(e) => setNewBuilding({...newBuilding, address: e.target.value})}
@@ -706,63 +782,7 @@ export default function NuevaRevision() {
                 disabled={!newBuilding.name || !newBuilding.address || createBuildingMutation.isPending}
                 className="w-full"
               >
-                {createBuildingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showNewEquipmentDialog} onOpenChange={setShowNewEquipmentDialog}>
-          <DialogContent className="bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Nuevo Equipo</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-slate-300">Tipo de Equipo</Label>
-                <Select value={newEquipment.equipment_type} onValueChange={(v) => setNewEquipment({...newEquipment, equipment_type: v})}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="caldera">Caldera</SelectItem>
-                    <SelectItem value="enfriadora">Enfriadora</SelectItem>
-                    <SelectItem value="split">Split</SelectItem>
-                    <SelectItem value="vrf">VRF</SelectItem>
-                    <SelectItem value="climatizador">Climatizador</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-slate-300">Marca</Label>
-                <Input
-                  value={newEquipment.brand}
-                  onChange={(e) => setNewEquipment({...newEquipment, brand: e.target.value})}
-                  className="bg-white/5 border-white/20 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-slate-300">Modelo</Label>
-                <Input
-                  value={newEquipment.model}
-                  onChange={(e) => setNewEquipment({...newEquipment, model: e.target.value})}
-                  className="bg-white/5 border-white/20 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-slate-300">Ubicación</Label>
-                <Input
-                  value={newEquipment.location}
-                  onChange={(e) => setNewEquipment({...newEquipment, location: e.target.value})}
-                  className="bg-white/5 border-white/20 text-white"
-                />
-              </div>
-              <Button
-                onClick={() => createEquipmentMutation.mutate(newEquipment)}
-                disabled={!newEquipment.brand || !newEquipment.model || createEquipmentMutation.isPending}
-                className="w-full"
-              >
-                {createEquipmentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Equipo'}
+                {createBuildingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Edificio'}
               </Button>
             </div>
           </DialogContent>
