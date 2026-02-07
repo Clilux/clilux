@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AIConsulta from './pages/AIConsulta';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
@@ -78,11 +79,12 @@ import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
-import AIConsulta from './pages/AIConsulta';
+import TutorialEquipo from './pages/TutorialEquipo';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AIConsulta": AIConsulta,
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
@@ -114,7 +116,7 @@ export const PAGES = {
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
-    "AIConsulta": AIConsulta,
+    "TutorialEquipo": TutorialEquipo,
 }
 
 export const pagesConfig = {

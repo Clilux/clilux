@@ -3,7 +3,7 @@ import { createPageUrl } from '@/utils';
 
 export default function Home() {
   useEffect(() => {
-    window.location.href = createPageUrl('MenuInicio');
+    window.location.href = createPageUrl('Login');
   }, []);
 
   return (
