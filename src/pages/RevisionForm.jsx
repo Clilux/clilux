@@ -42,6 +42,7 @@ export default function RevisionForm() {
   const preselectedEquipmentId = urlParams.get('equipment_id');
   const preselectedBuildingId = urlParams.get('building_id');
   const preselectedClientId = urlParams.get('client_id');
+  const periodParam = urlParams.get('period'); // Mensual, Trimestral, Semestral, Anual
   const isEditing = !!revisionId;
 
   const [user, setUser] = useState(null);
@@ -96,12 +97,31 @@ export default function RevisionForm() {
   const activeFields = useMemo(() => {
     if (!selectedEquipment) return defaultFieldsConfig.filter(f => f.enabled);
     
+    // Determinar el período a filtrar
+    let periodsToShow = [];
+    if (periodParam) {
+      const periodMap = {
+        'Mensual': 'monthly',
+        'Trimestral': 'quarterly',
+        'Semestral': 'biannual',
+        'Anual': 'annual'
+      };
+      const periodKey = periodMap[periodParam];
+      
+      // Si hay configuración de maintenance, usar solo los campos de ese período
+      if (selectedEquipment.maintenance_config && periodKey) {
+        const fieldsForPeriod = selectedEquipment.maintenance_config[`${periodKey}_fields`] || [];
+        return fieldsForPeriod.filter(f => f.enabled !== false);
+      }
+    }
+    
+    // Si no hay período o no hay config, usar todos los campos habilitados
     const config = fieldConfigs.find(c => c.equipment_type === selectedEquipment.equipment_type);
     if (config && config.fields) {
       return config.fields.filter(f => f.enabled);
     }
     return defaultFieldsConfig.filter(f => f.enabled);
-  }, [selectedEquipment, fieldConfigs]);
+  }, [selectedEquipment, fieldConfigs, periodParam]);
 
   // Inicializar it3_data con campos activos cuando cambia el equipo
   useEffect(() => {

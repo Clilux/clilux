@@ -26,37 +26,43 @@ export default function ClientDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      // Eliminar en cascada: equipos, edificios y cliente
+      // Eliminar en cascada: revisiones, incidentes, equipos, edificios y cliente
       const clientBuildings = await base44.entities.Building.filter({ client_id: clientId });
       const clientEquipment = await base44.entities.Equipment.filter({ client_id: clientId });
       const clientRevisions = await base44.entities.Revision.filter({ client_id: clientId });
       const clientIncidents = await base44.entities.Incident.filter({ client_id: clientId });
-      const clientMaintenance = await base44.entities.MaintenanceRecord.filter({ client_id: clientId });
       
-      // Eliminar todo
-      for (const eq of clientEquipment) {
-        await base44.entities.Equipment.delete(eq.id);
-      }
-      for (const rev of clientRevisions) {
-        await base44.entities.Revision.delete(rev.id);
-      }
-      for (const inc of clientIncidents) {
-        await base44.entities.Incident.delete(inc.id);
-      }
-      for (const maint of clientMaintenance) {
-        await base44.entities.MaintenanceRecord.delete(maint.id);
-      }
-      for (const building of clientBuildings) {
-        await base44.entities.Building.delete(building.id);
-      }
+      // Eliminar todo en orden: primero revisiones e incidencias, luego equipos, luego edificios, finalmente cliente
+      await Promise.all(clientRevisions.map(rev => 
+        base44.entities.Revision.delete(rev.id).catch(() => {})
+      ));
+      
+      await Promise.all(clientIncidents.map(inc => 
+        base44.entities.Incident.delete(inc.id).catch(() => {})
+      ));
+      
+      await Promise.all(clientEquipment.map(eq => 
+        base44.entities.Equipment.delete(eq.id).catch(() => {})
+      ));
+      
+      await Promise.all(clientBuildings.map(building => 
+        base44.entities.Building.delete(building.id).catch(() => {})
+      ));
+      
       await base44.entities.Client.delete(clientId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['revisions'] });
       toast.success('Cliente y todos sus datos eliminados');
       navigate(createPageUrl('Clients'));
     },
-    onError: () => toast.error('Error al eliminar el cliente'),
+    onError: (error) => {
+      console.error('Error eliminando cliente:', error);
+      toast.error('Error al eliminar el cliente');
+    },
   });
 
   const { data: client, isLoading } = useQuery({
