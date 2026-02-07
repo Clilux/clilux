@@ -4,8 +4,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Home } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
-export default function NavHeader({ title, showBack = true, showHome = true }) {
+export default function NavHeader({ title, showBack = true, showHome = true, backUrl = null }) {
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (backUrl) {
+      navigate(createPageUrl(backUrl));
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(createPageUrl('HomeTecnico'));
+    }
+  };
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -14,7 +24,7 @@ export default function NavHeader({ title, showBack = true, showHome = true }) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="rounded-full hover:bg-white/10 text-white"
           >
             <ArrowLeft className="h-5 w-5" />
