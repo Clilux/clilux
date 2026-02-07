@@ -19,12 +19,11 @@ import { toast } from 'sonner';
 const defaultQuickActions = [
   { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
   { id: '2', label: 'Nuevo Cliente', page: 'ClientForm', icon: 'Plus', bgColor: 'bg-white/10', iconColor: 'text-blue-400', borderColor: 'border-white/20', order: 2 },
-  { id: '3', label: 'Nuevo Equipo', page: 'EquipmentForm', icon: 'Thermometer', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
-  { id: '5', label: 'Nueva Revisión', page: 'NuevaRevision', icon: 'ClipboardCheck', bgColor: 'bg-white/10', iconColor: 'text-emerald-400', borderColor: 'border-white/20', order: 4 },
-  { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 5 },
-  { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 6 },
-  { id: '9', label: 'Backup', page: 'BackupDatos', icon: 'Database', bgColor: 'bg-white/10', iconColor: 'text-orange-400', borderColor: 'border-white/20', order: 7 },
-  { id: '10', label: 'Consulta IA', page: 'AIConsulta', icon: 'Sparkles', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 8 },
+  { id: '3', label: 'Nuevo Equipo', page: 'NuevaRevision', icon: 'Thermometer', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
+  { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 4 },
+  { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 5 },
+  { id: '9', label: 'Backup', page: 'BackupDatos', icon: 'Database', bgColor: 'bg-white/10', iconColor: 'text-orange-400', borderColor: 'border-white/20', order: 6 },
+  { id: '10', label: 'Consulta IA', page: 'AIConsulta', icon: 'Sparkles', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
 ];
 
 export default function HomeTecnico() {

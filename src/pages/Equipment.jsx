@@ -106,7 +106,7 @@ export default function Equipment() {
               }}
             />
             
-            <Link to={createPageUrl('EquipmentForm')}>
+            <Link to={createPageUrl('NuevaRevision')}>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="h-5 w-5 mr-2" />
                 Nuevo Equipo
