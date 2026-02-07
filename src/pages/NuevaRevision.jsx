@@ -165,7 +165,8 @@ export default function NuevaRevision() {
     revision_fields: [], // {field_key, field_label, field_type, periods: [], options: []}
     
     // Paso 4: Programación
-    next_revision_date: new Date().toISOString().split('T')[0],
+    first_revision_date: new Date().toISOString().split('T')[0],
+    starting_period: '',
     do_revision_now: false,
     revision_data: {},
     observations: '',
@@ -299,6 +300,13 @@ export default function NuevaRevision() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Calcular próxima revisión según período inicial
+      const selectedPeriod = periodicidades.find(p => p.value === data.starting_period);
+      const firstDate = new Date(data.first_revision_date);
+      const nextRevisionDate = selectedPeriod 
+        ? format(addMonths(firstDate, selectedPeriod.months), 'yyyy-MM-dd')
+        : null;
+
       // Crear equipo con campos de revisión personalizados
       const equipmentData = {
         client_id: data.client_id,
@@ -318,7 +326,7 @@ export default function NuevaRevision() {
           url: link.url,
           type: 'manual'
         })),
-        next_revision_date: data.next_revision_date,
+        next_revision_date: nextRevisionDate,
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
           monthly_fields: data.revision_fields.filter(f => f.periods.includes('mensual')),
@@ -339,25 +347,21 @@ export default function NuevaRevision() {
           equipment_id: equipment.id,
           building_id: data.building_id,
           client_id: data.client_id,
-          revision_date: new Date().toISOString().split('T')[0],
+          revision_date: data.first_revision_date,
           revision_type: 'preventive',
           general_status: data.general_status,
           it3_data: data.revision_data,
           observations: data.observations,
-          annual_revision_completed: data.selected_periods.includes('anual'),
+          annual_revision_completed: data.starting_period === 'anual',
         };
 
         await base44.entities.Revision.create(revisionData);
         
         // Actualizar última revisión
-        const shortestPeriod = periodicidades.find(p => data.selected_periods.includes(p.value));
-        if (shortestPeriod && data.selected_periods.length > 0) {
-          const nextDate = format(addMonths(new Date(), shortestPeriod.months), 'yyyy-MM-dd');
-          await base44.entities.Equipment.update(equipment.id, {
-            last_revision_date: new Date().toISOString().split('T')[0],
-            next_revision_date: nextDate,
-          });
-        }
+        await base44.entities.Equipment.update(equipment.id, {
+          last_revision_date: data.first_revision_date,
+          next_revision_date: nextRevisionDate,
+        });
       }
 
       return equipment;
@@ -767,15 +771,38 @@ export default function NuevaRevision() {
 
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Fecha de Próxima Revisión *</Label>
+                <Label className="text-slate-300">Fecha de Primera Revisión *</Label>
                 <Input
                   type="date"
-                  value={formData.next_revision_date}
-                  onChange={(e) => handleChange('next_revision_date', e.target.value)}
+                  value={formData.first_revision_date}
+                  onChange={(e) => handleChange('first_revision_date', e.target.value)}
                   className="bg-white/5 border-white/20 text-white"
                 />
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Período Inicial *</Label>
+                <Select value={formData.starting_period} onValueChange={(v) => handleChange('starting_period', v)}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Seleccionar período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formData.selected_periods.map(periodValue => {
+                      const period = periodicidades.find(p => p.value === periodValue);
+                      return (
+                        <SelectItem key={periodValue} value={periodValue}>
+                          {period?.label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-slate-400 mt-1">
-                  Primera fecha programada en el calendario
+                  {formData.starting_period && formData.first_revision_date && (() => {
+                    const period = periodicidades.find(p => p.value === formData.starting_period);
+                    const nextDate = format(addMonths(new Date(formData.first_revision_date), period.months), 'dd/MM/yyyy');
+                    return `Próxima revisión: ${nextDate}`;
+                  })()}
                 </p>
               </div>
 
@@ -869,16 +896,19 @@ export default function NuevaRevision() {
                 </div>
               )}
 
-              {formData.selected_periods.length > 0 && (
+              {formData.starting_period && (
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
                   <h4 className="text-white font-medium mb-2">Plan de Mantenimiento</h4>
                   <p className="text-slate-300 text-sm">
-                    Periodicidades: {formData.selected_periods.map(p => 
+                    Periodicidades configuradas: {formData.selected_periods.map(p => 
                       periodicidades.find(per => per.value === p)?.label
                     ).join(', ')}
                   </p>
+                  <p className="text-slate-300 text-sm mt-1">
+                    <strong>Período inicial:</strong> {periodicidades.find(p => p.value === formData.starting_period)?.label}
+                  </p>
                   <p className="text-slate-400 text-xs mt-2">
-                    El equipo quedará configurado con este plan de revisiones
+                    Las siguientes revisiones se programarán automáticamente según el período más corto
                   </p>
                 </div>
               )}
@@ -888,7 +918,7 @@ export default function NuevaRevision() {
               <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
                 Atrás
               </Button>
-              <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-green-600">
+              <Button onClick={handleSubmit} disabled={saveMutation.isPending || !formData.starting_period} className="bg-green-600">
                 {saveMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
                 ) : (
