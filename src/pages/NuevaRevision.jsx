@@ -160,15 +160,23 @@ export default function NuevaRevision() {
     equipment_data: {},
     equipment_links: [],
     
-    // Paso 3: Campos por periodicidad
+    // Paso 3: Campos de revisión personalizados
     selected_periods: [],
-    custom_fields: [],
+    revision_fields: [], // {field_key, field_label, field_type, periods: [], options: []}
     
     // Paso 4: Programación
     next_revision_date: new Date().toISOString().split('T')[0],
     do_revision_now: false,
+    revision_data: {},
     observations: '',
     general_status: 'good',
+  });
+
+  const [showNewFieldDialog, setShowNewFieldDialog] = useState(false);
+  const [newField, setNewField] = useState({
+    field_label: '',
+    field_type: 'text',
+    periods: [],
   });
 
   const { data: clients = [] } = useQuery({
@@ -291,7 +299,7 @@ export default function NuevaRevision() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      // Crear equipo con plan de revisiones
+      // Crear equipo con campos de revisión personalizados
       const equipmentData = {
         client_id: data.client_id,
         building_id: data.building_id,
@@ -313,9 +321,13 @@ export default function NuevaRevision() {
         next_revision_date: data.next_revision_date,
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
+          monthly_fields: data.revision_fields.filter(f => f.periods.includes('mensual')),
           quarterly_enabled: data.selected_periods.includes('trimestral'),
+          quarterly_fields: data.revision_fields.filter(f => f.periods.includes('trimestral')),
           biannual_enabled: data.selected_periods.includes('semestral'),
+          biannual_fields: data.revision_fields.filter(f => f.periods.includes('semestral')),
           annual_enabled: data.selected_periods.includes('anual'),
+          annual_fields: data.revision_fields.filter(f => f.periods.includes('anual')),
         }
       };
 
@@ -330,7 +342,7 @@ export default function NuevaRevision() {
           revision_date: new Date().toISOString().split('T')[0],
           revision_type: 'preventive',
           general_status: data.general_status,
-          it3_data: data.equipment_data,
+          it3_data: data.revision_data,
           observations: data.observations,
           annual_revision_completed: data.selected_periods.includes('anual'),
         };
@@ -370,6 +382,59 @@ export default function NuevaRevision() {
       ...prev,
       equipment_data: { ...prev.equipment_data, [field]: value }
     }));
+  };
+
+  const handleRevisionDataChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      revision_data: { ...prev.revision_data, [field]: value }
+    }));
+  };
+
+  const handleToggleField = (field) => {
+    setFormData(prev => {
+      const exists = prev.revision_fields.find(f => f.field_key === field.key);
+      if (exists) {
+        return {
+          ...prev,
+          revision_fields: prev.revision_fields.filter(f => f.field_key !== field.key)
+        };
+      } else {
+        return {
+          ...prev,
+          revision_fields: [...prev.revision_fields, {
+            field_key: field.key,
+            field_label: field.label,
+            field_type: field.type,
+            options: field.options,
+            periods: field.periods,
+          }]
+        };
+      }
+    });
+  };
+
+  const handleAddCustomField = () => {
+    if (!newField.field_label || newField.periods.length === 0) {
+      toast.error('Completa todos los campos');
+      return;
+    }
+
+    const fieldKey = newField.field_label.toLowerCase().replace(/\s+/g, '_');
+    setFormData(prev => ({
+      ...prev,
+      revision_fields: [...prev.revision_fields, {
+        field_key: fieldKey,
+        field_label: newField.field_label,
+        field_type: newField.field_type,
+        periods: newField.periods,
+        custom: true,
+      }]
+    }));
+
+    setNewField({ field_label: '', field_type: 'text', periods: [] });
+    setShowNewFieldDialog(false);
+    toast.success('Campo añadido');
   };
 
   const handleNext = () => {
@@ -579,10 +644,16 @@ export default function NuevaRevision() {
           </Card>
         )}
 
-        {/* Step 3: Periodicidad */}
+        {/* Step 3: Campos de Revisión */}
         {step === 3 && equipmentFields && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Configurar Datos a Recoger por Período</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Configurar Campos de Revisión</h3>
+              <Button onClick={() => setShowNewFieldDialog(true)} className="bg-green-600">
+                <Plus className="h-4 w-4 mr-2" />
+                Añadir Campo
+              </Button>
+            </div>
 
             <div className="space-y-6">
               <div>
@@ -610,38 +681,71 @@ export default function NuevaRevision() {
 
               {formData.selected_periods.length > 0 && (
                 <div>
-                  <Label className="text-slate-300 mb-3 block">Campos disponibles por período</Label>
-                  {equipmentFields.parametros.map(param => {
-                    const availablePeriods = param.periods.filter(p => formData.selected_periods.includes(p));
-                    if (availablePeriods.length === 0) return null;
+                  <Label className="text-slate-300 mb-3 block">Selecciona los elementos a revisar (según IDAE)</Label>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {equipmentFields.parametros.map(param => {
+                      const availablePeriods = param.periods.filter(p => formData.selected_periods.includes(p));
+                      if (availablePeriods.length === 0) return null;
 
-                    return (
-                      <div key={param.key} className="p-3 rounded-lg bg-white/5 mb-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-300 text-sm">{param.label}</span>
-                          <div className="flex gap-2">
-                            {availablePeriods.map(p => (
-                              <span key={p} className="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">
-                                {periodicidades.find(per => per.value === p)?.label}
-                              </span>
-                            ))}
+                      const isSelected = formData.revision_fields.find(f => f.field_key === param.key);
+
+                      return (
+                        <div key={param.key} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                          <Checkbox
+                            id={param.key}
+                            checked={!!isSelected}
+                            onCheckedChange={() => handleToggleField(param)}
+                            className="border-white/30"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor={param.key} className="text-slate-300 cursor-pointer">
+                              {param.label}
+                            </Label>
+                            <div className="flex gap-2 mt-1">
+                              {availablePeriods.map(p => (
+                                <span key={p} className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-300">
+                                  {periodicidades.find(per => per.value === p)?.label}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              <div>
-                <Label className="text-slate-300">Observaciones Generales</Label>
-                <Textarea
-                  value={formData.observations}
-                  onChange={(e) => handleChange('observations', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                  rows={3}
-                  placeholder="Añade cualquier observación sobre el equipo..."
-                />
+              {formData.revision_fields.filter(f => f.custom).length > 0 && (
+                <div>
+                  <Label className="text-slate-300 mb-3 block">Campos personalizados</Label>
+                  <div className="space-y-2">
+                    {formData.revision_fields.filter(f => f.custom).map(field => (
+                      <div key={field.field_key} className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300">{field.field_label}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              revision_fields: prev.revision_fields.filter(f => f.field_key !== field.field_key)
+                            }))}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                <p className="text-slate-300 text-sm">
+                  <strong>{formData.revision_fields.length}</strong> campos seleccionados para las revisiones
+                </p>
               </div>
             </div>
 
@@ -706,6 +810,49 @@ export default function NuevaRevision() {
                       <SelectItem value="critical">Crítico</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {formData.do_revision_now && formData.revision_fields.length > 0 && (
+                <div className="space-y-4">
+                  <Label className="text-slate-300 block">Datos de la Revisión</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-white/5 max-h-64 overflow-y-auto">
+                    {formData.revision_fields.map(field => (
+                      <div key={field.field_key}>
+                        <Label className="text-slate-300 text-sm">{field.field_label}</Label>
+                        {field.field_type === 'select' ? (
+                          <Select
+                            value={formData.revision_data[field.field_key] || ''}
+                            onValueChange={(v) => handleRevisionDataChange(field.field_key, v)}
+                          >
+                            <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options?.map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : field.field_type === 'checkbox' ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Checkbox
+                              checked={formData.revision_data[field.field_key] || false}
+                              onCheckedChange={(v) => handleRevisionDataChange(field.field_key, v)}
+                              className="border-white/30"
+                            />
+                          </div>
+                        ) : (
+                          <Input
+                            type={field.field_type}
+                            value={formData.revision_data[field.field_key] || ''}
+                            onChange={(e) => handleRevisionDataChange(field.field_key, e.target.value)}
+                            className="bg-white/5 border-white/20 text-white"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -822,6 +969,68 @@ export default function NuevaRevision() {
                 className="w-full"
               >
                 {createBuildingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Edificio'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showNewFieldDialog} onOpenChange={setShowNewFieldDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Añadir Campo Personalizado</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Nombre del Campo *</Label>
+                <Input
+                  value={newField.field_label}
+                  onChange={(e) => setNewField({...newField, field_label: e.target.value})}
+                  className="bg-white/5 border-white/20 text-white"
+                  placeholder="Ej: Estado de válvulas"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Tipo de Dato *</Label>
+                <Select value={newField.field_type} onValueChange={(v) => setNewField({...newField, field_type: v})}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Texto</SelectItem>
+                    <SelectItem value="number">Número</SelectItem>
+                    <SelectItem value="checkbox">Sí/No</SelectItem>
+                    <SelectItem value="select">Opciones</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-slate-300 mb-2 block">Periodicidades *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {periodicidades.map(p => (
+                    <div key={p.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`new-${p.value}`}
+                        checked={newField.periods.includes(p.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setNewField({...newField, periods: [...newField.periods, p.value]});
+                          } else {
+                            setNewField({...newField, periods: newField.periods.filter(v => v !== p.value)});
+                          }
+                        }}
+                        className="border-white/30"
+                      />
+                      <Label htmlFor={`new-${p.value}`} className="text-slate-300">{p.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button
+                onClick={handleAddCustomField}
+                disabled={!newField.field_label || newField.periods.length === 0}
+                className="w-full"
+              >
+                Añadir Campo
               </Button>
             </div>
           </DialogContent>

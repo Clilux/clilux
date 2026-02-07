@@ -72,7 +72,6 @@ import MenuInicio from './pages/MenuInicio';
 import NuevaRevision from './pages/NuevaRevision';
 import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
-import RevisionFieldSettings from './pages/RevisionFieldSettings';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import ScanEquipment from './pages/ScanEquipment';
@@ -111,7 +110,6 @@ export const PAGES = {
     "NuevaRevision": NuevaRevision,
     "Reports": Reports,
     "RevisionDetail": RevisionDetail,
-    "RevisionFieldSettings": RevisionFieldSettings,
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
     "ScanEquipment": ScanEquipment,
