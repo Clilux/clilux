@@ -54,25 +54,6 @@ export default function EquipmentDetail() {
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const queryClient = useQueryClient();
 
-  // Determinar el período de la próxima revisión
-  const getNextRevisionPeriod = () => {
-    if (!equipment?.maintenance_config) return null;
-    
-    const config = equipment.maintenance_config;
-    if (config.monthly_enabled) return { label: 'Mensual', fields: config.monthly_fields };
-    if (config.quarterly_enabled) return { label: 'Trimestral', fields: config.quarterly_fields };
-    if (config.biannual_enabled) return { label: 'Semestral', fields: config.biannual_fields };
-    if (config.annual_enabled) return { label: 'Anual', fields: config.annual_fields };
-    
-    return null;
-  };
-
-  const nextPeriod = getNextRevisionPeriod();
-
-  const handleConfirmRevision = () => {
-    navigate(createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}&period=${nextPeriod?.label}`));
-  };
-
   const deleteMutation = useMutation({
     mutationFn: async () => {
       await base44.entities.Equipment.delete(equipmentId);
@@ -118,7 +99,24 @@ export default function EquipmentDetail() {
     enabled: !!equipment?.client_id,
   });
 
+  // Determinar el período de la próxima revisión
+  const getNextRevisionPeriod = () => {
+    if (!equipment?.maintenance_config) return null;
+    
+    const config = equipment.maintenance_config;
+    if (config.monthly_enabled) return { label: 'Mensual', fields: config.monthly_fields };
+    if (config.quarterly_enabled) return { label: 'Trimestral', fields: config.quarterly_fields };
+    if (config.biannual_enabled) return { label: 'Semestral', fields: config.biannual_fields };
+    if (config.annual_enabled) return { label: 'Anual', fields: config.annual_fields };
+    
+    return null;
+  };
 
+  const nextPeriod = getNextRevisionPeriod();
+
+  const handleConfirmRevision = () => {
+    navigate(createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}&period=${nextPeriod?.label}`));
+  };
 
   if (isLoading) {
     return (
