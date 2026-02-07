@@ -41,14 +41,29 @@ export default function Calendar() {
   // Eventos del calendario: próximas revisiones y revisiones realizadas
   const calendarEvents = useMemo(() => {
     const events = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     // Próximas revisiones programadas
     equipment.forEach(eq => {
       if (eq.next_revision_date) {
         if (filterClient === 'all' || eq.client_id === filterClient) {
+          const revisionDate = new Date(eq.next_revision_date);
+          revisionDate.setHours(0, 0, 0, 0);
+          
+          const diffTime = revisionDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          // Estado: verde (en tiempo), amarillo (caducada), rojo (caducada +1 mes)
+          let status = 'on-time'; // verde
+          if (diffDays < 0) {
+            status = diffDays < -30 ? 'overdue-critical' : 'overdue'; // rojo : amarillo
+          }
+          
           events.push({
             date: eq.next_revision_date,
             type: 'scheduled',
+            status,
             title: `${eq.brand} ${eq.model}`,
             equipment: eq,
             client_id: eq.client_id,
@@ -168,15 +183,18 @@ export default function Calendar() {
                         {format(day, 'd')}
                       </span>
                       <div className="mt-1 space-y-1">
-                        {hasScheduled && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-amber-500" />
-                            <span className="text-xs text-slate-500 truncate">Programada</span>
-                          </div>
-                        )}
+                        {dayEvents.filter(e => e.type === 'scheduled').map((e, idx) => {
+                          const color = e.status === 'on-time' ? 'bg-green-500' : e.status === 'overdue' ? 'bg-yellow-500' : 'bg-red-500';
+                          return (
+                            <div key={idx} className="flex items-center gap-1">
+                              <div className={cn("w-2 h-2 rounded-full", color)} />
+                              <span className="text-xs text-slate-500 truncate">Programada</span>
+                            </div>
+                          );
+                        })}
                         {hasCompleted && (
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
                             <span className="text-xs text-slate-500 truncate">Realizada</span>
                           </div>
                         )}
@@ -187,14 +205,22 @@ export default function Calendar() {
               </div>
 
               {/* Leyenda */}
-              <div className="flex items-center gap-6 mt-4 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-amber-500" />
-                  <span className="text-sm text-slate-600">Revisión programada</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-sm text-slate-600">Revisión realizada</span>
+                  <span className="text-slate-600">En tiempo</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span className="text-slate-600">Caducada</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-slate-600">Caducada +1 mes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-slate-600">Realizada</span>
                 </div>
               </div>
             </Card>
@@ -213,41 +239,48 @@ export default function Calendar() {
               )}
 
               <div className="space-y-3">
-                {selectedDateEvents.map((event, index) => (
-                  <div key={index} className={cn(
-                    "p-3 rounded-lg border",
-                    event.type === 'scheduled' ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200"
-                  )}>
-                    <div className="flex items-start gap-2">
-                      {event.type === 'scheduled' ? (
-                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-                      ) : (
-                        <ClipboardCheck className="h-4 w-4 text-green-600 mt-0.5" />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-800 text-sm">{event.title}</p>
-                        <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
-                        {event.equipment && (
-                          <p className="text-xs text-slate-500">{event.equipment.location}</p>
+                {selectedDateEvents.map((event, index) => {
+                  const bgColor = event.type === 'completed' ? 'bg-blue-50 border-blue-200' :
+                    event.status === 'on-time' ? 'bg-green-50 border-green-200' :
+                    event.status === 'overdue' ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200';
+                  
+                  const iconColor = event.type === 'completed' ? 'text-blue-600' :
+                    event.status === 'on-time' ? 'text-green-600' :
+                    event.status === 'overdue' ? 'text-yellow-600' : 'text-red-600';
+                  
+                  return (
+                    <div key={index} className={cn("p-3 rounded-lg border", bgColor)}>
+                      <div className="flex items-start gap-2">
+                        {event.type === 'scheduled' ? (
+                          <AlertCircle className={cn("h-4 w-4 mt-0.5", iconColor)} />
+                        ) : (
+                          <ClipboardCheck className={cn("h-4 w-4 mt-0.5", iconColor)} />
                         )}
-                        {event.type === 'scheduled' && event.equipment && (
-                          <Link to={createPageUrl(`EquipmentDetail?id=${event.equipment.id}`)}>
-                            <Button variant="link" size="sm" className="h-auto p-0 mt-1">
-                              Ver equipo →
-                            </Button>
-                          </Link>
-                        )}
-                        {event.type === 'completed' && event.revision && (
-                          <Link to={createPageUrl(`RevisionDetail?id=${event.revision.id}`)}>
-                            <Button variant="link" size="sm" className="h-auto p-0 mt-1">
-                              Ver revisión →
-                            </Button>
-                          </Link>
-                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-800 text-sm">{event.title}</p>
+                          <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
+                          {event.equipment && (
+                            <p className="text-xs text-slate-500">{event.equipment.location}</p>
+                          )}
+                          {event.type === 'scheduled' && event.equipment && (
+                            <Link to={createPageUrl(`RevisionForm?equipment_id=${event.equipment.id}`)}>
+                              <Button variant="link" size="sm" className="h-auto p-0 mt-1">
+                                Hacer revisión →
+                              </Button>
+                            </Link>
+                          )}
+                          {event.type === 'completed' && event.revision && (
+                            <Link to={createPageUrl(`RevisionDetail?id=${event.revision.id}`)}>
+                              <Button variant="link" size="sm" className="h-auto p-0 mt-1">
+                                Ver revisión →
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
@@ -256,20 +289,28 @@ export default function Calendar() {
               <h3 className="font-semibold text-slate-800 mb-4">Próximas Revisiones</h3>
               <div className="space-y-3">
                 {calendarEvents
-                  .filter(e => e.type === 'scheduled' && new Date(e.date) >= new Date())
+                  .filter(e => e.type === 'scheduled')
                   .sort((a, b) => new Date(a.date) - new Date(b.date))
-                  .slice(0, 5)
-                  .map((event, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                      <div>
-                        <p className="text-sm font-medium text-slate-700">{event.title}</p>
-                        <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {format(new Date(event.date), 'dd/MM')}
-                      </Badge>
-                    </div>
-                  ))}
+                  .slice(0, 8)
+                  .map((event, index) => {
+                    const badgeColor = event.status === 'on-time' ? 'bg-green-100 text-green-700 border-green-200' :
+                      event.status === 'overdue' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
+                      'bg-red-100 text-red-700 border-red-200';
+                    
+                    return (
+                      <Link key={index} to={createPageUrl(`RevisionForm?equipment_id=${event.equipment.id}`)}>
+                        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">{event.title}</p>
+                            <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
+                          </div>
+                          <Badge variant="outline" className={cn("text-xs", badgeColor)}>
+                            {format(new Date(event.date), 'dd/MM')}
+                          </Badge>
+                        </div>
+                      </Link>
+                    );
+                  })}
               </div>
             </Card>
           </div>
