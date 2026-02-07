@@ -232,10 +232,10 @@ export default function BuildingDetail() {
                 ]}
                 label="Exportar"
               />
-              <Link to={createPageUrl(`EquipmentForm?building_id=${building.id}&client_id=${building.client_id}`)}>
+              <Link to={createPageUrl(`NuevaRevision`)}>
                 <Button className="bg-slate-800 hover:bg-slate-700">
                   <Plus className="h-4 w-4 mr-2" />
-                  Nuevo Equipo
+                  Nueva Revisión
                 </Button>
               </Link>
             </div>
@@ -245,10 +245,10 @@ export default function BuildingDetail() {
             <Card className="p-8 text-center">
               <Thermometer className="h-12 w-12 mx-auto text-slate-300 mb-4" />
               <p className="text-slate-500 mb-4">No hay equipos registrados en este edificio</p>
-              <Link to={createPageUrl(`EquipmentForm?building_id=${building.id}&client_id=${building.client_id}`)}>
+              <Link to={createPageUrl(`NuevaRevision`)}>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Añadir primer equipo
+                  Añadir primera revisión
                 </Button>
               </Link>
             </Card>
