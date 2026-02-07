@@ -165,7 +165,8 @@ export default function NuevaRevision() {
     custom_fields: [],
     
     // Paso 4: Programación
-    start_date: new Date().toISOString().split('T')[0],
+    next_revision_date: new Date().toISOString().split('T')[0],
+    do_revision_now: false,
     observations: '',
     general_status: 'good',
   });
@@ -256,7 +257,7 @@ export default function NuevaRevision() {
     setSearchingDocs(true);
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Busca enlaces a documentación técnica, manuales y fichas técnicas del equipo ${formData.equipment_data.marca} ${formData.equipment_data.modelo}. Devuelve hasta 5 enlaces relevantes con título y URL.`,
+        prompt: `Busca imágenes de fichas técnicas y manuales en PDF del equipo ${formData.equipment_data.marca} ${formData.equipment_data.modelo}. Devuelve hasta 5 resultados con título y URL directa a la imagen o PDF.`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
@@ -280,7 +281,7 @@ export default function NuevaRevision() {
         equipment_links: result.links || []
       }));
 
-      toast.success(`${result.links?.length || 0} enlaces encontrados`);
+      toast.success(`${result.links?.length || 0} documentos encontrados`);
     } catch (error) {
       toast.error('Error al buscar documentación');
     } finally {
@@ -290,7 +291,7 @@ export default function NuevaRevision() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      // Crear equipo
+      // Crear equipo con plan de revisiones
       const equipmentData = {
         client_id: data.client_id,
         building_id: data.building_id,
@@ -309,45 +310,51 @@ export default function NuevaRevision() {
           url: link.url,
           type: 'manual'
         })),
+        next_revision_date: data.next_revision_date,
+        maintenance_config: {
+          monthly_enabled: data.selected_periods.includes('mensual'),
+          quarterly_enabled: data.selected_periods.includes('trimestral'),
+          biannual_enabled: data.selected_periods.includes('semestral'),
+          annual_enabled: data.selected_periods.includes('anual'),
+        }
       };
 
       const equipment = await base44.entities.Equipment.create(equipmentData);
 
-      // Crear primera revisión
-      const revisionData = {
-        equipment_id: equipment.id,
-        building_id: data.building_id,
-        client_id: data.client_id,
-        revision_date: data.start_date,
-        revision_type: 'preventive',
-        general_status: data.general_status,
-        it3_data: data.equipment_data,
-        observations: data.observations,
-        annual_revision_completed: data.selected_periods.includes('anual'),
-      };
+      // Si quiere hacer revisión ahora
+      if (data.do_revision_now) {
+        const revisionData = {
+          equipment_id: equipment.id,
+          building_id: data.building_id,
+          client_id: data.client_id,
+          revision_date: new Date().toISOString().split('T')[0],
+          revision_type: 'preventive',
+          general_status: data.general_status,
+          it3_data: data.equipment_data,
+          observations: data.observations,
+          annual_revision_completed: data.selected_periods.includes('anual'),
+        };
 
-      await base44.entities.Revision.create(revisionData);
-
-      // Generar calendario de revisiones
-      if (data.selected_periods.length > 0) {
+        await base44.entities.Revision.create(revisionData);
+        
+        // Actualizar última revisión
         const shortestPeriod = periodicidades.find(p => data.selected_periods.includes(p.value));
-        if (shortestPeriod) {
-          const numRevisions = 12 / shortestPeriod.months;
-          const startDate = new Date(data.start_date);
-          const nextDate = format(addMonths(startDate, shortestPeriod.months), 'yyyy-MM-dd');
-          
+        if (shortestPeriod && data.selected_periods.length > 0) {
+          const nextDate = format(addMonths(new Date(), shortestPeriod.months), 'yyyy-MM-dd');
           await base44.entities.Equipment.update(equipment.id, {
+            last_revision_date: new Date().toISOString().split('T')[0],
             next_revision_date: nextDate,
-            last_revision_date: data.start_date,
           });
         }
       }
+
+      return equipment;
     },
-    onSuccess: () => {
+    onSuccess: (equipment) => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['revisions'] });
-      toast.success('Equipo y revisión creados');
-      navigate(createPageUrl('Calendar'));
+      toast.success('Equipo creado con plan de revisiones');
+      navigate(createPageUrl(`EquipmentDetail?id=${equipment.id}`));
     },
     onError: () => {
       toast.error('Error al crear');
@@ -652,47 +659,79 @@ export default function NuevaRevision() {
         {/* Step 4: Programar */}
         {step === 4 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Programar Primera Revisión</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">Programar Plan de Revisiones</h3>
 
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Fecha de Primera Revisión *</Label>
+                <Label className="text-slate-300">Fecha de Próxima Revisión *</Label>
                 <Input
                   type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleChange('start_date', e.target.value)}
+                  value={formData.next_revision_date}
+                  onChange={(e) => handleChange('next_revision_date', e.target.value)}
                   className="bg-white/5 border-white/20 text-white"
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Se generará el calendario de revisiones desde esta fecha
+                  Primera fecha programada en el calendario
                 </p>
               </div>
 
-              <div>
-                <Label className="text-slate-300">Estado Inicial del Equipo *</Label>
-                <Select value={formData.general_status} onValueChange={(v) => handleChange('general_status', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="good">Bueno</SelectItem>
-                    <SelectItem value="acceptable">Aceptable</SelectItem>
-                    <SelectItem value="needs_repair">Necesita reparación</SelectItem>
-                    <SelectItem value="critical">Crítico</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5">
+                <Checkbox
+                  id="do_now"
+                  checked={formData.do_revision_now}
+                  onCheckedChange={(v) => handleChange('do_revision_now', v)}
+                  className="border-white/30"
+                />
+                <div>
+                  <Label htmlFor="do_now" className="text-slate-300 cursor-pointer">
+                    Realizar revisión ahora
+                  </Label>
+                  <p className="text-xs text-slate-400">
+                    Marca esta opción para hacer la primera revisión inmediatamente
+                  </p>
+                </div>
               </div>
+
+              {formData.do_revision_now && (
+                <div>
+                  <Label className="text-slate-300">Estado del Equipo *</Label>
+                  <Select value={formData.general_status} onValueChange={(v) => handleChange('general_status', v)}>
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="good">Bueno</SelectItem>
+                      <SelectItem value="acceptable">Aceptable</SelectItem>
+                      <SelectItem value="needs_repair">Necesita reparación</SelectItem>
+                      <SelectItem value="critical">Crítico</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.do_revision_now && (
+                <div>
+                  <Label className="text-slate-300">Observaciones de la Revisión</Label>
+                  <Textarea
+                    value={formData.observations}
+                    onChange={(e) => handleChange('observations', e.target.value)}
+                    className="bg-white/5 border-white/20 text-white"
+                    rows={3}
+                    placeholder="Observaciones de esta revisión..."
+                  />
+                </div>
+              )}
 
               {formData.selected_periods.length > 0 && (
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <h4 className="text-white font-medium mb-2">Calendario a Generar</h4>
+                  <h4 className="text-white font-medium mb-2">Plan de Mantenimiento</h4>
                   <p className="text-slate-300 text-sm">
-                    Periodicidades seleccionadas: {formData.selected_periods.map(p => 
+                    Periodicidades: {formData.selected_periods.map(p => 
                       periodicidades.find(per => per.value === p)?.label
                     ).join(', ')}
                   </p>
                   <p className="text-slate-400 text-xs mt-2">
-                    Se programarán revisiones automáticamente en el calendario
+                    El equipo quedará configurado con este plan de revisiones
                   </p>
                 </div>
               )}
@@ -706,7 +745,7 @@ export default function NuevaRevision() {
                 {saveMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
                 ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Crear Equipo y Revisión</>
+                  <><Save className="h-4 w-4 mr-2" /> Crear Equipo</>
                 )}
               </Button>
             </div>
