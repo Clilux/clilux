@@ -81,6 +81,7 @@ import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
 import BackupDatos from './pages/BackupDatos';
+import NuevaRevision from './pages/NuevaRevision';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +120,7 @@ export const PAGES = {
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
     "BackupDatos": BackupDatos,
+    "NuevaRevision": NuevaRevision,
 }
 
 export const pagesConfig = {
