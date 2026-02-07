@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Save, Plus, Building2, User, Calendar } from 'lucide-react';
+import { Loader2, Save, Plus, Building2, User, Camera } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { addMonths, addDays, format } from 'date-fns';
@@ -65,8 +65,11 @@ export default function NuevaRevision() {
   const [step, setStep] = useState(1);
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showNewBuildingDialog, setShowNewBuildingDialog] = useState(false);
+  const [showNewEquipmentDialog, setShowNewEquipmentDialog] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', cif: '', city: '' });
   const [newBuilding, setNewBuilding] = useState({ name: '', address: '' });
+  const [newEquipment, setNewEquipment] = useState({ brand: '', model: '', location: '', equipment_type: 'split' });
+  const [scanningEquipment, setScanningEquipment] = useState(false);
 
   const [formData, setFormData] = useState({
     // Paso 1: Ubicación
@@ -78,6 +81,7 @@ export default function NuevaRevision() {
     revision_type: 'preventive',
     periodicidad: 'trimestral',
     generate_schedule: true,
+    start_date: new Date().toISOString().split('T')[0],
     
     // Paso 3: Datos según IT3
     it3_identificacion: {},
@@ -139,16 +143,81 @@ export default function NuevaRevision() {
     },
   });
 
+  const createEquipmentMutation = useMutation({
+    mutationFn: (data) => base44.entities.Equipment.create({ 
+      ...data, 
+      client_id: formData.client_id,
+      building_id: formData.building_id 
+    }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      setFormData(prev => ({ ...prev, equipment_id: data.id }));
+      setShowNewEquipmentDialog(false);
+      toast.success('Equipo creado');
+    },
+  });
+
+  const handleScanEquipment = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScanningEquipment(true);
+    try {
+      const uploadResult = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extrae los datos técnicos de este equipo de climatización de la imagen. Devuelve: marca, modelo, tipo de equipo (caldera/enfriadora/split/vrf/climatizador), número de serie, potencia, tipo de refrigerante, carga de refrigerante. Si no encuentras algún dato, déjalo vacío.`,
+        file_urls: [uploadResult.file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            brand: { type: "string" },
+            model: { type: "string" },
+            equipment_type: { type: "string" },
+            serial_number: { type: "string" },
+            cooling_power_kw: { type: "number" },
+            refrigerant_type: { type: "string" },
+            refrigerant_charge_kg: { type: "number" }
+          }
+        }
+      });
+
+      setNewEquipment(prev => ({
+        ...prev,
+        brand: result.brand || prev.brand,
+        model: result.model || prev.model,
+        equipment_type: result.equipment_type || prev.equipment_type,
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        it3_identificacion: {
+          ...prev.it3_identificacion,
+          'Nº serie': result.serial_number || '',
+          'Potencia nominal (kW)': result.cooling_power_kw || '',
+          'Tipo refrigerante': result.refrigerant_type || '',
+          'Carga refrigerante (kg)': result.refrigerant_charge_kg || '',
+        }
+      }));
+
+      toast.success('Datos escaneados correctamente');
+      setShowNewEquipmentDialog(true);
+    } catch (error) {
+      toast.error('Error al escanear equipo');
+    } finally {
+      setScanningEquipment(false);
+    }
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      const today = new Date().toISOString().split('T')[0];
+      const startDate = data.start_date || new Date().toISOString().split('T')[0];
       
       // Crear revisión actual
       const revisionData = {
         equipment_id: data.equipment_id,
         building_id: data.building_id,
         client_id: data.client_id,
-        revision_date: today,
+        revision_date: startDate,
         revision_type: data.revision_type,
         general_status: data.general_status,
         it3_data: {
@@ -171,8 +240,9 @@ export default function NuevaRevision() {
         const numRevisions = 12 / selectedPeriod.months; // Generar para el próximo año
         
         const scheduledRevisions = [];
+        const startingDate = new Date(startDate);
         for (let i = 1; i <= numRevisions; i++) {
-          const nextDate = format(addMonths(new Date(), selectedPeriod.months * i), 'yyyy-MM-dd');
+          const nextDate = format(addMonths(startingDate, selectedPeriod.months * i), 'yyyy-MM-dd');
           scheduledRevisions.push(nextDate);
         }
 
@@ -180,7 +250,7 @@ export default function NuevaRevision() {
         if (scheduledRevisions.length > 0) {
           await base44.entities.Equipment.update(data.equipment_id, {
             next_revision_date: scheduledRevisions[0],
-            last_revision_date: today,
+            last_revision_date: startDate,
           });
         }
       }
@@ -296,18 +366,38 @@ export default function NuevaRevision() {
 
               <div>
                 <Label className="text-slate-300">Equipo *</Label>
-                <Select value={formData.equipment_id} onValueChange={(v) => handleChange('equipment_id', v)} disabled={!formData.building_id}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Seleccionar equipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredEquipment.map(eq => (
-                      <SelectItem key={eq.id} value={eq.id}>
-                        {eq.brand} {eq.model} - {eq.location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={formData.equipment_id} onValueChange={(v) => handleChange('equipment_id', v)} disabled={!formData.building_id}>
+                    <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
+                      <SelectValue placeholder="Seleccionar equipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEquipment.map(eq => (
+                        <SelectItem key={eq.id} value={eq.id}>
+                          {eq.brand} {eq.model} - {eq.location}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleScanEquipment}
+                    className="hidden"
+                    id="scan-equipment"
+                  />
+                  <label htmlFor="scan-equipment">
+                    <Button type="button" size="icon" disabled={!formData.building_id || scanningEquipment} className="bg-purple-600" asChild>
+                      <span>
+                        {scanningEquipment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                      </span>
+                    </Button>
+                  </label>
+                  <Button type="button" size="icon" onClick={() => setShowNewEquipmentDialog(true)} disabled={!formData.building_id} className="bg-blue-600">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -352,7 +442,17 @@ export default function NuevaRevision() {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div>
+                <Label className="text-slate-300">Fecha de inicio *</Label>
+                <Input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => handleChange('start_date', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+
+              <div className="md:col-span-2 flex items-center gap-2 pt-2">
                 <Checkbox
                   id="generate_schedule"
                   checked={formData.generate_schedule}
@@ -360,7 +460,7 @@ export default function NuevaRevision() {
                   className="border-white/30"
                 />
                 <Label htmlFor="generate_schedule" className="text-slate-300 cursor-pointer">
-                  Generar calendario automático de revisiones
+                  Generar calendario automático de revisiones desde la fecha de inicio
                 </Label>
               </div>
             </div>
@@ -607,6 +707,62 @@ export default function NuevaRevision() {
                 className="w-full"
               >
                 {createBuildingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showNewEquipmentDialog} onOpenChange={setShowNewEquipmentDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Nuevo Equipo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Tipo de Equipo</Label>
+                <Select value={newEquipment.equipment_type} onValueChange={(v) => setNewEquipment({...newEquipment, equipment_type: v})}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="caldera">Caldera</SelectItem>
+                    <SelectItem value="enfriadora">Enfriadora</SelectItem>
+                    <SelectItem value="split">Split</SelectItem>
+                    <SelectItem value="vrf">VRF</SelectItem>
+                    <SelectItem value="climatizador">Climatizador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-slate-300">Marca</Label>
+                <Input
+                  value={newEquipment.brand}
+                  onChange={(e) => setNewEquipment({...newEquipment, brand: e.target.value})}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Modelo</Label>
+                <Input
+                  value={newEquipment.model}
+                  onChange={(e) => setNewEquipment({...newEquipment, model: e.target.value})}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300">Ubicación</Label>
+                <Input
+                  value={newEquipment.location}
+                  onChange={(e) => setNewEquipment({...newEquipment, location: e.target.value})}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+              <Button
+                onClick={() => createEquipmentMutation.mutate(newEquipment)}
+                disabled={!newEquipment.brand || !newEquipment.model || createEquipmentMutation.isPending}
+                className="w-full"
+              >
+                {createEquipmentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Equipo'}
               </Button>
             </div>
           </DialogContent>
