@@ -19,10 +19,11 @@ import { toast } from 'sonner';
 const defaultQuickActions = [
   { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
   { id: '2', label: 'Nuevo Cliente', page: 'ClientForm', icon: 'Plus', bgColor: 'bg-white/10', iconColor: 'text-blue-400', borderColor: 'border-white/20', order: 2 },
-  { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 3 },
-  { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 4 },
-  { id: '8', label: 'Documentación', page: 'Documentacion', icon: 'FileText', bgColor: 'bg-white/10', iconColor: 'text-indigo-400', borderColor: 'border-white/20', order: 5 },
-  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 6 },
+  { id: '3', label: 'Formulario Equipos', page: 'NuevaRevision', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
+  { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 4 },
+  { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 5 },
+  { id: '8', label: 'Documentación', page: 'Documentacion', icon: 'FileText', bgColor: 'bg-white/10', iconColor: 'text-indigo-400', borderColor: 'border-white/20', order: 6 },
+  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
 ];
 
 export default function HomeTecnico() {

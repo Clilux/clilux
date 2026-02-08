@@ -316,11 +316,15 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        <Tabs defaultValue="revisions" className="space-y-4">
+        <Tabs defaultValue="preventive" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="revisions" className="flex items-center gap-2">
+            <TabsTrigger value="preventive" className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4" />
-              Revisiones ({revisions.length})
+              Preventivo ({revisions.filter(r => r.revision_type === 'preventive').length})
+            </TabsTrigger>
+            <TabsTrigger value="corrective" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Correctivo ({revisions.filter(r => r.revision_type === 'corrective').length})
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -328,12 +332,12 @@ export default function EquipmentDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="revisions">
+          <TabsContent value="preventive">
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                   <ClipboardCheck className="h-5 w-5" />
-                  Historial de Revisiones IT3/RITE ({revisions.length})
+                  Historial Preventivo ({revisions.filter(r => r.revision_type === 'preventive').length})
                 </h2>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setShowReport(true)}>
@@ -356,20 +360,55 @@ export default function EquipmentDetail() {
                 </div>
               </div>
 
-              {revisions.length === 0 ? (
+              {revisions.filter(r => r.revision_type === 'preventive').length === 0 ? (
                 <Card className="p-8 text-center">
                   <ClipboardCheck className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500 mb-4">No hay revisiones registradas</p>
-                  <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear primera revisión
-                    </Button>
-                  </Link>
+                  <p className="text-slate-500">No hay revisiones preventivas</p>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {revisions.map(revision => (
+                  {revisions.filter(r => r.revision_type === 'preventive').map(revision => (
+                    <RevisionCard 
+                      key={revision.id} 
+                      revision={revision}
+                      equipmentName={`${equipment.brand} ${equipment.model}`}
+                      buildingName={building?.name}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="corrective">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Historial Correctivo ({revisions.filter(r => r.revision_type === 'corrective').length})
+                </h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowReport(true)}>
+                    <FileBarChart className="h-4 w-4 mr-2" />
+                    Generar Informe
+                  </Button>
+                  <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
+                    <Button className="bg-slate-800 hover:bg-slate-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Revisión Correctiva
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {revisions.filter(r => r.revision_type === 'corrective').length === 0 ? (
+                <Card className="p-8 text-center">
+                  <Wrench className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500">No hay revisiones correctivas</p>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {revisions.filter(r => r.revision_type === 'corrective').map(revision => (
                     <RevisionCard 
                       key={revision.id} 
                       revision={revision}

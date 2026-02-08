@@ -28,7 +28,7 @@ export default function ScanEquipmentTech() {
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: { ideal: 'environment' },
+          facingMode: 'environment',
           width: { ideal: 1920 },
           height: { ideal: 1080 }
         } 
@@ -56,6 +56,9 @@ export default function ScanEquipmentTech() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setShowCamera(false);
   };
 
@@ -68,7 +71,7 @@ export default function ScanEquipmentTech() {
       return;
     }
     
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
       toast.error('La cámara aún no está lista. Espera un momento');
       return;
     }
@@ -77,14 +80,16 @@ export default function ScanEquipmentTech() {
       const context = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], 'equipment-photo.jpg', { type: 'image/jpeg' });
           setPhoto(file);
           stopCamera();
-          toast.success('Foto capturada correctamente');
+          toast.success('Foto capturada');
+        } else {
+          toast.error('Error al crear la imagen');
         }
       }, 'image/jpeg', 0.95);
     } catch (error) {
@@ -114,7 +119,7 @@ export default function ScanEquipmentTech() {
         - Marca (brand)
         - Modelo (model)
         - Número de serie (serial_number)
-        - Tipo de equipo (equipment_type: uno de "split", "cassette", "conductos", "VRV", "fancoil", "bomba_calor", "enfriadora", "otro")
+        - Tipo de equipo (equipment_type)
         - Potencia frigorífica en kW (cooling_power_kw)
         - Potencia calorífica en kW (heating_power_kw)
         - Tipo de refrigerante (refrigerant_type)
@@ -140,7 +145,7 @@ export default function ScanEquipmentTech() {
       });
 
       setExtractedData({ ...result, photo_url: file_url });
-      toast.success('Datos extraídos correctamente');
+      toast.success('Datos extraídos');
     } catch (error) {
       console.error('Error processing photo:', error);
       toast.error('Error al procesar la imagen');
@@ -149,30 +154,12 @@ export default function ScanEquipmentTech() {
     }
   };
 
-  const handleContinueToForm = async () => {
-    try {
-      const equipos = await base44.entities.Equipment.filter({
-        brand: extractedData.brand,
-        model: extractedData.model,
-        serial_number: extractedData.serial_number
-      });
-
-      if (equipos.length > 0) {
-        navigate(createPageUrl(`EquipmentDetail?id=${equipos[0].id}`));
-      } else {
-        const params = new URLSearchParams();
-        Object.entries(extractedData).forEach(([key, value]) => {
-          if (value) params.append(key, value);
-        });
-        navigate(createPageUrl(`EquipmentForm?${params.toString()}`));
-      }
-    } catch (error) {
-      const params = new URLSearchParams();
-      Object.entries(extractedData).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
-      navigate(createPageUrl(`EquipmentForm?${params.toString()}`));
-    }
+  const handleContinueToForm = () => {
+    const params = new URLSearchParams();
+    Object.entries(extractedData).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+    navigate(createPageUrl(`NuevaRevision?${params.toString()}`));
   };
 
   return (
@@ -191,7 +178,7 @@ export default function ScanEquipmentTech() {
                   Escanear Ficha Técnica
                 </h2>
                 <p className="text-slate-400 text-sm">
-                  Toma una foto de la ficha técnica del equipo y extraeremos los datos automáticamente
+                  Toma una foto de la ficha técnica del equipo
                 </p>
               </div>
               <div className="flex flex-col gap-3">
@@ -232,15 +219,7 @@ export default function ScanEquipmentTech() {
                   playsInline
                   muted
                   className="w-full rounded-lg"
-                  style={{ minHeight: '300px' }}
-                  onLoadedMetadata={() => {
-                    if (videoRef.current) {
-                      videoRef.current.play().catch(e => {
-                        console.error('Error playing video:', e);
-                        toast.error('Error al iniciar la cámara');
-                      });
-                    }
-                  }}
+                  style={{ minHeight: '400px', maxHeight: '600px' }}
                 />
               </div>
               <div className="flex gap-3">
