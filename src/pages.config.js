@@ -48,11 +48,14 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIConsulta from './pages/AIConsulta';
+import Albaranes from './pages/Albaranes';
 import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
 import Calendar from './pages/Calendar';
+import Catalogo from './pages/Catalogo';
+import CertificadoRITE from './pages/CertificadoRITE';
 import ClientDetail from './pages/ClientDetail';
 import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
 import ClientForm from './pages/ClientForm';
@@ -60,6 +63,8 @@ import Clients from './pages/Clients';
 import Equipment from './pages/Equipment';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
+import Facturacion from './pages/Facturacion';
+import Facturas from './pages/Facturas';
 import Home from './pages/Home';
 import HomeCliente from './pages/HomeCliente';
 import HomeTecnico from './pages/HomeTecnico';
@@ -70,6 +75,8 @@ import Maps from './pages/Maps';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
 import NuevaRevision from './pages/NuevaRevision';
+import PresupuestoForm from './pages/PresupuestoForm';
+import Presupuestos from './pages/Presupuestos';
 import Reports from './pages/Reports';
 import RevisionDetail from './pages/RevisionDetail';
 import RevisionForm from './pages/RevisionForm';
@@ -81,23 +88,19 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import Facturacion from './pages/Facturacion';
-import CertificadoRITE from './pages/CertificadoRITE';
-import Catalogo from './pages/Catalogo';
-import Presupuestos from './pages/Presupuestos';
-import PresupuestoForm from './pages/PresupuestoForm';
-import Albaranes from './pages/Albaranes';
-import Facturas from './pages/Facturas';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIConsulta": AIConsulta,
+    "Albaranes": Albaranes,
     "BackupDatos": BackupDatos,
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
     "Calendar": Calendar,
+    "Catalogo": Catalogo,
+    "CertificadoRITE": CertificadoRITE,
     "ClientDetail": ClientDetail,
     "ClientEquipmentDetail": ClientEquipmentDetail,
     "ClientForm": ClientForm,
@@ -105,6 +108,8 @@ export const PAGES = {
     "Equipment": Equipment,
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
+    "Facturacion": Facturacion,
+    "Facturas": Facturas,
     "Home": Home,
     "HomeCliente": HomeCliente,
     "HomeTecnico": HomeTecnico,
@@ -115,6 +120,8 @@ export const PAGES = {
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
     "NuevaRevision": NuevaRevision,
+    "PresupuestoForm": PresupuestoForm,
+    "Presupuestos": Presupuestos,
     "Reports": Reports,
     "RevisionDetail": RevisionDetail,
     "RevisionForm": RevisionForm,
@@ -126,13 +133,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "Facturacion": Facturacion,
-    "CertificadoRITE": CertificadoRITE,
-    "Catalogo": Catalogo,
-    "Presupuestos": Presupuestos,
-    "PresupuestoForm": PresupuestoForm,
-    "Albaranes": Albaranes,
-    "Facturas": Facturas,
 }
 
 export const pagesConfig = {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -7,22 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Search, Plus, Loader2, Sparkles, Trash2, Upload } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
 export default function Catalogo() {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFabricante, setFilterFabricante] = useState('all');
   const [showDialog, setShowDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadConfig, setUploadConfig] = useState({
+    fabricante: 'Daikin',
+    descuento_compra: 30,
+    porcentaje_venta: 40,
+  });
   const [formData, setFormData] = useState({
     fabricante: 'Daikin',
     codigo: '',
     descripcion: '',
     categoria: 'equipos',
     pvp: 0,
+    descuento_compra: 0,
+    porcentaje_venta: 0,
+    precio_venta: 0,
     año_tarifa: new Date().getFullYear(),
     unidad: 'ud',
   });
@@ -33,7 +44,11 @@ export default function Catalogo() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.CatalogoProducto.create(data),
+    mutationFn: (data) => {
+      const precio_compra = data.pvp * (1 - (data.descuento_compra || 0) / 100);
+      const precio_venta = precio_compra * (1 + (data.porcentaje_venta || 0) / 100);
+      return base44.entities.CatalogoProducto.create({ ...data, precio_venta });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['catalogo'] });
       setShowDialog(false);
@@ -43,6 +58,9 @@ export default function Catalogo() {
         descripcion: '',
         categoria: 'equipos',
         pvp: 0,
+        descuento_compra: 0,
+        porcentaje_venta: 0,
+        precio_venta: 0,
         año_tarifa: new Date().getFullYear(),
         unidad: 'ud',
       });
@@ -88,15 +106,22 @@ export default function Catalogo() {
       });
 
       if (result.productos && result.productos.length > 0) {
-        const productosAñadir = result.productos.map(p => ({
-          fabricante: formData.fabricante,
-          codigo: p.codigo,
-          descripcion: p.descripcion,
-          categoria: 'equipos',
-          pvp: p.pvp,
-          año_tarifa: new Date().getFullYear(),
-          unidad: 'ud',
-        }));
+        const productosAñadir = result.productos.map(p => {
+          const precio_compra = p.pvp * (1 - 30 / 100);
+          const precio_venta = precio_compra * (1 + 40 / 100);
+          return {
+            fabricante: formData.fabricante,
+            codigo: p.codigo,
+            descripcion: p.descripcion,
+            categoria: 'equipos',
+            pvp: p.pvp,
+            descuento_compra: 30,
+            porcentaje_venta: 40,
+            precio_venta,
+            año_tarifa: new Date().getFullYear(),
+            unidad: 'ud',
+          };
+        });
 
         await base44.entities.CatalogoProducto.bulkCreate(productosAñadir);
         queryClient.invalidateQueries({ queryKey: ['catalogo'] });
@@ -109,6 +134,96 @@ export default function Catalogo() {
       toast.error('Error al buscar tarifas');
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleUploadTarifa = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: {
+          type: "object",
+          properties: {
+            productos: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  codigo: { type: "string" },
+                  nombre: { type: "string" },
+                  pvp: { type: "number" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (result.status === 'success' && result.output?.productos) {
+        let productosConDescripcion = result.output.productos;
+
+        const productosConIA = await Promise.all(
+          productosConDescripcion.slice(0, 10).map(async (p) => {
+            try {
+              const desc = await base44.integrations.Core.InvokeLLM({
+                prompt: `Genera una descripción técnica breve (max 100 caracteres) para este producto de climatización: ${p.nombre || p.codigo}`,
+                response_json_schema: {
+                  type: "object",
+                  properties: {
+                    descripcion: { type: "string" }
+                  }
+                }
+              });
+              return { ...p, descripcion: desc.descripcion };
+            } catch {
+              return { ...p, descripcion: p.nombre || p.codigo };
+            }
+          })
+        );
+
+        const productosRestantes = productosConDescripcion.slice(10).map(p => ({
+          ...p,
+          descripcion: p.nombre || p.codigo
+        }));
+
+        const todosProductos = [...productosConIA, ...productosRestantes];
+
+        const productosAñadir = todosProductos.map(p => {
+          const precio_compra = p.pvp * (1 - uploadConfig.descuento_compra / 100);
+          const precio_venta = precio_compra * (1 + uploadConfig.porcentaje_venta / 100);
+          return {
+            fabricante: uploadConfig.fabricante,
+            codigo: p.codigo,
+            descripcion: p.descripcion,
+            categoria: 'equipos',
+            pvp: p.pvp,
+            descuento_compra: uploadConfig.descuento_compra,
+            porcentaje_venta: uploadConfig.porcentaje_venta,
+            precio_venta,
+            año_tarifa: new Date().getFullYear(),
+            unidad: 'ud',
+          };
+        });
+
+        await base44.entities.CatalogoProducto.bulkCreate(productosAñadir);
+        queryClient.invalidateQueries({ queryKey: ['catalogo'] });
+        toast.success(`${productosAñadir.length} productos importados desde archivo`);
+        setShowUploadDialog(false);
+      } else {
+        toast.error(result.details || 'Error al procesar el archivo');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al importar tarifa');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -149,6 +264,10 @@ export default function Catalogo() {
             </SelectContent>
           </Select>
 
+          <Button onClick={() => setShowUploadDialog(true)} variant="outline" className="border-white/20 text-white">
+            <Upload className="h-4 w-4 mr-2" />
+            Subir Tarifa
+          </Button>
           <Button onClick={() => setShowDialog(true)} className="bg-blue-600">
             <Plus className="h-4 w-4 mr-2" />
             Añadir Producto
@@ -173,11 +292,17 @@ export default function Catalogo() {
                     Categoría: {producto.categoria} • Año: {producto.año_tarifa}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">{producto.pvp}€</p>
-                    <p className="text-slate-400 text-xs">/{producto.unidad}</p>
+                    <p className="text-xs text-slate-500">PVP Base</p>
+                    <p className="text-lg font-semibold text-slate-300">{producto.pvp}€</p>
                   </div>
+                  {producto.precio_venta > 0 && (
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Precio Venta</p>
+                      <p className="text-2xl font-bold text-green-400">{producto.precio_venta.toFixed(2)}€</p>
+                    </div>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -276,9 +401,9 @@ export default function Catalogo() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-slate-300">PVP (€) *</Label>
+                  <Label className="text-slate-300">PVP Base (€) *</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -287,6 +412,37 @@ export default function Catalogo() {
                     className="bg-white/5 border-white/20 text-white"
                   />
                 </div>
+                <div>
+                  <Label className="text-slate-300">Dto. Compra (%)</Label>
+                  <Input
+                    type="number"
+                    value={formData.descuento_compra}
+                    onChange={(e) => setFormData({...formData, descuento_compra: Number(e.target.value)})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Margen Venta (%)</Label>
+                  <Input
+                    type="number"
+                    value={formData.porcentaje_venta}
+                    onChange={(e) => setFormData({...formData, porcentaje_venta: Number(e.target.value)})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Precio Venta</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={(formData.pvp * (1 - formData.descuento_compra / 100) * (1 + formData.porcentaje_venta / 100)).toFixed(2)}
+                    disabled
+                    className="bg-white/5 border-white/20 text-green-400 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-slate-300">Unidad</Label>
                   <Input
@@ -317,6 +473,87 @@ export default function Catalogo() {
                   <>Añadir Producto</>
                 )}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Subir Tarifa de Productos</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Fabricante *</Label>
+                <Select value={uploadConfig.fabricante} onValueChange={(v) => setUploadConfig({...uploadConfig, fabricante: v})}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Airzone">Airzone</SelectItem>
+                    <SelectItem value="Mitsubishi Electric">Mitsubishi Electric</SelectItem>
+                    <SelectItem value="Daikin">Daikin</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-300">Descuento de Compra (%)</Label>
+                  <Input
+                    type="number"
+                    value={uploadConfig.descuento_compra}
+                    onChange={(e) => setUploadConfig({...uploadConfig, descuento_compra: Number(e.target.value)})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Descuento sobre PVP</p>
+                </div>
+                <div>
+                  <Label className="text-slate-300">Margen de Venta (%)</Label>
+                  <Input
+                    type="number"
+                    value={uploadConfig.porcentaje_venta}
+                    onChange={(e) => setUploadConfig({...uploadConfig, porcentaje_venta: Number(e.target.value)})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Sobre precio de compra</p>
+                </div>
+              </div>
+
+              <Card className="p-4 bg-blue-500/10 border-blue-500/30">
+                <p className="text-sm text-slate-300">
+                  <strong>Ejemplo:</strong> PVP 100€ → Compra {100 * (1 - uploadConfig.descuento_compra / 100)}€ → 
+                  Venta {(100 * (1 - uploadConfig.descuento_compra / 100) * (1 + uploadConfig.porcentaje_venta / 100)).toFixed(2)}€
+                </p>
+              </Card>
+
+              <div>
+                <Label className="text-slate-300">Archivo de Tarifa (Excel, CSV, PDF)</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.pdf"
+                  onChange={handleUploadTarifa}
+                  disabled={uploading}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full bg-blue-600 mt-2"
+                >
+                  {uploading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando archivo...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" /> Seleccionar Archivo</>
+                  )}
+                </Button>
+                <p className="text-xs text-slate-400 mt-2">
+                  El sistema extraerá códigos, nombres y PVP. Generará descripciones automáticamente.
+                </p>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
