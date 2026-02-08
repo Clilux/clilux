@@ -150,8 +150,9 @@ export default function HomeTecnico() {
                 </Button>
               </Link>
               <span className="text-sm text-slate-300">{user?.full_name || user?.email || 'Técnico'}</span>
-              <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white">
-                <LogOut className="h-5 w-5" />
+              <Button onClick={handleLogout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
               </Button>
             </div>
           </div>

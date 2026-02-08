@@ -208,26 +208,39 @@ export default function ScanEquipmentTech() {
         {showCamera && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
             <div className="space-y-4">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full rounded-lg"
-              />
+              <div className="relative bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full rounded-lg"
+                  style={{ minHeight: '300px' }}
+                  onLoadedMetadata={() => {
+                    if (videoRef.current) {
+                      videoRef.current.play().catch(e => {
+                        console.error('Error playing video:', e);
+                        toast.error('Error al iniciar la cámara');
+                      });
+                    }
+                  }}
+                />
+              </div>
               <div className="flex gap-3">
                 <Button 
                   onClick={capturePhoto}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
                   <Camera className="h-5 w-5 mr-2" />
-                  Capturar
+                  Capturar Foto
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={stopCamera}
                   className="border-white/20 text-white hover:bg-white/10"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5 mr-2" />
+                  Cancelar
                 </Button>
               </div>
             </div>
