@@ -252,15 +252,6 @@ export default function Settings() {
               <Palette className="h-4 w-4" />
               Apariencia
             </TabsTrigger>
-            <TabsTrigger value="equipment" className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Equipos
-            </TabsTrigger>
-
-            <TabsTrigger value="clients" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Clientes
-            </TabsTrigger>
             <TabsTrigger value="technicians" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Técnicos
@@ -450,116 +441,6 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="equipment">
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-slate-800">Tipos de Equipos Personalizados</h3>
-                <Button onClick={addEquipmentType} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir tipo
-                </Button>
-              </div>
-              
-              <p className="text-sm text-slate-500 mb-4">
-                Además de los tipos predefinidos, puedes añadir tipos personalizados de equipos.
-              </p>
-
-              {formData.equipment_types?.length > 0 ? (
-                <div className="space-y-2">
-                  {formData.equipment_types.map((type, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span>{type}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => removeEquipmentType(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-slate-400">
-                  No hay tipos personalizados. Usa los tipos predefinidos del sistema.
-                </p>
-              )}
-            </Card>
-          </TabsContent>
-
-
-
-          <TabsContent value="clients">
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-slate-800">Campos Personalizados de Cliente</h3>
-                <Button onClick={addClientField} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir campo
-                </Button>
-              </div>
-              
-              <p className="text-sm text-slate-500 mb-4">
-                Estos campos aparecerán en el formulario de clientes.
-              </p>
-
-              {formData.client_fields?.length > 0 ? (
-                <div className="space-y-4">
-                  {formData.client_fields.map((field, index) => (
-                    <div key={index} className="p-4 border rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <Label className="text-xs">Nombre interno</Label>
-                          <Input
-                            value={field.field_name}
-                            onChange={(e) => updateClientField(index, 'field_name', e.target.value)}
-                            placeholder="campo_ejemplo"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Etiqueta</Label>
-                          <Input
-                            value={field.field_label}
-                            onChange={(e) => updateClientField(index, 'field_label', e.target.value)}
-                            placeholder="Campo de ejemplo"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Tipo</Label>
-                          <select
-                            value={field.field_type}
-                            onChange={(e) => updateClientField(index, 'field_type', e.target.value)}
-                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-slate-800"
-                          >
-                            <option value="text">Texto</option>
-                            <option value="number">Número</option>
-                            <option value="select">Selección</option>
-                            <option value="checkbox">Casilla</option>
-                          </select>
-                        </div>
-                        <div className="flex items-end">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeClientField(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-slate-400">
-                  No hay campos personalizados para clientes.
-                </p>
-              )}
             </Card>
           </TabsContent>
 
