@@ -62,17 +62,34 @@ export default function ScanEquipmentTech() {
   const capturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (video && canvas) {
+    
+    if (!video || !canvas) {
+      toast.error('Error al capturar la foto');
+      return;
+    }
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      toast.error('La cámara aún no está lista. Espera un momento');
+      return;
+    }
+    
+    try {
       const context = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0);
       
       canvas.toBlob((blob) => {
-        const file = new File([blob], 'equipment-photo.jpg', { type: 'image/jpeg' });
-        setPhoto(file);
-        stopCamera();
+        if (blob) {
+          const file = new File([blob], 'equipment-photo.jpg', { type: 'image/jpeg' });
+          setPhoto(file);
+          stopCamera();
+          toast.success('Foto capturada correctamente');
+        }
       }, 'image/jpeg', 0.95);
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      toast.error('Error al capturar la foto');
     }
   };
 

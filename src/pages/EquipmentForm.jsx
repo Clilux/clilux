@@ -52,6 +52,8 @@ export default function EquipmentForm() {
     refrigerant_type: urlParams.get('refrigerant_type') || '',
     refrigerant_charge_kg: urlParams.get('refrigerant_charge_kg') || '',
     warranty_end: urlParams.get('warranty_end') || '',
+    annual_revision_month: urlParams.get('annual_revision_month') || '',
+    first_revision_date: urlParams.get('first_revision_date') || '',
     next_revision_date: urlParams.get('next_revision_date') || '',
     notes: urlParams.get('notes') || '',
     photo_url: urlParams.get('photo_url') || '',
@@ -108,7 +110,14 @@ export default function EquipmentForm() {
         cooling_power_kw: data.cooling_power_kw ? Number(data.cooling_power_kw) : null,
         heating_power_kw: data.heating_power_kw ? Number(data.heating_power_kw) : null,
         refrigerant_charge_kg: data.refrigerant_charge_kg ? Number(data.refrigerant_charge_kg) : null,
+        annual_revision_month: data.annual_revision_month ? Number(data.annual_revision_month) : null,
       };
+      
+      // Calculate next_revision_date from first_revision_date if provided
+      if (data.first_revision_date && !data.next_revision_date) {
+        cleanData.next_revision_date = data.first_revision_date;
+      }
+      
       if (isEditing) {
         return base44.entities.Equipment.update(equipmentId, cleanData);
       }
@@ -443,12 +452,38 @@ export default function EquipmentForm() {
               </div>
 
               <div>
-                <Label htmlFor="next_revision_date">Próxima Revisión</Label>
+                <Label htmlFor="annual_revision_month">Mes de Revisión Anual *</Label>
+                <Select 
+                  value={formData.annual_revision_month} 
+                  onValueChange={(v) => handleChange('annual_revision_month', v)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Seleccionar mes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Enero</SelectItem>
+                    <SelectItem value="2">Febrero</SelectItem>
+                    <SelectItem value="3">Marzo</SelectItem>
+                    <SelectItem value="4">Abril</SelectItem>
+                    <SelectItem value="5">Mayo</SelectItem>
+                    <SelectItem value="6">Junio</SelectItem>
+                    <SelectItem value="7">Julio</SelectItem>
+                    <SelectItem value="8">Agosto</SelectItem>
+                    <SelectItem value="9">Septiembre</SelectItem>
+                    <SelectItem value="10">Octubre</SelectItem>
+                    <SelectItem value="11">Noviembre</SelectItem>
+                    <SelectItem value="12">Diciembre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="first_revision_date">Fecha Primera Revisión *</Label>
                 <Input
-                  id="next_revision_date"
+                  id="first_revision_date"
                   type="date"
-                  value={formData.next_revision_date}
-                  onChange={(e) => handleChange('next_revision_date', e.target.value)}
+                  value={formData.first_revision_date}
+                  onChange={(e) => handleChange('first_revision_date', e.target.value)}
                   className="mt-1"
                 />
               </div>
