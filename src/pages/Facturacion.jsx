@@ -1,14 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FileCheck, ShoppingCart, TrendingUp } from 'lucide-react';
+import { FileText, Receipt, FileCheck, ShoppingCart, TrendingUp, ArrowLeft } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 
 export default function Facturacion() {
+  const navigate = useNavigate();
+  
   const { data: presupuestos = [] } = useQuery({
     queryKey: ['presupuestos'],
     queryFn: () => base44.entities.Presupuesto.list('-created_date'),
@@ -33,7 +35,16 @@ export default function Facturacion() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
-        <NavHeader title="Administración y Facturación" />
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-white">Administración y Facturación</h1>
+          <Button
+            onClick={() => navigate(createPageUrl('HomeTecnico'))}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver a Mantenimiento
+          </Button>
+        </div>
 
         {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

@@ -132,12 +132,30 @@ export default function ScanEquipmentTech() {
     }
   };
 
-  const handleContinueToForm = () => {
-    const params = new URLSearchParams();
-    Object.entries(extractedData).forEach(([key, value]) => {
-      if (value) params.append(key, value);
-    });
-    navigate(createPageUrl(`EquipmentForm?${params.toString()}`));
+  const handleContinueToForm = async () => {
+    try {
+      const equipos = await base44.entities.Equipment.filter({
+        brand: extractedData.brand,
+        model: extractedData.model,
+        serial_number: extractedData.serial_number
+      });
+
+      if (equipos.length > 0) {
+        navigate(createPageUrl(`EquipmentDetail?id=${equipos[0].id}`));
+      } else {
+        const params = new URLSearchParams();
+        Object.entries(extractedData).forEach(([key, value]) => {
+          if (value) params.append(key, value);
+        });
+        navigate(createPageUrl(`EquipmentForm?${params.toString()}`));
+      }
+    } catch (error) {
+      const params = new URLSearchParams();
+      Object.entries(extractedData).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      navigate(createPageUrl(`EquipmentForm?${params.toString()}`));
+    }
   };
 
   return (
