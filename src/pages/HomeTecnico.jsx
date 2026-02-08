@@ -22,9 +22,8 @@ const defaultQuickActions = [
   { id: '3', label: 'Nuevo Equipo', page: 'NuevaRevision', icon: 'Thermometer', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
   { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 4 },
   { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 5 },
-  { id: '9', label: 'Facturación', page: 'Facturacion', icon: 'Receipt', bgColor: 'bg-white/10', iconColor: 'text-orange-400', borderColor: 'border-white/20', order: 6 },
-  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
-  { id: '11', label: 'Certificado RITE', page: 'CertificadoRITE', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-green-400', borderColor: 'border-white/20', order: 8 },
+  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 6 },
+  { id: '11', label: 'Certificado RITE', page: 'CertificadoRITE', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-green-400', borderColor: 'border-white/20', order: 7 },
 ];
 
 export default function HomeTecnico() {
@@ -295,6 +294,24 @@ export default function HomeTecnico() {
               )}
             </Card>
           </div>
+
+          {/* Botón Administración */}
+          <Link to={createPageUrl('Facturacion')}>
+            <Card className="p-6 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-orange-500/30 hover:from-orange-500/30 hover:to-amber-500/30 transition-all cursor-pointer group mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Receipt className="h-8 w-8 text-orange-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Administración</h3>
+                    <p className="text-slate-300">Presupuestos, albaranes y facturación</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-8 w-8 text-orange-300" />
+              </div>
+            </Card>
+          </Link>
 
           {/* Quick Actions */}
           {user?.role === 'admin' && (

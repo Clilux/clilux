@@ -21,17 +21,33 @@ export default function ScanEquipmentTech() {
 
   const startCamera = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Tu navegador no soporta cámara. Usa "Subir Foto"');
+        return;
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { 
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
       });
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setShowCamera(true);
       }
     } catch (error) {
-      toast.error('No se pudo acceder a la cámara');
       console.error('Camera error:', error);
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        toast.error('Permiso de cámara denegado. Ve a Configuración del navegador → Permisos → Cámara');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No se encontró cámara. Usa "Subir Foto"');
+      } else {
+        toast.error('Error al acceder a la cámara. Usa "Subir Foto"');
+      }
     }
   };
 

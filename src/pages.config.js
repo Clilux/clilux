@@ -83,6 +83,11 @@ import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
 import Facturacion from './pages/Facturacion';
 import CertificadoRITE from './pages/CertificadoRITE';
+import Catalogo from './pages/Catalogo';
+import Presupuestos from './pages/Presupuestos';
+import PresupuestoForm from './pages/PresupuestoForm';
+import Albaranes from './pages/Albaranes';
+import Facturas from './pages/Facturas';
 import __Layout from './Layout.jsx';
 
 
@@ -123,6 +128,11 @@ export const PAGES = {
     "TutorialEquipo": TutorialEquipo,
     "Facturacion": Facturacion,
     "CertificadoRITE": CertificadoRITE,
+    "Catalogo": Catalogo,
+    "Presupuestos": Presupuestos,
+    "PresupuestoForm": PresupuestoForm,
+    "Albaranes": Albaranes,
+    "Facturas": Facturas,
 }
 
 export const pagesConfig = {
