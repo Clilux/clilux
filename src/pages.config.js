@@ -82,6 +82,7 @@ import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
 import Facturacion from './pages/Facturacion';
+import CertificadoRITE from './pages/CertificadoRITE';
 import __Layout from './Layout.jsx';
 
 
@@ -121,6 +122,7 @@ export const PAGES = {
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
     "Facturacion": Facturacion,
+    "CertificadoRITE": CertificadoRITE,
 }
 
 export const pagesConfig = {
