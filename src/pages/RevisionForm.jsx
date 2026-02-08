@@ -165,6 +165,9 @@ export default function RevisionForm() {
     }
   }, [revisionId]);
 
+  const scheduledRevisionId = urlParams.get('scheduled_revision_id');
+  const revisionTypeParam = urlParams.get('revision_type');
+
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       // Procesar correctamente it3_data preservando TODOS los campos
@@ -203,17 +206,25 @@ export default function RevisionForm() {
         photos: data.photos || [],
       };
       
+      let createdRevision;
       if (isEditing) {
         await base44.entities.Revision.update(revisionId, cleanData);
       } else {
-        await base44.entities.Revision.create(cleanData);
+        createdRevision = await base44.entities.Revision.create(cleanData);
+      }
+      
+      // Marcar la scheduled revision como completada
+      if (scheduledRevisionId && createdRevision) {
+        await base44.entities.ScheduledRevision.update(scheduledRevisionId, {
+          status: 'completed',
+          completed_revision_id: createdRevision.id
+        });
       }
       
       // Actualizar fecha de última revisión del equipo
       if (data.equipment_id) {
         await base44.entities.Equipment.update(data.equipment_id, {
           last_revision_date: data.revision_date,
-          next_revision_date: data.next_revision_date || null,
           status: data.general_status === 'critical' ? 'out_of_service' : 
                   data.general_status === 'needs_repair' ? 'maintenance_needed' : 'operational',
         });
@@ -222,11 +233,26 @@ export default function RevisionForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['revisions'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      toast.success(isEditing ? 'Revisión actualizada' : 'Revisión creada');
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      
+      const typeLabels = {
+        monthly: 'mensual',
+        quarterly: 'trimestral',
+        biannual: 'semestral',
+        annual: 'anual'
+      };
+      const typeLabel = typeLabels[revisionTypeParam] || '';
+      
+      toast.success(
+        isEditing 
+          ? 'Revisión actualizada' 
+          : `Revisión ${typeLabel} completada. Próxima revisión programada automáticamente`
+      );
+      
       if (formData.equipment_id) {
         navigate(createPageUrl(`EquipmentDetail?id=${formData.equipment_id}`));
       } else {
-        navigate(-1);
+        navigate(createPageUrl('Calendar'));
       }
     },
     onError: (error) => {

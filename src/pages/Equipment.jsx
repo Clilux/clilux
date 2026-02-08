@@ -105,13 +105,6 @@ export default function Equipment() {
                 window.location.reload();
               }}
             />
-            
-            <Link to={createPageUrl('NuevaRevision')}>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-5 w-5 mr-2" />
-                Nuevo Equipo
-              </Button>
-            </Link>
           </div>
         </div>
 
@@ -133,12 +126,9 @@ export default function Equipment() {
               {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Comienza agregando tu primer equipo'}
             </p>
             {!searchTerm && (
-              <Link to={createPageUrl('EquipmentForm')}>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-5 w-5 mr-2" />
-                  Crear Primer Equipo
-                </Button>
-              </Link>
+              <p className="text-slate-400 text-sm mt-2">
+                Usa "Escanear" para agregar equipos desde la página principal
+              </p>
             )}
           </Card>
         ) : (
