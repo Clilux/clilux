@@ -30,6 +30,11 @@ export default function Calendar() {
     queryFn: () => base44.entities.Revision.list(),
   });
 
+  const { data: scheduledRevisions = [] } = useQuery({
+    queryKey: ['scheduled-revisions'],
+    queryFn: () => base44.entities.ScheduledRevision.list(),
+  });
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
@@ -45,10 +50,12 @@ export default function Calendar() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    equipment.forEach(eq => {
-      if (eq.next_revision_date) {
-        if (filterClient === 'all' || eq.client_id === filterClient) {
-          const revisionDate = new Date(eq.next_revision_date);
+    // Scheduled revisions
+    scheduledRevisions.forEach(srev => {
+      if (srev.status === 'pending') {
+        const eq = equipment.find(e => e.id === srev.equipment_id);
+        if (filterClient === 'all' || srev.client_id === filterClient) {
+          const revisionDate = new Date(srev.scheduled_date);
           revisionDate.setHours(0, 0, 0, 0);
           
           const diffTime = revisionDate - today;
@@ -59,18 +66,28 @@ export default function Calendar() {
             status = diffDays < -30 ? 'overdue-critical' : 'overdue';
           }
           
+          const typeLabels = {
+            monthly: 'Mensual',
+            quarterly: 'Trimestral',
+            biannual: 'Semestral',
+            annual: 'Anual'
+          };
+          
           events.push({
-            date: eq.next_revision_date,
+            date: srev.scheduled_date,
             type: 'scheduled',
             status,
-            title: `${eq.brand} ${eq.model}`,
+            title: eq ? `${eq.brand} ${eq.model}` : 'Revisión',
+            subtitle: typeLabels[srev.revision_type] || srev.revision_type,
             equipment: eq,
-            client_id: eq.client_id,
+            scheduled_revision: srev,
+            client_id: srev.client_id,
           });
         }
       }
     });
 
+    // Completed revisions
     revisions.forEach(rev => {
       const eq = equipment.find(e => e.id === rev.equipment_id);
       if (filterClient === 'all' || rev.client_id === filterClient) {
@@ -86,7 +103,7 @@ export default function Calendar() {
     });
 
     return events.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [equipment, revisions, filterClient]);
+  }, [equipment, revisions, scheduledRevisions, filterClient]);
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -279,12 +296,15 @@ export default function Calendar() {
                           )}
                           <div className="flex-1">
                             <p className="font-medium text-slate-800 text-sm">{event.title}</p>
+                            {event.subtitle && (
+                              <p className="text-xs text-slate-600 font-medium">{event.subtitle}</p>
+                            )}
                             <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
                             {event.equipment && (
                               <p className="text-xs text-slate-500">{event.equipment.location}</p>
                             )}
-                            {event.type === 'scheduled' && event.equipment && (
-                              <Link to={createPageUrl(`RevisionForm?equipment_id=${event.equipment.id}`)}>
+                            {event.type === 'scheduled' && event.scheduled_revision && (
+                              <Link to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
                                 <Button variant="link" size="sm" className="h-auto p-0 mt-1">
                                   Hacer revisión →
                                 </Button>
@@ -317,10 +337,13 @@ export default function Calendar() {
                         'bg-red-100 text-red-700 border-red-200';
                       
                       return (
-                        <Link key={index} to={createPageUrl(`RevisionForm?equipment_id=${event.equipment.id}`)}>
+                        <Link key={index} to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
                           <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
                             <div>
                               <p className="text-sm font-medium text-slate-700">{event.title}</p>
+                              {event.subtitle && (
+                                <p className="text-xs text-slate-600">{event.subtitle}</p>
+                              )}
                               <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
                             </div>
                             <Badge variant="outline" className={cn("text-xs", badgeColor)}>
@@ -373,8 +396,8 @@ export default function Calendar() {
                               </p>
                             </div>
                           </div>
-                          {event.type === 'scheduled' && event.equipment && (
-                            <Link to={createPageUrl(`RevisionForm?equipment_id=${event.equipment.id}`)}>
+                          {event.type === 'scheduled' && event.scheduled_revision && (
+                            <Link to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
                               <Button variant="outline" size="sm">
                                 Hacer revisión
                               </Button>

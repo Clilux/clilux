@@ -52,9 +52,7 @@ export default function EquipmentForm() {
     refrigerant_type: urlParams.get('refrigerant_type') || '',
     refrigerant_charge_kg: urlParams.get('refrigerant_charge_kg') || '',
     warranty_end: urlParams.get('warranty_end') || '',
-    annual_revision_month: urlParams.get('annual_revision_month') || '',
     first_revision_date: urlParams.get('first_revision_date') || '',
-    next_revision_date: urlParams.get('next_revision_date') || '',
     notes: urlParams.get('notes') || '',
     photo_url: urlParams.get('photo_url') || '',
     status: 'operational',
@@ -110,22 +108,94 @@ export default function EquipmentForm() {
         cooling_power_kw: data.cooling_power_kw ? Number(data.cooling_power_kw) : null,
         heating_power_kw: data.heating_power_kw ? Number(data.heating_power_kw) : null,
         refrigerant_charge_kg: data.refrigerant_charge_kg ? Number(data.refrigerant_charge_kg) : null,
-        annual_revision_month: data.annual_revision_month ? Number(data.annual_revision_month) : null,
       };
       
-      // Calculate next_revision_date from first_revision_date if provided
-      if (data.first_revision_date && !data.next_revision_date) {
-        cleanData.next_revision_date = data.first_revision_date;
+      let equipmentResult;
+      if (isEditing) {
+        equipmentResult = await base44.entities.Equipment.update(equipmentId, cleanData);
+      } else {
+        equipmentResult = await base44.entities.Equipment.create(cleanData);
+      }
+
+      // Generate scheduled revisions if first_revision_date and maintenance_config exist
+      if (data.first_revision_date && data.maintenance_config) {
+        const firstDate = new Date(data.first_revision_date);
+        const scheduledRevisions = [];
+        
+        // Generate revisions for 3 years
+        for (let i = 0; i < 36; i++) {
+          const currentDate = new Date(firstDate);
+          currentDate.setMonth(firstDate.getMonth() + i);
+          
+          const dateStr = currentDate.toISOString().split('T')[0];
+          
+          // Monthly
+          if (data.maintenance_config.monthly_enabled) {
+            scheduledRevisions.push({
+              equipment_id: equipmentResult.id,
+              client_id: data.client_id,
+              building_id: data.building_id,
+              scheduled_date: dateStr,
+              revision_type: 'monthly',
+              status: 'pending'
+            });
+          }
+          
+          // Quarterly (every 3 months)
+          if (data.maintenance_config.quarterly_enabled && i % 3 === 0) {
+            scheduledRevisions.push({
+              equipment_id: equipmentResult.id,
+              client_id: data.client_id,
+              building_id: data.building_id,
+              scheduled_date: dateStr,
+              revision_type: 'quarterly',
+              status: 'pending'
+            });
+          }
+          
+          // Biannual (every 6 months)
+          if (data.maintenance_config.biannual_enabled && i % 6 === 0) {
+            scheduledRevisions.push({
+              equipment_id: equipmentResult.id,
+              client_id: data.client_id,
+              building_id: data.building_id,
+              scheduled_date: dateStr,
+              revision_type: 'biannual',
+              status: 'pending'
+            });
+          }
+          
+          // Annual (every 12 months)
+          if (data.maintenance_config.annual_enabled && i % 12 === 0) {
+            scheduledRevisions.push({
+              equipment_id: equipmentResult.id,
+              client_id: data.client_id,
+              building_id: data.building_id,
+              scheduled_date: dateStr,
+              revision_type: 'annual',
+              status: 'pending'
+            });
+          }
+        }
+        
+        // Delete old scheduled revisions for this equipment
+        const oldRevisions = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentResult.id });
+        for (const rev of oldRevisions) {
+          await base44.entities.ScheduledRevision.delete(rev.id);
+        }
+        
+        // Create new scheduled revisions
+        if (scheduledRevisions.length > 0) {
+          await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
+        }
       }
       
-      if (isEditing) {
-        return base44.entities.Equipment.update(equipmentId, cleanData);
-      }
-      return base44.entities.Equipment.create(cleanData);
+      return equipmentResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      toast.success(isEditing ? 'Equipo actualizado' : 'Equipo creado');
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      toast.success(isEditing ? 'Equipo actualizado y revisiones programadas' : 'Equipo creado y revisiones programadas');
       if (formData.building_id) {
         navigate(createPageUrl(`BuildingDetail?id=${formData.building_id}`));
       } else {
@@ -452,32 +522,6 @@ export default function EquipmentForm() {
               </div>
 
               <div>
-                <Label htmlFor="annual_revision_month">Mes de Revisión Anual *</Label>
-                <Select 
-                  value={formData.annual_revision_month} 
-                  onValueChange={(v) => handleChange('annual_revision_month', v)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Seleccionar mes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Enero</SelectItem>
-                    <SelectItem value="2">Febrero</SelectItem>
-                    <SelectItem value="3">Marzo</SelectItem>
-                    <SelectItem value="4">Abril</SelectItem>
-                    <SelectItem value="5">Mayo</SelectItem>
-                    <SelectItem value="6">Junio</SelectItem>
-                    <SelectItem value="7">Julio</SelectItem>
-                    <SelectItem value="8">Agosto</SelectItem>
-                    <SelectItem value="9">Septiembre</SelectItem>
-                    <SelectItem value="10">Octubre</SelectItem>
-                    <SelectItem value="11">Noviembre</SelectItem>
-                    <SelectItem value="12">Diciembre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
                 <Label htmlFor="first_revision_date">Fecha Primera Revisión *</Label>
                 <Input
                   id="first_revision_date"
@@ -486,6 +530,9 @@ export default function EquipmentForm() {
                   onChange={(e) => handleChange('first_revision_date', e.target.value)}
                   className="mt-1"
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Se programarán revisiones automáticas según la configuración del equipo
+                </p>
               </div>
 
               <div>
