@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, Building2, Thermometer, ClipboardCheck, 
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database, Receipt, FileCheck, Bot
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -22,8 +22,9 @@ const defaultQuickActions = [
   { id: '3', label: 'Nuevo Equipo', page: 'NuevaRevision', icon: 'Thermometer', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
   { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 4 },
   { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 5 },
-  { id: '9', label: 'Facturación', page: 'Facturacion', icon: 'Database', bgColor: 'bg-white/10', iconColor: 'text-orange-400', borderColor: 'border-white/20', order: 6 },
-  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Sparkles', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
+  { id: '9', label: 'Facturación', page: 'Facturacion', icon: 'Receipt', bgColor: 'bg-white/10', iconColor: 'text-orange-400', borderColor: 'border-white/20', order: 6 },
+  { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
+  { id: '11', label: 'Certificado RITE', page: 'CertificadoRITE', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-green-400', borderColor: 'border-white/20', order: 8 },
 ];
 
 export default function HomeTecnico() {
@@ -336,6 +337,9 @@ export default function HomeTecnico() {
                       'FileText': FileText,
                       'Sparkles': Sparkles,
                       'Database': Database,
+                      'Bot': Bot,
+                      'Receipt': Receipt,
+                      'FileCheck': FileCheck,
                     };
                     const IconComponent = iconMap[action.icon] || ScanLine;
                     
