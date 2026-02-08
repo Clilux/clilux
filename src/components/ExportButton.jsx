@@ -10,6 +10,11 @@ export default function ExportButton({ data, filename, columns, label = "Exporta
       return;
     }
 
+    if (!columns || columns.length === 0) {
+      toast.error('No hay columnas definidas');
+      return;
+    }
+
     // Create CSV content
     const headers = columns.map(col => col.label).join(';');
     const rows = data.map(item => 
