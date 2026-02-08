@@ -87,30 +87,166 @@ export default function RevisionReport({ equipment, revisions, building, client,
     try {
       toast.info('Generando PDF...');
       const jsPDF = (await import('jspdf')).default;
-      const html2canvas = (await import('html2canvas')).default;
-      
-      const element = reportRef.current;
-      if (!element) return;
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
       
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      pdf.save(`informe-${equipment.model}-${format(new Date(), 'dd-MM-yyyy')}.pdf`);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPos = margin;
+
+      // Configurar fuentes
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(24);
+      pdf.setTextColor(15, 23, 42);
+      
+      // Título principal
+      pdf.text('INFORME DE REVISIONES', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`Generado el ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 15;
+
+      // Línea separadora
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+
+      // Información del equipo
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('DATOS DEL EQUIPO', margin, yPos);
+      yPos += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const equipData = [
+        ['Marca/Modelo:', `${equipment.brand} ${equipment.model}`],
+        ['Número de Serie:', equipment.serial_number || '-'],
+        ['Tipo de Equipo:', equipment.equipment_type],
+        ['Ubicación:', equipment.location || '-'],
+        ['Cliente:', client?.name || '-'],
+        ['Edificio:', building?.name || '-'],
+      ];
+
+      if (equipment.cooling_power_kw) {
+        equipData.push(['Potencia Frigorífica:', `${equipment.cooling_power_kw} kW`]);
+      }
+      if (equipment.refrigerant_type) {
+        equipData.push(['Refrigerante:', `${equipment.refrigerant_type} (${equipment.refrigerant_charge_kg || 0} kg)`]);
+      }
+
+      equipData.forEach(([label, value]) => {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(label, margin, yPos);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(value, margin + 50, yPos);
+        yPos += 6;
+      });
+
+      yPos += 10;
+
+      // Historial de revisiones
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`HISTORIAL DE REVISIONES (${revisions.length})`, margin, yPos);
+      yPos += 8;
+
+      revisions.forEach((revision, index) => {
+        if (yPos > pageHeight - 40) {
+          pdf.addPage();
+          yPos = margin;
+        }
+
+        // Fecha y estado
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(margin, yPos - 4, pageWidth - 2 * margin, 10, 'F');
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(format(new Date(revision.revision_date), "dd 'de' MMMM 'de' yyyy", { locale: es }), margin + 2, yPos + 2);
+        
+        const statusText = statusLabels[revision.general_status] || revision.general_status;
+        const statusColor = revision.general_status === 'good' ? [16, 185, 129] :
+                           revision.general_status === 'acceptable' ? [59, 130, 246] :
+                           revision.general_status === 'needs_repair' ? [245, 158, 11] : [239, 68, 68];
+        pdf.setTextColor(...statusColor);
+        pdf.text(statusText, pageWidth - margin - 2, yPos + 2, { align: 'right' });
+        yPos += 12;
+
+        // Datos IT3
+        if (revision.it3_data && Object.keys(revision.it3_data).length > 0) {
+          pdf.setFontSize(9);
+          Object.entries(revision.it3_data).forEach(([key, value]) => {
+            if (!value || value === '' || value === false) return;
+            
+            if (yPos > pageHeight - 20) {
+              pdf.addPage();
+              yPos = margin;
+            }
+
+            const label = getFieldLabel(key);
+            let displayValue = value;
+            
+            if (typeof value === 'boolean') {
+              displayValue = '✓';
+            } else if (typeof value === 'string' && statusLabels[value]) {
+              displayValue = statusLabels[value];
+            }
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(71, 85, 105);
+            pdf.text(`${label}:`, margin + 5, yPos);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(51, 65, 85);
+            pdf.text(String(displayValue), margin + 80, yPos);
+            yPos += 5;
+          });
+        }
+
+        // Observaciones
+        if (revision.observations || revision.actions_taken || revision.recommendations) {
+          yPos += 3;
+          if (revision.observations) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(71, 85, 105);
+            pdf.text('Observaciones:', margin + 5, yPos);
+            yPos += 5;
+            pdf.setFont('helvetica', 'normal');
+            const lines = pdf.splitTextToSize(revision.observations, pageWidth - 2 * margin - 10);
+            pdf.text(lines, margin + 5, yPos);
+            yPos += lines.length * 4 + 3;
+          }
+          if (revision.actions_taken) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Acciones:', margin + 5, yPos);
+            yPos += 5;
+            pdf.setFont('helvetica', 'normal');
+            const lines = pdf.splitTextToSize(revision.actions_taken, pageWidth - 2 * margin - 10);
+            pdf.text(lines, margin + 5, yPos);
+            yPos += lines.length * 4 + 3;
+          }
+        }
+
+        yPos += 8;
+      });
+
+      // Pie de página
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(148, 163, 184);
+      pdf.text('Documento generado automáticamente por Clilux M - Válido para fines de mantenimiento según RITE', 
+               pageWidth / 2, pageHeight - 10, { align: 'center' });
+      
+      pdf.save(`informe-revisiones-${equipment.model}-${format(new Date(), 'dd-MM-yyyy')}.pdf`);
       
       toast.success('PDF descargado correctamente');
     } catch (error) {
