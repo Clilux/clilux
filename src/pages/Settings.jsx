@@ -256,10 +256,7 @@ export default function Settings() {
               <Thermometer className="h-4 w-4" />
               Equipos
             </TabsTrigger>
-            <TabsTrigger value="revisions" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Revisiones
-            </TabsTrigger>
+
             <TabsTrigger value="clients" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Clientes
@@ -493,93 +490,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="revisions">
-            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-slate-800">Campos por Tipo de Equipo</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Configura qué campos IT3 aparecen en cada tipo de equipo (split, enfriadora, caldera, etc.)
-                  </p>
-                </div>
-                <Link to={createPageUrl('RevisionFieldSettings')}>
-                  <Button variant="outline">
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Configurar campos por equipo
-                  </Button>
-                </Link>
-              </div>
-            </Card>
 
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-slate-800">Campos Personalizados Adicionales</h3>
-                <Button onClick={addRevisionField} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir campo
-                </Button>
-              </div>
-              
-              <p className="text-sm text-slate-500 mb-4">
-                Añade campos adicionales al formulario de revisión según tus necesidades.
-              </p>
-
-              {formData.revision_fields?.length > 0 ? (
-                <div className="space-y-4">
-                  {formData.revision_fields.map((field, index) => (
-                    <div key={index} className="p-4 border rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <Label className="text-xs">Nombre interno</Label>
-                          <Input
-                            value={field.field_name}
-                            onChange={(e) => updateRevisionField(index, 'field_name', e.target.value)}
-                            placeholder="campo_ejemplo"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Etiqueta</Label>
-                          <Input
-                            value={field.field_label}
-                            onChange={(e) => updateRevisionField(index, 'field_label', e.target.value)}
-                            placeholder="Campo de ejemplo"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Tipo</Label>
-                          <select
-                            value={field.field_type}
-                            onChange={(e) => updateRevisionField(index, 'field_type', e.target.value)}
-                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
-                          >
-                            <option value="text">Texto</option>
-                            <option value="number">Número</option>
-                            <option value="select">Selección</option>
-                            <option value="checkbox">Casilla</option>
-                          </select>
-                        </div>
-                        <div className="flex items-end">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeRevisionField(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-slate-400">
-                  No hay campos personalizados. Usa los campos IT3 RITE predefinidos.
-                </p>
-              )}
-            </Card>
-          </TabsContent>
 
           <TabsContent value="clients">
             <Card className="p-6 bg-white border-0 shadow-sm">
@@ -768,26 +679,26 @@ export default function Settings() {
 
           <TabsContent value="backup">
             <Card className="p-6 bg-white border-0 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad</h3>
+              <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad y Exportación</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="p-6 border rounded-lg text-center">
                   <Download className="h-12 w-12 mx-auto text-blue-500 mb-4" />
-                  <h4 className="font-medium text-slate-800 mb-2">Exportar Copia</h4>
+                  <h4 className="font-medium text-slate-800 mb-2">Descargar Local</h4>
                   <p className="text-sm text-slate-500 mb-4">
-                    Descarga todos los datos de la aplicación en formato JSON
+                    Descarga copia completa en JSON
                   </p>
                   <Button onClick={handleExportBackup} className="w-full">
                     <Download className="h-4 w-4 mr-2" />
-                    Descargar Copia
+                    Descargar
                   </Button>
                 </div>
 
                 <div className="p-6 border rounded-lg text-center">
                   <UploadCloud className="h-12 w-12 mx-auto text-emerald-500 mb-4" />
-                  <h4 className="font-medium text-slate-800 mb-2">Restaurar Copia</h4>
+                  <h4 className="font-medium text-slate-800 mb-2">Restaurar</h4>
                   <p className="text-sm text-slate-500 mb-4">
-                    Importa datos desde un archivo de copia de seguridad
+                    Importa desde archivo JSON
                   </p>
                   <input
                     type="file"
@@ -800,17 +711,33 @@ export default function Settings() {
                     <Button variant="outline" className="w-full" asChild>
                       <span>
                         <UploadCloud className="h-4 w-4 mr-2" />
-                        Seleccionar Archivo
+                        Seleccionar
                       </span>
                     </Button>
                   </label>
                 </div>
+
+                <div className="p-6 border rounded-lg text-center">
+                  <svg className="h-12 w-12 mx-auto text-purple-500 mb-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                  </svg>
+                  <h4 className="font-medium text-slate-800 mb-2">Google Drive</h4>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Guarda en tu Drive personal
+                  </p>
+                  <Button variant="outline" className="w-full" disabled>
+                    <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                    </svg>
+                    Próximamente
+                  </Button>
+                </div>
               </div>
 
-              <div className="mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
                 <p className="text-sm text-amber-800">
-                  <strong>Nota:</strong> La restauración añadirá nuevos registros sin eliminar los existentes. 
-                  Se recomienda hacer una copia de seguridad antes de restaurar.
+                  <strong>Nota:</strong> La restauración añadirá registros sin eliminar los existentes. 
+                  Se recomienda hacer copia antes de restaurar.
                 </p>
               </div>
             </Card>
