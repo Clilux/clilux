@@ -75,13 +75,9 @@ import Incidents from './pages/Incidents';
 import Maps from './pages/Maps';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
-import NuevaRevision from './pages/NuevaRevision';
 import PresupuestoForm from './pages/PresupuestoForm';
 import Presupuestos from './pages/Presupuestos';
 import Reports from './pages/Reports';
-import RevisionDetail from './pages/RevisionDetail';
-import RevisionForm from './pages/RevisionForm';
-import Revisions from './pages/Revisions';
 import ScanEquipment from './pages/ScanEquipment';
 import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Settings from './pages/Settings';
@@ -121,13 +117,9 @@ export const PAGES = {
     "Maps": Maps,
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
-    "NuevaRevision": NuevaRevision,
     "PresupuestoForm": PresupuestoForm,
     "Presupuestos": Presupuestos,
     "Reports": Reports,
-    "RevisionDetail": RevisionDetail,
-    "RevisionForm": RevisionForm,
-    "Revisions": Revisions,
     "ScanEquipment": ScanEquipment,
     "ScanEquipmentTech": ScanEquipmentTech,
     "Settings": Settings,
