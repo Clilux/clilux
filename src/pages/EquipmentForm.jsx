@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Save, Plus, Camera, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Loader2, Save, Plus, Camera, ArrowLeft, ArrowRight, Upload, Scan } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
@@ -154,6 +154,7 @@ export default function EquipmentForm() {
     technical_data: {},
     registration_date: new Date().toISOString().split('T')[0],
     status: 'operational',
+    photo_url: '',
     
     // Paso 2: Cliente y edificio
     client_id: '',
@@ -168,6 +169,9 @@ export default function EquipmentForm() {
     starting_period: '',
   });
 
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [scannedData, setScannedData] = useState(null);
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
@@ -176,6 +180,14 @@ export default function EquipmentForm() {
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings'],
     queryFn: () => base44.entities.Building.list(),
+  });
+
+  const { data: suggestions } = useQuery({
+    queryKey: ['equipment-suggestions'],
+    queryFn: async () => {
+      const items = await base44.entities.EquipmentSuggestions.filter({ setting_key: 'suggestions' });
+      return items[0] || { brands: [], refrigerants: [], models: [] };
+    },
   });
 
   const filteredBuildings = formData.client_id 
@@ -206,6 +218,33 @@ export default function EquipmentForm() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Actualizar sugerencias
+      const newBrand = data.technical_data.marca;
+      const newRefrigerant = data.technical_data.tipo_refrigerante;
+      const newModel = data.technical_data.modelo;
+      
+      if (newBrand || newRefrigerant || newModel) {
+        const currentSuggestions = suggestions || { brands: [], refrigerants: [], models: [] };
+        const updatedSuggestions = {
+          setting_key: 'suggestions',
+          brands: newBrand && !currentSuggestions.brands?.includes(newBrand) 
+            ? [...(currentSuggestions.brands || []), newBrand] 
+            : currentSuggestions.brands || [],
+          refrigerants: newRefrigerant && !currentSuggestions.refrigerants?.includes(newRefrigerant) 
+            ? [...(currentSuggestions.refrigerants || []), newRefrigerant] 
+            : currentSuggestions.refrigerants || [],
+          models: newModel && !currentSuggestions.models?.includes(newModel) 
+            ? [...(currentSuggestions.models || []), newModel] 
+            : currentSuggestions.models || []
+        };
+        
+        if (suggestions?.id) {
+          await base44.entities.EquipmentSuggestions.update(suggestions.id, updatedSuggestions);
+        } else {
+          await base44.entities.EquipmentSuggestions.create(updatedSuggestions);
+        }
+      }
+
       // Crear equipo
       const equipmentData = {
         client_id: data.client_id,
@@ -222,6 +261,7 @@ export default function EquipmentForm() {
         technical_data: data.technical_data,
         registration_date: data.registration_date,
         status: data.status,
+        photo_url: data.photo_url || null,
         first_revision_date: data.first_revision_date,
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
@@ -329,6 +369,63 @@ export default function EquipmentForm() {
     if (step > 1) setStep(step - 1);
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, photo_url: file_url }));
+      toast.success('Foto subida');
+    } catch (error) {
+      toast.error('Error al subir la foto');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleCameraScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      // Usar IA para extraer datos de la imagen
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analiza esta imagen de una placa de características de un equipo de climatización y extrae todos los datos técnicos que encuentres. Devuelve los datos en formato JSON con las claves en español.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            marca: { type: "string" },
+            modelo: { type: "string" },
+            numero_serie: { type: "string" },
+            potencia_frigorifica: { type: "number" },
+            potencia_calorifica: { type: "number" },
+            tipo_refrigerante: { type: "string" },
+            carga_refrigerante: { type: "number" },
+            año_fabricacion: { type: "number" }
+          }
+        }
+      });
+
+      setScannedData(response);
+      setFormData(prev => ({
+        ...prev,
+        photo_url: file_url,
+        technical_data: { ...prev.technical_data, ...response }
+      }));
+      toast.success('Datos extraídos de la imagen');
+    } catch (error) {
+      toast.error('Error al procesar la imagen');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleSubmit = () => {
     saveMutation.mutate(formData);
   };
@@ -428,6 +525,38 @@ export default function EquipmentForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                      ) : field.key === 'marca' ? (
+                        <>
+                          <Input
+                            type={field.type}
+                            value={formData.technical_data[field.key] || ''}
+                            onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
+                            list="brands-list"
+                            className="bg-white/5 border-white/20 text-white"
+                            required={field.required}
+                          />
+                          <datalist id="brands-list">
+                            {suggestions?.brands?.map(brand => (
+                              <option key={brand} value={brand} />
+                            ))}
+                          </datalist>
+                        </>
+                      ) : field.key === 'tipo_refrigerante' ? (
+                        <>
+                          <Input
+                            type={field.type}
+                            value={formData.technical_data[field.key] || ''}
+                            onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
+                            list="refrigerants-list"
+                            className="bg-white/5 border-white/20 text-white"
+                            required={field.required}
+                          />
+                          <datalist id="refrigerants-list">
+                            {suggestions?.refrigerants?.map(ref => (
+                              <option key={ref} value={ref} />
+                            ))}
+                          </datalist>
+                        </>
                       ) : (
                         <Input
                           type={field.type}
@@ -452,10 +581,63 @@ export default function EquipmentForm() {
           </Card>
         )}
 
-        {/* Step 2: Cliente y Edificio */}
+        {/* Step 2: Cliente, Edificio y Fotos */}
         {step === 2 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Cliente y Edificio</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">Cliente, Edificio y Fotos</h3>
+
+            {/* Scan/Photo section */}
+            <div className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <h4 className="text-white font-medium mb-3">Capturar datos con la cámara</h4>
+              <div className="flex gap-3">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleCameraScan}
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                  />
+                  <Button
+                    type="button"
+                    className="w-full bg-blue-600"
+                    disabled={uploadingPhoto}
+                    onClick={() => document.querySelector('input[capture="environment"]')?.click()}
+                  >
+                    {uploadingPhoto ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</>
+                    ) : (
+                      <><Scan className="h-4 w-4 mr-2" /> Escanear placa</>
+                    )}
+                  </Button>
+                </label>
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full bg-white/5 border-white/20 text-white"
+                    disabled={uploadingPhoto}
+                    onClick={() => document.querySelector('input[type="file"]:not([capture])')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Subir foto
+                  </Button>
+                </label>
+              </div>
+              {formData.photo_url && (
+                <div className="mt-3">
+                  <img src={formData.photo_url} alt="Equipo" className="w-full h-40 object-cover rounded-lg" />
+                </div>
+              )}
+            </div>
             
             <div className="space-y-4">
               <div>

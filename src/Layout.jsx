@@ -18,6 +18,10 @@ export default function Layout({ children, currentPageName }) {
     loadSettings();
   }, []);
 
+  const handleLogout = () => {
+    base44.auth.logout(window.location.origin + '/MenuInicio');
+  };
+
   const bgColor = settings?.background_color || '#0f172a';
   const textColor = settings?.text_color || '#ffffff';
   const buttonColor = settings?.button_color || '#3b82f6';

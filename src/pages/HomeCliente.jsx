@@ -40,7 +40,7 @@ export default function HomeCliente() {
           const [buildings, equipment, revisions, incidents] = await Promise.all([
             base44.entities.Building.filter({ client_id: client.id }),
             base44.entities.Equipment.filter({ client_id: client.id }),
-            base44.entities.Revision.filter({ client_id: client.id }),
+            base44.entities.ScheduledRevision.filter({ client_id: client.id }),
             base44.entities.Incident.filter({ client_id: client.id })
           ]);
           return { client, buildings, equipment, revisions, incidents };
