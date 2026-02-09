@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, MapPin, Calendar, FileText, 
   Snowflake, Flame, Wind, Droplet, 
-  Shield, Trash2
+  Shield, Trash2, Wrench
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
