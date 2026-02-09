@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, Save, Plus, Camera, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 
 // Listas de autocompletado
 const marcasComunes = [
@@ -318,13 +318,6 @@ export default function NuevaRevision() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      // Calcular próxima revisión según período inicial
-      const selectedPeriod = periodicidades.find(p => p.value === data.starting_period);
-      const firstDate = new Date(data.first_revision_date);
-      const nextRevisionDate = selectedPeriod 
-        ? format(addMonths(firstDate, selectedPeriod.months), 'yyyy-MM-dd')
-        : null;
-
       // Crear equipo con campos de revisión personalizados
       const equipmentData = {
         client_id: data.client_id,
@@ -344,7 +337,7 @@ export default function NuevaRevision() {
           url: link.url,
           type: 'manual'
         })),
-        next_revision_date: nextRevisionDate,
+        first_revision_date: data.first_revision_date,
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
           monthly_fields: data.revision_fields.filter(f => f.periods.includes('mensual')),
@@ -358,6 +351,69 @@ export default function NuevaRevision() {
       };
 
       const equipment = await base44.entities.Equipment.create(equipmentData);
+
+      // Generar revisiones programadas (ScheduledRevision) para 3 años
+      const scheduledRevisions = [];
+      const firstDate = new Date(data.first_revision_date);
+      
+      for (let i = 0; i < 36; i++) {
+        const currentDate = new Date(firstDate);
+        currentDate.setMonth(firstDate.getMonth() + i);
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        
+        // Mensual
+        if (data.selected_periods.includes('mensual')) {
+          scheduledRevisions.push({
+            equipment_id: equipment.id,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: dateStr,
+            revision_type: 'monthly',
+            status: 'pending'
+          });
+        }
+        
+        // Trimestral (cada 3 meses)
+        if (data.selected_periods.includes('trimestral') && i % 3 === 0) {
+          scheduledRevisions.push({
+            equipment_id: equipment.id,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: dateStr,
+            revision_type: 'quarterly',
+            status: 'pending'
+          });
+        }
+        
+        // Semestral (cada 6 meses)
+        if (data.selected_periods.includes('semestral') && i % 6 === 0) {
+          scheduledRevisions.push({
+            equipment_id: equipment.id,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: dateStr,
+            revision_type: 'biannual',
+            status: 'pending'
+          });
+        }
+        
+        // Anual (cada 12 meses)
+        if (data.selected_periods.includes('anual') && i % 12 === 0) {
+          scheduledRevisions.push({
+            equipment_id: equipment.id,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: dateStr,
+            revision_type: 'annual',
+            status: 'pending'
+          });
+        }
+      }
+      
+      // Crear todas las revisiones programadas
+      if (scheduledRevisions.length > 0) {
+        await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
+      }
 
       // Si quiere hacer revisión ahora
       if (data.do_revision_now) {
@@ -373,12 +429,28 @@ export default function NuevaRevision() {
           annual_revision_completed: data.starting_period === 'anual',
         };
 
-        await base44.entities.Revision.create(revisionData);
+        const createdRevision = await base44.entities.Revision.create(revisionData);
+        
+        // Marcar la primera revisión programada como completada
+        if (scheduledRevisions.length > 0) {
+          const firstScheduled = scheduledRevisions[0];
+          const scheduledInDb = await base44.entities.ScheduledRevision.filter({
+            equipment_id: equipment.id,
+            scheduled_date: data.first_revision_date,
+            revision_type: firstScheduled.revision_type
+          });
+          
+          if (scheduledInDb.length > 0) {
+            await base44.entities.ScheduledRevision.update(scheduledInDb[0].id, {
+              status: 'completed',
+              completed_revision_id: createdRevision.id
+            });
+          }
+        }
         
         // Actualizar última revisión
         await base44.entities.Equipment.update(equipment.id, {
           last_revision_date: data.first_revision_date,
-          next_revision_date: nextRevisionDate,
         });
       }
 
@@ -387,7 +459,8 @@ export default function NuevaRevision() {
     onSuccess: (equipment) => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['revisions'] });
-      toast.success('Equipo creado con plan de revisiones');
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      toast.success('Equipo y revisiones programadas creados');
       navigate(createPageUrl(`EquipmentDetail?id=${equipment.id}`));
     },
     onError: () => {
@@ -827,10 +900,10 @@ export default function NuevaRevision() {
               </div>
 
               <div>
-                <Label className="text-slate-300">Período Inicial *</Label>
+                <Label className="text-slate-300">Tipo de Primera Revisión *</Label>
                 <Select value={formData.starting_period} onValueChange={(v) => handleChange('starting_period', v)}>
                   <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Seleccionar período" />
+                    <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
                     {formData.selected_periods.map(periodValue => {
@@ -844,11 +917,7 @@ export default function NuevaRevision() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-slate-400 mt-1">
-                  {formData.starting_period && formData.first_revision_date && (() => {
-                    const period = periodicidades.find(p => p.value === formData.starting_period);
-                    const nextDate = format(addMonths(new Date(formData.first_revision_date), period.months), 'dd/MM/yyyy');
-                    return `Próxima revisión: ${nextDate}`;
-                  })()}
+                  Las revisiones se programarán automáticamente en la agenda según las periodicidades seleccionadas
                 </p>
               </div>
 
@@ -946,15 +1015,15 @@ export default function NuevaRevision() {
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
                   <h4 className="text-white font-medium mb-2">Plan de Mantenimiento</h4>
                   <p className="text-slate-300 text-sm">
-                    Periodicidades configuradas: {formData.selected_periods.map(p => 
+                    Se crearán revisiones programadas para: {formData.selected_periods.map(p => 
                       periodicidades.find(per => per.value === p)?.label
                     ).join(', ')}
                   </p>
                   <p className="text-slate-300 text-sm mt-1">
-                    <strong>Período inicial:</strong> {periodicidades.find(p => p.value === formData.starting_period)?.label}
+                    <strong>Primera revisión:</strong> {periodicidades.find(p => p.value === formData.starting_period)?.label} - {formData.first_revision_date && format(new Date(formData.first_revision_date), 'dd/MM/yyyy')}
                   </p>
                   <p className="text-slate-400 text-xs mt-2">
-                    Las siguientes revisiones se programarán automáticamente según el período más corto
+                    Se programarán automáticamente en la agenda para los próximos 3 años
                   </p>
                 </div>
               )}
