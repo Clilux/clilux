@@ -17,6 +17,8 @@ import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsList';
+import RevisionsTab from '../components/equipment/RevisionsTab';
+import InterventionsTab from '../components/equipment/InterventionsTab';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -89,6 +91,27 @@ export default function EquipmentDetail() {
     },
     enabled: !!equipment?.client_id,
   });
+
+  const { data: scheduledRevisions = [] } = useQuery({
+    queryKey: ['scheduled-revisions', equipmentId],
+    queryFn: async () => {
+      const all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
+      return all.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+    },
+    enabled: !!equipmentId,
+  });
+
+  // Calcular última y próxima revisión
+  const completedRevisions = scheduledRevisions.filter(r => r.status === 'completed');
+  const pendingRevisions = scheduledRevisions.filter(r => r.status === 'pending');
+  
+  const lastRevision = completedRevisions.length > 0 
+    ? completedRevisions.sort((a, b) => new Date(b.completed_date) - new Date(a.completed_date))[0]
+    : null;
+  
+  const nextRevision = pendingRevisions.length > 0
+    ? pendingRevisions[0]
+    : null;
 
 
 
@@ -189,28 +212,28 @@ export default function EquipmentDetail() {
                   </div>
                   <p className="text-xs text-slate-500">Última revisión</p>
                   <p className="text-sm font-medium text-slate-700">
-                    {equipment.last_revision_date 
-                      ? format(new Date(equipment.last_revision_date), 'dd/MM/yy')
+                    {lastRevision?.completed_date
+                      ? format(new Date(lastRevision.completed_date), 'dd/MM/yy')
                       : 'Sin datos'}
                   </p>
                 </div>
                 <div className="text-center">
                   <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
-                    equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                    nextRevision && new Date(nextRevision.scheduled_date) < new Date()
                       ? 'bg-red-100' : 'bg-purple-100'
                   }`}>
                     <Wrench className={`h-5 w-5 ${
-                      equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                      nextRevision && new Date(nextRevision.scheduled_date) < new Date()
                         ? 'text-red-600' : 'text-purple-600'
                     }`} />
                   </div>
                   <p className="text-xs text-slate-500">Próxima revisión</p>
                   <p className={`text-sm font-medium ${
-                    equipment.next_revision_date && new Date(equipment.next_revision_date) < new Date()
+                    nextRevision && new Date(nextRevision.scheduled_date) < new Date()
                       ? 'text-red-600' : 'text-slate-700'
                   }`}>
-                    {equipment.next_revision_date 
-                      ? format(new Date(equipment.next_revision_date), 'dd/MM/yy')
+                    {nextRevision?.scheduled_date
+                      ? format(new Date(nextRevision.scheduled_date), 'dd/MM/yy')
                       : 'No programada'}
                   </p>
                 </div>
@@ -290,16 +313,33 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        {/* Próximas revisiones */}
-        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Próximas Revisiones</h3>
-          <ScheduledRevisionsList equipmentId={equipmentId} />
-        </Card>
+        {/* Tabs: Revisiones, Intervenciones, Documentos */}
+        <Tabs defaultValue="revisions" className="mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="revisions">Revisiones</TabsTrigger>
+            <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
+            <TabsTrigger value="documents">Documentos</TabsTrigger>
+          </TabsList>
 
-        <EquipmentDocuments 
-          equipment={equipment} 
-          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
-        />
+          <TabsContent value="revisions">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <RevisionsTab equipmentId={equipmentId} />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="interventions">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <InterventionsTab equipmentId={equipmentId} />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+                <EquipmentDocuments 
+              equipment={equipment} 
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
+            />
+          </TabsContent>
+        </Tabs>
 
         <DeleteConfirmDialog
           open={showDeleteDialog}

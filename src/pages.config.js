@@ -78,6 +78,7 @@ import MenuInicio from './pages/MenuInicio';
 import PresupuestoForm from './pages/PresupuestoForm';
 import Presupuestos from './pages/Presupuestos';
 import Reports from './pages/Reports';
+import RevisionForm from './pages/RevisionForm';
 import ScanEquipment from './pages/ScanEquipment';
 import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Settings from './pages/Settings';
@@ -85,7 +86,6 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import RevisionForm from './pages/RevisionForm';
 import __Layout from './Layout.jsx';
 
 
@@ -121,6 +121,7 @@ export const PAGES = {
     "PresupuestoForm": PresupuestoForm,
     "Presupuestos": Presupuestos,
     "Reports": Reports,
+    "RevisionForm": RevisionForm,
     "ScanEquipment": ScanEquipment,
     "ScanEquipmentTech": ScanEquipmentTech,
     "Settings": Settings,
@@ -128,7 +129,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "RevisionForm": RevisionForm,
 }
 
 export const pagesConfig = {

@@ -544,7 +544,50 @@ export default function EquipmentForm() {
 
               {formData.selected_periods.length > 0 && (
                 <div>
-                  <Label className="text-slate-300 mb-3 block">Datos a recoger según RITE-IT3 *</Label>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-slate-300">Datos a recoger según RITE-IT3 *</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const fieldName = prompt('Nombre del campo:');
+                        if (!fieldName) return;
+                        
+                        const fieldLabel = prompt('Etiqueta del campo:');
+                        if (!fieldLabel) return;
+                        
+                        const fieldType = prompt('Tipo de campo (text/number/select/checkbox):');
+                        if (!fieldType || !['text', 'number', 'select', 'checkbox'].includes(fieldType)) {
+                          toast.error('Tipo de campo inválido');
+                          return;
+                        }
+                        
+                        let options = null;
+                        if (fieldType === 'select') {
+                          const optionsStr = prompt('Opciones separadas por coma:');
+                          if (optionsStr) {
+                            options = optionsStr.split(',').map(o => o.trim());
+                          }
+                        }
+                        
+                        setFormData(prev => ({
+                          ...prev,
+                          maintenance_fields: [...prev.maintenance_fields, {
+                            field_key: fieldName.toLowerCase().replace(/\s/g, '_'),
+                            field_label: fieldLabel,
+                            field_type: fieldType,
+                            options: options,
+                            periods: prev.selected_periods,
+                          }]
+                        }));
+                        toast.success('Campo añadido');
+                      }}
+                      className="bg-white/5 border-white/20 text-white"
+                    >
+                      + Añadir campo manual
+                    </Button>
+                  </div>
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {equipmentFields.parametros.map(param => {
                       const availablePeriods = param.periods.filter(p => formData.selected_periods.includes(p));

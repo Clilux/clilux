@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, AlertCircle } from 'lucide-react';
+import { Loader2, Save, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -67,6 +68,41 @@ export default function RevisionForm() {
     },
     enabled: !!scheduledRevision?.building_id,
   });
+
+  // Verificar revisiones anteriores pendientes
+  const { data: previousPendingRevisions = [] } = useQuery({
+    queryKey: ['previous-revisions', scheduledRevision?.equipment_id, scheduledRevision?.scheduled_date],
+    queryFn: async () => {
+      const all = await base44.entities.ScheduledRevision.filter({ 
+        equipment_id: scheduledRevision.equipment_id,
+        status: 'pending'
+      });
+      return all.filter(r => 
+        r.id !== scheduledRevision.id && 
+        new Date(r.scheduled_date) < new Date(scheduledRevision.scheduled_date)
+      ).sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+    },
+    enabled: !!scheduledRevision?.equipment_id && !!scheduledRevision?.scheduled_date,
+  });
+
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningType, setWarningType] = useState('');
+
+  useEffect(() => {
+    if (scheduledRevision && previousPendingRevisions.length > 0) {
+      setWarningType('previous');
+      setShowWarning(true);
+    } else if (scheduledRevision) {
+      const today = new Date();
+      const scheduledDate = new Date(scheduledRevision.scheduled_date);
+      const daysDiff = Math.ceil((scheduledDate - today) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff > 7) {
+        setWarningType('early');
+        setShowWarning(true);
+      }
+    }
+  }, [scheduledRevision, previousPendingRevisions]);
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -172,6 +208,21 @@ export default function RevisionForm() {
   };
 
   const handleSubmit = () => {
+    if (warningType === 'previous') {
+      toast.error('Debes completar primero las revisiones anteriores pendientes');
+      return;
+    }
+    
+    if (warningType === 'early' && showWarning) {
+      // Solo mostrar el diálogo
+      return;
+    }
+    
+    saveMutation.mutate();
+  };
+
+  const handleConfirmEarly = () => {
+    setShowWarning(false);
     saveMutation.mutate();
   };
 
@@ -179,6 +230,43 @@ export default function RevisionForm() {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-3xl mx-auto">
         <NavHeader title="Realizar Revisión" />
+
+        {/* Warning Card */}
+        {warningType === 'previous' && previousPendingRevisions.length > 0 && (
+          <Card className="p-4 mb-6 bg-red-50 border-red-200">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-red-900 mb-1">No se puede realizar esta revisión</h4>
+                <p className="text-sm text-red-700 mb-2">
+                  Existe{previousPendingRevisions.length > 1 ? 'n' : ''} {previousPendingRevisions.length} revisión{previousPendingRevisions.length > 1 ? 'es' : ''} anterior{previousPendingRevisions.length > 1 ? 'es' : ''} pendiente{previousPendingRevisions.length > 1 ? 's' : ''} que debe{previousPendingRevisions.length > 1 ? 'n' : ''} completarse primero:
+                </p>
+                <div className="space-y-1">
+                  {previousPendingRevisions.map(rev => (
+                    <div key={rev.id} className="text-sm text-red-600">
+                      • {revisionTypeLabels[rev.revision_type]} - {format(new Date(rev.scheduled_date), "dd/MM/yyyy")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {warningType === 'early' && (
+          <Card className="p-4 mb-6 bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-amber-900 mb-1">Revisión anticipada</h4>
+                <p className="text-sm text-amber-700">
+                  Esta revisión está programada para el {format(new Date(scheduledRevision.scheduled_date), "d 'de' MMMM", { locale: es })}. 
+                  ¿Estás seguro de que quieres realizarla ahora?
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Info Card */}
         <Card className="p-6 mb-6">
@@ -281,7 +369,11 @@ export default function RevisionForm() {
             <Button variant="outline" onClick={() => navigate(-1)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-green-600">
+            <Button 
+              onClick={handleSubmit} 
+              disabled={saveMutation.isPending || warningType === 'previous'} 
+              className="bg-green-600"
+            >
               {saveMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
               ) : (
@@ -290,6 +382,31 @@ export default function RevisionForm() {
             </Button>
           </div>
         </Card>
+
+        {/* Confirmation Dialog for Early Revision */}
+        <Dialog open={showWarning && warningType === 'early'} onOpenChange={setShowWarning}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Realizar revisión anticipada?</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-slate-600">
+                Esta revisión está programada para el <strong>{format(new Date(scheduledRevision.scheduled_date), "d 'de' MMMM 'de' yyyy", { locale: es })}</strong>.
+              </p>
+              <p className="text-slate-600 mt-2">
+                ¿Deseas completarla ahora de todas formas?
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowWarning(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmEarly} className="bg-green-600">
+                Sí, continuar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
