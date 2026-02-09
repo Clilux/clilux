@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIConsulta from './pages/AIConsulta';
+import AlbaranForm from './pages/AlbaranForm';
 import Albaranes from './pages/Albaranes';
 import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
@@ -86,12 +87,12 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import AlbaranForm from './pages/AlbaranForm';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIConsulta": AIConsulta,
+    "AlbaranForm": AlbaranForm,
     "Albaranes": Albaranes,
     "BackupDatos": BackupDatos,
     "BuildingDetail": BuildingDetail,
@@ -130,7 +131,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "AlbaranForm": AlbaranForm,
 }
 
 export const pagesConfig = {

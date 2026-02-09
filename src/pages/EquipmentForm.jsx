@@ -128,6 +128,32 @@ const camposIDAE = {
       { key: 'estado_correas', label: 'Estado correas', type: 'select', options: ['Bueno', 'Desgastado', 'Cambiado'], periods: ['trimestral', 'anual'] },
       { key: 'limpieza_realizada', label: 'Limpieza completa realizada', type: 'checkbox', periods: ['anual'] },
     ]
+  },
+  adiabatico: {
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'tipo_sistema', label: 'Tipo de sistema *', type: 'select', options: ['Con depósito y recirculación', 'Sin recirculación (agua perdida)', 'Pulverización'], required: true },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+      { key: 'caudal_agua', label: 'Caudal de agua (l/h)', type: 'number', required: false },
+    ],
+    parametros: [
+      // Parámetros mensuales (según documento Sevilla)
+      { key: 'temperatura_agua', label: 'Temperatura agua (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'turbidez', label: 'Turbidez (UNF)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'ph', label: 'pH', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'biocida', label: 'Nivel de biocida', type: 'text', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'revision_boquillas', label: 'Revisión y limpieza de boquillas', type: 'checkbox', periods: ['mensual'] },
+      
+      // Parámetros semestrales
+      { key: 'legionella_ufc', label: 'Legionella (UFC/L)', type: 'number', periods: ['semestral', 'anual'] },
+      { key: 'aerobios_totales', label: 'Aerobios totales (UFC/ml)', type: 'number', periods: ['semestral', 'anual'] },
+      
+      // Parámetros anuales
+      { key: 'limpieza_desinfeccion_completa', label: 'Limpieza y desinfección completa', type: 'checkbox', periods: ['anual'] },
+      { key: 'revision_general_instalacion', label: 'Revisión general de instalación', type: 'checkbox', periods: ['anual'] },
+    ]
   }
 };
 
@@ -476,6 +502,7 @@ export default function EquipmentForm() {
                     <SelectItem value="split">Split / Multi-split</SelectItem>
                     <SelectItem value="vrf">VRF / VRV</SelectItem>
                     <SelectItem value="climatizador">Climatizador</SelectItem>
+                    <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
