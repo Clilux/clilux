@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 const defaultQuickActions = [
   { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
   { id: '2', label: 'Nuevo Cliente', page: 'ClientForm', icon: 'Plus', bgColor: 'bg-white/10', iconColor: 'text-blue-400', borderColor: 'border-white/20', order: 2 },
-  { id: '3', label: 'Formulario Equipos', page: 'NuevaRevision', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
+  { id: '3', label: 'Formulario Equipos', page: 'EquipmentForm', icon: 'FileCheck', bgColor: 'bg-white/10', iconColor: 'text-cyan-400', borderColor: 'border-white/20', order: 3 },
   { id: '6', label: 'Incidencias', page: 'Incidents', icon: 'AlertCircle', bgColor: 'bg-white/10', iconColor: 'text-red-400', borderColor: 'border-white/20', order: 4 },
   { id: '7', label: 'Calendario', page: 'Calendar', icon: 'Calendar', bgColor: 'bg-white/10', iconColor: 'text-purple-400', borderColor: 'border-white/20', order: 5 },
   { id: '8', label: 'Documentación', page: 'Documentacion', icon: 'FileText', bgColor: 'bg-white/10', iconColor: 'text-indigo-400', borderColor: 'border-white/20', order: 6 },
@@ -87,9 +87,9 @@ export default function HomeTecnico() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
-  const { data: revisions = [] } = useQuery({
-    queryKey: ['revisions'],
-    queryFn: () => base44.entities.Revision.list('-revision_date', 50),
+  const { data: scheduledRevisions = [] } = useQuery({
+    queryKey: ['scheduledRevisions'],
+    queryFn: () => base44.entities.ScheduledRevision.list(),
   });
 
   const { data: incidents = [] } = useQuery({
@@ -101,13 +101,13 @@ export default function HomeTecnico() {
   
   const today = new Date();
   const next30Days = addDays(today, 30);
-  const upcomingRevisions = equipment
-    .filter(eq => eq.next_revision_date)
-    .filter(eq => {
-      const revDate = parseISO(eq.next_revision_date);
+  const upcomingRevisions = scheduledRevisions
+    .filter(sr => sr.status === 'pending')
+    .filter(sr => {
+      const revDate = parseISO(sr.scheduled_date);
       return isAfter(revDate, today) && isBefore(revDate, next30Days);
     })
-    .sort((a, b) => new Date(a.next_revision_date) - new Date(b.next_revision_date));
+    .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const handleLogout = async () => {
     await base44.auth.logout();
@@ -197,18 +197,16 @@ export default function HomeTecnico() {
                 </div>
               </Card>
             </Link>
-            <Link to={createPageUrl('Revisions')}>
-              <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
-                    <ClipboardCheck className="h-7 w-7 text-amber-400" />
-                  </div>
-                  <p className="text-4xl font-bold text-white">{revisions.length}</p>
-                  <p className="text-sm text-slate-400">Revisiones</p>
+            <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
+                  <ClipboardCheck className="h-7 w-7 text-amber-400" />
                 </div>
-              </Card>
-            </Link>
+                <p className="text-4xl font-bold text-white">{scheduledRevisions.filter(sr => sr.status === 'pending').length}</p>
+                <p className="text-sm text-slate-400">Revisiones Programadas</p>
+              </div>
+            </Card>
           </div>
 
           {/* Alertas */}
@@ -224,21 +222,22 @@ export default function HomeTecnico() {
                 </div>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {upcomingRevisions.slice(0, 5).map(eq => {
-                  const bld = buildings.find(b => b.id === eq.building_id);
+                {upcomingRevisions.slice(0, 5).map(sr => {
+                  const eq = equipment.find(e => e.id === sr.equipment_id);
+                  const bld = buildings.find(b => b.id === sr.building_id);
                   return (
                     <Link 
-                      key={eq.id}
-                      to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}
+                      key={sr.id}
+                      to={createPageUrl(`EquipmentDetail?id=${sr.equipment_id}`)}
                       className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white">{eq.brand} {eq.model}</p>
+                          <p className="text-sm font-medium text-white">{eq?.brand} {eq?.model}</p>
                           <p className="text-xs text-slate-400">{bld?.name}</p>
                         </div>
                         <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300">
-                          {format(parseISO(eq.next_revision_date), "dd MMM", { locale: es })}
+                          {format(parseISO(sr.scheduled_date), "dd MMM", { locale: es })}
                         </span>
                       </div>
                     </Link>

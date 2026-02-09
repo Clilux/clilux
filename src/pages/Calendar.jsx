@@ -25,11 +25,6 @@ export default function Calendar() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
-  const { data: revisions = [] } = useQuery({
-    queryKey: ['revisions'],
-    queryFn: () => base44.entities.Revision.list(),
-  });
-
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduled-revisions'],
     queryFn: () => base44.entities.ScheduledRevision.list(),
@@ -52,58 +47,48 @@ export default function Calendar() {
     
     // Scheduled revisions
     scheduledRevisions.forEach(srev => {
-      if (srev.status === 'pending') {
-        const eq = equipment.find(e => e.id === srev.equipment_id);
-        if (filterClient === 'all' || srev.client_id === filterClient) {
-          const revisionDate = new Date(srev.scheduled_date);
-          revisionDate.setHours(0, 0, 0, 0);
-          
-          const diffTime = revisionDate - today;
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          let status = 'on-time';
+      const eq = equipment.find(e => e.id === srev.equipment_id);
+      if (filterClient === 'all' || srev.client_id === filterClient) {
+        const revisionDate = new Date(srev.scheduled_date);
+        revisionDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = revisionDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let status = 'on-time';
+        let type = 'scheduled';
+        
+        if (srev.status === 'completed') {
+          type = 'completed';
+          status = 'completed';
+        } else if (srev.status === 'pending') {
           if (diffDays < 0) {
             status = diffDays < -30 ? 'overdue-critical' : 'overdue';
           }
-          
-          const typeLabels = {
-            monthly: 'Mensual',
-            quarterly: 'Trimestral',
-            biannual: 'Semestral',
-            annual: 'Anual'
-          };
-          
-          events.push({
-            date: srev.scheduled_date,
-            type: 'scheduled',
-            status,
-            title: eq ? `${eq.brand} ${eq.model}` : 'Revisión',
-            subtitle: typeLabels[srev.revision_type] || srev.revision_type,
-            equipment: eq,
-            scheduled_revision: srev,
-            client_id: srev.client_id,
-          });
         }
-      }
-    });
-
-    // Completed revisions
-    revisions.forEach(rev => {
-      const eq = equipment.find(e => e.id === rev.equipment_id);
-      if (filterClient === 'all' || rev.client_id === filterClient) {
+        
+        const typeLabels = {
+          monthly: 'Mensual',
+          quarterly: 'Trimestral',
+          biannual: 'Semestral',
+          annual: 'Anual'
+        };
+        
         events.push({
-          date: rev.revision_date,
-          type: 'completed',
+          date: srev.scheduled_date,
+          type,
+          status,
           title: eq ? `${eq.brand} ${eq.model}` : 'Revisión',
-          revision: rev,
+          subtitle: typeLabels[srev.revision_type] || srev.revision_type,
           equipment: eq,
-          client_id: rev.client_id,
+          scheduled_revision: srev,
+          client_id: srev.client_id,
         });
       }
     });
 
     return events.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [equipment, revisions, scheduledRevisions, filterClient]);
+  }, [equipment, scheduledRevisions, filterClient]);
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -304,16 +289,9 @@ export default function Calendar() {
                               <p className="text-xs text-slate-500">{event.equipment.location}</p>
                             )}
                             {event.type === 'scheduled' && event.scheduled_revision && (
-                              <Link to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
+                              <Link to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
                                 <Button variant="link" size="sm" className="h-auto p-0 mt-1">
-                                  Hacer revisión →
-                                </Button>
-                              </Link>
-                            )}
-                            {event.type === 'completed' && event.revision && (
-                              <Link to={createPageUrl(`RevisionDetail?id=${event.revision.id}`)}>
-                                <Button variant="link" size="sm" className="h-auto p-0 mt-1">
-                                  Ver revisión →
+                                  Ver equipo →
                                 </Button>
                               </Link>
                             )}
@@ -337,7 +315,7 @@ export default function Calendar() {
                         'bg-red-100 text-red-700 border-red-200';
                       
                       return (
-                        <Link key={index} to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
+                        <Link key={index} to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
                           <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
                             <div>
                               <p className="text-sm font-medium text-slate-700">{event.title}</p>
@@ -377,40 +355,28 @@ export default function Calendar() {
                         event.status === 'overdue' ? 'text-yellow-600' : 'text-red-600';
 
                       return (
-                        <div key={idx} className={cn("p-4 rounded-lg border flex items-center justify-between", bgColor)}>
-                          <div className="flex items-center gap-4 flex-1">
-                            {event.type === 'scheduled' ? (
-                              <AlertCircle className={cn("h-5 w-5", iconColor)} />
-                            ) : (
-                              <ClipboardCheck className={cn("h-5 w-5", iconColor)} />
-                            )}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3">
-                                <Badge variant="outline" className="text-xs">
-                                  {format(new Date(event.date), 'dd MMM', { locale: es })}
-                                </Badge>
-                                <p className="font-medium text-slate-800">{event.title}</p>
+                        <Link key={idx} to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
+                          <div className={cn("p-4 rounded-lg border flex items-center justify-between", bgColor)}>
+                            <div className="flex items-center gap-4 flex-1">
+                              {event.type === 'scheduled' ? (
+                                <AlertCircle className={cn("h-5 w-5", iconColor)} />
+                              ) : (
+                                <ClipboardCheck className={cn("h-5 w-5", iconColor)} />
+                              )}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {format(new Date(event.date), 'dd MMM', { locale: es })}
+                                  </Badge>
+                                  <p className="font-medium text-slate-800">{event.title}</p>
+                                </div>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  {getClientName(event.client_id)} • {event.equipment?.location}
+                                </p>
                               </div>
-                              <p className="text-sm text-slate-500 mt-1">
-                                {getClientName(event.client_id)} • {event.equipment?.location}
-                              </p>
                             </div>
                           </div>
-                          {event.type === 'scheduled' && event.scheduled_revision && (
-                            <Link to={createPageUrl(`RevisionForm?equipment_id=${event.scheduled_revision.equipment_id}&scheduled_revision_id=${event.scheduled_revision.id}&revision_type=${event.scheduled_revision.revision_type}`)}>
-                              <Button variant="outline" size="sm">
-                                Hacer revisión
-                              </Button>
-                            </Link>
-                          )}
-                          {event.type === 'completed' && event.revision && (
-                            <Link to={createPageUrl(`RevisionDetail?id=${event.revision.id}`)}>
-                              <Button variant="outline" size="sm">
-                                Ver revisión
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>
