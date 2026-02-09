@@ -287,9 +287,9 @@ export default function HomeCliente() {
                         </div>
                         <p className="text-sm text-slate-400">{eq.location}</p>
                         <p className="text-xs text-slate-500">{building?.name}</p>
-                        {eq.next_revision_date && (
+                        {eq.first_revision_date && (
                           <p className="text-xs text-blue-400 mt-2">
-                            Próxima revisión: {format(new Date(eq.next_revision_date), 'dd/MM/yyyy')}
+                            Revisión programada
                           </p>
                         )}
                       </Link>
@@ -308,7 +308,7 @@ export default function HomeCliente() {
                   <Badge className="bg-white/10 text-slate-300">Solo lectura</Badge>
                 </div>
                 <div className="space-y-3">
-                  {clientData?.revisions?.map(revision => {
+                  {clientData?.revisions?.filter(r => r.status === 'completed').slice(0, 5).map(revision => {
                     const eq = clientData.equipment?.find(e => e.id === revision.equipment_id);
                     return (
                       <div 
@@ -318,19 +318,15 @@ export default function HomeCliente() {
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-medium text-white">
-                              {format(new Date(revision.revision_date), "dd MMM yyyy")}
+                              {revision.completed_date && format(new Date(revision.completed_date), "dd MMM yyyy")}
                             </h3>
                             <p className="text-sm text-slate-400">{eq?.brand} {eq?.model}</p>
+                            {revision.notes && (
+                              <p className="text-xs text-slate-500 mt-1 italic">{revision.notes}</p>
+                            )}
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            revision.general_status === 'good' ? 'bg-emerald-500/20 text-emerald-400' :
-                            revision.general_status === 'acceptable' ? 'bg-blue-500/20 text-blue-400' :
-                            revision.general_status === 'needs_repair' ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                            {revision.general_status === 'good' ? 'Bueno' :
-                             revision.general_status === 'acceptable' ? 'Aceptable' :
-                             revision.general_status === 'needs_repair' ? 'Reparación' : 'Crítico'}
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                            Completada
                           </span>
                         </div>
                       </div>
