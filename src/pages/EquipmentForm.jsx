@@ -237,63 +237,37 @@ export default function EquipmentForm() {
 
       const equipment = await base44.entities.Equipment.create(equipmentData);
 
-      // Generar revisiones programadas para el año
+      // Generar revisiones programadas
       const scheduledRevisions = [];
       const firstDate = new Date(data.first_revision_date);
       
-      for (let i = 0; i < 12; i++) {
-        const currentDate = new Date(firstDate);
-        currentDate.setMonth(firstDate.getMonth() + i);
-        const dateStr = format(currentDate, 'yyyy-MM-dd');
+      // Mapeo de periodicidad a tipo de revisión y meses
+      const periodConfig = {
+        'mensual': { type: 'monthly', interval: 1, count: 12 },
+        'trimestral': { type: 'quarterly', interval: 3, count: 4 },
+        'semestral': { type: 'biannual', interval: 6, count: 2 },
+        'anual': { type: 'annual', interval: 12, count: 1 }
+      };
+      
+      // Generar revisiones para cada periodicidad seleccionada
+      data.selected_periods.forEach(period => {
+        const config = periodConfig[period];
+        if (!config) return;
         
-        // Mensual
-        if (data.selected_periods.includes('mensual')) {
+        for (let i = 0; i < config.count; i++) {
+          const revisionDate = new Date(firstDate);
+          revisionDate.setMonth(firstDate.getMonth() + (i * config.interval));
+          
           scheduledRevisions.push({
             equipment_id: equipment.id,
             client_id: data.client_id,
             building_id: data.building_id,
-            scheduled_date: dateStr,
-            revision_type: 'monthly',
+            scheduled_date: format(revisionDate, 'yyyy-MM-dd'),
+            revision_type: config.type,
             status: 'pending'
           });
         }
-        
-        // Trimestral (cada 3 meses)
-        if (data.selected_periods.includes('trimestral') && i % 3 === 0) {
-          scheduledRevisions.push({
-            equipment_id: equipment.id,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: dateStr,
-            revision_type: 'quarterly',
-            status: 'pending'
-          });
-        }
-        
-        // Semestral (cada 6 meses)
-        if (data.selected_periods.includes('semestral') && i % 6 === 0) {
-          scheduledRevisions.push({
-            equipment_id: equipment.id,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: dateStr,
-            revision_type: 'biannual',
-            status: 'pending'
-          });
-        }
-        
-        // Anual (una vez)
-        if (data.selected_periods.includes('anual') && i === 0) {
-          scheduledRevisions.push({
-            equipment_id: equipment.id,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: dateStr,
-            revision_type: 'annual',
-            status: 'pending'
-          });
-        }
-      }
+      });
       
       // Crear todas las revisiones programadas
       if (scheduledRevisions.length > 0) {
