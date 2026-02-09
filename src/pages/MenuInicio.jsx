@@ -10,9 +10,9 @@ import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
 const defaultOptions = [
-  { id: '1', label: 'Técnico', page: 'HomeTecnico', icon: 'Wrench', color: 'bg-blue-500/20', textColor: 'text-blue-400', order: 1 },
-  { id: '2', label: 'Cliente', page: 'HomeCliente', icon: 'Building2', color: 'bg-emerald-500/20', textColor: 'text-emerald-400', order: 2 },
-];
+{ id: '1', label: 'Técnico', page: 'HomeTecnico', icon: 'Wrench', color: 'bg-blue-500/20', textColor: 'text-blue-400', order: 1 },
+{ id: '2', label: 'Cliente', page: 'HomeCliente', icon: 'Building2', color: 'bg-emerald-500/20', textColor: 'text-emerald-400', order: 2 }];
+
 
 export default function MenuInicio() {
   const queryClient = useQueryClient();
@@ -32,7 +32,7 @@ export default function MenuInicio() {
         return configs[0];
       }
       return null;
-    },
+    }
   });
 
   const saveMutation = useMutation({
@@ -40,16 +40,16 @@ export default function MenuInicio() {
       if (config) {
         return base44.entities.AppSettings.update(config.id, { menu_items: items });
       } else {
-        return base44.entities.AppSettings.create({ 
+        return base44.entities.AppSettings.create({
           setting_key: 'menu_inicio',
-          menu_items: items 
+          menu_items: items
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menu-inicio-config'] });
       toast.success('Orden guardado');
-    },
+    }
   });
 
   const handleDragEnd = (result) => {
@@ -71,15 +71,15 @@ export default function MenuInicio() {
   const iconMap = {
     'Wrench': Wrench,
     'Building2': Building2,
-    'Thermometer': Thermometer,
+    'Thermometer': Thermometer
   };
 
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
-      <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-      <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
+    <div className="bg-[#2f2d2d] text-yellow-400 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center">
+      <div className="bg-green-100 rounded-full fixed top-10 right-20 w-80 h-80 blur-3xl animate-pulse" />
+      <div className="bg-teal-300 rounded-full fixed bottom-10 left-10 w-96 h-96 blur-3xl" />
       <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
       
       <div className="relative z-10 w-full max-w-md">
@@ -87,60 +87,60 @@ export default function MenuInicio() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
             <Thermometer className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Clilux M</h1>
-          <p className="text-slate-400 mt-2">Sistema de Gestión de Climatización</p>
+          <h1 className="text-teal-500 text-3xl font-bold">Clilux </h1>
+          <p className="text-teal-300 mt-2">Sistema de Gestión de Climatización</p>
         </div>
 
-        {isAdmin && (
-          <div className="mb-4 text-center">
+        {isAdmin &&
+        <div className="mb-4 text-center">
             <p className="text-xs text-slate-400">Arrastra para reordenar (solo admin)</p>
           </div>
-        )}
+        }
 
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="menu-options" isDropDisabled={!isAdmin}>
-            {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+            {(provided) =>
+            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
                 {options.map((option, index) => {
-                  const IconComponent = iconMap[option.icon] || Wrench;
-                  return (
-                    <Draggable key={option.id} draggableId={option.id} index={index} isDragDisabled={!isAdmin}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                        >
+                const IconComponent = iconMap[option.icon] || Wrench;
+                return (
+                  <Draggable key={option.id} draggableId={option.id} index={index} isDragDisabled={!isAdmin}>
+                      {(provided, snapshot) =>
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}>
+
                           <Link to={createPageUrl(option.page)}>
-                            <Card className={`p-6 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group ${
-                              snapshot.isDragging ? 'shadow-2xl scale-105' : ''
-                            }`}>
+                            <Card className="bg-zinc-600 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
+
+
                               <div className="flex items-center gap-4">
-                                {isAdmin && (
-                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                {isAdmin &&
+                            <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
                                     <GripVertical className="h-5 w-5 text-white/30 group-hover:text-white/50" />
                                   </div>
-                                )}
+                            }
                                 <div className={`w-16 h-16 rounded-full ${option.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                  <IconComponent className={`h-8 w-8 ${option.textColor}`} />
+                                  <IconComponent className="text-yellow-400 lucide lucide-wrench h-8 w-8" />
                                 </div>
                                 <div>
                                   <h2 className="text-xl font-semibold text-white">{option.label}</h2>
                                   <p className="text-sm text-slate-400">
-                                    {option.label === 'Técnico' ? 'Acceso para empresas y técnicos' : 
-                                     option.label === 'Cliente' ? 'Portal de cliente para ver equipos e incidencias' : ''}
+                                    {option.label === 'Técnico' ? 'Acceso para empresas y técnicos' :
+                                option.label === 'Cliente' ? 'Portal de cliente para ver equipos e incidencias' : ''}
                                   </p>
                                 </div>
                               </div>
                             </Card>
                           </Link>
                         </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
+                    }
+                    </Draggable>);
+
+              })}
                 {provided.placeholder}
               </div>
-            )}
+            }
           </Droppable>
         </DragDropContext>
 
@@ -148,6 +148,6 @@ export default function MenuInicio() {
           © 2024 Clilux - Todos los derechos reservados
         </p>
       </div>
-    </div>
-  );
+    </div>);
+
 }
