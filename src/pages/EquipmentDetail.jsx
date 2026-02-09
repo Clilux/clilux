@@ -8,13 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Edit, Plus, MapPin, Calendar, FileText, 
-  Thermometer, Snowflake, Flame, Wind, Droplet, ClipboardCheck, FileBarChart,
-  Wrench, Settings, Shield, Trash2, AlertCircle
+  Edit, MapPin, Calendar, FileText, 
+  Snowflake, Flame, Wind, Droplet, 
+  Shield, Trash2
 } from 'lucide-react';
-import RevisionReport from '../components/reports/RevisionReport';
 import NavHeader from '../components/navigation/NavHeader';
-import RevisionCard from '../components/cards/RevisionCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
@@ -49,7 +47,6 @@ export default function EquipmentDetail() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
-  const [showReport, setShowReport] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const queryClient = useQueryClient();
 
@@ -81,12 +78,6 @@ export default function EquipmentDetail() {
       return buildings[0] || null;
     },
     enabled: !!equipment?.building_id,
-  });
-
-  const { data: revisions = [] } = useQuery({
-    queryKey: ['revisions-equipment', equipmentId],
-    queryFn: () => base44.entities.Revision.filter({ equipment_id: equipmentId }, '-revision_date'),
-    enabled: !!equipmentId,
   });
 
   const { data: client } = useQuery({
@@ -298,105 +289,10 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        <Tabs defaultValue="preventive" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="preventive" className="flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4" />
-              Preventivo ({revisions.filter(r => r.revision_type === 'preventive').length})
-            </TabsTrigger>
-            <TabsTrigger value="corrective" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Correctivo ({revisions.filter(r => r.revision_type === 'corrective').length})
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Documentos
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="preventive">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <ClipboardCheck className="h-5 w-5" />
-                  Historial Preventivo ({revisions.filter(r => r.revision_type === 'preventive').length})
-                </h2>
-                <Button variant="outline" onClick={() => setShowReport(true)}>
-                  <FileBarChart className="h-4 w-4 mr-2" />
-                  Generar Informe
-                </Button>
-              </div>
-
-              {revisions.filter(r => r.revision_type === 'preventive').length === 0 ? (
-                <Card className="p-8 text-center">
-                  <ClipboardCheck className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500">No hay revisiones preventivas</p>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {revisions.filter(r => r.revision_type === 'preventive').map(revision => (
-                    <RevisionCard 
-                      key={revision.id} 
-                      revision={revision}
-                      equipmentName={`${equipment.brand} ${equipment.model}`}
-                      buildingName={building?.name}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="corrective">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <Wrench className="h-5 w-5" />
-                  Historial Correctivo ({revisions.filter(r => r.revision_type === 'corrective').length})
-                </h2>
-                <Button variant="outline" onClick={() => setShowReport(true)}>
-                  <FileBarChart className="h-4 w-4 mr-2" />
-                  Generar Informe
-                </Button>
-              </div>
-
-              {revisions.filter(r => r.revision_type === 'corrective').length === 0 ? (
-                <Card className="p-8 text-center">
-                  <Wrench className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500">No hay revisiones correctivas</p>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {revisions.filter(r => r.revision_type === 'corrective').map(revision => (
-                    <RevisionCard 
-                      key={revision.id} 
-                      revision={revision}
-                      equipmentName={`${equipment.brand} ${equipment.model}`}
-                      buildingName={building?.name}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <EquipmentDocuments 
-              equipment={equipment} 
-              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
-            />
-          </TabsContent>
-        </Tabs>
-
-        {showReport && (
-          <RevisionReport
-            equipment={equipment}
-            revisions={revisions}
-            building={building}
-            client={client}
-            onClose={() => setShowReport(false)}
-          />
-        )}
+        <EquipmentDocuments 
+          equipment={equipment} 
+          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
+        />
 
         <DeleteConfirmDialog
           open={showDeleteDialog}
