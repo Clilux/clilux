@@ -83,12 +83,12 @@ import RevisionDetail from './pages/RevisionDetail';
 import RevisionForm from './pages/RevisionForm';
 import Revisions from './pages/Revisions';
 import ScanEquipment from './pages/ScanEquipment';
+import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Settings from './pages/Settings';
 import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import __Layout from './Layout.jsx';
 
 
@@ -129,12 +129,12 @@ export const PAGES = {
     "RevisionForm": RevisionForm,
     "Revisions": Revisions,
     "ScanEquipment": ScanEquipment,
+    "ScanEquipmentTech": ScanEquipmentTech,
     "Settings": Settings,
     "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "ScanEquipmentTech": ScanEquipmentTech,
 }
 
 export const pagesConfig = {

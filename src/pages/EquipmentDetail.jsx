@@ -18,7 +18,7 @@ import RevisionCard from '../components/cards/RevisionCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -51,7 +51,6 @@ export default function EquipmentDetail() {
   const equipmentId = urlParams.get('id');
   const [showReport, setShowReport] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -99,24 +98,7 @@ export default function EquipmentDetail() {
     enabled: !!equipment?.client_id,
   });
 
-  // Determinar el período de la próxima revisión
-  const getNextRevisionPeriod = () => {
-    if (!equipment?.maintenance_config) return null;
-    
-    const config = equipment.maintenance_config;
-    if (config.monthly_enabled) return { label: 'Mensual', fields: config.monthly_fields };
-    if (config.quarterly_enabled) return { label: 'Trimestral', fields: config.quarterly_fields };
-    if (config.biannual_enabled) return { label: 'Semestral', fields: config.biannual_fields };
-    if (config.annual_enabled) return { label: 'Anual', fields: config.annual_fields };
-    
-    return null;
-  };
 
-  const nextPeriod = getNextRevisionPeriod();
-
-  const handleConfirmRevision = () => {
-    navigate(createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}&period=${nextPeriod?.label}`));
-  };
 
   if (isLoading) {
     return (
@@ -339,25 +321,10 @@ export default function EquipmentDetail() {
                   <ClipboardCheck className="h-5 w-5" />
                   Historial Preventivo ({revisions.filter(r => r.revision_type === 'preventive').length})
                 </h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowReport(true)}>
-                    <FileBarChart className="h-4 w-4 mr-2" />
-                    Generar Informe
-                  </Button>
-                  {equipment.next_revision_date && nextPeriod ? (
-                    <Button onClick={() => setShowRevisionDialog(true)} className="bg-slate-800 hover:bg-slate-700">
-                      <ClipboardCheck className="h-4 w-4 mr-2" />
-                      Realizar Revisión
-                    </Button>
-                  ) : (
-                    <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-                      <Button className="bg-slate-800 hover:bg-slate-700">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Nueva Revisión
-                      </Button>
-                    </Link>
-                  )}
-                </div>
+                <Button variant="outline" onClick={() => setShowReport(true)}>
+                  <FileBarChart className="h-4 w-4 mr-2" />
+                  Generar Informe
+                </Button>
               </div>
 
               {revisions.filter(r => r.revision_type === 'preventive').length === 0 ? (
@@ -387,18 +354,10 @@ export default function EquipmentDetail() {
                   <Wrench className="h-5 w-5" />
                   Historial Correctivo ({revisions.filter(r => r.revision_type === 'corrective').length})
                 </h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowReport(true)}>
-                    <FileBarChart className="h-4 w-4 mr-2" />
-                    Generar Informe
-                  </Button>
-                  <Link to={createPageUrl(`RevisionForm?equipment_id=${equipment.id}&building_id=${equipment.building_id}&client_id=${equipment.client_id}`)}>
-                    <Button className="bg-slate-800 hover:bg-slate-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nueva Revisión Correctiva
-                    </Button>
-                  </Link>
-                </div>
+                <Button variant="outline" onClick={() => setShowReport(true)}>
+                  <FileBarChart className="h-4 w-4 mr-2" />
+                  Generar Informe
+                </Button>
               </div>
 
               {revisions.filter(r => r.revision_type === 'corrective').length === 0 ? (
@@ -448,43 +407,7 @@ export default function EquipmentDetail() {
           isLoading={deleteMutation.isPending}
         />
 
-        <Dialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-blue-600" />
-                Confirmar Revisión
-              </DialogTitle>
-              <DialogDescription>
-                <div className="space-y-3 pt-4">
-                  <p>Vas a realizar la revisión programada para:</p>
-                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                    <p className="font-medium text-slate-800">
-                      {equipment.brand} {equipment.model}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      Fecha programada: {equipment.next_revision_date && format(new Date(equipment.next_revision_date), 'dd/MM/yyyy')}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      Período: <strong>{nextPeriod?.label}</strong>
-                    </p>
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    Se abrirá el formulario con los campos configurados para este período.
-                  </p>
-                </div>
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex gap-3 justify-end mt-4">
-              <Button variant="outline" onClick={() => setShowRevisionDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleConfirmRevision} className="bg-blue-600">
-                Continuar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+
       </div>
     </div>
   );
