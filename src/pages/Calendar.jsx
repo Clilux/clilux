@@ -289,11 +289,18 @@ export default function Calendar() {
                               <p className="text-xs text-slate-500">{event.equipment.location}</p>
                             )}
                             {event.type === 'scheduled' && event.scheduled_revision && (
-                              <Link to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
-                                <Button variant="link" size="sm" className="h-auto p-0 mt-1">
-                                  Ver equipo →
-                                </Button>
-                              </Link>
+                              <div className="flex gap-2 mt-2">
+                                <Link to={createPageUrl(`RevisionForm?id=${event.scheduled_revision.id}`)}>
+                                  <Button size="sm" className="h-7 text-xs bg-blue-600">
+                                    Realizar →
+                                  </Button>
+                                </Link>
+                                <Link to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
+                                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                                    Ver equipo
+                                  </Button>
+                                </Link>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -315,20 +322,25 @@ export default function Calendar() {
                         'bg-red-100 text-red-700 border-red-200';
                       
                       return (
-                        <Link key={index} to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
-                          <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                            <div>
-                              <p className="text-sm font-medium text-slate-700">{event.title}</p>
-                              {event.subtitle && (
-                                <p className="text-xs text-slate-600">{event.subtitle}</p>
-                              )}
-                              <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
-                            </div>
+                        <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-700">{event.title}</p>
+                            {event.subtitle && (
+                              <p className="text-xs text-slate-600">{event.subtitle}</p>
+                            )}
+                            <p className="text-xs text-slate-500">{getClientName(event.client_id)}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <Badge variant="outline" className={cn("text-xs", badgeColor)}>
                               {format(new Date(event.date), 'dd/MM')}
                             </Badge>
+                            <Link to={createPageUrl(`RevisionForm?id=${event.scheduled_revision.id}`)}>
+                              <Button size="sm" className="h-7 text-xs">
+                                Realizar
+                              </Button>
+                            </Link>
                           </div>
-                        </Link>
+                        </div>
                       );
                     })}
                 </div>
@@ -355,28 +367,33 @@ export default function Calendar() {
                         event.status === 'overdue' ? 'text-yellow-600' : 'text-red-600';
 
                       return (
-                        <Link key={idx} to={createPageUrl(`EquipmentDetail?id=${event.scheduled_revision.equipment_id}`)}>
-                          <div className={cn("p-4 rounded-lg border flex items-center justify-between", bgColor)}>
-                            <div className="flex items-center gap-4 flex-1">
-                              {event.type === 'scheduled' ? (
-                                <AlertCircle className={cn("h-5 w-5", iconColor)} />
-                              ) : (
-                                <ClipboardCheck className={cn("h-5 w-5", iconColor)} />
-                              )}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3">
-                                  <Badge variant="outline" className="text-xs">
-                                    {format(new Date(event.date), 'dd MMM', { locale: es })}
-                                  </Badge>
-                                  <p className="font-medium text-slate-800">{event.title}</p>
-                                </div>
-                                <p className="text-sm text-slate-500 mt-1">
-                                  {getClientName(event.client_id)} • {event.equipment?.location}
-                                </p>
+                        <div key={idx} className={cn("p-4 rounded-lg border flex items-center justify-between", bgColor)}>
+                          <div className="flex items-center gap-4 flex-1">
+                            {event.type === 'scheduled' ? (
+                              <AlertCircle className={cn("h-5 w-5", iconColor)} />
+                            ) : (
+                              <ClipboardCheck className={cn("h-5 w-5", iconColor)} />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="text-xs">
+                                  {format(new Date(event.date), 'dd MMM', { locale: es })}
+                                </Badge>
+                                <p className="font-medium text-slate-800">{event.title}</p>
                               </div>
+                              <p className="text-sm text-slate-500 mt-1">
+                                {getClientName(event.client_id)} • {event.equipment?.location}
+                              </p>
                             </div>
                           </div>
-                        </Link>
+                          {event.type === 'scheduled' && (
+                            <Link to={createPageUrl(`RevisionForm?id=${event.scheduled_revision.id}`)}>
+                              <Button size="sm" className="bg-blue-600">
+                                Realizar
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

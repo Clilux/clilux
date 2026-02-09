@@ -16,6 +16,7 @@ import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
+import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsList';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -287,6 +288,12 @@ export default function EquipmentDetail() {
               </div>
             </div>
           )}
+        </Card>
+
+        {/* Próximas revisiones */}
+        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Próximas Revisiones</h3>
+          <ScheduledRevisionsList equipmentId={equipmentId} />
         </Card>
 
         <EquipmentDocuments 
