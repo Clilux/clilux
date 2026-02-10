@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Thermometer, Wrench, Building2, GripVertical, Save } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { createPageUrl } from '@/utils';
@@ -18,6 +21,10 @@ export default function MenuInicio() {
   const queryClient = useQueryClient();
   const [options, setOptions] = useState(defaultOptions);
   const [user, setUser] = useState(null);
+  const [loginMode, setLoginMode] = useState('tecnico'); // 'tecnico' o 'cliente'
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => setUser(null));
@@ -34,6 +41,36 @@ export default function MenuInicio() {
       return null;
     }
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ['app-settings'],
+    queryFn: async () => {
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    }
+  });
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (loginMode === 'cliente') {
+      const clientUsers = settings?.client_users || [];
+      const clientUser = clientUsers.find(u => u.email === credentials.email && u.password === credentials.password);
+      
+      if (clientUser) {
+        window.location.href = createPageUrl('HomeCliente');
+      } else {
+        setLoginError('Credenciales incorrectas');
+      }
+    } else {
+      try {
+        await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
+      } catch {
+        setLoginError('Error al iniciar sesión');
+      }
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (items) => {
@@ -76,10 +113,85 @@ export default function MenuInicio() {
 
   const isAdmin = user?.role === 'admin';
 
+  if (showLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
+        <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
+        
+        <Card className="w-full max-w-md p-6 bg-white/10 backdrop-blur-sm border-white/20 relative z-10">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+              <Thermometer className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Iniciar Sesión</h2>
+            <p className="text-slate-400 mt-1">Accede a Clilux M</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label className="text-white">Tipo de Usuario</Label>
+              <Select value={loginMode} onValueChange={setLoginMode}>
+                <SelectTrigger className="mt-1 bg-white/10 border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tecnico">Técnico / Admin</SelectItem>
+                  <SelectItem value="cliente">Cliente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-white">Email</Label>
+              <Input
+                type="email"
+                value={credentials.email}
+                onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                placeholder="tu@email.com"
+                required
+              />
+            </div>
+
+            <div>
+              <Label className="text-white">Contraseña</Label>
+              <Input
+                type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <p className="text-red-400 text-sm">{loginError}</p>
+            )}
+
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+              Acceder
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full bg-white/5 border-white/20 text-white"
+              onClick={() => setShowLogin(false)}
+            >
+              Volver
+            </Button>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#2f2d2d] text-yellow-400 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center">
-      <div className="bg-green-100 rounded-full fixed top-10 right-20 w-80 h-80 blur-3xl animate-pulse" />
-      <div className="bg-teal-300 rounded-full fixed bottom-10 left-10 w-96 h-96 blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
+      <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+      <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
       <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
       
       <div className="relative z-10 w-full max-w-md">
@@ -87,8 +199,8 @@ export default function MenuInicio() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
             <Thermometer className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-teal-500 text-3xl font-bold">Clilux </h1>
-          <p className="text-teal-300 mt-2">Sistema de Gestión de Climatización</p>
+          <h1 className="text-3xl font-bold text-white">Clilux M</h1>
+          <p className="text-slate-400 mt-2">Sistema de Gestión de Climatización</p>
         </div>
 
         {isAdmin &&
@@ -110,8 +222,8 @@ export default function MenuInicio() {
                       ref={provided.innerRef}
                       {...provided.draggableProps}>
 
-                          <Link to={createPageUrl(option.page)}>
-                            <Card className="bg-zinc-600 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer group">
+                          <div onClick={() => setShowLogin(true)}>
+                            <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-card-foreground p-6 rounded-xl border shadow hover:bg-white/15 transition-all cursor-pointer group">
 
 
                               <div className="flex items-center gap-4">
@@ -121,7 +233,7 @@ export default function MenuInicio() {
                                   </div>
                             }
                                 <div className={`w-16 h-16 rounded-full ${option.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                  <IconComponent className="text-yellow-400 lucide lucide-wrench h-8 w-8" />
+                                  <IconComponent className={`h-8 w-8 ${option.textColor}`} />
                                 </div>
                                 <div>
                                   <h2 className="text-xl font-semibold text-white">{option.label}</h2>
@@ -132,8 +244,8 @@ export default function MenuInicio() {
                                 </div>
                               </div>
                             </Card>
-                          </Link>
-                        </div>
+                            </div>
+                            </div>
                     }
                     </Draggable>);
 
