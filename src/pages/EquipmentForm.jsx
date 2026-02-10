@@ -219,6 +219,11 @@ export default function EquipmentForm() {
     },
   });
 
+  const { data: allEquipment = [] } = useQuery({
+    queryKey: ['all-equipment'],
+    queryFn: () => base44.entities.Equipment.list(),
+  });
+
   const filteredBuildings = formData.client_id 
     ? buildings.filter(b => b.client_id === formData.client_id)
     : buildings;
@@ -292,6 +297,8 @@ export default function EquipmentForm() {
         status: data.status,
         photo_url: data.photo_url || null,
         first_revision_date: data.first_revision_date,
+        unit_type: data.unit_type || 'standalone',
+        parent_equipment_id: data.parent_equipment_id || null,
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
           monthly_fields: data.maintenance_fields.filter(f => f.periods.includes('mensual')),
