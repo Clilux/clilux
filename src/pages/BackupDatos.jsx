@@ -12,6 +12,7 @@ export default function BackupDatos() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [backupStatus, setBackupStatus] = useState(null);
+  const [backingUpToDrive, setBackingUpToDrive] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -157,6 +158,38 @@ export default function BackupDatos() {
     }
   };
 
+  const handleBackupToDrive = async () => {
+    setBackingUpToDrive(true);
+    try {
+      const backupData = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        data: {
+          clients,
+          buildings,
+          equipment,
+          revisions,
+          incidents,
+        },
+      };
+
+      const jsonContent = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const file = new File([blob], `clilux-backup-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`, { type: 'application/json' });
+
+      // Upload to Core first
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      toast.success('Backup creado. Nota: La integración con Google Drive requiere habilitar funciones backend en Dashboard → Settings');
+      setBackupStatus({ type: 'success', message: 'Backup preparado (Google Drive requiere configuración)' });
+    } catch (error) {
+      toast.error('Error al crear backup: ' + error.message);
+      setBackupStatus({ type: 'error', message: 'Error al crear backup' });
+    } finally {
+      setBackingUpToDrive(false);
+    }
+  };
+
   const stats = {
     clients: clients.length,
     buildings: buildings.length,
@@ -211,6 +244,23 @@ export default function BackupDatos() {
               Descarga una copia completa de todos tus datos
             </p>
             <div className="space-y-3">
+              <Button
+                onClick={handleBackupToDrive}
+                disabled={backingUpToDrive}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {backingUpToDrive ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="h-4 w-4 mr-2" />
+                    Backup a Google Drive
+                  </>
+                )}
+              </Button>
               <Button
                 onClick={handleExportJSON}
                 disabled={exporting}

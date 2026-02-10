@@ -181,6 +181,7 @@ export default function EquipmentForm() {
     registration_date: new Date().toISOString().split('T')[0],
     status: 'operational',
     photo_url: '',
+    custom_fields: [],
     
     // Paso 2: Cliente y edificio
     client_id: '',
@@ -284,7 +285,7 @@ export default function EquipmentForm() {
         heating_power_kw: data.technical_data.potencia_calorifica || null,
         refrigerant_type: data.technical_data.tipo_refrigerante || '',
         refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
-        technical_data: data.technical_data,
+        technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
         registration_date: data.registration_date,
         status: data.status,
         photo_url: data.photo_url || null,
@@ -488,130 +489,6 @@ export default function EquipmentForm() {
         {step === 1 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
             <h3 className="text-xl font-semibold text-white mb-6">Datos Técnicos del Equipo</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label className="text-slate-300">Tipo de Equipo según RITE *</Label>
-                <Select value={formData.equipment_type} onValueChange={(v) => handleChange('equipment_type', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="caldera">Caldera</SelectItem>
-                    <SelectItem value="enfriadora">Enfriadora</SelectItem>
-                    <SelectItem value="split">Split / Multi-split</SelectItem>
-                    <SelectItem value="vrf">VRF / VRV</SelectItem>
-                    <SelectItem value="climatizador">Climatizador</SelectItem>
-                    <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-slate-300">Fecha de Registro *</Label>
-                  <Input
-                    type="date"
-                    value={formData.registration_date}
-                    onChange={(e) => handleChange('registration_date', e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-slate-300">Estado del Equipo *</Label>
-                  <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="operational">Operativo</SelectItem>
-                      <SelectItem value="maintenance_needed">Requiere mantenimiento</SelectItem>
-                      <SelectItem value="out_of_service">Fuera de servicio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {equipmentFields && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  {equipmentFields.identificacion.map(field => (
-                    <div key={field.key}>
-                      <Label className="text-slate-300">{field.label}</Label>
-                      {field.type === 'select' ? (
-                        <Select
-                          value={formData.technical_data[field.key] || ''}
-                          onValueChange={(v) => handleTechnicalDataChange(field.key, v)}
-                        >
-                          <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.options?.map(opt => (
-                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : field.key === 'marca' ? (
-                        <>
-                          <Input
-                            type={field.type}
-                            value={formData.technical_data[field.key] || ''}
-                            onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
-                            list="brands-list"
-                            className="bg-white/5 border-white/20 text-white"
-                            required={field.required}
-                          />
-                          <datalist id="brands-list">
-                            {suggestions?.brands?.map(brand => (
-                              <option key={brand} value={brand} />
-                            ))}
-                          </datalist>
-                        </>
-                      ) : field.key === 'tipo_refrigerante' ? (
-                        <>
-                          <Input
-                            type={field.type}
-                            value={formData.technical_data[field.key] || ''}
-                            onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
-                            list="refrigerants-list"
-                            className="bg-white/5 border-white/20 text-white"
-                            required={field.required}
-                          />
-                          <datalist id="refrigerants-list">
-                            {suggestions?.refrigerants?.map(ref => (
-                              <option key={ref} value={ref} />
-                            ))}
-                          </datalist>
-                        </>
-                      ) : (
-                        <Input
-                          type={field.type}
-                          value={formData.technical_data[field.key] || ''}
-                          onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
-                          className="bg-white/5 border-white/20 text-white"
-                          required={field.required}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-600">
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Siguiente
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Step 2: Cliente, Edificio y Fotos */}
-        {step === 2 && (
-          <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Cliente, Edificio y Fotos</h3>
 
             {/* Scan/Photo section */}
             <div className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
@@ -665,6 +542,180 @@ export default function EquipmentForm() {
                 </div>
               )}
             </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Tipo de Equipo según RITE *</Label>
+                <Select value={formData.equipment_type} onValueChange={(v) => handleChange('equipment_type', v)}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="caldera">Caldera</SelectItem>
+                    <SelectItem value="enfriadora">Enfriadora</SelectItem>
+                    <SelectItem value="split">Split / Multi-split</SelectItem>
+                    <SelectItem value="vrf">VRF / VRV</SelectItem>
+                    <SelectItem value="climatizador">Climatizador</SelectItem>
+                    <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-300">Fecha de Registro *</Label>
+                  <Input
+                    type="date"
+                    value={formData.registration_date}
+                    onChange={(e) => handleChange('registration_date', e.target.value)}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-slate-300">Estado del Equipo *</Label>
+                  <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="operational">Operativo</SelectItem>
+                      <SelectItem value="maintenance_needed">Requiere mantenimiento</SelectItem>
+                      <SelectItem value="out_of_service">Fuera de servicio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {equipmentFields && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    {equipmentFields.identificacion.map(field => (
+                      <div key={field.key}>
+                        <Label className="text-slate-300">{field.label}</Label>
+                        {field.type === 'select' ? (
+                          <Select
+                            value={formData.technical_data[field.key] || ''}
+                            onValueChange={(v) => handleTechnicalDataChange(field.key, v)}
+                          >
+                            <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options?.map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : field.key === 'marca' ? (
+                          <>
+                            <Input
+                              type={field.type}
+                              value={formData.technical_data[field.key] || ''}
+                              onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
+                              list="brands-list"
+                              className="bg-white/5 border-white/20 text-white"
+                              required={field.required}
+                            />
+                            <datalist id="brands-list">
+                              {suggestions?.brands?.map(brand => (
+                                <option key={brand} value={brand} />
+                              ))}
+                            </datalist>
+                          </>
+                        ) : field.key === 'tipo_refrigerante' ? (
+                          <>
+                            <Input
+                              type={field.type}
+                              value={formData.technical_data[field.key] || ''}
+                              onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
+                              list="refrigerants-list"
+                              className="bg-white/5 border-white/20 text-white"
+                              required={field.required}
+                            />
+                            <datalist id="refrigerants-list">
+                              {suggestions?.refrigerants?.map(ref => (
+                                <option key={ref} value={ref} />
+                              ))}
+                            </datalist>
+                          </>
+                        ) : (
+                          <Input
+                            type={field.type}
+                            value={formData.technical_data[field.key] || ''}
+                            onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
+                            className="bg-white/5 border-white/20 text-white"
+                            required={field.required}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Custom Fields */}
+                  <div className="mt-6 p-4 rounded-lg bg-white/5 border border-white/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <Label className="text-slate-300">Datos Adicionales Personalizados</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const fieldName = prompt('Nombre del campo:');
+                          if (!fieldName) return;
+                          const fieldValue = prompt('Valor:');
+                          if (fieldValue === null) return;
+                          setFormData(prev => ({
+                            ...prev,
+                            custom_fields: [...(prev.custom_fields || []), { name: fieldName, value: fieldValue }]
+                          }));
+                        }}
+                        className="bg-white/5 border-white/20 text-white"
+                      >
+                        + Añadir campo
+                      </Button>
+                    </div>
+                    {formData.custom_fields?.length > 0 && (
+                      <div className="space-y-2">
+                        {formData.custom_fields.map((field, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded bg-white/5">
+                            <span className="text-slate-300 text-sm flex-1">{field.name}: {field.value}</span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  custom_fields: prev.custom_fields.filter((_, i) => i !== idx)
+                                }));
+                              }}
+                              className="text-red-400 hover:text-red-300 h-6 w-6 p-0"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-600">
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Siguiente
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Step 2: Cliente y Edificio */}
+        {step === 2 && (
+          <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+            <h3 className="text-xl font-semibold text-white mb-6">Cliente y Edificio</h3>
             
             <div className="space-y-4">
               <div>
