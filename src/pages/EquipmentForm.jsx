@@ -767,6 +767,44 @@ export default function EquipmentForm() {
                   </Button>
                 </div>
               </div>
+
+              {/* Unit Type and Relations */}
+              <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                <Label className="text-slate-300 mb-3 block">Tipo de Unidad</Label>
+                <Select value={formData.unit_type} onValueChange={(v) => handleChange('unit_type', v)}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white mb-4">
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standalone">Independiente</SelectItem>
+                    <SelectItem value="exterior">Unidad Exterior</SelectItem>
+                    <SelectItem value="interior">Unidad Interior</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {formData.unit_type === 'interior' && formData.building_id && (
+                  <div>
+                    <Label className="text-slate-300">Unidad Exterior</Label>
+                    <Select value={formData.parent_equipment_id} onValueChange={(v) => handleChange('parent_equipment_id', v)}>
+                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectValue placeholder="Seleccionar unidad exterior" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allEquipment
+                          ?.filter(eq => 
+                            eq.building_id === formData.building_id && 
+                            eq.unit_type === 'exterior'
+                          )
+                          .map(eq => (
+                            <SelectItem key={eq.id} value={eq.id}>
+                              {eq.brand} {eq.model} - {eq.location}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between mt-6">
