@@ -182,6 +182,8 @@ export default function EquipmentForm() {
     status: 'operational',
     photo_url: '',
     custom_fields: [],
+    unit_type: 'standalone',
+    parent_equipment_id: '',
     
     // Paso 2: Cliente y edificio
     client_id: '',
@@ -712,10 +714,10 @@ export default function EquipmentForm() {
           </Card>
         )}
 
-        {/* Step 2: Cliente y Edificio */}
+        {/* Step 2: Cliente, Edificio y Relaciones */}
         {step === 2 && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Cliente y Edificio</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">Cliente, Edificio y Relaciones</h3>
             
             <div className="space-y-4">
               <div>

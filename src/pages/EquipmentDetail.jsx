@@ -101,6 +101,24 @@ export default function EquipmentDetail() {
     enabled: !!equipmentId,
   });
 
+  // Related equipment
+  const { data: parentEquipment } = useQuery({
+    queryKey: ['parent-equipment', equipment?.parent_equipment_id],
+    queryFn: async () => {
+      const items = await base44.entities.Equipment.filter({ id: equipment.parent_equipment_id });
+      return items[0] || null;
+    },
+    enabled: !!equipment?.parent_equipment_id,
+  });
+
+  const { data: childEquipment = [] } = useQuery({
+    queryKey: ['child-equipment', equipmentId],
+    queryFn: async () => {
+      return await base44.entities.Equipment.filter({ parent_equipment_id: equipmentId });
+    },
+    enabled: !!equipmentId && equipment?.unit_type === 'exterior',
+  });
+
   // Calcular última y próxima revisión
   const completedRevisions = scheduledRevisions.filter(r => r.status === 'completed');
   const pendingRevisions = scheduledRevisions.filter(r => r.status === 'pending');
@@ -309,6 +327,43 @@ export default function EquipmentDetail() {
                   <p className="text-slate-700">{equipment.notes}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Related Equipment */}
+          {(parentEquipment || childEquipment.length > 0) && (
+            <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Wind className="h-5 w-5 text-blue-600" />
+                Equipos Relacionados
+              </h4>
+              {parentEquipment && (
+                <div className="mb-2">
+                  <p className="text-xs text-slate-500 mb-1">Unidad Exterior:</p>
+                  <Link 
+                    to={createPageUrl(`EquipmentDetail?id=${parentEquipment.id}`)}
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    {parentEquipment.brand} {parentEquipment.model} - {parentEquipment.location}
+                  </Link>
+                </div>
+              )}
+              {childEquipment.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Unidades Interiores ({childEquipment.length}):</p>
+                  <div className="space-y-1">
+                    {childEquipment.map(child => (
+                      <Link 
+                        key={child.id}
+                        to={createPageUrl(`EquipmentDetail?id=${child.id}`)}
+                        className="block text-blue-600 hover:underline text-sm"
+                      >
+                        • {child.brand} {child.model} - {child.location}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
