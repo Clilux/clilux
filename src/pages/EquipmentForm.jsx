@@ -154,6 +154,29 @@ const camposIDAE = {
       { key: 'limpieza_desinfeccion_completa', label: 'Limpieza y desinfección completa', type: 'checkbox', periods: ['anual'] },
       { key: 'revision_general_instalacion', label: 'Revisión general de instalación', type: 'checkbox', periods: ['anual'] },
     ]
+  },
+  produccion_acs: {
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie', type: 'text', required: false },
+      { key: 'tipo_instalacion', label: 'Tipo de instalación *', type: 'select', options: ['Acumulador', 'Calentamiento instantáneo', 'Intercambiador', 'Depósito'], required: true },
+      { key: 'volumen_acumulacion', label: 'Volumen acumulación (L)', type: 'number', required: false },
+      { key: 'temperatura_servicio', label: 'Temperatura servicio (°C)', type: 'number', required: false },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      // Control según RD 487/2022
+      { key: 'temperatura_agua', label: 'Temperatura agua (°C)', type: 'number', periods: ['mensual', 'trimestral'] },
+      { key: 'ph', label: 'pH', type: 'number', periods: ['mensual', 'trimestral'] },
+      { key: 'turbidez', label: 'Turbidez (UNF)', type: 'number', periods: ['mensual', 'trimestral'] },
+      { key: 'biocida_nivel', label: 'Nivel de biocida', type: 'text', periods: ['mensual', 'trimestral'] },
+      { key: 'legionella_ufc', label: 'Legionella (UFC/L)', type: 'number', periods: ['trimestral'] },
+      { key: 'aerobios_totales', label: 'Aerobios totales (UFC/ml)', type: 'number', periods: ['trimestral'] },
+      { key: 'limpieza_desinfeccion', label: 'Limpieza y desinfección realizada', type: 'checkbox', periods: ['trimestral'] },
+      { key: 'estado_aislamiento', label: 'Estado aislamiento', type: 'select', options: ['Bueno', 'Aceptable', 'Deteriorado'], periods: ['trimestral'] },
+      { key: 'revision_valvulas', label: 'Revisión válvulas y grifos', type: 'checkbox', periods: ['trimestral'] },
+    ]
   }
 };
 
@@ -190,6 +213,7 @@ export default function EquipmentForm() {
     building_id: '',
     
     // Paso 3: Configuración de mantenimiento
+    requires_maintenance: null,
     selected_periods: [],
     maintenance_fields: [],
     
@@ -313,49 +337,54 @@ export default function EquipmentForm() {
 
       const equipment = await base44.entities.Equipment.create(equipmentData);
 
-      // Generar revisiones programadas
-      const scheduledRevisions = [];
-      const firstDate = new Date(data.first_revision_date);
-      
-      // Mapeo de periodicidad a tipo de revisión y meses
-      const periodConfig = {
-        'mensual': { type: 'monthly', interval: 1, count: 12 },
-        'trimestral': { type: 'quarterly', interval: 3, count: 4 },
-        'semestral': { type: 'biannual', interval: 6, count: 2 },
-        'anual': { type: 'annual', interval: 12, count: 1 }
-      };
-      
-      // Generar revisiones para cada periodicidad seleccionada
-      data.selected_periods.forEach(period => {
-        const config = periodConfig[period];
-        if (!config) return;
+      // Generar revisiones programadas solo si requiere mantenimiento
+      if (data.requires_maintenance !== false && data.first_revision_date) {
+        const scheduledRevisions = [];
+        const firstDate = new Date(data.first_revision_date);
         
-        for (let i = 0; i < config.count; i++) {
-          const revisionDate = new Date(firstDate);
-          revisionDate.setMonth(firstDate.getMonth() + (i * config.interval));
+        // Mapeo de periodicidad a tipo de revisión y meses
+        const periodConfig = {
+          'mensual': { type: 'monthly', interval: 1, count: 12 },
+          'trimestral': { type: 'quarterly', interval: 3, count: 4 },
+          'semestral': { type: 'biannual', interval: 6, count: 2 },
+          'anual': { type: 'annual', interval: 12, count: 1 }
+        };
+        
+        // Generar revisiones para cada periodicidad seleccionada
+        data.selected_periods.forEach(period => {
+          const config = periodConfig[period];
+          if (!config) return;
           
-          scheduledRevisions.push({
-            equipment_id: equipment.id,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: format(revisionDate, 'yyyy-MM-dd'),
-            revision_type: config.type,
-            status: 'pending'
-          });
+          for (let i = 0; i < config.count; i++) {
+            const revisionDate = new Date(firstDate);
+            revisionDate.setMonth(firstDate.getMonth() + (i * config.interval));
+            
+            scheduledRevisions.push({
+              equipment_id: equipment.id,
+              client_id: data.client_id,
+              building_id: data.building_id,
+              scheduled_date: format(revisionDate, 'yyyy-MM-dd'),
+              revision_type: config.type,
+              status: 'pending'
+            });
+          }
+        });
+        
+        // Crear todas las revisiones programadas
+        if (scheduledRevisions.length > 0) {
+          await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
         }
-      });
-      
-      // Crear todas las revisiones programadas
-      if (scheduledRevisions.length > 0) {
-        await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
       }
 
       return equipment;
     },
-    onSuccess: (equipment) => {
+    onSuccess: (equipment, data) => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
-      toast.success('Equipo creado y revisiones programadas');
+      const message = data.requires_maintenance === false 
+        ? 'Equipo creado sin mantenimiento programado' 
+        : 'Equipo creado y revisiones programadas';
+      toast.success(message);
       navigate(createPageUrl(`EquipmentDetail?id=${equipment.id}`));
     },
     onError: () => {
@@ -470,7 +499,10 @@ export default function EquipmentForm() {
     !field.required || formData.technical_data[field.key]
   );
   const canProceedStep2 = formData.client_id && formData.building_id;
-  const canProceedStep3 = formData.selected_periods.length > 0 && formData.maintenance_fields.length > 0;
+  const canProceedStep3 = formData.requires_maintenance !== null && (
+    formData.requires_maintenance === false || 
+    (formData.selected_periods.length > 0 && formData.maintenance_fields.length > 0)
+  );
   const canProceedStep4 = formData.first_revision_date && formData.starting_period;
 
   return (
@@ -566,6 +598,7 @@ export default function EquipmentForm() {
                     <SelectItem value="vrf">VRF / VRV</SelectItem>
                     <SelectItem value="climatizador">Climatizador</SelectItem>
                     <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
+                    <SelectItem value="produccion_acs">Producción ACS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -768,43 +801,53 @@ export default function EquipmentForm() {
                 </div>
               </div>
 
-              {/* Unit Type and Relations */}
-              <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <Label className="text-slate-300 mb-3 block">Tipo de Unidad</Label>
-                <Select value={formData.unit_type} onValueChange={(v) => handleChange('unit_type', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white mb-4">
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standalone">Independiente</SelectItem>
-                    <SelectItem value="exterior">Unidad Exterior</SelectItem>
-                    <SelectItem value="interior">Unidad Interior</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Unit Type and Relations - Solo para Split y VRF */}
+              {(formData.equipment_type === 'split' || formData.equipment_type === 'vrf') && (
+                <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <Label className="text-slate-300 mb-3 block">¿Es unidad exterior o interior?</Label>
+                  <Select value={formData.unit_type} onValueChange={(v) => {
+                    handleChange('unit_type', v);
+                    handleChange('parent_equipment_id', '');
+                  }}>
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white mb-4">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="exterior">Unidad Exterior</SelectItem>
+                      <SelectItem value="interior">Unidad Interior</SelectItem>
+                      <SelectItem value="standalone">Independiente</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                {formData.unit_type === 'interior' && formData.building_id && (
-                  <div>
-                    <Label className="text-slate-300">Unidad Exterior</Label>
-                    <Select value={formData.parent_equipment_id} onValueChange={(v) => handleChange('parent_equipment_id', v)}>
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                        <SelectValue placeholder="Seleccionar unidad exterior" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allEquipment
-                          ?.filter(eq => 
-                            eq.building_id === formData.building_id && 
-                            eq.unit_type === 'exterior'
-                          )
-                          .map(eq => (
-                            <SelectItem key={eq.id} value={eq.id}>
-                              {eq.brand} {eq.model} - {eq.location}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
+                  {formData.unit_type === 'interior' && formData.building_id && (
+                    <div className="space-y-3">
+                      <Label className="text-slate-300">¿Está relacionada con una unidad exterior existente?</Label>
+                      <Select value={formData.parent_equipment_id} onValueChange={(v) => handleChange('parent_equipment_id', v)}>
+                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                          <SelectValue placeholder="No / Crear nueva unidad exterior" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={null}>No / Crear nueva unidad exterior</SelectItem>
+                          {allEquipment
+                            ?.filter(eq => 
+                              eq.building_id === formData.building_id && 
+                              eq.unit_type === 'exterior' &&
+                              (eq.equipment_type === 'split' || eq.equipment_type === 'vrf')
+                            )
+                            .map(eq => (
+                              <SelectItem key={eq.id} value={eq.id}>
+                                {eq.brand} {eq.model} - {eq.location}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-400">
+                        Si no está relacionada con una unidad exterior existente, déjalo en blanco y créala después
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between mt-6">
@@ -823,10 +866,33 @@ export default function EquipmentForm() {
         {/* Step 3: Configuración de Mantenimiento */}
         {step === 3 && equipmentFields && (
           <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Configurar Datos a Recoger</h3>
+            <h3 className="text-xl font-semibold text-white mb-6">Configurar Mantenimiento</h3>
 
             <div className="space-y-6">
-              <div>
+              {/* Pregunta si requiere mantenimiento */}
+              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <Label className="text-slate-300 mb-3 block text-lg">¿Este equipo requiere mantenimiento periódico?</Label>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    onClick={() => handleChange('requires_maintenance', true)}
+                    className={formData.requires_maintenance === true ? 'bg-blue-600' : 'bg-white/5'}
+                  >
+                    Sí
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleChange('requires_maintenance', false)}
+                    className={formData.requires_maintenance === false ? 'bg-blue-600' : 'bg-white/5'}
+                  >
+                    No
+                  </Button>
+                </div>
+              </div>
+
+              {formData.requires_maintenance === true && (
+                <>
+                  <div>
                 <Label className="text-slate-300 mb-3 block">Selecciona las periodicidades *</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {periodicidades.map(p => (
@@ -929,11 +995,21 @@ export default function EquipmentForm() {
                 </div>
               )}
 
-              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <p className="text-slate-300 text-sm">
-                  <strong>{formData.maintenance_fields.length}</strong> datos seleccionados para las revisiones
-                </p>
-              </div>
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <p className="text-slate-300 text-sm">
+                      <strong>{formData.maintenance_fields.length}</strong> datos seleccionados para las revisiones
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {formData.requires_maintenance === false && (
+                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                  <p className="text-green-300 text-sm">
+                    El equipo se creará sin programación de mantenimiento. Puedes configurarlo más tarde si es necesario.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between mt-6">
@@ -941,10 +1017,33 @@ export default function EquipmentForm() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
-              <Button onClick={handleNext} disabled={!canProceedStep3} className="bg-blue-600">
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Siguiente
-              </Button>
+              {formData.requires_maintenance === false ? (
+                <Button 
+                  onClick={() => {
+                    const dataToSubmit = {
+                      ...formData,
+                      selected_periods: [],
+                      maintenance_fields: [],
+                      first_revision_date: null,
+                      starting_period: null
+                    };
+                    saveMutation.mutate(dataToSubmit);
+                  }} 
+                  disabled={saveMutation.isPending}
+                  className="bg-green-600"
+                >
+                  {saveMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
+                  ) : (
+                    <><Save className="h-4 w-4 mr-2" /> Crear Equipo</>
+                  )}
+                </Button>
+              ) : (
+                <Button onClick={handleNext} disabled={!canProceedStep3} className="bg-blue-600">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Siguiente
+                </Button>
+              )}
             </div>
           </Card>
         )}
