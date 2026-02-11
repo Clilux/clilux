@@ -190,6 +190,8 @@ const periodicidades = [
 export default function EquipmentForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const urlParams = new URLSearchParams(window.location.search);
+  const equipmentId = urlParams.get('id');
   const [step, setStep] = useState(1);
   
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
@@ -199,6 +201,7 @@ export default function EquipmentForm() {
 
   const [formData, setFormData] = useState({
     // Paso 1: Datos técnicos
+    reference_name: '',
     equipment_type: '',
     technical_data: {},
     registration_date: new Date().toISOString().split('T')[0],
@@ -224,6 +227,50 @@ export default function EquipmentForm() {
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [scannedData, setScannedData] = useState(null);
+
+  // Cargar equipo existente si estamos editando
+  const { data: existingEquipment } = useQuery({
+    queryKey: ['equipment-edit', equipmentId],
+    queryFn: async () => {
+      const items = await base44.entities.Equipment.filter({ id: equipmentId });
+      return items[0] || null;
+    },
+    enabled: !!equipmentId,
+  });
+
+  // Pre-rellenar formulario cuando se carga el equipo existente
+  React.useEffect(() => {
+    if (existingEquipment) {
+      setFormData({
+        reference_name: existingEquipment.reference_name || '',
+        equipment_type: existingEquipment.equipment_type,
+        technical_data: existingEquipment.technical_data || {},
+        registration_date: existingEquipment.registration_date || new Date().toISOString().split('T')[0],
+        status: existingEquipment.status || 'operational',
+        photo_url: existingEquipment.photo_url || '',
+        custom_fields: existingEquipment.technical_data?.custom_fields || [],
+        unit_type: existingEquipment.unit_type || 'standalone',
+        parent_equipment_id: existingEquipment.parent_equipment_id || '',
+        client_id: existingEquipment.client_id,
+        building_id: existingEquipment.building_id,
+        requires_maintenance: existingEquipment.maintenance_config ? true : null,
+        selected_periods: [
+          existingEquipment.maintenance_config?.monthly_enabled && 'mensual',
+          existingEquipment.maintenance_config?.quarterly_enabled && 'trimestral',
+          existingEquipment.maintenance_config?.biannual_enabled && 'semestral',
+          existingEquipment.maintenance_config?.annual_enabled && 'anual',
+        ].filter(Boolean),
+        maintenance_fields: [
+          ...(existingEquipment.maintenance_config?.monthly_fields || []),
+          ...(existingEquipment.maintenance_config?.quarterly_fields || []),
+          ...(existingEquipment.maintenance_config?.biannual_fields || []),
+          ...(existingEquipment.maintenance_config?.annual_fields || []),
+        ].filter((v, i, a) => a.findIndex(f => f.field_key === v.field_key) === i),
+        first_revision_date: existingEquipment.first_revision_date || new Date().toISOString().split('T')[0],
+        starting_period: '',
+      });
+    }
+  }, [existingEquipment]);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -274,6 +321,49 @@ export default function EquipmentForm() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data) => {
+      await base44.entities.Equipment.update(equipmentId, {
+        reference_name: data.reference_name,
+        client_id: data.client_id,
+        building_id: data.building_id,
+        equipment_type: data.equipment_type,
+        brand: data.technical_data.marca || '',
+        model: data.technical_data.modelo || '',
+        serial_number: data.technical_data.numero_serie || '',
+        location: data.technical_data.ubicacion || '',
+        cooling_power_kw: data.technical_data.potencia_frigorifica || data.technical_data.potencia_nominal || null,
+        heating_power_kw: data.technical_data.potencia_calorifica || null,
+        refrigerant_type: data.technical_data.tipo_refrigerante || '',
+        refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+        technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
+        registration_date: data.registration_date,
+        status: data.status,
+        photo_url: data.photo_url || null,
+        first_revision_date: data.first_revision_date,
+        unit_type: data.unit_type || 'standalone',
+        parent_equipment_id: data.parent_equipment_id || null,
+        maintenance_config: {
+          monthly_enabled: data.selected_periods.includes('mensual'),
+          monthly_fields: data.maintenance_fields.filter(f => f.periods.includes('mensual')),
+          quarterly_enabled: data.selected_periods.includes('trimestral'),
+          quarterly_fields: data.maintenance_fields.filter(f => f.periods.includes('trimestral')),
+          biannual_enabled: data.selected_periods.includes('semestral'),
+          biannual_fields: data.maintenance_fields.filter(f => f.periods.includes('semestral')),
+          annual_enabled: data.selected_periods.includes('anual'),
+          annual_fields: data.maintenance_fields.filter(f => f.periods.includes('anual')),
+        }
+      });
+      return existingEquipment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      toast.success('Equipo actualizado');
+      navigate(createPageUrl(`EquipmentDetail?id=${equipmentId}`));
+    },
+    onError: () => toast.error('Error al actualizar el equipo'),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       // Actualizar sugerencias
@@ -305,6 +395,7 @@ export default function EquipmentForm() {
 
       // Crear equipo
       const equipmentData = {
+        reference_name: data.reference_name,
         client_id: data.client_id,
         building_id: data.building_id,
         equipment_type: data.equipment_type,
@@ -342,15 +433,17 @@ export default function EquipmentForm() {
         const scheduledRevisions = [];
         const firstDate = new Date(data.first_revision_date);
         
-        // Mapeo de periodicidad a tipo de revisión y meses
+        // Mapeo de periodicidad a tipo de revisión, prioridad y meses
         const periodConfig = {
-          'mensual': { type: 'monthly', interval: 1, count: 12 },
-          'trimestral': { type: 'quarterly', interval: 3, count: 4 },
-          'semestral': { type: 'biannual', interval: 6, count: 2 },
-          'anual': { type: 'annual', interval: 12, count: 1 }
+          'mensual': { type: 'monthly', interval: 1, count: 12, priority: 1 },
+          'trimestral': { type: 'quarterly', interval: 3, count: 4, priority: 2 },
+          'semestral': { type: 'biannual', interval: 6, count: 2, priority: 3 },
+          'anual': { type: 'annual', interval: 12, count: 1, priority: 4 }
         };
         
-        // Generar revisiones para cada periodicidad seleccionada
+        // Recopilar todas las revisiones con sus fechas
+        const allRevisionDates = new Map(); // fecha => tipo más prioritario
+        
         data.selected_periods.forEach(period => {
           const config = periodConfig[period];
           if (!config) return;
@@ -358,16 +451,30 @@ export default function EquipmentForm() {
           for (let i = 0; i < config.count; i++) {
             const revisionDate = new Date(firstDate);
             revisionDate.setMonth(firstDate.getMonth() + (i * config.interval));
+            const dateKey = format(revisionDate, 'yyyy-MM-dd');
             
-            scheduledRevisions.push({
-              equipment_id: equipment.id,
-              client_id: data.client_id,
-              building_id: data.building_id,
-              scheduled_date: format(revisionDate, 'yyyy-MM-dd'),
-              revision_type: config.type,
-              status: 'pending'
-            });
+            // Solo mantener la revisión de mayor prioridad para cada fecha
+            const existing = allRevisionDates.get(dateKey);
+            if (!existing || config.priority > existing.priority) {
+              allRevisionDates.set(dateKey, {
+                date: dateKey,
+                type: config.type,
+                priority: config.priority
+              });
+            }
           }
+        });
+        
+        // Crear revisiones únicas (solo la más prioritaria por fecha)
+        allRevisionDates.forEach(revision => {
+          scheduledRevisions.push({
+            equipment_id: equipment.id,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: revision.date,
+            revision_type: revision.type,
+            status: 'pending'
+          });
         });
         
         // Crear todas las revisiones programadas
@@ -492,10 +599,52 @@ export default function EquipmentForm() {
   };
 
   const handleSubmit = () => {
-    saveMutation.mutate(formData);
+    if (equipmentId) {
+      updateMutation.mutate(formData);
+    } else {
+      saveMutation.mutate(formData);
+    }
   };
 
-  const canProceedStep1 = formData.equipment_type && equipmentFields?.identificacion.every(field => 
+  // Calcular potencia para determinar requisitos RITE
+  const getTotalPower = () => {
+    const cooling = formData.technical_data?.potencia_frigorifica || 0;
+    const heating = formData.technical_data?.potencia_calorifica || formData.technical_data?.potencia_nominal || 0;
+    const total = formData.technical_data?.potencia_total || 0;
+    return Math.max(cooling, heating, total);
+  };
+
+  const getRiteRequirements = () => {
+    const power = getTotalPower();
+    const type = formData.equipment_type;
+    
+    if (!type || power === 0) return null;
+    
+    if (power <= 70) {
+      return {
+        category: '5 kW ≤ P ≤ 70 kW',
+        maintenance: 'Empresa mantenedora',
+        frequency: 'Según tablas 4.1 y 4.2 (menos frecuente)',
+        note: 'Mantenimiento simplificado - Revisiones cada temporada (año)'
+      };
+    } else if (power > 70 && power <= 5000) {
+      return {
+        category: '70 kW < P ≤ 5.000 kW',
+        maintenance: 'Empresa mantenedora autorizada',
+        frequency: 'Según tablas 4.1, 4.2, 4.3 y 4.4',
+        note: 'Mantenimiento reforzado - Revisiones mensuales y trimestrales obligatorias'
+      };
+    } else {
+      return {
+        category: 'P > 5.000 kW',
+        maintenance: 'Director de mantenimiento + Empresa mantenedora',
+        frequency: 'Según tablas 4.1, 4.2, 4.3 y 4.4',
+        note: 'Mantenimiento intensivo - Requiere director de mantenimiento'
+      };
+    }
+  };
+
+  const canProceedStep1 = formData.reference_name && formData.equipment_type && equipmentFields?.identificacion.every(field => 
     !field.required || formData.technical_data[field.key]
   );
   const canProceedStep2 = formData.client_id && formData.building_id;
@@ -508,7 +657,7 @@ export default function EquipmentForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-5xl mx-auto">
-        <NavHeader title="Crear Equipo" />
+        <NavHeader title={equipmentId ? "Editar Equipo" : "Crear Equipo"} />
 
         {/* Progress */}
         <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 mb-6">
@@ -585,6 +734,16 @@ export default function EquipmentForm() {
             </div>
             
             <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Referencia del Equipo (Nombre) *</Label>
+                <Input
+                  value={formData.reference_name}
+                  onChange={(e) => handleChange('reference_name', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                  placeholder="Ej: Climatizador Planta 2 / Split Oficina Principal"
+                />
+              </div>
+
               <div>
                 <Label className="text-slate-300">Tipo de Equipo según RITE *</Label>
                 <Select value={formData.equipment_type} onValueChange={(v) => handleChange('equipment_type', v)}>
@@ -892,6 +1051,30 @@ export default function EquipmentForm() {
 
               {formData.requires_maintenance === true && (
                 <>
+                  {/* Requisitos RITE según potencia */}
+                  {getTotalPower() > 0 && getRiteRequirements() && (
+                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                      <h4 className="text-white font-semibold mb-2">📋 Requisitos RITE según Potencia</h4>
+                      <div className="space-y-1 text-sm">
+                        <p className="text-blue-200">
+                          <strong>Categoría:</strong> {getRiteRequirements().category}
+                        </p>
+                        <p className="text-blue-200">
+                          <strong>Potencia Total:</strong> {getTotalPower()} kW
+                        </p>
+                        <p className="text-blue-200">
+                          <strong>Mantenimiento:</strong> {getRiteRequirements().maintenance}
+                        </p>
+                        <p className="text-blue-200">
+                          <strong>Frecuencia:</strong> {getRiteRequirements().frequency}
+                        </p>
+                        <p className="text-blue-300 text-xs mt-2 italic">
+                          {getRiteRequirements().note}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                 <Label className="text-slate-300 mb-3 block">Selecciona las periodicidades *</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1109,11 +1292,15 @@ export default function EquipmentForm() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
-              <Button onClick={handleSubmit} disabled={saveMutation.isPending || !canProceedStep4} className="bg-green-600">
-                {saveMutation.isPending ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={(equipmentId ? updateMutation.isPending : saveMutation.isPending) || !canProceedStep4} 
+                className="bg-green-600"
+              >
+                {(equipmentId ? updateMutation.isPending : saveMutation.isPending) ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {equipmentId ? 'Actualizando...' : 'Creando...'}</>
                 ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Crear Equipo</>
+                  <><Save className="h-4 w-4 mr-2" /> {equipmentId ? 'Actualizar Equipo' : 'Crear Equipo'}</>
                 )}
               </Button>
             </div>
