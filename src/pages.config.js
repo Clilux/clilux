@@ -91,6 +91,7 @@ import TutorialEquipo from './pages/TutorialEquipo';
 import ClientEquipment from './pages/ClientEquipment';
 import ClientIncidents from './pages/ClientIncidents';
 import ClientReportIncident from './pages/ClientReportIncident';
+import ClientIncidentDetail from './pages/ClientIncidentDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -139,6 +140,7 @@ export const PAGES = {
     "ClientEquipment": ClientEquipment,
     "ClientIncidents": ClientIncidents,
     "ClientReportIncident": ClientReportIncident,
+    "ClientIncidentDetail": ClientIncidentDetail,
 }
 
 export const pagesConfig = {

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { 
-  ArrowLeft, Thermometer, MapPin, Calendar, FileText,
+  ArrowLeft, Home, Thermometer, MapPin, Calendar, FileText,
   Snowflake, Flame, Wind, Droplet, ClipboardCheck, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -86,8 +86,34 @@ export default function ClientEquipmentDetail() {
   if (!equipment) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-        <div className="max-w-5xl mx-auto text-center py-12">
-          <p className="text-slate-400">Equipo no encontrado</p>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full hover:bg-white/10 text-white"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-semibold text-white">Equipo</h1>
+          </div>
+          <Card className="p-12 bg-white/5 backdrop-blur-sm border-white/10 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <Thermometer className="h-16 w-16 text-slate-400" />
+              <p className="text-slate-300 text-lg">Equipo no encontrado</p>
+              <div className="flex gap-3">
+                <Button onClick={() => navigate(-1)} variant="outline" className="border-white/20 text-white">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Volver
+                </Button>
+                <Button onClick={() => navigate(createPageUrl('HomeCliente'))} variant="outline" className="border-white/20 text-white">
+                  <Home className="h-4 w-4 mr-2" />
+                  Inicio
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     );
