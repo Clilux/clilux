@@ -62,7 +62,7 @@ export default function ClientEquipmentDetail() {
 
   const { data: revisions = [] } = useQuery({
     queryKey: ['revisions-equipment', equipmentId],
-    queryFn: () => base44.entities.Revision.filter({ equipment_id: equipmentId }, '-revision_date'),
+    queryFn: () => base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'completed' }, '-completed_date'),
     enabled: !!equipmentId,
   });
 
@@ -268,25 +268,20 @@ export default function ClientEquipmentDetail() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-white">
-                        {format(new Date(revision.revision_date), "dd 'de' MMMM yyyy", { locale: es })}
+                        {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
                       </h3>
                       <p className="text-sm text-slate-400">
-                        Tipo: {revision.revision_type === 'preventive' ? 'Preventivo' : 'Correctivo'}
+                        Tipo: {revision.revision_type === 'monthly' ? 'Mensual' : 
+                               revision.revision_type === 'quarterly' ? 'Trimestral' :
+                               revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
                       </p>
                     </div>
-                    <Badge className={
-                      revision.general_status === 'good' ? 'bg-emerald-500/20 text-emerald-400' :
-                      revision.general_status === 'acceptable' ? 'bg-blue-500/20 text-blue-400' :
-                      revision.general_status === 'needs_repair' ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-red-500/20 text-red-400'
-                    }>
-                      {revision.general_status === 'good' ? 'Bueno' :
-                       revision.general_status === 'acceptable' ? 'Aceptable' :
-                       revision.general_status === 'needs_repair' ? 'Necesita reparación' : 'Crítico'}
+                    <Badge className="bg-emerald-500/20 text-emerald-400">
+                      Completada
                     </Badge>
                   </div>
-                  {revision.observations && (
-                    <p className="text-sm text-slate-400 mt-2">{revision.observations}</p>
+                  {revision.notes && (
+                    <p className="text-sm text-slate-400 mt-2">{revision.notes}</p>
                   )}
                 </div>
               ))}
