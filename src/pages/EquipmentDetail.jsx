@@ -19,6 +19,7 @@ import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsList';
 import RevisionsTab from '../components/equipment/RevisionsTab';
 import InterventionsTab from '../components/equipment/InterventionsTab';
+import PhotosTab from '../components/equipment/PhotosTab';
 import EquipmentReport from '../components/reports/EquipmentReport';
 import RevisionsReport from '../components/reports/RevisionsReport';
 
@@ -381,11 +382,12 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
-        {/* Tabs: Revisiones, Intervenciones, Documentos */}
+        {/* Tabs: Revisiones, Intervenciones, Imágenes, Documentos */}
         <Tabs defaultValue="revisions" className="mb-6">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
+            <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
           </TabsList>
 
@@ -401,8 +403,14 @@ export default function EquipmentDetail() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="photos">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <PhotosTab equipment={equipment} equipmentId={equipmentId} />
+            </Card>
+          </TabsContent>
+
           <TabsContent value="documents">
-                <EquipmentDocuments 
+            <EquipmentDocuments 
               equipment={equipment} 
               onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
             />
