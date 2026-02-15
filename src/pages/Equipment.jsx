@@ -109,7 +109,7 @@ export default function Equipment() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {[1,2,3,4,5,6].map(i => (
               <Card key={i} className="p-5 bg-white/10 backdrop-blur-sm border-white/20">
                 <div className="h-32 animate-pulse bg-white/5 rounded" />
@@ -132,7 +132,7 @@ export default function Equipment() {
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {filteredEquipment.map(eq => {
               const building = buildings.find(b => b.id === eq.building_id);
               const client = clients.find(c => c.id === eq.client_id);
