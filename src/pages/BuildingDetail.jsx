@@ -118,7 +118,7 @@ export default function BuildingDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
               <MapPin className="h-5 w-5 text-slate-400 mt-0.5" />
               <div>

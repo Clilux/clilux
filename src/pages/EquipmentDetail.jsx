@@ -58,15 +58,15 @@ export default function EquipmentDetail() {
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: async () => {
-      await base44.entities.Equipment.delete(equipmentId);
-    },
+    mutationFn: () => base44.entities.Equipment.delete(equipmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      toast.success('Equipo eliminado');
-      navigate(-1);
+      toast.success('Equipo eliminado correctamente');
+      navigate(createPageUrl('Equipment'));
     },
-    onError: () => toast.error('Error al eliminar el equipo'),
+    onError: () => {
+      toast.error('Error al eliminar el equipo');
+    },
   });
 
   const { data: equipment, isLoading } = useQuery({
@@ -272,7 +272,7 @@ export default function EquipmentDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {equipment.location && (
                   <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
@@ -333,17 +333,7 @@ export default function EquipmentDetail() {
             </div>
           </div>
 
-          {equipment.notes && (
-            <div className="mt-4 p-3 rounded-lg bg-slate-50">
-              <div className="flex items-start gap-3">
-                <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
-                <div>
-                  <p className="text-sm text-slate-500">Observaciones</p>
-                  <p className="text-slate-700">{equipment.notes}</p>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* Related Equipment */}
           {(parentEquipment || childEquipment.length > 0) && (
