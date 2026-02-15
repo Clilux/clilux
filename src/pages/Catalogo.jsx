@@ -494,44 +494,71 @@ export default function Catalogo() {
                 />
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <Label className="text-slate-300">PVP Base (€) *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.pvp}
-                    onChange={(e) => setFormData({...formData, pvp: Number(e.target.value)})}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-slate-300">PVP (€) *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.pvp}
+                      onChange={(e) => setFormData({...formData, pvp: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Descuento Compra (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.descuento_compra}
+                      onChange={(e) => setFormData({...formData, descuento_compra: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Precio de Compra (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(formData.pvp * (1 - formData.descuento_compra / 100)).toFixed(2)}
+                      disabled
+                      className="bg-white/5 border-white/20 text-blue-400 font-medium"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-slate-300">Dto. Compra (%)</Label>
-                  <Input
-                    type="number"
-                    value={formData.descuento_compra}
-                    onChange={(e) => setFormData({...formData, descuento_compra: Number(e.target.value)})}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-slate-300">Margen Venta (%)</Label>
-                  <Input
-                    type="number"
-                    value={formData.porcentaje_venta}
-                    onChange={(e) => setFormData({...formData, porcentaje_venta: Number(e.target.value)})}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-slate-300">Precio Venta</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={(formData.pvp * (1 - formData.descuento_compra / 100) * (1 + formData.porcentaje_venta / 100)).toFixed(2)}
-                    disabled
-                    className="bg-white/5 border-white/20 text-green-400 font-bold"
-                  />
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-slate-300">% Margen de Venta</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.porcentaje_venta}
+                      onChange={(e) => setFormData({...formData, porcentaje_venta: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Margen (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(formData.pvp * (1 - formData.descuento_compra / 100) * (formData.porcentaje_venta / 100)).toFixed(2)}
+                      disabled
+                      className="bg-white/5 border-white/20 text-amber-400 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Precio Final (€)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(formData.pvp * (1 - formData.descuento_compra / 100) * (1 + formData.porcentaje_venta / 100)).toFixed(2)}
+                      disabled
+                      className="bg-white/5 border-white/20 text-green-400 font-bold"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -755,44 +782,71 @@ export default function Catalogo() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <Label className="text-slate-300">PVP Base (€) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={editingProduct.pvp}
-                      onChange={(e) => setEditingProduct({...editingProduct, pvp: Number(e.target.value)})}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-slate-300">PVP (€) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.pvp}
+                        onChange={(e) => setEditingProduct({...editingProduct, pvp: Number(e.target.value)})}
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Descuento Compra (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.descuento_compra}
+                        onChange={(e) => setEditingProduct({...editingProduct, descuento_compra: Number(e.target.value)})}
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Precio de Compra (€)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={(editingProduct.pvp * (1 - editingProduct.descuento_compra / 100)).toFixed(2)}
+                        disabled
+                        className="bg-white/5 border-white/20 text-blue-400 font-medium"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-slate-300">Dto. Compra (%)</Label>
-                    <Input
-                      type="number"
-                      value={editingProduct.descuento_compra}
-                      onChange={(e) => setEditingProduct({...editingProduct, descuento_compra: Number(e.target.value)})}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-slate-300">Margen Venta (%)</Label>
-                    <Input
-                      type="number"
-                      value={editingProduct.porcentaje_venta}
-                      onChange={(e) => setEditingProduct({...editingProduct, porcentaje_venta: Number(e.target.value)})}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-slate-300">Precio Venta</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={(editingProduct.pvp * (1 - editingProduct.descuento_compra / 100) * (1 + editingProduct.porcentaje_venta / 100)).toFixed(2)}
-                      disabled
-                      className="bg-white/5 border-white/20 text-green-400 font-bold"
-                    />
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-slate-300">% Margen de Venta</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.porcentaje_venta}
+                        onChange={(e) => setEditingProduct({...editingProduct, porcentaje_venta: Number(e.target.value)})}
+                        className="bg-white/5 border-white/20 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Margen (€)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={(editingProduct.pvp * (1 - editingProduct.descuento_compra / 100) * (editingProduct.porcentaje_venta / 100)).toFixed(2)}
+                        disabled
+                        className="bg-white/5 border-white/20 text-amber-400 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Precio Final (€)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={(editingProduct.pvp * (1 - editingProduct.descuento_compra / 100) * (1 + editingProduct.porcentaje_venta / 100)).toFixed(2)}
+                        disabled
+                        className="bg-white/5 border-white/20 text-green-400 font-bold"
+                      />
+                    </div>
                   </div>
                 </div>
 
