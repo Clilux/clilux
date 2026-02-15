@@ -54,7 +54,6 @@ import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
-import Calendar from './pages/Calendar';
 import Catalogo from './pages/Catalogo';
 import CertificadoRITE from './pages/CertificadoRITE';
 import ClientDetail from './pages/ClientDetail';
@@ -98,7 +97,6 @@ export const PAGES = {
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
-    "Calendar": Calendar,
     "Catalogo": Catalogo,
     "CertificadoRITE": CertificadoRITE,
     "ClientDetail": ClientDetail,
