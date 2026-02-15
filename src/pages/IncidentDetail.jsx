@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
+import IncidentReport from '../components/reports/IncidentReport';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -192,11 +193,19 @@ export default function IncidentDetail() {
                 <p className="text-slate-600">{incident.description}</p>
               </div>
             </div>
-            {userRole === 'technician' && (
-              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
+            <div className="flex gap-2">
+              <IncidentReport
+                incident={incident}
+                equipment={equipment}
+                client={client}
+                building={building}
+              />
+              {userRole === 'technician' && (
+                <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
