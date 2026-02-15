@@ -20,6 +20,7 @@ import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsLi
 import RevisionsTab from '../components/equipment/RevisionsTab';
 import InterventionsTab from '../components/equipment/InterventionsTab';
 import PhotosTab from '../components/equipment/PhotosTab';
+import EditableNotes from '../components/equipment/EditableNotes';
 import EquipmentReport from '../components/reports/EquipmentReport';
 import RevisionsReport from '../components/reports/RevisionsReport';
 
@@ -382,9 +383,14 @@ export default function EquipmentDetail() {
           )}
         </Card>
 
+        {/* Observaciones editables */}
+        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+          <EditableNotes equipment={equipment} equipmentId={equipmentId} />
+        </Card>
+
         {/* Tabs: Revisiones, Intervenciones, Imágenes, Documentos */}
         <Tabs defaultValue="revisions" className="mb-6">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6">
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
             <TabsTrigger value="photos">Imágenes</TabsTrigger>

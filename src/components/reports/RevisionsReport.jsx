@@ -62,9 +62,12 @@ export default function RevisionsReport({ equipment, building, client, revisions
       // Historial de revisiones
       const completedRevisions = revisions.filter(r => r.status === 'completed').sort((a, b) => new Date(b.completed_date) - new Date(a.completed_date));
       
-      if (completedRevisions.length === 0) {
+      if (!revisions || revisions.length === 0) {
         pdf.setTextColor(100, 100, 100);
-        pdf.text('No hay revisiones completadas', pageWidth / 2, yPosition, { align: 'center' });
+        pdf.text('No hay revisiones registradas', pageWidth / 2, yPosition, { align: 'center' });
+      } else if (completedRevisions.length === 0) {
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('No hay revisiones completadas aún', pageWidth / 2, yPosition, { align: 'center' });
       } else {
         pdf.setFontSize(14);
         pdf.setTextColor(0, 0, 0);
