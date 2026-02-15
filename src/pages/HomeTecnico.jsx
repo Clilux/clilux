@@ -160,7 +160,7 @@ export default function HomeTecnico() {
 
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
               <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
@@ -212,8 +212,8 @@ export default function HomeTecnico() {
           </div>
 
           {/* Alertas */}
-          <div className="grid grid-cols-1 gap-4">
-            <Card className="p-5 bg-blue-500/10 border-blue-500/30">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="bg-sky-100 text-card-foreground p-5 rounded-[32px] border shadow border-blue-500/30">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-blue-400" />
@@ -251,7 +251,7 @@ export default function HomeTecnico() {
               </div>
             </Card>
 
-            <Card className="p-5 bg-red-500/10 border-red-500/30">
+            <Card className="bg-orange-100 text-card-foreground p-5 rounded-[32px] border shadow border-red-500/30">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-red-500/30 flex items-center justify-center">
                   <AlertCircle className="h-5 w-5 text-red-400" />
@@ -329,7 +329,7 @@ export default function HomeTecnico() {
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
 
                   {quickActions.map((action, index) => {
                   const iconMap = {
