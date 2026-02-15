@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle2, Clock } from 'lucide-react';
-import { format, isBefore } from 'date-fns';
+import { format, isBefore, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 
@@ -27,25 +27,38 @@ export default function ScheduledRevisionsList({ equipmentId }) {
     enabled: !!equipmentId,
   });
 
-  const pendingRevisions = scheduledRevisions.filter(sr => sr.status === 'pending');
   const today = new Date();
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+  
+  // Filtrar revisiones pendientes del mes actual
+  const pendingRevisionsThisMonth = scheduledRevisions.filter(sr => {
+    if (sr.status !== 'pending') return false;
+    const revisionDate = new Date(sr.scheduled_date);
+    return revisionDate >= monthStart && revisionDate <= monthEnd;
+  });
 
   if (isLoading) {
     return <div className="text-center py-4 text-slate-500">Cargando...</div>;
   }
 
-  if (pendingRevisions.length === 0) {
+  if (pendingRevisionsThisMonth.length === 0) {
     return (
       <div className="text-center py-8 text-slate-500">
         <Calendar className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-        <p>No hay revisiones programadas</p>
+        <p>No hay revisiones programadas para {format(today, 'MMMM yyyy', { locale: es })}</p>
       </div>
     );
   }
 
+  const currentMonth = format(today, 'MMMM yyyy', { locale: es });
+
   return (
     <div className="space-y-3">
-      {pendingRevisions.slice(0, 5).map(revision => {
+      <h3 className="text-sm font-semibold text-slate-600 mb-3">
+        Revisiones programadas para {currentMonth}
+      </h3>
+      {pendingRevisionsThisMonth.slice(0, 5).map(revision => {
         const revisionDate = new Date(revision.scheduled_date);
         const isOverdue = isBefore(revisionDate, today);
         
@@ -89,9 +102,9 @@ export default function ScheduledRevisionsList({ equipmentId }) {
         );
       })}
       
-      {pendingRevisions.length > 5 && (
+      {pendingRevisionsThisMonth.length > 5 && (
         <p className="text-sm text-slate-500 text-center pt-2">
-          +{pendingRevisions.length - 5} revisiones más
+          +{pendingRevisionsThisMonth.length - 5} revisiones más este mes
         </p>
       )}
     </div>

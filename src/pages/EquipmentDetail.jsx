@@ -19,6 +19,7 @@ import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsList';
 import RevisionsTab from '../components/equipment/RevisionsTab';
 import InterventionsTab from '../components/equipment/InterventionsTab';
+import EquipmentPDFReport from '../components/equipment/EquipmentPDFReport';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -195,6 +196,13 @@ export default function EquipmentDetail() {
                   )}
                 </div>
                 <div className="flex gap-2">
+                  <EquipmentPDFReport
+                    equipment={equipment}
+                    building={building}
+                    client={client}
+                    revisions={scheduledRevisions}
+                    interventions={[]}
+                  />
                   <Link to={createPageUrl(`EquipmentForm?id=${equipment.id}`)}>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />

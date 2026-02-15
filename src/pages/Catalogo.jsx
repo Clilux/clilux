@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Loader2, Sparkles, Trash2, Upload } from 'lucide-react';
+import { Search, Plus, Loader2, Sparkles, Trash2, Upload, Edit } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -18,16 +18,22 @@ export default function Catalogo() {
   const [filterFabricante, setFilterFabricante] = useState('all');
   const [showDialog, setShowDialog] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [searching, setSearching] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadConfig, setUploadConfig] = useState({
+    nombre_catalogo: '',
     fabricante: 'Daikin',
     descuento_compra: 30,
     porcentaje_venta: 40,
   });
   const [formData, setFormData] = useState({
     fabricante: 'Daikin',
+    marca: '',
+    modelo: '',
     codigo: '',
+    codigo_fabricante: '',
     descripcion: '',
     categoria: 'equipos',
     pvp: 0,
@@ -73,6 +79,20 @@ export default function Catalogo() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['catalogo'] });
       toast.success('Producto eliminado');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => {
+      const precio_compra = data.pvp * (1 - (data.descuento_compra || 0) / 100);
+      const precio_venta = precio_compra * (1 + (data.porcentaje_venta || 0) / 100);
+      return base44.entities.CatalogoProducto.update(id, { ...data, precio_venta });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalogo'] });
+      setShowEditDialog(false);
+      setEditingProduct(null);
+      toast.success('Producto actualizado');
     },
   });
 
@@ -141,6 +161,11 @@ export default function Catalogo() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!uploadConfig.nombre_catalogo) {
+      toast.error('Introduce un nombre para el catálogo');
+      return;
+    }
+
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -194,6 +219,15 @@ export default function Catalogo() {
 
         const todosProductos = [...productosConIA, ...productosRestantes];
 
+        // Crear registro del catálogo importado
+        const catalogoImportado = await base44.entities.CatalogoImportado.create({
+          nombre_catalogo: uploadConfig.nombre_catalogo,
+          fabricante: uploadConfig.fabricante,
+          fecha_importacion: new Date().toISOString().split('T')[0],
+          num_productos: todosProductos.length,
+          archivo_url: file_url
+        });
+
         const productosAñadir = todosProductos.map(p => {
           const precio_compra = p.pvp * (1 - uploadConfig.descuento_compra / 100);
           const precio_venta = precio_compra * (1 + uploadConfig.porcentaje_venta / 100);
@@ -208,13 +242,20 @@ export default function Catalogo() {
             precio_venta,
             año_tarifa: new Date().getFullYear(),
             unidad: 'ud',
+            catalogo_id: catalogoImportado.id,
           };
         });
 
         await base44.entities.CatalogoProducto.bulkCreate(productosAñadir);
         queryClient.invalidateQueries({ queryKey: ['catalogo'] });
-        toast.success(`${productosAñadir.length} productos importados desde archivo`);
+        toast.success(`${productosAñadir.length} productos importados desde "${uploadConfig.nombre_catalogo}"`);
         setShowUploadDialog(false);
+        setUploadConfig({
+          nombre_catalogo: '',
+          fabricante: 'Daikin',
+          descuento_compra: 30,
+          porcentaje_venta: 40,
+        });
       } else {
         toast.error(result.details || 'Error al procesar el archivo');
       }
@@ -306,6 +347,17 @@ export default function Catalogo() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => {
+                      setEditingProduct(producto);
+                      setShowEditDialog(true);
+                    }}
+                    className="text-blue-400 hover:text-blue-300"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => deleteMutation.mutate(producto.id)}
                     className="text-red-400 hover:text-red-300"
                   >
@@ -368,6 +420,25 @@ export default function Catalogo() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label className="text-slate-300">Marca</Label>
+                  <Input
+                    value={formData.marca}
+                    onChange={(e) => setFormData({...formData, marca: e.target.value})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Modelo</Label>
+                  <Input
+                    value={formData.modelo}
+                    onChange={(e) => setFormData({...formData, modelo: e.target.value})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label className="text-slate-300">Código *</Label>
                   <Input
                     value={formData.codigo}
@@ -376,19 +447,12 @@ export default function Catalogo() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Categoría *</Label>
-                  <Select value={formData.categoria} onValueChange={(v) => setFormData({...formData, categoria: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="equipos">Equipos</SelectItem>
-                      <SelectItem value="repuestos">Repuestos</SelectItem>
-                      <SelectItem value="accesorios">Accesorios</SelectItem>
-                      <SelectItem value="materiales">Materiales</SelectItem>
-                      <SelectItem value="mano_obra">Mano de Obra</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-slate-300">Código Fabricante</Label>
+                  <Input
+                    value={formData.codigo_fabricante}
+                    onChange={(e) => setFormData({...formData, codigo_fabricante: e.target.value})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
                 </div>
               </div>
 
@@ -399,6 +463,22 @@ export default function Catalogo() {
                   onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                   className="bg-white/5 border-white/20 text-white"
                 />
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Categoría *</Label>
+                <Select value={formData.categoria} onValueChange={(v) => setFormData({...formData, categoria: v})}>
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equipos">Equipos</SelectItem>
+                    <SelectItem value="repuestos">Repuestos</SelectItem>
+                    <SelectItem value="accesorios">Accesorios</SelectItem>
+                    <SelectItem value="materiales">Materiales</SelectItem>
+                    <SelectItem value="mano_obra">Mano de Obra</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-4 gap-4">
@@ -485,6 +565,17 @@ export default function Catalogo() {
 
             <div className="space-y-4">
               <div>
+                <Label className="text-slate-300">Nombre del Catálogo *</Label>
+                <Input
+                  value={uploadConfig.nombre_catalogo}
+                  onChange={(e) => setUploadConfig({...uploadConfig, nombre_catalogo: e.target.value})}
+                  className="bg-white/5 border-white/20 text-white"
+                  placeholder="Ej: Tarifa Daikin 2024"
+                />
+                <p className="text-xs text-slate-400 mt-1">Identificador único para este catálogo</p>
+              </div>
+
+              <div>
                 <Label className="text-slate-300">Fabricante *</Label>
                 <Select value={uploadConfig.fabricante} onValueChange={(v) => setUploadConfig({...uploadConfig, fabricante: v})}>
                   <SelectTrigger className="bg-white/5 border-white/20 text-white">
@@ -555,6 +646,176 @@ export default function Catalogo() {
                 </p>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Edición */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white">Editar Producto</DialogTitle>
+            </DialogHeader>
+
+            {editingProduct && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-slate-300">Fabricante *</Label>
+                  <Select 
+                    value={editingProduct.fabricante} 
+                    onValueChange={(v) => setEditingProduct({...editingProduct, fabricante: v})}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Airzone">Airzone</SelectItem>
+                      <SelectItem value="Mitsubishi Electric">Mitsubishi Electric</SelectItem>
+                      <SelectItem value="Daikin">Daikin</SelectItem>
+                      <SelectItem value="Otro">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">Marca</Label>
+                    <Input
+                      value={editingProduct.marca || ''}
+                      onChange={(e) => setEditingProduct({...editingProduct, marca: e.target.value})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Modelo</Label>
+                    <Input
+                      value={editingProduct.modelo || ''}
+                      onChange={(e) => setEditingProduct({...editingProduct, modelo: e.target.value})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">Código *</Label>
+                    <Input
+                      value={editingProduct.codigo}
+                      onChange={(e) => setEditingProduct({...editingProduct, codigo: e.target.value})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Código Fabricante</Label>
+                    <Input
+                      value={editingProduct.codigo_fabricante || ''}
+                      onChange={(e) => setEditingProduct({...editingProduct, codigo_fabricante: e.target.value})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-slate-300">Descripción *</Label>
+                  <Input
+                    value={editingProduct.descripcion}
+                    onChange={(e) => setEditingProduct({...editingProduct, descripcion: e.target.value})}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-slate-300">Categoría *</Label>
+                  <Select 
+                    value={editingProduct.categoria} 
+                    onValueChange={(v) => setEditingProduct({...editingProduct, categoria: v})}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equipos">Equipos</SelectItem>
+                      <SelectItem value="repuestos">Repuestos</SelectItem>
+                      <SelectItem value="accesorios">Accesorios</SelectItem>
+                      <SelectItem value="materiales">Materiales</SelectItem>
+                      <SelectItem value="mano_obra">Mano de Obra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-slate-300">PVP Base (€) *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editingProduct.pvp}
+                      onChange={(e) => setEditingProduct({...editingProduct, pvp: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Dto. Compra (%)</Label>
+                    <Input
+                      type="number"
+                      value={editingProduct.descuento_compra}
+                      onChange={(e) => setEditingProduct({...editingProduct, descuento_compra: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Margen Venta (%)</Label>
+                    <Input
+                      type="number"
+                      value={editingProduct.porcentaje_venta}
+                      onChange={(e) => setEditingProduct({...editingProduct, porcentaje_venta: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Precio Venta</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(editingProduct.pvp * (1 - editingProduct.descuento_compra / 100) * (1 + editingProduct.porcentaje_venta / 100)).toFixed(2)}
+                      disabled
+                      className="bg-white/5 border-white/20 text-green-400 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300">Unidad</Label>
+                    <Input
+                      value={editingProduct.unidad}
+                      onChange={(e) => setEditingProduct({...editingProduct, unidad: e.target.value})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300">Año Tarifa</Label>
+                    <Input
+                      type="number"
+                      value={editingProduct.año_tarifa}
+                      onChange={(e) => setEditingProduct({...editingProduct, año_tarifa: Number(e.target.value)})}
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => updateMutation.mutate({ id: editingProduct.id, data: editingProduct })}
+                  disabled={!editingProduct.codigo || !editingProduct.descripcion || updateMutation.isPending}
+                  className="w-full bg-blue-600"
+                >
+                  {updateMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Actualizando...</>
+                  ) : (
+                    <>Guardar Cambios</>
+                  )}
+                </Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
