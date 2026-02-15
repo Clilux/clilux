@@ -22,13 +22,18 @@ export default function RevisionsTab({ equipmentId }) {
     queryKey: ['all-revisions-equipment', equipmentId],
     queryFn: async () => {
       const all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
-      return all.sort((a, b) => new Date(b.scheduled_date) - new Date(a.scheduled_date));
+      return all;
     },
     enabled: !!equipmentId,
   });
 
-  const pendingRevisions = revisions.filter(r => r.status === 'pending');
-  const completedRevisions = revisions.filter(r => r.status === 'completed');
+  const pendingRevisions = revisions
+    .filter(r => r.status === 'pending')
+    .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+  
+  const completedRevisions = revisions
+    .filter(r => r.status === 'completed')
+    .sort((a, b) => new Date(b.completed_date || b.scheduled_date) - new Date(a.completed_date || a.scheduled_date));
   const today = new Date();
 
   if (isLoading) {

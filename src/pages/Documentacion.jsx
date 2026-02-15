@@ -26,20 +26,20 @@ export default function Documentacion() {
       bgColor: 'bg-blue-500/20'
     },
     {
-      id: 'manuales',
-      title: 'Manuales Técnicos',
-      description: 'Documentación de equipos',
-      icon: Book,
-      page: 'ManualesTecnicos',
+      id: 'informes-equipos',
+      title: 'Informes de Equipos',
+      description: 'Reportes de equipos instalados',
+      icon: FileText,
+      page: 'Equipment',
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/20'
     },
     {
-      id: 'plantillas',
-      title: 'Plantillas',
-      description: 'Documentos y formatos',
-      icon: FileSpreadsheet,
-      page: 'Plantillas',
+      id: 'informes-incidencias',
+      title: 'Informes de Incidencias',
+      description: 'Reportes de incidencias',
+      icon: FileText,
+      page: 'Incidents',
       color: 'text-amber-400',
       bgColor: 'bg-amber-500/20'
     }
