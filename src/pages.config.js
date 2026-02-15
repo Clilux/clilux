@@ -54,6 +54,7 @@ import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
+import Calendar from './pages/Calendar';
 import Catalogo from './pages/Catalogo';
 import CertificadoRITE from './pages/CertificadoRITE';
 import ClientDetail from './pages/ClientDetail';
@@ -87,7 +88,6 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import Calendar from './pages/Calendar';
 import __Layout from './Layout.jsx';
 
 
@@ -99,6 +99,7 @@ export const PAGES = {
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
+    "Calendar": Calendar,
     "Catalogo": Catalogo,
     "CertificadoRITE": CertificadoRITE,
     "ClientDetail": ClientDetail,
@@ -132,7 +133,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "Calendar": Calendar,
 }
 
 export const pagesConfig = {

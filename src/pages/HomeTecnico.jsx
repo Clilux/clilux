@@ -197,16 +197,18 @@ export default function HomeTecnico() {
                 </div>
               </Card>
             </Link>
-            <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
-                  <ClipboardCheck className="h-7 w-7 text-amber-400" />
+            <Link to={createPageUrl('Calendar')}>
+              <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 relative overflow-hidden group hover:bg-white/15 transition-all cursor-pointer">
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/30 rounded-full blur-xl group-hover:scale-110 transition-transform" />
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
+                    <ClipboardCheck className="h-7 w-7 text-amber-400" />
+                  </div>
+                  <p className="text-4xl font-bold text-white">{scheduledRevisions.filter((sr) => sr.status === 'pending').length}</p>
+                  <p className="text-sm text-slate-400">Revisiones Programadas</p>
                 </div>
-                <p className="text-4xl font-bold text-white">{scheduledRevisions.filter((sr) => sr.status === 'pending').length}</p>
-                <p className="text-sm text-slate-400">Revisiones Programadas</p>
-              </div>
-            </Card>
+              </Card>
+            </Link>
           </div>
 
           {/* Alertas */}
