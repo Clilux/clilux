@@ -16,6 +16,13 @@ export default function Catalogo() {
   const fileInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFabricante, setFilterFabricante] = useState('all');
+  const [filterTipo, setFilterTipo] = useState('all');
+  const [filterCatalogo, setFilterCatalogo] = useState('all');
+
+  const { data: catalogos = [] } = useQuery({
+    queryKey: ['catalogos-importados'],
+    queryFn: () => base44.entities.CatalogoImportado.list(),
+  });
   const [showDialog, setShowDialog] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -29,19 +36,23 @@ export default function Catalogo() {
     porcentaje_venta: 40,
   });
   const [formData, setFormData] = useState({
-    fabricante: 'Daikin',
-    marca: '',
-    modelo: '',
+    tipo: 'producto',
+    fabricante: '',
     codigo: '',
-    codigo_fabricante: '',
     descripcion: '',
-    categoria: 'equipos',
+    familia: '',
     pvp: 0,
     descuento_compra: 0,
     porcentaje_venta: 0,
     precio_venta: 0,
     año_tarifa: new Date().getFullYear(),
     unidad: 'ud',
+    nombre_catalogo: '',
+  });
+
+  const { data: familias = [] } = useQuery({
+    queryKey: ['familias'],
+    queryFn: () => base44.entities.FamiliaProducto.list(),
   });
 
   const { data: productos = [] } = useQuery({
@@ -273,7 +284,9 @@ export default function Catalogo() {
       p.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchFabricante = filterFabricante === 'all' || p.fabricante === filterFabricante;
-    return matchSearch && matchFabricante;
+    const matchTipo = filterTipo === 'all' || p.tipo === filterTipo;
+    const matchCatalogo = filterCatalogo === 'all' || p.nombre_catalogo === filterCatalogo;
+    return matchSearch && matchFabricante && matchTipo && matchCatalogo;
   });
 
   return (
@@ -292,16 +305,38 @@ export default function Catalogo() {
             />
           </div>
 
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger className="w-32 bg-white/5 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tipo</SelectItem>
+              <SelectItem value="producto">Producto</SelectItem>
+              <SelectItem value="servicio">Servicio</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={filterFabricante} onValueChange={setFilterFabricante}>
             <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos los fabricantes</SelectItem>
-              <SelectItem value="Airzone">Airzone</SelectItem>
-              <SelectItem value="Mitsubishi Electric">Mitsubishi Electric</SelectItem>
-              <SelectItem value="Daikin">Daikin</SelectItem>
-              <SelectItem value="Otro">Otro</SelectItem>
+              <SelectItem value="all">Fabricante</SelectItem>
+              {[...new Set(productos.map(p => p.fabricante).filter(Boolean))].map(fab => (
+                <SelectItem key={fab} value={fab}>{fab}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterCatalogo} onValueChange={setFilterCatalogo}>
+            <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Catálogo</SelectItem>
+              {catalogos.map(cat => (
+                <SelectItem key={cat.id} value={cat.nombre_catalogo}>{cat.nombre_catalogo}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -320,17 +355,27 @@ export default function Catalogo() {
             <Card key={producto.id} className="p-4 bg-white/5 backdrop-blur-sm border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-xs font-mono">
                       {producto.codigo}
                     </span>
                     <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-300 text-xs">
                       {producto.fabricante}
                     </span>
+                    {producto.tipo && (
+                      <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-xs">
+                        {producto.tipo}
+                      </span>
+                    )}
+                    {producto.familia && (
+                      <span className="px-2 py-1 rounded bg-amber-500/20 text-amber-300 text-xs">
+                        {producto.familia}
+                      </span>
+                    )}
                   </div>
                   <p className="text-white font-medium mt-2">{producto.descripcion}</p>
                   <p className="text-slate-400 text-sm mt-1">
-                    Categoría: {producto.categoria} • Año: {producto.año_tarifa}
+                    {producto.nombre_catalogo && `${producto.nombre_catalogo} • `}Año: {producto.año_tarifa}
                   </p>
                 </div>
                 <div className="flex items-center gap-6">
@@ -382,56 +427,25 @@ export default function Catalogo() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div>
-                <Label className="text-slate-300">Fabricante *</Label>
-                <Select value={formData.fabricante} onValueChange={(v) => setFormData({...formData, fabricante: v})}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Airzone">Airzone</SelectItem>
-                    <SelectItem value="Mitsubishi Electric">Mitsubishi Electric</SelectItem>
-                    <SelectItem value="Daikin">Daikin</SelectItem>
-                    <SelectItem value="Otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                onClick={handleSearchTarifa}
-                disabled={searching}
-                className="w-full bg-purple-600"
-              >
-                {searching ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Buscando tarifas...</>
-                ) : (
-                  <><Sparkles className="h-4 w-4 mr-2" /> Importar desde Tarifa {new Date().getFullYear()}</>
-                )}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-800 px-2 text-slate-400">o añadir manualmente</span>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Marca</Label>
-                  <Input
-                    value={formData.marca}
-                    onChange={(e) => setFormData({...formData, marca: e.target.value})}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
+                  <Label className="text-slate-300">Tipo *</Label>
+                  <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
+                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="producto">Producto</SelectItem>
+                      <SelectItem value="servicio">Servicio</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-300">Modelo</Label>
+                  <Label className="text-slate-300">Fabricante *</Label>
                   <Input
-                    value={formData.modelo}
-                    onChange={(e) => setFormData({...formData, modelo: e.target.value})}
+                    value={formData.fabricante}
+                    onChange={(e) => setFormData({...formData, fabricante: e.target.value})}
+                    placeholder="Marca o fabricante"
                     className="bg-white/5 border-white/20 text-white"
                   />
                 </div>
@@ -447,12 +461,17 @@ export default function Catalogo() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Código Fabricante</Label>
-                  <Input
-                    value={formData.codigo_fabricante}
-                    onChange={(e) => setFormData({...formData, codigo_fabricante: e.target.value})}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
+                  <Label className="text-slate-300">Familia</Label>
+                  <select
+                    value={formData.familia}
+                    onChange={(e) => setFormData({...formData, familia: e.target.value})}
+                    className="w-full h-10 px-3 rounded-md border bg-white/5 border-white/20 text-white"
+                  >
+                    <option value="">Seleccionar familia...</option>
+                    {familias.map(f => (
+                      <option key={f.id} value={f.nombre}>{f.nombre}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -466,19 +485,13 @@ export default function Catalogo() {
               </div>
 
               <div>
-                <Label className="text-slate-300">Categoría *</Label>
-                <Select value={formData.categoria} onValueChange={(v) => setFormData({...formData, categoria: v})}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="equipos">Equipos</SelectItem>
-                    <SelectItem value="repuestos">Repuestos</SelectItem>
-                    <SelectItem value="accesorios">Accesorios</SelectItem>
-                    <SelectItem value="materiales">Materiales</SelectItem>
-                    <SelectItem value="mano_obra">Mano de Obra</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-slate-300">Nombre del Catálogo</Label>
+                <Input
+                  value={formData.nombre_catalogo}
+                  onChange={(e) => setFormData({...formData, nombre_catalogo: e.target.value})}
+                  placeholder="Ej: Tarifa 2024"
+                  className="bg-white/5 border-white/20 text-white"
+                />
               </div>
 
               <div className="grid grid-cols-4 gap-4">

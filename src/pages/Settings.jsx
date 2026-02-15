@@ -260,6 +260,10 @@ export default function Settings() {
               <Users className="h-4 w-4" />
               Portal Cliente
             </TabsTrigger>
+            <TabsTrigger value="catalogo" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Catálogo
+            </TabsTrigger>
             <TabsTrigger value="backup" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Copias
@@ -555,6 +559,25 @@ export default function Settings() {
                   No hay usuarios configurados para el portal de clientes.
                 </p>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="catalogo">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-800">Configuración de Catálogo</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Gestiona familias, importa y exporta productos
+                  </p>
+                </div>
+                <Link to={createPageUrl('ConfigCatalogo')}>
+                  <Button>
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Configurar Catálogo
+                  </Button>
+                </Link>
+              </div>
             </Card>
           </TabsContent>
 
