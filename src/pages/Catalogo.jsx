@@ -243,16 +243,18 @@ export default function Catalogo() {
           const precio_compra = p.pvp * (1 - uploadConfig.descuento_compra / 100);
           const precio_venta = precio_compra * (1 + uploadConfig.porcentaje_venta / 100);
           return {
+            tipo: 'producto',
             fabricante: uploadConfig.fabricante,
             codigo: p.codigo,
             descripcion: p.descripcion,
-            categoria: 'equipos',
+            familia: '',
             pvp: p.pvp,
             descuento_compra: uploadConfig.descuento_compra,
             porcentaje_venta: uploadConfig.porcentaje_venta,
             precio_venta,
             año_tarifa: new Date().getFullYear(),
             unidad: 'ud',
+            nombre_catalogo: uploadConfig.nombre_catalogo,
             catalogo_id: catalogoImportado.id
           };
         });
