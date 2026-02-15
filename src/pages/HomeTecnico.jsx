@@ -110,7 +110,7 @@ export default function HomeTecnico() {
   sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await base44.auth.logout(createPageUrl('MenuInicio'));
   };
 
   return (

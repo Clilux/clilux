@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 
 export default function Layout({ children, currentPageName }) {
   const [settings, setSettings] = useState(null);
@@ -19,7 +20,7 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const handleLogout = () => {
-    base44.auth.logout(window.location.origin + '/MenuInicio');
+    base44.auth.logout(createPageUrl('MenuInicio'));
   };
 
   const bgColor = settings?.background_color || '#0f172a';

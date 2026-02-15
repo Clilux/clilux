@@ -25,6 +25,11 @@ export default function ScanEquipmentTech() {
         toast.error('Tu navegador no soporta cámara. Usa "Subir Foto"');
         return;
       }
+
+      setShowCamera(true);
+      
+      // Esperar a que el video element esté montado
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
@@ -37,10 +42,11 @@ export default function ScanEquipmentTech() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        setShowCamera(true);
+        await videoRef.current.play();
       }
     } catch (error) {
       console.error('Camera error:', error);
+      setShowCamera(false);
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         toast.error('Permiso de cámara denegado. Ve a Configuración del navegador → Permisos → Cámara');
       } else if (error.name === 'NotFoundError') {
