@@ -88,6 +88,9 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
+import ClientEquipment from './pages/ClientEquipment';
+import ClientIncidents from './pages/ClientIncidents';
+import ClientReportIncident from './pages/ClientReportIncident';
 import __Layout from './Layout.jsx';
 
 
@@ -133,6 +136,9 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
+    "ClientEquipment": ClientEquipment,
+    "ClientIncidents": ClientIncidents,
+    "ClientReportIncident": ClientReportIncident,
 }
 
 export const pagesConfig = {
