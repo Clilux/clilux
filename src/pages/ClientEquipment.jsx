@@ -30,10 +30,10 @@ export default function ClientEquipment() {
 
   React.useEffect(() => {
     const loadClient = async () => {
-      const user = await base44.auth.me();
-      const clients = await base44.entities.Client.filter({ user_email: user.email });
-      if (clients.length > 0) {
-        setClientId(clients[0].id);
+      // Recuperar client_id del sessionStorage (guardado al hacer login en HomeCliente)
+      const storedClientId = sessionStorage.getItem('client_id');
+      if (storedClientId) {
+        setClientId(storedClientId);
       }
     };
     loadClient();

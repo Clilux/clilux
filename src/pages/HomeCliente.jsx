@@ -40,7 +40,7 @@ export default function HomeCliente() {
           const [buildings, equipment, revisions, incidents] = await Promise.all([
           base44.entities.Building.filter({ client_id: client.id }),
           base44.entities.Equipment.filter({ client_id: client.id }),
-          base44.entities.Revision.filter({ client_id: client.id }),
+          base44.entities.ScheduledRevision.filter({ client_id: client.id, status: 'completed' }),
           base44.entities.Incident.filter({ client_id: client.id })]
           );
           return { client, buildings, equipment, revisions, incidents };
@@ -64,6 +64,8 @@ export default function HomeCliente() {
 
     if (user) {
       setClientId(user.client_id);
+      // Guardar en sessionStorage para otras páginas del portal cliente
+      sessionStorage.setItem('client_id', user.client_id);
     } else {
       setLoginError('Credenciales incorrectas');
     }
@@ -72,6 +74,7 @@ export default function HomeCliente() {
   const handleLogout = () => {
     setClientId(null);
     setCredentials({ email: '', password: '' });
+    sessionStorage.removeItem('client_id');
   };
 
   // Login screen
