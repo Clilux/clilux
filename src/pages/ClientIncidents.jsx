@@ -33,10 +33,9 @@ export default function ClientIncidents() {
 
   React.useEffect(() => {
     const loadClient = async () => {
-      const user = await base44.auth.me();
-      const clients = await base44.entities.Client.filter({ user_email: user.email });
-      if (clients.length > 0) {
-        setClientId(clients[0].id);
+      const storedClientId = sessionStorage.getItem('client_id');
+      if (storedClientId) {
+        setClientId(storedClientId);
       }
     };
     loadClient();
