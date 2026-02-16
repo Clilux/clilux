@@ -129,6 +129,30 @@ const camposIDAE = {
       { key: 'limpieza_realizada', label: 'Limpieza completa realizada', type: 'checkbox', periods: ['anual'] },
     ]
   },
+  rooftop: {
+    identificacion: [
+      { key: 'marca', label: 'Marca *', type: 'text', required: true },
+      { key: 'modelo', label: 'Modelo *', type: 'text', required: true },
+      { key: 'numero_serie', label: 'Nº serie *', type: 'text', required: true },
+      { key: 'potencia_frigorifica', label: 'Potencia frigorífica (kW) *', type: 'number', required: true },
+      { key: 'potencia_calorifica', label: 'Potencia calorífica (kW)', type: 'number', required: false },
+      { key: 'tipo_refrigerante', label: 'Tipo refrigerante *', type: 'text', required: true },
+      { key: 'carga_refrigerante', label: 'Carga refrigerante (kg)', type: 'number', required: false },
+      { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
+    ],
+    parametros: [
+      { key: 'temp_impulsion', label: 'Temperatura impulsión (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'temp_retorno', label: 'Temperatura retorno (°C)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'presion_alta', label: 'Presión alta (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'presion_baja', label: 'Presión baja (bar)', type: 'number', periods: ['trimestral', 'semestral', 'anual'] },
+      { key: 'consumo_electrico', label: 'Consumo eléctrico (kW)', type: 'number', periods: ['trimestral', 'anual'] },
+      { key: 'estado_compresor', label: 'Estado compresor', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['trimestral', 'anual'] },
+      { key: 'estado_ventiladores', label: 'Estado ventiladores', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['trimestral', 'anual'] },
+      { key: 'estado_filtros', label: 'Estado filtros', type: 'select', options: ['Limpios', 'Sucios', 'Cambiados'], periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
+      { key: 'limpieza_baterias', label: 'Limpieza baterías', type: 'checkbox', periods: ['trimestral', 'anual'] },
+      { key: 'fugas_refrigerante', label: 'Fugas refrigerante detectadas', type: 'checkbox', periods: ['trimestral', 'anual'] },
+    ]
+  },
   adiabatico: {
     identificacion: [
       { key: 'marca', label: 'Marca *', type: 'text', required: true },
@@ -756,6 +780,7 @@ export default function EquipmentForm() {
                     <SelectItem value="split">Split / Multi-split</SelectItem>
                     <SelectItem value="vrf">VRF / VRV</SelectItem>
                     <SelectItem value="climatizador">Climatizador</SelectItem>
+                    <SelectItem value="rooftop">Rooftop</SelectItem>
                     <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
                     <SelectItem value="produccion_acs">Producción ACS</SelectItem>
                   </SelectContent>
