@@ -24,6 +24,47 @@ export default function MenuInicio() {
     }
   });
 
+  // Cargar credenciales guardadas al montar
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('clilux_email');
+    const savedPassword = localStorage.getItem('clilux_password');
+    if (savedEmail && savedPassword) {
+      setCredentials({ email: savedEmail, password: savedPassword });
+    }
+  }, []);
+
+  // Auto-login si hay credenciales guardadas
+  useEffect(() => {
+    const autoLogin = async () => {
+      const savedEmail = localStorage.getItem('clilux_email');
+      const savedPassword = localStorage.getItem('clilux_password');
+      
+      if (savedEmail && savedPassword && settings) {
+        // Verificar si es usuario cliente
+        const clientUsers = settings.client_users || [];
+        const clientUser = clientUsers.find(u => u.email === savedEmail && u.password === savedPassword);
+        
+        if (clientUser) {
+          sessionStorage.setItem('client_id', clientUser.client_id);
+          navigate(createPageUrl('HomeCliente'));
+          return;
+        }
+
+        // Si no es cliente, verificar si está autenticado como técnico
+        try {
+          const isAuth = await base44.auth.isAuthenticated();
+          if (isAuth) {
+            navigate(createPageUrl('HomeTecnico'));
+          }
+        } catch (error) {
+          // No hacer nada, mostrar login normal
+        }
+      }
+    };
+    
+    autoLogin();
+  }, [settings, navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -35,17 +76,21 @@ export default function MenuInicio() {
       const clientUser = clientUsers.find(u => u.email === credentials.email && u.password === credentials.password);
       
       if (clientUser) {
+        // Guardar credenciales
+        localStorage.setItem('clilux_email', credentials.email);
+        localStorage.setItem('clilux_password', credentials.password);
+        sessionStorage.setItem('client_id', clientUser.client_id);
+        
         // Login como cliente (sin autenticación de Base44)
         navigate(createPageUrl('HomeCliente'));
         return;
       }
 
-      // Si no es cliente, intentar login técnico con Base44
-      try {
-        await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
-      } catch (error) {
-        setLoginError('Credenciales incorrectas');
-      }
+      // Si no es cliente, guardar credenciales y redirigir a login técnico
+      localStorage.setItem('clilux_email', credentials.email);
+      localStorage.setItem('clilux_password', credentials.password);
+      
+      await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
     } catch (error) {
       console.error('Login error:', error);
       setLoginError('Error al iniciar sesión');
@@ -115,6 +160,21 @@ export default function MenuInicio() {
             ) : (
               'Iniciar Sesión'
             )}
+          </Button>
+          
+          <Button 
+            type="button"
+            variant="outline"
+            onClick={() => {
+              localStorage.removeItem('clilux_email');
+              localStorage.removeItem('clilux_password');
+              sessionStorage.removeItem('client_id');
+              setCredentials({ email: '', password: '' });
+              toast.success('Credenciales olvidadas');
+            }}
+            className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10 mt-2"
+          >
+            Olvidar credenciales
           </Button>
         </form>
 
