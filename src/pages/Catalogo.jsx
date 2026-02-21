@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Plus, Loader2, Sparkles, Trash2, Upload, Edit } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import ExportButton from '../components/ExportButton';
+import ImportButton from '../components/ImportButton';
 import { toast } from 'sonner';
 
 export default function Catalogo() {
@@ -342,6 +344,43 @@ export default function Catalogo() {
             </SelectContent>
           </Select>
 
+          <ExportButton
+            data={filteredProducts.map(p => ({
+              'Tipo': p.tipo || '',
+              'Fabricante': p.fabricante || '',
+              'Código': p.codigo || '',
+              'Descripción': p.descripcion || '',
+              'Familia': p.familia || '',
+              'PVP': p.pvp || 0,
+              'Descuento Compra (%)': p.descuento_compra || 0,
+              'Margen Venta (%)': p.porcentaje_venta || 0,
+              'Precio Venta': p.precio_venta || 0,
+              'Unidad': p.unidad || '',
+              'Año Tarifa': p.año_tarifa || '',
+              'Catálogo': p.nombre_catalogo || ''
+            }))}
+            filename="catalogo_productos"
+          />
+          <ImportButton
+            onImport={async (data) => {
+              const productosToImport = data.map(row => ({
+                tipo: row.tipo || row['Tipo'] || 'producto',
+                fabricante: row.fabricante || row['Fabricante'] || '',
+                codigo: row.codigo || row['Código'] || '',
+                descripcion: row.descripcion || row['Descripción'] || '',
+                familia: row.familia || row['Familia'] || '',
+                pvp: parseFloat(row.pvp || row['PVP'] || 0),
+                descuento_compra: parseFloat(row.descuento_compra || row['Descuento Compra (%)'] || 0),
+                porcentaje_venta: parseFloat(row.porcentaje_venta || row['Margen Venta (%)'] || 0),
+                unidad: row.unidad || row['Unidad'] || 'ud',
+                año_tarifa: parseInt(row.año_tarifa || row['Año Tarifa'] || new Date().getFullYear()),
+                nombre_catalogo: row.nombre_catalogo || row['Catálogo'] || ''
+              }));
+              await base44.entities.CatalogoProducto.bulkCreate(productosToImport);
+              queryClient.invalidateQueries({ queryKey: ['catalogo'] });
+            }}
+            label="Importar"
+          />
           <Button onClick={() => setShowUploadDialog(true)} variant="outline" className="border-white/20 text-white">
             <Upload className="h-4 w-4 mr-2" />
             Subir Tarifa
