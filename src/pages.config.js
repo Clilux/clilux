@@ -92,6 +92,8 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
+import FacturaForm from './pages/FacturaForm';
+import ConfigDocumentos from './pages/ConfigDocumentos';
 import __Layout from './Layout.jsx';
 
 
@@ -141,6 +143,8 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
+    "FacturaForm": FacturaForm,
+    "ConfigDocumentos": ConfigDocumentos,
 }
 
 export const pagesConfig = {

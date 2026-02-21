@@ -1,22 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import React, { useEffect } from 'react';
 import { createPageUrl } from '@/utils';
 
 export default function Home() {
-  const [checking, setChecking] = useState(true);
-
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await base44.auth.me();
-        // Usuario autenticado (técnico/admin)
-        window.location.href = createPageUrl('HomeTecnico');
-      } catch {
-        // No autenticado, ir a MenuInicio
-        window.location.href = createPageUrl('MenuInicio');
-      }
-    };
-    checkAuth();
+    // Redirigir siempre a MenuInicio
+    window.location.href = createPageUrl('MenuInicio');
   }, []);
 
   return (
