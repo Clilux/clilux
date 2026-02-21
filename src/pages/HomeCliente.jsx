@@ -82,6 +82,9 @@ export default function HomeCliente() {
     setClientId(null);
     setCredentials({ email: '', password: '' });
     sessionStorage.removeItem('client_id');
+    localStorage.removeItem('clilux_email');
+    localStorage.removeItem('clilux_password');
+    window.location.href = createPageUrl('MenuInicio');
   };
 
   // Login screen

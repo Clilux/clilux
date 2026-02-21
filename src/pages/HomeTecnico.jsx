@@ -113,7 +113,9 @@ export default function HomeTecnico() {
   const handleLogout = async () => {
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
-    await base44.auth.logout(createPageUrl('MenuInicio'));
+    sessionStorage.removeItem('client_id');
+    await base44.auth.logout();
+    navigate(createPageUrl('MenuInicio'));
   };
 
   return (

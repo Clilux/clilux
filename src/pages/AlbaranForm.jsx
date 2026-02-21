@@ -22,12 +22,21 @@ export default function AlbaranForm() {
   const [formData, setFormData] = useState({
     client_id: '',
     fecha: new Date().toISOString().split('T')[0],
+    numero: '',
     lineas: [],
     subtotal: 0,
     iva: 21,
     total: 0,
     observaciones: '',
     status: 'pendiente'
+  });
+
+  const { data: docConfig } = useQuery({
+    queryKey: ['doc-config-albaran'],
+    queryFn: async () => {
+      const configs = await base44.entities.DocumentConfig.filter({ doc_type: 'albaran' });
+      return configs[0] || null;
+    }
   });
 
   const { data: clients = [] } = useQuery({
@@ -140,7 +149,7 @@ export default function AlbaranForm() {
         <NavHeader title={albaranId ? 'Editar Albarán' : 'Nuevo Albarán'} />
 
         <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <Label className="text-slate-300">Cliente *</Label>
               <Select value={formData.client_id} onValueChange={(v) => handleChange('client_id', v)}>
@@ -156,6 +165,24 @@ export default function AlbaranForm() {
             </div>
 
             <div>
+              <Label className="text-slate-300">Número Albarán</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={docConfig?.prefijo_numeracion || 'ALB-'}
+                  disabled
+                  className="bg-white/5 border-white/20 text-slate-400 w-24"
+                />
+                <Input
+                  type="number"
+                  value={formData.numero}
+                  onChange={(e) => handleChange('numero', e.target.value)}
+                  placeholder={docConfig?.siguiente_numero || '1'}
+                  className="bg-white/5 border-white/20 text-white flex-1"
+                />
+              </div>
+            </div>
+
+            <div>
               <Label className="text-slate-300">Fecha *</Label>
               <Input
                 type="date"
@@ -163,6 +190,32 @@ export default function AlbaranForm() {
                 onChange={(e) => handleChange('fecha', e.target.value)}
                 className="bg-white/5 border-white/20 text-white"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <Label className="text-slate-300">Estado</Label>
+              <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
+                <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {docConfig?.estados_disponibles?.length > 0 ? (
+                    docConfig.estados_disponibles.map(estado => (
+                      <SelectItem key={estado.codigo} value={estado.codigo}>
+                        {estado.nombre}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="pendiente">Pendiente</SelectItem>
+                      <SelectItem value="firmado">Firmado</SelectItem>
+                      <SelectItem value="facturado">Facturado</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

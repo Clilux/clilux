@@ -32,6 +32,14 @@ export default function FacturaForm() {
     status: 'emitida'
   });
 
+  const { data: docConfig } = useQuery({
+    queryKey: ['doc-config-factura'],
+    queryFn: async () => {
+      const configs = await base44.entities.DocumentConfig.filter({ doc_type: 'factura' });
+      return configs[0] || null;
+    }
+  });
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
@@ -163,12 +171,20 @@ export default function FacturaForm() {
 
             <div>
               <Label className="text-slate-300">Número Factura *</Label>
-              <Input
-                value={formData.numero}
-                onChange={(e) => handleChange('numero', e.target.value)}
-                placeholder="FAC-2024-001"
-                className="bg-white/5 border-white/20 text-white"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={docConfig?.prefijo_numeracion || 'FAC-'}
+                  disabled
+                  className="bg-white/5 border-white/20 text-slate-400 w-24"
+                />
+                <Input
+                  type="number"
+                  value={formData.numero}
+                  onChange={(e) => handleChange('numero', e.target.value)}
+                  placeholder={docConfig?.siguiente_numero || '1'}
+                  className="bg-white/5 border-white/20 text-white flex-1"
+                />
+              </div>
             </div>
 
             <div>
@@ -205,10 +221,20 @@ export default function FacturaForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="emitida">Emitida</SelectItem>
-                  <SelectItem value="pagada">Pagada</SelectItem>
-                  <SelectItem value="vencida">Vencida</SelectItem>
-                  <SelectItem value="anulada">Anulada</SelectItem>
+                  {docConfig?.estados_disponibles?.length > 0 ? (
+                    docConfig.estados_disponibles.map(estado => (
+                      <SelectItem key={estado.codigo} value={estado.codigo}>
+                        {estado.nombre}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="emitida">Emitida</SelectItem>
+                      <SelectItem value="pagada">Pagada</SelectItem>
+                      <SelectItem value="vencida">Vencida</SelectItem>
+                      <SelectItem value="anulada">Anulada</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
