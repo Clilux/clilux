@@ -264,6 +264,41 @@ export default function AlbaranForm() {
             <Button variant="outline" onClick={() => navigate(-1)} className="bg-white/5 border-white/20 text-white">
               Cancelar
             </Button>
+            {albaranId && formData.status !== 'facturado' && (
+              <Button
+                onClick={() => {
+                  // Crear factura desde albarán
+                  const facturaData = {
+                    client_id: formData.client_id,
+                    fecha: new Date().toISOString().split('T')[0],
+                    albaran_id: albaranId,
+                    lineas: formData.lineas,
+                    subtotal: formData.subtotal,
+                    iva: formData.iva,
+                    total: formData.total,
+                    observaciones: formData.observaciones,
+                    status: 'emitida',
+                    numero: `FAC-${Date.now()}`
+                  };
+                  
+                  base44.entities.Factura.create(facturaData).then(() => {
+                    // Marcar albarán como facturado
+                    base44.entities.Albaran.update(albaranId, { status: 'facturado', convertido_factura: true }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ['albaranes'] });
+                      queryClient.invalidateQueries({ queryKey: ['facturas'] });
+                      toast.success('Factura generada desde albarán');
+                      navigate(createPageUrl('Facturas'));
+                    });
+                  }).catch(() => {
+                    toast.error('Error al generar factura');
+                  });
+                }}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Generar Factura
+              </Button>
+            )}
             <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-emerald-600">
               {saveMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>

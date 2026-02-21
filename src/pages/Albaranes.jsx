@@ -12,9 +12,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const statusConfig = {
-  pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-700' },
-  firmado: { label: 'Firmado', color: 'bg-green-100 text-green-700' },
-  facturado: { label: 'Facturado', color: 'bg-blue-100 text-blue-700' },
+  pendiente: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  firmado: { label: 'Firmado', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  facturado: { label: 'Facturado', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
 };
 
 export default function Albaranes() {
@@ -56,7 +56,7 @@ export default function Albaranes() {
                     <div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-lg font-semibold text-white">{alb.numero || `ALB-${alb.id?.substring(0, 8)}`}</h3>
-                        <Badge className={statusConfig[alb.status]?.color}>
+                        <Badge className={`border ${statusConfig[alb.status]?.color}`}>
                           {statusConfig[alb.status]?.label}
                         </Badge>
                       </div>

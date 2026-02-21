@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,8 @@ import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import NavHeader from '../components/navigation/NavHeader';
+import ExportButton from '../components/ExportButton';
+import ImportButton from '../components/ImportButton';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
@@ -19,6 +21,7 @@ const revisionTypeLabels = {
 };
 
 export default function Calendar() {
+  const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [filterClient, setFilterClient] = useState('all');
@@ -109,6 +112,37 @@ export default function Calendar() {
           </Select>
 
           <div className="flex gap-2 ml-auto">
+            <ExportButton
+              data={filteredRevisions.map(rev => {
+                const eq = equipment.find(e => e.id === rev.equipment_id);
+                const building = buildings.find(b => b.id === rev.building_id);
+                const client = clients.find(c => c.id === rev.client_id);
+                return {
+                  'Cliente': client?.name || '',
+                  'Edificio': building?.name || '',
+                  'Equipo': eq ? `${eq.brand} ${eq.model}` : '',
+                  'Tipo Revisión': revisionTypeLabels[rev.revision_type] || '',
+                  'Fecha': rev.scheduled_date || '',
+                  'Estado': rev.status === 'completed' ? 'Completada' : 'Pendiente'
+                };
+              })}
+              filename="revisiones"
+            />
+            <ImportButton
+              onImport={async (data) => {
+                const revisionsToImport = data.map(row => ({
+                  client_id: row.client_id || '',
+                  building_id: row.building_id || '',
+                  equipment_id: row.equipment_id || '',
+                  scheduled_date: row.scheduled_date || row['Fecha'] || '',
+                  revision_type: row.revision_type || row['Tipo Revisión'] || 'monthly',
+                  status: row.status || row['Estado'] === 'Completada' ? 'completed' : 'pending'
+                }));
+                await base44.entities.ScheduledRevision.bulkCreate(revisionsToImport);
+                queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+              }}
+              label="Importar"
+            />
             <Button
               variant={viewMode === 'calendar' ? 'default' : 'outline'}
               onClick={() => setViewMode('calendar')}
