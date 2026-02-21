@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Camera, Wrench } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
@@ -10,8 +9,6 @@ import NavHeader from '../components/navigation/NavHeader';
 
 export default function ScanEquipmentTech() {
   const navigate = useNavigate();
-
-
 
   const handleScanQR = async () => {
     // Aquí implementaríamos el escaneo de QR
@@ -59,8 +56,6 @@ export default function ScanEquipmentTech() {
             </div>
           </div>
         </Card>
-
-
       </div>
     </div>
   );

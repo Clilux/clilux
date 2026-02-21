@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
@@ -27,6 +27,7 @@ const defaultQuickActions = [
 
 
 export default function HomeTecnico() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [quickActions, setQuickActions] = useState(defaultQuickActions);
@@ -110,6 +111,8 @@ export default function HomeTecnico() {
   sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const handleLogout = async () => {
+    localStorage.removeItem('clilux_email');
+    localStorage.removeItem('clilux_password');
     await base44.auth.logout(createPageUrl('MenuInicio'));
   };
 
