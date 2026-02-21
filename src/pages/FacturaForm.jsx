@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, Send, FileDown, Clock } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import SendDocumentDialog from '../components/documents/SendDocumentDialog';
+import { generateFacturaPDF } from '../components/documents/GenerateFacturaPDF';
 import { toast } from 'sonner';
 
 export default function FacturaForm() {
@@ -18,6 +20,8 @@ export default function FacturaForm() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const facturaId = urlParams.get('id');
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState(null);
   
   const [formData, setFormData] = useState({
     client_id: '',
@@ -43,6 +47,12 @@ export default function FacturaForm() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
+  });
+
+  const { data: envios = [] } = useQuery({
+    queryKey: ['envios', facturaId],
+    queryFn: () => base44.entities.DocumentoEnvio.filter({ documento_id: facturaId }),
+    enabled: !!facturaId,
   });
 
   const { data: factura, isLoading } = useQuery({
@@ -134,6 +144,30 @@ export default function FacturaForm() {
       return;
     }
     saveMutation.mutate(formData);
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const client = clients.find(c => c.id === formData.client_id);
+      const pdf = await generateFacturaPDF(formData, client, docConfig);
+      const prefijo = docConfig?.prefijo_numeracion || 'FAC-';
+      pdf.save(`factura-${prefijo}${formData.numero}.pdf`);
+      toast.success('PDF descargado');
+    } catch (error) {
+      toast.error('Error al generar el PDF');
+    }
+  };
+
+  const handleSendDocument = async () => {
+    try {
+      const client = clients.find(c => c.id === formData.client_id);
+      const pdf = await generateFacturaPDF(formData, client, docConfig);
+      const blob = pdf.output('blob');
+      setPdfBlob(blob);
+      setShowSendDialog(true);
+    } catch (error) {
+      toast.error('Error al generar el PDF');
+    }
   };
 
   if (isLoading) {
@@ -249,6 +283,26 @@ export default function FacturaForm() {
               </Button>
             </div>
 
+            {formData.lineas.length > 0 && (
+              <div className="grid grid-cols-12 gap-2 mb-2 px-3">
+                <div className="col-span-4">
+                  <Label className="text-slate-400 text-xs">Concepto</Label>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-slate-400 text-xs">Unidades</Label>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-slate-400 text-xs">Precio</Label>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-slate-400 text-xs">Descuento</Label>
+                </div>
+                <div className="col-span-1">
+                  <Label className="text-slate-400 text-xs">Total</Label>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {formData.lineas.map((line, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 p-3 rounded-lg bg-white/5">
@@ -334,19 +388,70 @@ export default function FacturaForm() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => navigate(-1)} className="bg-white/5 border-white/20 text-white">
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-purple-600">
-              {saveMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
-              ) : (
-                <><Save className="h-4 w-4 mr-2" /> Guardar</>
+          <div className="flex justify-between items-center gap-3">
+            <div>
+              {facturaId && envios.length > 0 && (
+                <div className="flex items-center gap-2 text-slate-400 text-sm">
+                  <Clock className="h-4 w-4" />
+                  <span>{envios.length} envío{envios.length > 1 ? 's' : ''}</span>
+                </div>
               )}
-            </Button>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => navigate(-1)} className="bg-white/5 border-white/20 text-white">
+                Cancelar
+              </Button>
+              {facturaId && (
+                <>
+                  <Button onClick={handleDownloadPDF} variant="outline" className="bg-white/5 border-white/20 text-white">
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Descargar PDF
+                  </Button>
+                  <Button onClick={handleSendDocument} className="bg-blue-600">
+                    <Send className="h-4 w-4 mr-2" />
+                    Enviar
+                  </Button>
+                </>
+              )}
+              <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="bg-purple-600">
+                {saveMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" /> Guardar</>
+                )}
+              </Button>
+            </div>
           </div>
         </Card>
+
+        {facturaId && envios.length > 0 && (
+          <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 mt-4">
+            <h3 className="text-white font-semibold mb-3">Historial de Envíos</h3>
+            <div className="space-y-2">
+              {envios.map((envio) => (
+                <div key={envio.id} className="flex items-center justify-between p-2 rounded bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <Send className="h-4 w-4 text-blue-400" />
+                    <div>
+                      <p className="text-white text-sm">{envio.destinatario}</p>
+                      <p className="text-slate-400 text-xs">
+                        {new Date(envio.fecha_envio).toLocaleString('es-ES')} • {envio.metodo_envio}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        <SendDocumentDialog
+          open={showSendDialog}
+          onOpenChange={setShowSendDialog}
+          documento={formData}
+          tipoDocumento="factura"
+          pdfBlob={pdfBlob}
+        />
       </div>
     </div>
   );
