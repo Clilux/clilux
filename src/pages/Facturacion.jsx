@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FileCheck, ShoppingCart, TrendingUp, ArrowLeft } from 'lucide-react';
+import { FileText, Receipt, FileCheck, ShoppingCart, TrendingUp, ArrowLeft, Settings } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 
 export default function Facturacion() {
@@ -95,6 +95,21 @@ export default function Facturacion() {
               </div>
             </div>
           </Card>
+        </div>
+
+        {/* Configuración */}
+        <div className="mb-6">
+          <Link to={createPageUrl('ConfigDocumentos')}>
+            <Card className="p-4 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Settings className="h-6 w-6 text-amber-400" />
+                <div>
+                  <h3 className="text-white font-semibold">Configuración de Documentos</h3>
+                  <p className="text-slate-400 text-sm">Estados, numeración e IVAs personalizados</p>
+                </div>
+              </div>
+            </Card>
+          </Link>
         </div>
 
         {/* Módulos principales */}

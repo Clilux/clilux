@@ -34,6 +34,14 @@ export default function PresupuestoForm() {
     iva: 21,
   });
 
+  const { data: docConfig } = useQuery({
+    queryKey: ['doc-config-presupuesto'],
+    queryFn: async () => {
+      const configs = await base44.entities.DocumentConfig.filter({ doc_type: 'presupuesto' });
+      return configs[0] || null;
+    }
+  });
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
@@ -175,14 +183,23 @@ export default function PresupuestoForm() {
         <NavHeader title={presupuestoId ? 'Editar Presupuesto' : 'Nuevo Presupuesto'} />
 
         <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
-              <Label className="text-slate-300">Número</Label>
-              <Input
-                value={formData.numero}
-                onChange={(e) => setFormData({...formData, numero: e.target.value})}
-                className="bg-white/5 border-white/20 text-white"
-              />
+              <Label className="text-slate-300">Número Presupuesto</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={docConfig?.prefijo_numeracion || 'PRES-'}
+                  disabled
+                  className="bg-white/5 border-white/20 text-slate-400 w-24"
+                />
+                <Input
+                  type="number"
+                  value={formData.numero}
+                  onChange={(e) => setFormData({...formData, numero: e.target.value})}
+                  placeholder={docConfig?.siguiente_numero || '1'}
+                  className="bg-white/5 border-white/20 text-white flex-1"
+                />
+              </div>
             </div>
             <div>
               <Label className="text-slate-300">Cliente *</Label>
@@ -205,6 +222,30 @@ export default function PresupuestoForm() {
                 onChange={(e) => setFormData({...formData, fecha: e.target.value})}
                 className="bg-white/5 border-white/20 text-white"
               />
+            </div>
+            <div>
+              <Label className="text-slate-300">Estado</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {docConfig?.estados_disponibles?.length > 0 ? (
+                    docConfig.estados_disponibles.map(estado => (
+                      <SelectItem key={estado.codigo} value={estado.codigo}>
+                        {estado.nombre}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="borrador">Borrador</SelectItem>
+                      <SelectItem value="enviado">Enviado</SelectItem>
+                      <SelectItem value="aceptado">Aceptado</SelectItem>
+                      <SelectItem value="rechazado">Rechazado</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
