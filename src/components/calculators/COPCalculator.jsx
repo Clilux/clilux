@@ -5,8 +5,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Info } from 'lucide-react';
+import { Calculator, Info, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Tablas de propiedades para refrigerantes (simplificadas)
+const getRefrigerantProperties = (refrigerante, presion, temperatura) => {
+  // Tablas aproximadas para R410A
+  const r410aProps = {
+    // Presión (bar) -> Temperatura saturación (°C), h_liquido (kJ/kg), h_vapor (kJ/kg)
+    saturation: {
+      5: { tsat: -10, hl: 200, hv: 398 },
+      7: { tsat: 0, hl: 220, hv: 405 },
+      9: { tsat: 10, hl: 240, hv: 412 },
+      11: { tsat: 18, hl: 255, hv: 418 },
+      15: { tsat: 28, rl: 275, hv: 425 },
+      20: { tsat: 38, hl: 295, hv: 430 },
+      25: { tsat: 46, hl: 310, hv: 435 },
+      30: { tsat: 53, hl: 325, hv: 438 },
+    }
+  };
+
+  return r410aProps;
+};
 
 export default function COPCalculator() {
   const [open, setOpen] = useState(false);
@@ -16,10 +36,12 @@ export default function COPCalculator() {
     temp_entrada_compresor: '',
     temp_salida_compresor: '',
     temp_evaporador: '',
+    temp_condensador: '',
     tension: '',
     corriente: '',
     tipo_corriente: 'monofasico',
-    refrigerante: 'R410A'
+    refrigerante: 'R410A',
+    caudal_masico: '' // kg/s - opcional, se puede estimar
   });
 
   const [results, setResults] = useState(null);
@@ -30,64 +52,116 @@ export default function COPCalculator() {
     const tEntrada = parseFloat(formData.temp_entrada_compresor);
     const tSalida = parseFloat(formData.temp_salida_compresor);
     const tEvap = parseFloat(formData.temp_evaporador);
+    const tCond = parseFloat(formData.temp_condensador) || 40;
     const voltaje = parseFloat(formData.tension);
     const corriente = parseFloat(formData.corriente);
+    const caudalInput = parseFloat(formData.caudal_masico);
 
     if (!pBaja || !pAlta || !tEntrada || !tSalida || !tEvap || !voltaje || !corriente) {
-      toast.error('Introduce todos los valores');
+      toast.error('Introduce todos los valores obligatorios');
       return;
     }
 
-    // Estimación de entalpías basada en refrigerante R410A (aproximación)
-    // h = f(P, T) - usando correlaciones simplificadas
+    // CÁLCULO DE ENTALPÍAS (R410A - correlaciones mejoradas)
     
-    // Para R410A aproximaciones:
-    // h1 (salida condensador / entrada válvula): líquido saturado a presión alta
-    const h1 = 100 + (pAlta * 15); // kJ/kg (aproximación)
+    // h1: Salida condensador (líquido saturado o subenfriado a presión alta)
+    // Aproximación: h_liquido_sat = 200 + (P_alta - 10) * 8.5
+    const h1 = 200 + (pAlta - 10) * 8.5;
     
-    // h2 (entrada compresor): vapor saturado a baja presión + sobrecalentamiento
-    const sobrecalentamiento = tEntrada - (-10 - (10 - pBaja) * 2); // Temp evaporación estimada
-    const h2 = 400 + (pBaja * 8) + (sobrecalentamiento * 1.0);
+    // h2: Entrada compresor (vapor sobrecalentado a presión baja)
+    // h_vapor_sat_baja + cp * sobrecalentamiento
+    const tSatBaja = -15 + (pBaja - 5) * 5; // Temp saturación aprox.
+    const sobrecalentamiento = tEntrada - tSatBaja;
+    const hVaporSatBaja = 390 + (pBaja - 5) * 3;
+    const h2 = hVaporSatBaja + sobrecalentamiento * 1.0; // cp vapor ≈ 1 kJ/kg·K
     
-    // h3 (salida compresor): vapor sobrecalentado a alta presión
-    const h3 = 420 + (pAlta * 10) + ((tSalida - 40) * 1.2);
+    // h3: Salida compresor (vapor sobrecalentado a presión alta)
+    const tSatAlta = 30 + (pAlta - 20) * 2.5;
+    const sobrecalentamientoAlta = tSalida - tSatAlta;
+    const hVaporSatAlta = 410 + (pAlta - 20) * 2.5;
+    const h3 = hVaporSatAlta + sobrecalentamientoAlta * 1.1;
     
-    // h4 = h1 (proceso isoentálpico en válvula de expansión)
+    // h4 = h1 (válvula de expansión - isoentálpico)
     const h4 = h1;
 
-    // Capacidad frigorífica (kJ/kg)
-    const qEvaporador = h2 - h1;
+    // EFECTOS TÉRMICOS
+    const qEvaporador = h2 - h1; // Calor absorbido en evaporador (kJ/kg)
+    const wCompresor = h3 - h2; // Trabajo del compresor (kJ/kg)
+    const qCondensador = h3 - h4; // Calor rechazado en condensador (kJ/kg)
 
-    // Trabajo del compresor (kJ/kg)
-    const wCompresor = h3 - h2;
-
-    // Potencia eléctrica consumida (kW)
+    // POTENCIA ELÉCTRICA CONSUMIDA
     let potenciaElectrica;
+    let cosPhi;
     if (formData.tipo_corriente === 'trifasico') {
-      potenciaElectrica = (Math.sqrt(3) * voltaje * corriente * 0.85) / 1000; // cos φ = 0.85
+      cosPhi = 0.85;
+      potenciaElectrica = (Math.sqrt(3) * voltaje * corriente * cosPhi) / 1000;
     } else {
-      potenciaElectrica = (voltaje * corriente * 0.9) / 1000; // cos φ = 0.9
+      cosPhi = 0.90;
+      potenciaElectrica = (voltaje * corriente * cosPhi) / 1000;
     }
 
-    // COP real = Capacidad frigorífica / Potencia consumida
-    // Necesitamos caudal másico estimado
-    const caudalEstimado = (potenciaElectrica * 3600) / wCompresor; // kg/h aproximado
-    const capacidadFrigorifica = (qEvaporador * caudalEstimado) / 3600; // kW
+    // CAUDAL MÁSICO
+    let caudalMasico;
+    if (caudalInput && caudalInput > 0) {
+      caudalMasico = caudalInput; // kg/s
+    } else {
+      // Estimar caudal másico desde potencia mecánica
+      // Potencia_mecanica = m_dot * w_compresor
+      // Asumiendo rendimiento motor ≈ 0.88
+      const potenciaMecanica = potenciaElectrica * 0.88; // kW
+      caudalMasico = potenciaMecanica / wCompresor; // kg/s
+    }
 
+    // CAPACIDAD FRIGORÍFICA
+    const capacidadFrigorifica = qEvaporador * caudalMasico; // kW
+
+    // CAPACIDAD CALORÍFICA (condensador)
+    const capacidadCalorifica = qCondensador * caudalMasico; // kW
+
+    // COP Y EER
     const cop = capacidadFrigorifica / potenciaElectrica;
-    const eer = cop * 3.412;
+    const eer = cop * 3.412; // BTU/h por Watt
+
+    // VERIFICACIÓN BALANCE ENERGÉTICO
+    const balanceEnergia = capacidadCalorifica - (capacidadFrigorifica + potenciaElectrica);
+    const errorBalance = Math.abs(balanceEnergia);
 
     setResults({
+      // Entalpías
       h1: h1.toFixed(1),
       h2: h2.toFixed(1),
       h3: h3.toFixed(1),
       h4: h4.toFixed(1),
+      
+      // Temperaturas de saturación
+      tSatBaja: tSatBaja.toFixed(1),
+      tSatAlta: tSatAlta.toFixed(1),
+      sobrecalentamiento: sobrecalentamiento.toFixed(1),
+      
+      // Efectos
       qEvaporador: qEvaporador.toFixed(2),
       wCompresor: wCompresor.toFixed(2),
+      qCondensador: qCondensador.toFixed(2),
+      
+      // Potencias
       potenciaElectrica: potenciaElectrica.toFixed(2),
+      cosPhi: cosPhi.toFixed(2),
       capacidadFrigorifica: capacidadFrigorifica.toFixed(2),
+      capacidadCalorifica: capacidadCalorifica.toFixed(2),
+      
+      // Caudal
+      caudalMasico: caudalMasico.toFixed(4),
+      caudalEstimado: !caudalInput,
+      
+      // Rendimiento
       cop: cop.toFixed(2),
-      eer: eer.toFixed(2)
+      eer: eer.toFixed(2),
+      
+      // Balance
+      errorBalance: errorBalance.toFixed(2),
+      
+      // Datos de entrada
+      inputs: { ...formData }
     });
 
     toast.success('Cálculo completado');
@@ -100,12 +174,113 @@ export default function COPCalculator() {
       temp_entrada_compresor: '',
       temp_salida_compresor: '',
       temp_evaporador: '',
+      temp_condensador: '',
       tension: '',
       corriente: '',
       tipo_corriente: 'monofasico',
-      refrigerante: 'R410A'
+      refrigerante: 'R410A',
+      caudal_masico: ''
     });
     setResults(null);
+  };
+
+  const generateReport = () => {
+    if (!results) return;
+
+    const reportContent = `
+INFORME DE CÁLCULO COP Y EER
+========================================
+
+DATOS DE ENTRADA:
+----------------
+Refrigerante: ${formData.refrigerante}
+Presión de Baja: ${formData.presion_baja} bar
+Presión de Alta: ${formData.presion_alta} bar
+Temperatura Entrada Compresor: ${formData.temp_entrada_compresor} °C
+Temperatura Salida Compresor: ${formData.temp_salida_compresor} °C
+Temperatura Evaporador: ${formData.temp_evaporador} °C
+${formData.temp_condensador ? `Temperatura Condensador: ${formData.temp_condensador} °C` : ''}
+
+SISTEMA ELÉCTRICO:
+-----------------
+Tipo: ${formData.tipo_corriente === 'trifasico' ? 'Trifásico' : 'Monofásico'}
+Tensión: ${formData.tension} V
+Corriente: ${formData.corriente} A
+Factor de Potencia (cos φ): ${results.cosPhi}
+
+CÁLCULO DE ENTALPÍAS:
+--------------------
+Temperatura saturación baja presión: ${results.tSatBaja} °C
+Temperatura saturación alta presión: ${results.tSatAlta} °C
+Sobrecalentamiento: ${results.sobrecalentamiento} °C
+
+h₁ (Salida Condensador): ${results.h1} kJ/kg
+h₂ (Entrada Compresor): ${results.h2} kJ/kg
+h₃ (Salida Compresor): ${results.h3} kJ/kg
+h₄ (Entrada Evaporador): ${results.h4} kJ/kg
+
+EFECTOS TÉRMICOS ESPECÍFICOS:
+-----------------------------
+Efecto Frigorífico (q_evap = h₂ - h₁): ${results.qEvaporador} kJ/kg
+Trabajo Compresor (w_comp = h₃ - h₂): ${results.wCompresor} kJ/kg
+Calor Condensador (q_cond = h₃ - h₄): ${results.qCondensador} kJ/kg
+
+CAUDAL MÁSICO:
+-------------
+Caudal másico ${results.caudalEstimado ? '(estimado)' : '(medido)'}: ${results.caudalMasico} kg/s
+
+POTENCIAS Y CAPACIDADES:
+-----------------------
+${formData.tipo_corriente === 'trifasico' 
+  ? `Potencia Eléctrica = √3 × ${formData.tension} × ${formData.corriente} × ${results.cosPhi} / 1000`
+  : `Potencia Eléctrica = ${formData.tension} × ${formData.corriente} × ${results.cosPhi} / 1000`}
+Potencia Eléctrica Consumida: ${results.potenciaElectrica} kW
+
+Capacidad Frigorífica = q_evap × ṁ = ${results.qEvaporador} × ${results.caudalMasico}
+Capacidad Frigorífica: ${results.capacidadFrigorifica} kW
+
+Capacidad Calorífica = q_cond × ṁ = ${results.qCondensador} × ${results.caudalMasico}
+Capacidad Calorífica: ${results.capacidadCalorifica} kW
+
+RENDIMIENTO:
+-----------
+COP = Capacidad Frigorífica / Potencia Eléctrica
+COP = ${results.capacidadFrigorifica} / ${results.potenciaElectrica}
+COP = ${results.cop}
+
+EER = COP × 3.412
+EER = ${results.cop} × 3.412
+EER = ${results.eer} BTU/h·W
+
+BALANCE ENERGÉTICO:
+------------------
+Q_condensador = Q_evaporador + W_eléctrico
+${results.capacidadCalorifica} kW = ${results.capacidadFrigorifica} kW + ${results.potenciaElectrica} kW
+Error de balance: ${results.errorBalance} kW ${parseFloat(results.errorBalance) < 0.5 ? '✓ Aceptable' : '⚠ Revisar mediciones'}
+
+NOTAS:
+------
+- Cálculo basado en propiedades aproximadas de ${formData.refrigerante}
+- Factor de potencia asumido: ${results.cosPhi}
+${results.caudalEstimado ? '- Caudal másico estimado desde potencia eléctrica y trabajo del compresor' : ''}
+- Para mayor precisión, utilizar tablas de propiedades específicas del refrigerante
+
+Fecha: ${new Date().toLocaleDateString('es-ES')}
+Hora: ${new Date().toLocaleTimeString('es-ES')}
+`;
+
+    // Descargar como archivo de texto
+    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Informe_COP_EER_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Informe descargado');
   };
 
   return (
@@ -211,6 +386,17 @@ export default function COPCalculator() {
               />
             </div>
             <div>
+              <Label>Temp. Condensador (°C) <span className="text-xs text-slate-500">(opcional)</span></Label>
+              <Input
+                type="number"
+                step="0.1"
+                placeholder="ej: 40"
+                value={formData.temp_condensador}
+                onChange={(e) => setFormData({ ...formData, temp_condensador: e.target.value })}
+              />
+            </div>
+
+            <div>
               <Label>Tipo de Corriente</Label>
               <Select
                 value={formData.tipo_corriente}
@@ -224,6 +410,16 @@ export default function COPCalculator() {
                   <SelectItem value="trifasico">Trifásico</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Caudal Másico (kg/s) <span className="text-xs text-slate-500">(opcional)</span></Label>
+              <Input
+                type="number"
+                step="0.0001"
+                placeholder="Se estimará si no se indica"
+                value={formData.caudal_masico}
+                onChange={(e) => setFormData({ ...formData, caudal_masico: e.target.value })}
+              />
             </div>
 
             <div>
@@ -254,7 +450,16 @@ export default function COPCalculator() {
               <h4 className="font-semibold text-green-900 mb-3">Resultados del Cálculo:</h4>
               
               <div className="mb-3 p-3 bg-white rounded border">
-                <p className="text-xs text-slate-600 font-medium mb-2">Entalpías estimadas (kJ/kg):</p>
+                <p className="text-xs text-slate-600 font-medium mb-2">Temperaturas de Saturación:</p>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                  <div>T sat. baja: <span className="font-semibold">{results.tSatBaja} °C</span></div>
+                  <div>T sat. alta: <span className="font-semibold">{results.tSatAlta} °C</span></div>
+                </div>
+                <p className="text-xs text-slate-600">Sobrecalentamiento: <span className="font-semibold">{results.sobrecalentamiento} °C</span></p>
+              </div>
+
+              <div className="mb-3 p-3 bg-white rounded border">
+                <p className="text-xs text-slate-600 font-medium mb-2">Entalpías calculadas (kJ/kg):</p>
                 <div className="grid grid-cols-4 gap-2 text-xs">
                   <div>h₁: <span className="font-semibold">{results.h1}</span></div>
                   <div>h₂: <span className="font-semibold">{results.h2}</span></div>
@@ -265,20 +470,20 @@ export default function COPCalculator() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Potencia Eléctrica Consumida:</span>
+                  <span className="text-sm text-slate-700">Caudal Másico {results.caudalEstimado && '(estimado)'}:</span>
+                  <span className="font-semibold text-slate-900">{results.caudalMasico} kg/s</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-white rounded">
+                  <span className="text-sm text-slate-700">Potencia Eléctrica (cos φ={results.cosPhi}):</span>
                   <span className="font-semibold text-slate-900">{results.potenciaElectrica} kW</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Capacidad Frigorífica Estimada:</span>
+                  <span className="text-sm text-slate-700">Capacidad Frigorífica:</span>
                   <span className="font-semibold text-slate-900">{results.capacidadFrigorifica} kW</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Efecto Frigorífico (q_evap):</span>
-                  <span className="font-semibold text-slate-900">{results.qEvaporador} kJ/kg</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Trabajo Compresor (w_comp):</span>
-                  <span className="font-semibold text-slate-900">{results.wCompresor} kJ/kg</span>
+                  <span className="text-sm text-slate-700">Capacidad Calorífica:</span>
+                  <span className="font-semibold text-slate-900">{results.capacidadCalorifica} kW</span>
                 </div>
                 <div className="h-px bg-green-300 my-2"></div>
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded text-white">
@@ -291,13 +496,19 @@ export default function COPCalculator() {
                 </div>
               </div>
               
-              <div className="mt-4 p-3 bg-white rounded border text-xs text-slate-600">
-                <p className="font-medium mb-1">Método de cálculo:</p>
-                <p>• Potencia = {formData.tipo_corriente === 'trifasico' ? '√3 × V × I × cos φ' : 'V × I × cos φ'}</p>
-                <p>• COP = Capacidad Frigorífica / Potencia Consumida</p>
-                <p>• EER = COP × 3.412</p>
-                <p className="text-amber-700 mt-2">⚠️ Nota: Cálculo aproximado basado en {formData.refrigerante}</p>
+              <div className="mt-3 p-3 bg-white rounded border">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-600">Balance energético:</span>
+                  <span className={`font-semibold ${parseFloat(results.errorBalance) < 0.5 ? 'text-green-600' : 'text-amber-600'}`}>
+                    Error: {results.errorBalance} kW
+                  </span>
+                </div>
               </div>
+
+              <Button onClick={generateReport} className="w-full mt-3 bg-slate-700 hover:bg-slate-800">
+                <FileText className="h-4 w-4 mr-2" />
+                Descargar Informe Completo
+              </Button>
             </Card>
           )}
 
