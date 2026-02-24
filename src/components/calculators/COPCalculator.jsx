@@ -6,26 +6,67 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Info, FileText } from 'lucide-react';
+import { Slider } from "@/components/ui/slider";
 import { toast } from 'sonner';
 
-// Tablas de propiedades para refrigerantes (simplificadas)
-const getRefrigerantProperties = (refrigerante, presion, temperatura) => {
-  // Tablas aproximadas para R410A
-  const r410aProps = {
-    // Presión (bar) -> Temperatura saturación (°C), h_liquido (kJ/kg), h_vapor (kJ/kg)
-    saturation: {
-      5: { tsat: -10, hl: 200, hv: 398 },
-      7: { tsat: 0, hl: 220, hv: 405 },
-      9: { tsat: 10, hl: 240, hv: 412 },
-      11: { tsat: 18, hl: 255, hv: 418 },
-      15: { tsat: 28, rl: 275, hv: 425 },
-      20: { tsat: 38, hl: 295, hv: 430 },
-      25: { tsat: 46, hl: 310, hv: 435 },
-      30: { tsat: 53, hl: 325, hv: 438 },
-    }
-  };
+// Tablas de propiedades Presión-Temperatura para refrigerantes
+const REFRIGERANT_TABLES = {
+  R410A: [
+    { p: 2, t: -40 }, { p: 3, t: -30 }, { p: 4.2, t: -20 }, { p: 5.8, t: -10 },
+    { p: 7.7, t: 0 }, { p: 10.2, t: 10 }, { p: 13.3, t: 20 }, { p: 17.2, t: 30 },
+    { p: 21.9, t: 40 }, { p: 27.5, t: 50 }, { p: 34.2, t: 60 }
+  ],
+  R32: [
+    { p: 2.8, t: -40 }, { p: 4.1, t: -30 }, { p: 5.8, t: -20 }, { p: 8.1, t: -10 },
+    { p: 11, t: 0 }, { p: 14.8, t: 10 }, { p: 19.5, t: 20 }, { p: 25.4, t: 30 },
+    { p: 32.5, t: 40 }, { p: 41, t: 50 }, { p: 51.2, t: 60 }
+  ],
+  R134A: [
+    { p: 0.5, t: -40 }, { p: 0.8, t: -30 }, { p: 1.2, t: -20 }, { p: 1.6, t: -10 },
+    { p: 2.3, t: 0 }, { p: 3.3, t: 10 }, { p: 4.5, t: 20 }, { p: 6.1, t: 30 },
+    { p: 8.2, t: 40 }, { p: 10.8, t: 50 }, { p: 13.9, t: 60 }
+  ],
+  R404A: [
+    { p: 2.1, t: -40 }, { p: 3.1, t: -30 }, { p: 4.4, t: -20 }, { p: 6.2, t: -10 },
+    { p: 8.4, t: 0 }, { p: 11.3, t: 10 }, { p: 14.9, t: 20 }, { p: 19.5, t: 30 },
+    { p: 25, t: 40 }, { p: 31.7, t: 50 }, { p: 39.7, t: 60 }
+  ],
+  R407C: [
+    { p: 2, t: -40 }, { p: 3, t: -30 }, { p: 4.2, t: -20 }, { p: 5.9, t: -10 },
+    { p: 8, t: 0 }, { p: 10.7, t: 10 }, { p: 14, t: 20 }, { p: 18.2, t: 30 },
+    { p: 23.2, t: 40 }, { p: 29.3, t: 50 }, { p: 36.5, t: 60 }
+  ],
+  R22: [
+    { p: 1.4, t: -40 }, { p: 2, t: -30 }, { p: 2.9, t: -20 }, { p: 4.1, t: -10 },
+    { p: 5.7, t: 0 }, { p: 7.7, t: 10 }, { p: 10.3, t: 20 }, { p: 13.7, t: 30 },
+    { p: 17.8, t: 40 }, { p: 22.9, t: 50 }, { p: 29.2, t: 60 }
+  ]
+};
 
-  return r410aProps;
+// Interpolar temperatura de saturación a partir de presión
+const getTempFromPressure = (refrigerante, presion) => {
+  const table = REFRIGERANT_TABLES[refrigerante];
+  if (!table) return null;
+
+  // Si la presión es exacta
+  const exactMatch = table.find(entry => Math.abs(entry.p - presion) < 0.1);
+  if (exactMatch) return exactMatch.t;
+
+  // Interpolación lineal
+  for (let i = 0; i < table.length - 1; i++) {
+    if (presion >= table[i].p && presion <= table[i + 1].p) {
+      const p1 = table[i].p, t1 = table[i].t;
+      const p2 = table[i + 1].p, t2 = table[i + 1].t;
+      const temp = t1 + (presion - p1) * (t2 - t1) / (p2 - p1);
+      return Math.round(temp * 10) / 10;
+    }
+  }
+
+  // Fuera de rango
+  if (presion < table[0].p) return table[0].t;
+  if (presion > table[table.length - 1].p) return table[table.length - 1].t;
+
+  return null;
 };
 
 export default function COPCalculator() {
@@ -39,6 +80,9 @@ export default function COPCalculator() {
     temp_liquido: '',
     temp_descarga: '',
     refrigerante: 'R410A',
+    // Mediciones eléctricas
+    tension: 230,
+    corriente: 0,
     // Entalpías (opcionales - se pueden introducir manualmente si se tienen)
     h1_manual: '',
     h2_manual: '',
@@ -47,6 +91,25 @@ export default function COPCalculator() {
   });
 
   const [results, setResults] = useState(null);
+
+  // Auto-calcular temperaturas de saturación cuando cambian las presiones
+  React.useEffect(() => {
+    if (formData.presion_baja && formData.refrigerante) {
+      const temp = getTempFromPressure(formData.refrigerante, parseFloat(formData.presion_baja));
+      if (temp !== null) {
+        setFormData(prev => ({ ...prev, temp_evaporacion: temp.toString() }));
+      }
+    }
+  }, [formData.presion_baja, formData.refrigerante]);
+
+  React.useEffect(() => {
+    if (formData.presion_alta && formData.refrigerante) {
+      const temp = getTempFromPressure(formData.refrigerante, parseFloat(formData.presion_alta));
+      if (temp !== null) {
+        setFormData(prev => ({ ...prev, temp_condensacion: temp.toString() }));
+      }
+    }
+  }, [formData.presion_alta, formData.refrigerante]);
 
   const handleCalculate = () => {
     const pBaja = parseFloat(formData.presion_baja);
@@ -167,6 +230,8 @@ export default function COPCalculator() {
       temp_liquido: '',
       temp_descarga: '',
       refrigerante: 'R410A',
+      tension: 230,
+      corriente: 0,
       h1_manual: '',
       h2_manual: '',
       h3_manual: '',
@@ -344,13 +409,14 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
                 />
               </div>
               <div>
-                <Label>Temp. Evaporación (T_evap) - °C</Label>
+                <Label>Temp. Evaporación (T_evap) - °C <span className="text-xs text-green-600">(auto)</span></Label>
                 <Input
                   type="number"
                   step="0.1"
-                  placeholder="ej: 5"
+                  placeholder="Auto desde P_baja"
                   value={formData.temp_evaporacion}
                   onChange={(e) => setFormData({ ...formData, temp_evaporacion: e.target.value })}
+                  className="bg-green-50"
                 />
               </div>
             </div>
@@ -367,13 +433,14 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
                 />
               </div>
               <div>
-                <Label>Temp. Condensación (T_cond) - °C</Label>
+                <Label>Temp. Condensación (T_cond) - °C <span className="text-xs text-green-600">(auto)</span></Label>
                 <Input
                   type="number"
                   step="0.1"
-                  placeholder="ej: 45"
+                  placeholder="Auto desde P_alta"
                   value={formData.temp_condensacion}
                   onChange={(e) => setFormData({ ...formData, temp_condensacion: e.target.value })}
+                  className="bg-green-50"
                 />
               </div>
             </div>
@@ -411,6 +478,62 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
                 onChange={(e) => setFormData({ ...formData, temp_descarga: e.target.value })}
               />
             </div>
+
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <p className="text-sm font-medium text-blue-900 mb-3">Mediciones Eléctricas (Opcional)</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Tensión (V)</Label>
+                    <span className="text-sm font-semibold text-blue-700">{formData.tension} V</span>
+                  </div>
+                  <Slider
+                    value={[formData.tension]}
+                    onValueChange={(value) => setFormData({ ...formData, tension: value[0] })}
+                    min={0}
+                    max={500}
+                    step={10}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <span>0V</span>
+                    <span>230V</span>
+                    <span>400V</span>
+                    <span>500V</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label>Corriente (A)</Label>
+                    <span className="text-sm font-semibold text-blue-700">{formData.corriente} A</span>
+                  </div>
+                  <Slider
+                    value={[formData.corriente]}
+                    onValueChange={(value) => setFormData({ ...formData, corriente: value[0] })}
+                    min={0}
+                    max={50}
+                    step={0.1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <span>0A</span>
+                    <span>25A</span>
+                    <span>50A</span>
+                  </div>
+                </div>
+
+                {formData.tension > 0 && formData.corriente > 0 && (
+                  <div className="p-2 bg-white rounded border border-blue-300 text-sm">
+                    <span className="text-slate-700">Potencia aproximada: </span>
+                    <span className="font-semibold text-blue-900">
+                      {((formData.tension * formData.corriente * 0.9) / 1000).toFixed(2)} kW
+                    </span>
+                  </div>
+                )}
+              </div>
+            </Card>
 
             <Card className="p-3 bg-slate-50">
               <p className="text-xs font-medium text-slate-700 mb-2">
