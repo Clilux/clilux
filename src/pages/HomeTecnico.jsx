@@ -15,6 +15,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import COPCalculator from '../components/calculators/COPCalculator';
 
 const defaultQuickActions = [
 { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
@@ -139,6 +140,7 @@ export default function HomeTecnico() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <COPCalculator />
               <Link to={createPageUrl('Facturacion')}>
                 <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all">
                   <span className="text-white font-semibold">Administración</span>
