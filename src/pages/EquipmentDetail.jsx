@@ -23,6 +23,7 @@ import PhotosTab from '../components/equipment/PhotosTab';
 import EditableNotes from '../components/equipment/EditableNotes';
 import EquipmentReport from '../components/reports/EquipmentReport';
 import RevisionsReport from '../components/reports/RevisionsReport';
+import MaintenancePlan from '../components/equipment/MaintenancePlan';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -378,14 +379,25 @@ export default function EquipmentDetail() {
           <EditableNotes equipment={equipment} equipmentId={equipmentId} />
         </Card>
 
-        {/* Tabs: Revisiones, Intervenciones, Imágenes, Documentos */}
-        <Tabs defaultValue="revisions" className="mb-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6">
+        {/* Tabs: Plan de Mantenimiento, Revisiones, Intervenciones, Imágenes, Documentos */}
+        <Tabs defaultValue="plan" className="mb-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 mb-6">
+            <TabsTrigger value="plan">Plan Mantenimiento</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="plan">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <MaintenancePlan 
+                equipmentId={equipmentId}
+                clientId={equipment.client_id}
+                buildingId={equipment.building_id}
+              />
+            </Card>
+          </TabsContent>
 
           <TabsContent value="revisions">
             <Card className="p-6 bg-white border-0 shadow-sm">
