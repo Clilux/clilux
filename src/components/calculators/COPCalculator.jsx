@@ -32,16 +32,18 @@ export default function COPCalculator() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     presion_baja: '',
+    temp_evaporacion: '',
     presion_alta: '',
-    temp_entrada_compresor: '',
-    temp_salida_compresor: '',
-    temp_evaporador: '',
-    temp_condensador: '',
-    tension: '',
-    corriente: '',
-    tipo_corriente: 'monofasico',
+    temp_condensacion: '',
+    temp_aspiracion: '',
+    temp_liquido: '',
+    temp_descarga: '',
     refrigerante: 'R410A',
-    caudal_masico: '' // kg/s - opcional, se puede estimar
+    // Entalpías (opcionales - se pueden introducir manualmente si se tienen)
+    h1_manual: '',
+    h2_manual: '',
+    h3_manual: '',
+    h4_manual: ''
   });
 
   const [results, setResults] = useState(null);
@@ -49,82 +51,82 @@ export default function COPCalculator() {
   const handleCalculate = () => {
     const pBaja = parseFloat(formData.presion_baja);
     const pAlta = parseFloat(formData.presion_alta);
-    const tEntrada = parseFloat(formData.temp_entrada_compresor);
-    const tSalida = parseFloat(formData.temp_salida_compresor);
-    const tEvap = parseFloat(formData.temp_evaporador);
-    const tCond = parseFloat(formData.temp_condensador) || 40;
-    const voltaje = parseFloat(formData.tension);
-    const corriente = parseFloat(formData.corriente);
-    const caudalInput = parseFloat(formData.caudal_masico);
+    const tEvap = parseFloat(formData.temp_evaporacion);
+    const tCond = parseFloat(formData.temp_condensacion);
+    const tAsp = parseFloat(formData.temp_aspiracion);
+    const tLiq = parseFloat(formData.temp_liquido);
+    const tDesc = parseFloat(formData.temp_descarga);
 
-    if (!pBaja || !pAlta || !tEntrada || !tSalida || !tEvap || !voltaje || !corriente) {
-      toast.error('Introduce todos los valores obligatorios');
+    if (!pBaja || !pAlta || !tEvap || !tCond || !tAsp || !tLiq || !tDesc) {
+      toast.error('Introduce todos los valores medidos por Testo');
       return;
     }
 
-    // CÁLCULO DE ENTALPÍAS (R410A - correlaciones mejoradas)
+    // CÁLCULO DE ENTALPÍAS según procedimiento estándar
+    // Usar valores manuales si se proporcionan, sino calcular aproximaciones
     
-    // h1: Salida condensador (líquido saturado o subenfriado a presión alta)
-    // Aproximación: h_liquido_sat = 200 + (P_alta - 10) * 8.5
-    const h1 = 200 + (pAlta - 10) * 8.5;
+    let h1, h2, h3, h4;
     
-    // h2: Entrada compresor (vapor sobrecalentado a presión baja)
-    // h_vapor_sat_baja + cp * sobrecalentamiento
-    const tSatBaja = -15 + (pBaja - 5) * 5; // Temp saturación aprox.
-    const sobrecalentamiento = tEntrada - tSatBaja;
-    const hVaporSatBaja = 390 + (pBaja - 5) * 3;
-    const h2 = hVaporSatBaja + sobrecalentamiento * 1.0; // cp vapor ≈ 1 kJ/kg·K
-    
-    // h3: Salida compresor (vapor sobrecalentado a presión alta)
-    const tSatAlta = 30 + (pAlta - 20) * 2.5;
-    const sobrecalentamientoAlta = tSalida - tSatAlta;
-    const hVaporSatAlta = 410 + (pAlta - 20) * 2.5;
-    const h3 = hVaporSatAlta + sobrecalentamientoAlta * 1.1;
-    
-    // h4 = h1 (válvula de expansión - isoentálpico)
-    const h4 = h1;
-
-    // EFECTOS TÉRMICOS
-    const qEvaporador = h2 - h1; // Calor absorbido en evaporador (kJ/kg)
-    const wCompresor = h3 - h2; // Trabajo del compresor (kJ/kg)
-    const qCondensador = h3 - h4; // Calor rechazado en condensador (kJ/kg)
-
-    // POTENCIA ELÉCTRICA CONSUMIDA
-    let potenciaElectrica;
-    let cosPhi;
-    if (formData.tipo_corriente === 'trifasico') {
-      cosPhi = 0.85;
-      potenciaElectrica = (Math.sqrt(3) * voltaje * corriente * cosPhi) / 1000;
+    if (formData.h1_manual) {
+      h1 = parseFloat(formData.h1_manual);
     } else {
-      cosPhi = 0.90;
-      potenciaElectrica = (voltaje * corriente * cosPhi) / 1000;
+      // h1: Entalpía en aspiración (P_baja + T_aspiración)
+      // Aproximación para R410A: vapor saturado + sobrecalentamiento
+      const hVaporSatBaja = 390 + (pBaja - 5) * 3;
+      const sobrecalentamiento = tAsp - tEvap;
+      h1 = hVaporSatBaja + sobrecalentamiento * 1.0;
     }
 
-    // CAUDAL MÁSICO
-    let caudalMasico;
-    if (caudalInput && caudalInput > 0) {
-      caudalMasico = caudalInput; // kg/s
+    if (formData.h3_manual) {
+      h3 = parseFloat(formData.h3_manual);
     } else {
-      // Estimar caudal másico desde potencia mecánica
-      // Potencia_mecanica = m_dot * w_compresor
-      // Asumiendo rendimiento motor ≈ 0.88
-      const potenciaMecanica = potenciaElectrica * 0.88; // kW
-      caudalMasico = potenciaMecanica / wCompresor; // kg/s
+      // h3: Entalpía a salida del condensador (P_alta + T_líquido)
+      // Líquido saturado o subenfriado
+      const hLiquidoSatAlta = 200 + (pAlta - 10) * 8.5;
+      const subenfriamiento = tCond - tLiq;
+      h3 = hLiquidoSatAlta - subenfriamiento * 4.2; // cp líquido ≈ 4.2 kJ/kg·K
     }
 
-    // CAPACIDAD FRIGORÍFICA
-    const capacidadFrigorifica = qEvaporador * caudalMasico; // kW
+    if (formData.h4_manual) {
+      h4 = parseFloat(formData.h4_manual);
+    } else {
+      // h4: Tras expansión (h4 = h3 - proceso isoentálpico)
+      h4 = h3;
+    }
 
-    // CAPACIDAD CALORÍFICA (condensador)
-    const capacidadCalorifica = qCondensador * caudalMasico; // kW
+    if (formData.h2_manual) {
+      h2 = parseFloat(formData.h2_manual);
+    } else {
+      // h2: Salida del compresor (P_alta + T_descarga)
+      // Vapor sobrecalentado a alta presión
+      const hVaporSatAlta = 410 + (pAlta - 20) * 2.5;
+      const sobrecalentamientoDescarga = tDesc - tCond;
+      h2 = hVaporSatAlta + sobrecalentamientoDescarga * 1.1;
+    }
 
-    // COP Y EER
-    const cop = capacidadFrigorifica / potenciaElectrica;
-    const eer = cop * 3.412; // BTU/h por Watt
-
-    // VERIFICACIÓN BALANCE ENERGÉTICO
-    const balanceEnergia = capacidadCalorifica - (capacidadFrigorifica + potenciaElectrica);
-    const errorBalance = Math.abs(balanceEnergia);
+    // CÁLCULOS SEGÚN PROCEDIMIENTO
+    
+    // Efecto Refrigerante (Q_e)
+    const efectoRefrigerante = h1 - h4;
+    
+    // Trabajo de Compresión (W_c)
+    const trabajoCompresion = h2 - h1;
+    
+    // Calor en condensador
+    const calorCondensador = h2 - h3;
+    
+    // COP FRÍO
+    const copFrio = efectoRefrigerante / trabajoCompresion;
+    
+    // COP CALOR
+    const copCalor = calorCondensador / trabajoCompresion;
+    
+    // EER (Energy Efficiency Ratio)
+    const eer = copFrio * 3.412;
+    
+    // Cálculos adicionales
+    const recalentamiento = tAsp - tEvap;
+    const subenfriamiento = tCond - tLiq;
 
     setResults({
       // Entalpías
@@ -133,53 +135,42 @@ export default function COPCalculator() {
       h3: h3.toFixed(1),
       h4: h4.toFixed(1),
       
-      // Temperaturas de saturación
-      tSatBaja: tSatBaja.toFixed(1),
-      tSatAlta: tSatAlta.toFixed(1),
-      sobrecalentamiento: sobrecalentamiento.toFixed(1),
+      // Temperaturas
+      recalentamiento: recalentamiento.toFixed(1),
+      subenfriamiento: subenfriamiento.toFixed(1),
       
-      // Efectos
-      qEvaporador: qEvaporador.toFixed(2),
-      wCompresor: wCompresor.toFixed(2),
-      qCondensador: qCondensador.toFixed(2),
-      
-      // Potencias
-      potenciaElectrica: potenciaElectrica.toFixed(2),
-      cosPhi: cosPhi.toFixed(2),
-      capacidadFrigorifica: capacidadFrigorifica.toFixed(2),
-      capacidadCalorifica: capacidadCalorifica.toFixed(2),
-      
-      // Caudal
-      caudalMasico: caudalMasico.toFixed(4),
-      caudalEstimado: !caudalInput,
+      // Efectos específicos
+      efectoRefrigerante: efectoRefrigerante.toFixed(2),
+      trabajoCompresion: trabajoCompresion.toFixed(2),
+      calorCondensador: calorCondensador.toFixed(2),
       
       // Rendimiento
-      cop: cop.toFixed(2),
+      copFrio: copFrio.toFixed(2),
+      copCalor: copCalor.toFixed(2),
       eer: eer.toFixed(2),
       
-      // Balance
-      errorBalance: errorBalance.toFixed(2),
-      
       // Datos de entrada
-      inputs: { ...formData }
+      inputs: { ...formData },
+      entalpiasManuales: !!(formData.h1_manual || formData.h2_manual || formData.h3_manual || formData.h4_manual)
     });
 
-    toast.success('Cálculo completado');
+    toast.success('Cálculo COP completado');
   };
 
   const handleReset = () => {
     setFormData({
       presion_baja: '',
+      temp_evaporacion: '',
       presion_alta: '',
-      temp_entrada_compresor: '',
-      temp_salida_compresor: '',
-      temp_evaporador: '',
-      temp_condensador: '',
-      tension: '',
-      corriente: '',
-      tipo_corriente: 'monofasico',
+      temp_condensacion: '',
+      temp_aspiracion: '',
+      temp_liquido: '',
+      temp_descarga: '',
       refrigerante: 'R410A',
-      caudal_masico: ''
+      h1_manual: '',
+      h2_manual: '',
+      h3_manual: '',
+      h4_manual: ''
     });
     setResults(null);
   };
@@ -188,93 +179,98 @@ export default function COPCalculator() {
     if (!results) return;
 
     const reportContent = `
-INFORME DE CÁLCULO COP Y EER
-========================================
+INFORME DE CÁLCULO COP Y EER - MÉTODO TESTO
+============================================
 
-DATOS DE ENTRADA:
-----------------
+DATOS MEDIDOS (TESTO):
+---------------------
 Refrigerante: ${formData.refrigerante}
-Presión de Baja: ${formData.presion_baja} bar
-Presión de Alta: ${formData.presion_alta} bar
-Temperatura Entrada Compresor: ${formData.temp_entrada_compresor} °C
-Temperatura Salida Compresor: ${formData.temp_salida_compresor} °C
-Temperatura Evaporador: ${formData.temp_evaporador} °C
-${formData.temp_condensador ? `Temperatura Condensador: ${formData.temp_condensador} °C` : ''}
 
-SISTEMA ELÉCTRICO:
------------------
-Tipo: ${formData.tipo_corriente === 'trifasico' ? 'Trifásico' : 'Monofásico'}
-Tensión: ${formData.tension} V
-Corriente: ${formData.corriente} A
-Factor de Potencia (cos φ): ${results.cosPhi}
+Presión de Baja (P_baja): ${formData.presion_baja} bar
+Temperatura de Evaporación (T_evap): ${formData.temp_evaporacion} °C
 
-CÁLCULO DE ENTALPÍAS:
---------------------
-Temperatura saturación baja presión: ${results.tSatBaja} °C
-Temperatura saturación alta presión: ${results.tSatAlta} °C
-Sobrecalentamiento: ${results.sobrecalentamiento} °C
+Presión de Alta (P_alta): ${formData.presion_alta} bar
+Temperatura de Condensación (T_cond): ${formData.temp_condensacion} °C
 
-h₁ (Salida Condensador): ${results.h1} kJ/kg
-h₂ (Entrada Compresor): ${results.h2} kJ/kg
-h₃ (Salida Compresor): ${results.h3} kJ/kg
-h₄ (Entrada Evaporador): ${results.h4} kJ/kg
+Temperatura de Aspiración (T_asp): ${formData.temp_aspiracion} °C
+Temperatura del Líquido (T_liq): ${formData.temp_liquido} °C
+Temperatura de Descarga (T_desc): ${formData.temp_descarga} °C
 
-EFECTOS TÉRMICOS ESPECÍFICOS:
------------------------------
-Efecto Frigorífico (q_evap = h₂ - h₁): ${results.qEvaporador} kJ/kg
-Trabajo Compresor (w_comp = h₃ - h₂): ${results.wCompresor} kJ/kg
-Calor Condensador (q_cond = h₃ - h₄): ${results.qCondensador} kJ/kg
+PARÁMETROS CALCULADOS:
+---------------------
+Recalentamiento: ${results.recalentamiento} °C
+Subenfriamiento: ${results.subenfriamiento} °C
 
-CAUDAL MÁSICO:
--------------
-Caudal másico ${results.caudalEstimado ? '(estimado)' : '(medido)'}: ${results.caudalMasico} kg/s
-
-POTENCIAS Y CAPACIDADES:
------------------------
-${formData.tipo_corriente === 'trifasico' 
-  ? `Potencia Eléctrica = √3 × ${formData.tension} × ${formData.corriente} × ${results.cosPhi} / 1000`
-  : `Potencia Eléctrica = ${formData.tension} × ${formData.corriente} × ${results.cosPhi} / 1000`}
-Potencia Eléctrica Consumida: ${results.potenciaElectrica} kW
-
-Capacidad Frigorífica = q_evap × ṁ = ${results.qEvaporador} × ${results.caudalMasico}
-Capacidad Frigorífica: ${results.capacidadFrigorifica} kW
-
-Capacidad Calorífica = q_cond × ṁ = ${results.qCondensador} × ${results.caudalMasico}
-Capacidad Calorífica: ${results.capacidadCalorifica} kW
-
-RENDIMIENTO:
+ENTALPÍAS ${results.entalpiasManuales ? '(VALORES INTRODUCIDOS MANUALMENTE)' : '(ESTIMADAS)'}:
 -----------
-COP = Capacidad Frigorífica / Potencia Eléctrica
-COP = ${results.capacidadFrigorifica} / ${results.potenciaElectrica}
-COP = ${results.cop}
+h₁ (Aspiración - Entrada Compresor): ${results.h1} kJ/kg
+   [P_baja + T_aspiración]
 
-EER = COP × 3.412
-EER = ${results.cop} × 3.412
+h₂ (Descarga - Salida Compresor): ${results.h2} kJ/kg
+   [P_alta + T_descarga]
+
+h₃ (Líquido - Salida Condensador): ${results.h3} kJ/kg
+   [P_alta + T_líquido]
+
+h₄ (Evaporador - Tras Expansión): ${results.h4} kJ/kg
+   [h₄ = h₃ - Proceso isoentálpico]
+
+PROCEDIMIENTO DE CÁLCULO:
+------------------------
+1. Efecto Refrigerante (Q_e):
+   Q_e = h₁ - h₄
+   Q_e = ${results.h1} - ${results.h4}
+   Q_e = ${results.efectoRefrigerante} kJ/kg
+
+2. Trabajo de Compresión (W_c):
+   W_c = h₂ - h₁
+   W_c = ${results.h2} - ${results.h1}
+   W_c = ${results.trabajoCompresion} kJ/kg
+
+3. Calor en Condensador:
+   Q_cond = h₂ - h₃
+   Q_cond = ${results.h2} - ${results.h3}
+   Q_cond = ${results.calorCondensador} kJ/kg
+
+RESULTADOS:
+----------
+COP FRÍO = (h₁ - h₄) / (h₂ - h₁)
+COP FRÍO = ${results.efectoRefrigerante} / ${results.trabajoCompresion}
+COP FRÍO = ${results.copFrio}
+
+COP CALOR = (h₂ - h₃) / (h₂ - h₁)
+COP CALOR = ${results.calorCondensador} / ${results.trabajoCompresion}
+COP CALOR = ${results.copCalor}
+
+EER = COP FRÍO × 3.412
+EER = ${results.copFrio} × 3.412
 EER = ${results.eer} BTU/h·W
 
-BALANCE ENERGÉTICO:
-------------------
-Q_condensador = Q_evaporador + W_eléctrico
-${results.capacidadCalorifica} kW = ${results.capacidadFrigorifica} kW + ${results.potenciaElectrica} kW
-Error de balance: ${results.errorBalance} kW ${parseFloat(results.errorBalance) < 0.5 ? '✓ Aceptable' : '⚠ Revisar mediciones'}
+INTERPRETACIÓN:
+--------------
+- COP Frío: Por cada kW de energía consumida, se obtienen ${results.copFrio} kW de refrigeración
+- COP Calor: Por cada kW de energía consumida, se obtienen ${results.copCalor} kW de calefacción
+- Recalentamiento de ${results.recalentamiento}°C ${parseFloat(results.recalentamiento) > 5 && parseFloat(results.recalentamiento) < 15 ? '✓ Óptimo' : '⚠ Revisar'}
+- Subenfriamiento de ${results.subenfriamiento}°C ${parseFloat(results.subenfriamiento) > 3 && parseFloat(results.subenfriamiento) < 10 ? '✓ Óptimo' : '⚠ Revisar'}
 
 NOTAS:
 ------
-- Cálculo basado en propiedades aproximadas de ${formData.refrigerante}
-- Factor de potencia asumido: ${results.cosPhi}
-${results.caudalEstimado ? '- Caudal másico estimado desde potencia eléctrica y trabajo del compresor' : ''}
-- Para mayor precisión, utilizar tablas de propiedades específicas del refrigerante
+${results.entalpiasManuales 
+  ? '- Cálculo basado en entalpías introducidas manualmente desde diagrama P-h' 
+  : '- Entalpías estimadas mediante correlaciones aproximadas de ' + formData.refrigerante}
+- Para máxima precisión, usar diagrama Mollier o tabla P-h del refrigerante específico
+- Los valores de COP dependen de las condiciones de operación
 
+Equipo de medición: TESTO
 Fecha: ${new Date().toLocaleDateString('es-ES')}
 Hora: ${new Date().toLocaleTimeString('es-ES')}
 `;
 
-    // Descargar como archivo de texto
     const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Informe_COP_EER_${new Date().toISOString().split('T')[0]}.txt`;
+    link.download = `Informe_COP_${formData.refrigerante}_${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -302,20 +298,21 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
             <div className="flex gap-2">
               <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
-                <p className="font-medium mb-2">Mediciones necesarias:</p>
+                <p className="font-medium mb-2">Datos a medir con TESTO:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Presiones de alta y baja del sistema</li>
-                  <li>Temperaturas de entrada/salida del compresor</li>
-                  <li>Temperatura del evaporador</li>
-                  <li>Tensión y corriente eléctrica</li>
+                  <li><strong>P_baja / T_evaporación:</strong> Presión y temperatura de aspiración (evaporador)</li>
+                  <li><strong>P_alta / T_condensación:</strong> Presión y temperatura de descarga (condensador)</li>
+                  <li><strong>T_aspiración:</strong> Temperatura real entrada del compresor (para recalentamiento)</li>
+                  <li><strong>T_líquido:</strong> Temperatura salida del condensador (para subenfriamiento)</li>
+                  <li><strong>T_descarga:</strong> Temperatura salida del compresor</li>
                 </ul>
               </div>
             </div>
           </Card>
 
           {/* Formulario de entradas */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="space-y-4">
+            <div>
               <Label>Refrigerante</Label>
               <Select
                 value={formData.refrigerante}
@@ -329,119 +326,143 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
                   <SelectItem value="R32">R32</SelectItem>
                   <SelectItem value="R134A">R134A</SelectItem>
                   <SelectItem value="R404A">R404A</SelectItem>
+                  <SelectItem value="R407C">R407C</SelectItem>
+                  <SelectItem value="R22">R22</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <Label>Presión de Baja (bar)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 8.5"
-                value={formData.presion_baja}
-                onChange={(e) => setFormData({ ...formData, presion_baja: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Presión de Baja (P_baja) - bar</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 8.5"
+                  value={formData.presion_baja}
+                  onChange={(e) => setFormData({ ...formData, presion_baja: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Temp. Evaporación (T_evap) - °C</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 5"
+                  value={formData.temp_evaporacion}
+                  onChange={(e) => setFormData({ ...formData, temp_evaporacion: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Presión de Alta (bar)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 28.0"
-                value={formData.presion_alta}
-                onChange={(e) => setFormData({ ...formData, presion_alta: e.target.value })}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Presión de Alta (P_alta) - bar</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 28.0"
+                  value={formData.presion_alta}
+                  onChange={(e) => setFormData({ ...formData, presion_alta: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Temp. Condensación (T_cond) - °C</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 45"
+                  value={formData.temp_condensacion}
+                  onChange={(e) => setFormData({ ...formData, temp_condensacion: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Temp. Aspiración (T_asp) - °C</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 15"
+                  value={formData.temp_aspiracion}
+                  onChange={(e) => setFormData({ ...formData, temp_aspiracion: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Temp. Líquido (T_liq) - °C</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder="ej: 40"
+                  value={formData.temp_liquido}
+                  onChange={(e) => setFormData({ ...formData, temp_liquido: e.target.value })}
+                />
+              </div>
             </div>
 
             <div>
-              <Label>Temp. Entrada Compresor (°C)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 15"
-                value={formData.temp_entrada_compresor}
-                onChange={(e) => setFormData({ ...formData, temp_entrada_compresor: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Temp. Salida Compresor (°C)</Label>
+              <Label>Temp. Descarga (T_desc) - °C</Label>
               <Input
                 type="number"
                 step="0.1"
                 placeholder="ej: 75"
-                value={formData.temp_salida_compresor}
-                onChange={(e) => setFormData({ ...formData, temp_salida_compresor: e.target.value })}
+                value={formData.temp_descarga}
+                onChange={(e) => setFormData({ ...formData, temp_descarga: e.target.value })}
               />
             </div>
 
-            <div>
-              <Label>Temp. Evaporador (°C)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 5"
-                value={formData.temp_evaporador}
-                onChange={(e) => setFormData({ ...formData, temp_evaporador: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Temp. Condensador (°C) <span className="text-xs text-slate-500">(opcional)</span></Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 40"
-                value={formData.temp_condensador}
-                onChange={(e) => setFormData({ ...formData, temp_condensador: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label>Tipo de Corriente</Label>
-              <Select
-                value={formData.tipo_corriente}
-                onValueChange={(v) => setFormData({ ...formData, tipo_corriente: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monofasico">Monofásico</SelectItem>
-                  <SelectItem value="trifasico">Trifásico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Caudal Másico (kg/s) <span className="text-xs text-slate-500">(opcional)</span></Label>
-              <Input
-                type="number"
-                step="0.0001"
-                placeholder="Se estimará si no se indica"
-                value={formData.caudal_masico}
-                onChange={(e) => setFormData({ ...formData, caudal_masico: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label>Tensión (V)</Label>
-              <Input
-                type="number"
-                step="1"
-                placeholder="ej: 230 o 400"
-                value={formData.tension}
-                onChange={(e) => setFormData({ ...formData, tension: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Corriente (A)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="ej: 8.5"
-                value={formData.corriente}
-                onChange={(e) => setFormData({ ...formData, corriente: e.target.value })}
-              />
-            </div>
+            <Card className="p-3 bg-slate-50">
+              <p className="text-xs font-medium text-slate-700 mb-2">
+                Entalpías (opcional - si tienes diagrama P-h):
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-xs">h₁ (kJ/kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Auto"
+                    value={formData.h1_manual}
+                    onChange={(e) => setFormData({ ...formData, h1_manual: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">h₂ (kJ/kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Auto"
+                    value={formData.h2_manual}
+                    onChange={(e) => setFormData({ ...formData, h2_manual: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">h₃ (kJ/kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Auto"
+                    value={formData.h3_manual}
+                    onChange={(e) => setFormData({ ...formData, h3_manual: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">h₄ (kJ/kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Auto"
+                    value={formData.h4_manual}
+                    onChange={(e) => setFormData({ ...formData, h4_manual: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+            </Card>
           </div>
 
           {/* Resultados */}
@@ -450,64 +471,63 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
               <h4 className="font-semibold text-green-900 mb-3">Resultados del Cálculo:</h4>
               
               <div className="mb-3 p-3 bg-white rounded border">
-                <p className="text-xs text-slate-600 font-medium mb-2">Temperaturas de Saturación:</p>
-                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                  <div>T sat. baja: <span className="font-semibold">{results.tSatBaja} °C</span></div>
-                  <div>T sat. alta: <span className="font-semibold">{results.tSatAlta} °C</span></div>
+                <p className="text-xs text-slate-600 font-medium mb-2">Parámetros medidos:</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>Recalentamiento: <span className="font-semibold">{results.recalentamiento} °C</span></div>
+                  <div>Subenfriamiento: <span className="font-semibold">{results.subenfriamiento} °C</span></div>
                 </div>
-                <p className="text-xs text-slate-600">Sobrecalentamiento: <span className="font-semibold">{results.sobrecalentamiento} °C</span></p>
               </div>
 
               <div className="mb-3 p-3 bg-white rounded border">
-                <p className="text-xs text-slate-600 font-medium mb-2">Entalpías calculadas (kJ/kg):</p>
-                <div className="grid grid-cols-4 gap-2 text-xs">
-                  <div>h₁: <span className="font-semibold">{results.h1}</span></div>
-                  <div>h₂: <span className="font-semibold">{results.h2}</span></div>
-                  <div>h₃: <span className="font-semibold">{results.h3}</span></div>
-                  <div>h₄: <span className="font-semibold">{results.h4}</span></div>
+                <p className="text-xs text-slate-600 font-medium mb-2">
+                  Entalpías {results.entalpiasManuales ? '(introducidas)' : '(estimadas)'} (kJ/kg):
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>h₁ (Aspiración): <span className="font-semibold">{results.h1}</span></div>
+                  <div>h₂ (Descarga): <span className="font-semibold">{results.h2}</span></div>
+                  <div>h₃ (Líquido): <span className="font-semibold">{results.h3}</span></div>
+                  <div>h₄ (Evaporador): <span className="font-semibold">{results.h4}</span></div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Caudal Másico {results.caudalEstimado && '(estimado)'}:</span>
-                  <span className="font-semibold text-slate-900">{results.caudalMasico} kg/s</span>
+                  <span className="text-sm text-slate-700">Efecto Refrigerante (Q_e):</span>
+                  <span className="font-semibold text-slate-900">{results.efectoRefrigerante} kJ/kg</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Potencia Eléctrica (cos φ={results.cosPhi}):</span>
-                  <span className="font-semibold text-slate-900">{results.potenciaElectrica} kW</span>
+                  <span className="text-sm text-slate-700">Trabajo Compresión (W_c):</span>
+                  <span className="font-semibold text-slate-900">{results.trabajoCompresion} kJ/kg</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Capacidad Frigorífica:</span>
-                  <span className="font-semibold text-slate-900">{results.capacidadFrigorifica} kW</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Capacidad Calorífica:</span>
-                  <span className="font-semibold text-slate-900">{results.capacidadCalorifica} kW</span>
+                  <span className="text-sm text-slate-700">Calor Condensador:</span>
+                  <span className="font-semibold text-slate-900">{results.calorCondensador} kJ/kg</span>
                 </div>
                 <div className="h-px bg-green-300 my-2"></div>
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded text-white">
-                  <span className="font-semibold">COP (Coefficient of Performance):</span>
-                  <span className="text-2xl font-bold">{results.cop}</span>
+                  <span className="font-semibold">COP FRÍO:</span>
+                  <span className="text-2xl font-bold">{results.copFrio}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded text-white">
+                  <span className="font-semibold">COP CALOR:</span>
+                  <span className="text-2xl font-bold">{results.copCalor}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-500 to-green-600 rounded text-white">
-                  <span className="font-semibold">EER (Energy Efficiency Ratio):</span>
+                  <span className="font-semibold">EER:</span>
                   <span className="text-2xl font-bold">{results.eer}</span>
                 </div>
               </div>
               
-              <div className="mt-3 p-3 bg-white rounded border">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-600">Balance energético:</span>
-                  <span className={`font-semibold ${parseFloat(results.errorBalance) < 0.5 ? 'text-green-600' : 'text-amber-600'}`}>
-                    Error: {results.errorBalance} kW
-                  </span>
-                </div>
+              <div className="mt-3 p-3 bg-amber-50 rounded border border-amber-200 text-xs">
+                <p className="font-medium text-amber-800 mb-1">Fórmulas aplicadas:</p>
+                <p className="text-amber-700">• COP Frío = (h₁ - h₄) / (h₂ - h₁)</p>
+                <p className="text-amber-700">• COP Calor = (h₂ - h₃) / (h₂ - h₁)</p>
+                <p className="text-amber-700">• EER = COP Frío × 3.412</p>
               </div>
 
               <Button onClick={generateReport} className="w-full mt-3 bg-slate-700 hover:bg-slate-800">
                 <FileText className="h-4 w-4 mr-2" />
-                Descargar Informe Completo
+                Descargar Informe Detallado
               </Button>
             </Card>
           )}
