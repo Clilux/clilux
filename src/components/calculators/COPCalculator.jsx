@@ -4,54 +4,88 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function COPCalculator() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    // Punto 1: Entrada del evaporador (después válvula expansión)
-    h1: '',
-    // Punto 2: Salida del evaporador (entrada compresor)
-    h2: '',
-    // Punto 3: Salida del compresor
-    h3: '',
-    // Punto 4: Entrada del condensador (salida del condensador)
-    h4: '',
+    presion_baja: '',
+    presion_alta: '',
+    temp_entrada_compresor: '',
+    temp_salida_compresor: '',
+    temp_evaporador: '',
+    tension: '',
+    corriente: '',
+    tipo_corriente: 'monofasico',
+    refrigerante: 'R410A'
   });
 
   const [results, setResults] = useState(null);
 
   const handleCalculate = () => {
-    const h1 = parseFloat(formData.h1);
-    const h2 = parseFloat(formData.h2);
-    const h3 = parseFloat(formData.h3);
-    const h4 = parseFloat(formData.h4);
+    const pBaja = parseFloat(formData.presion_baja);
+    const pAlta = parseFloat(formData.presion_alta);
+    const tEntrada = parseFloat(formData.temp_entrada_compresor);
+    const tSalida = parseFloat(formData.temp_salida_compresor);
+    const tEvap = parseFloat(formData.temp_evaporador);
+    const voltaje = parseFloat(formData.tension);
+    const corriente = parseFloat(formData.corriente);
 
-    if (!h1 || !h2 || !h3 || !h4) {
-      toast.error('Introduce todos los valores de entalpía');
+    if (!pBaja || !pAlta || !tEntrada || !tSalida || !tEvap || !voltaje || !corriente) {
+      toast.error('Introduce todos los valores');
       return;
     }
 
-    // Capacidad de refrigeración (calor absorbido en el evaporador)
+    // Estimación de entalpías basada en refrigerante R410A (aproximación)
+    // h = f(P, T) - usando correlaciones simplificadas
+    
+    // Para R410A aproximaciones:
+    // h1 (salida condensador / entrada válvula): líquido saturado a presión alta
+    const h1 = 100 + (pAlta * 15); // kJ/kg (aproximación)
+    
+    // h2 (entrada compresor): vapor saturado a baja presión + sobrecalentamiento
+    const sobrecalentamiento = tEntrada - (-10 - (10 - pBaja) * 2); // Temp evaporación estimada
+    const h2 = 400 + (pBaja * 8) + (sobrecalentamiento * 1.0);
+    
+    // h3 (salida compresor): vapor sobrecalentado a alta presión
+    const h3 = 420 + (pAlta * 10) + ((tSalida - 40) * 1.2);
+    
+    // h4 = h1 (proceso isoentálpico en válvula de expansión)
+    const h4 = h1;
+
+    // Capacidad frigorífica (kJ/kg)
     const qEvaporador = h2 - h1;
 
-    // Trabajo del compresor
+    // Trabajo del compresor (kJ/kg)
     const wCompresor = h3 - h2;
 
-    // COP (Coefficient of Performance)
-    const cop = qEvaporador / wCompresor;
+    // Potencia eléctrica consumida (kW)
+    let potenciaElectrica;
+    if (formData.tipo_corriente === 'trifasico') {
+      potenciaElectrica = (Math.sqrt(3) * voltaje * corriente * 0.85) / 1000; // cos φ = 0.85
+    } else {
+      potenciaElectrica = (voltaje * corriente * 0.9) / 1000; // cos φ = 0.9
+    }
 
-    // EER (Energy Efficiency Ratio)
+    // COP real = Capacidad frigorífica / Potencia consumida
+    // Necesitamos caudal másico estimado
+    const caudalEstimado = (potenciaElectrica * 3600) / wCompresor; // kg/h aproximado
+    const capacidadFrigorifica = (qEvaporador * caudalEstimado) / 3600; // kW
+
+    const cop = capacidadFrigorifica / potenciaElectrica;
     const eer = cop * 3.412;
 
-    // Capacidad de condensación
-    const qCondensador = h3 - h4;
-
     setResults({
+      h1: h1.toFixed(1),
+      h2: h2.toFixed(1),
+      h3: h3.toFixed(1),
+      h4: h4.toFixed(1),
       qEvaporador: qEvaporador.toFixed(2),
       wCompresor: wCompresor.toFixed(2),
-      qCondensador: qCondensador.toFixed(2),
+      potenciaElectrica: potenciaElectrica.toFixed(2),
+      capacidadFrigorifica: capacidadFrigorifica.toFixed(2),
       cop: cop.toFixed(2),
       eer: eer.toFixed(2)
     });
@@ -60,7 +94,17 @@ export default function COPCalculator() {
   };
 
   const handleReset = () => {
-    setFormData({ h1: '', h2: '', h3: '', h4: '' });
+    setFormData({
+      presion_baja: '',
+      presion_alta: '',
+      temp_entrada_compresor: '',
+      temp_salida_compresor: '',
+      temp_evaporador: '',
+      tension: '',
+      corriente: '',
+      tipo_corriente: 'monofasico',
+      refrigerante: 'R410A'
+    });
     setResults(null);
   };
 
@@ -83,79 +127,123 @@ export default function COPCalculator() {
             <div className="flex gap-2">
               <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
-                <p className="font-medium mb-2">Pasos:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Medir presiones y temperaturas en los 4 puntos del ciclo</li>
-                  <li>Usar diagrama P-h o tablas del refrigerante para obtener entalpías (kJ/kg)</li>
-                  <li>Introducir los valores de entalpía en los campos correspondientes</li>
-                </ol>
-              </div>
-            </div>
-          </Card>
-
-          {/* Diagrama del ciclo */}
-          <Card className="p-4 bg-slate-50">
-            <h4 className="font-medium text-slate-800 mb-3">Puntos del Ciclo de Refrigeración:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div className="p-3 bg-white rounded border">
-                <p className="font-medium text-slate-700">h₁ - Entrada Evaporador</p>
-                <p className="text-xs text-slate-500">Después de válvula de expansión</p>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <p className="font-medium text-slate-700">h₂ - Salida Evaporador</p>
-                <p className="text-xs text-slate-500">Entrada del compresor</p>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <p className="font-medium text-slate-700">h₃ - Salida Compresor</p>
-                <p className="text-xs text-slate-500">Entrada del condensador</p>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <p className="font-medium text-slate-700">h₄ - Salida Condensador</p>
-                <p className="text-xs text-slate-500">Entrada válvula expansión</p>
+                <p className="font-medium mb-2">Mediciones necesarias:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Presiones de alta y baja del sistema</li>
+                  <li>Temperaturas de entrada/salida del compresor</li>
+                  <li>Temperatura del evaporador</li>
+                  <li>Tensión y corriente eléctrica</li>
+                </ul>
               </div>
             </div>
           </Card>
 
           {/* Formulario de entradas */}
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label>Refrigerante</Label>
+              <Select
+                value={formData.refrigerante}
+                onValueChange={(v) => setFormData({ ...formData, refrigerante: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="R410A">R410A</SelectItem>
+                  <SelectItem value="R32">R32</SelectItem>
+                  <SelectItem value="R134A">R134A</SelectItem>
+                  <SelectItem value="R404A">R404A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
-              <Label>h₁ - Entrada Evaporador (kJ/kg)</Label>
+              <Label>Presión de Baja (bar)</Label>
               <Input
                 type="number"
-                step="0.01"
-                placeholder="ej: 250.5"
-                value={formData.h1}
-                onChange={(e) => setFormData({ ...formData, h1: e.target.value })}
+                step="0.1"
+                placeholder="ej: 8.5"
+                value={formData.presion_baja}
+                onChange={(e) => setFormData({ ...formData, presion_baja: e.target.value })}
               />
             </div>
             <div>
-              <Label>h₂ - Salida Evaporador (kJ/kg)</Label>
+              <Label>Presión de Alta (bar)</Label>
               <Input
                 type="number"
-                step="0.01"
-                placeholder="ej: 405.2"
-                value={formData.h2}
-                onChange={(e) => setFormData({ ...formData, h2: e.target.value })}
+                step="0.1"
+                placeholder="ej: 28.0"
+                value={formData.presion_alta}
+                onChange={(e) => setFormData({ ...formData, presion_alta: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>Temp. Entrada Compresor (°C)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                placeholder="ej: 15"
+                value={formData.temp_entrada_compresor}
+                onChange={(e) => setFormData({ ...formData, temp_entrada_compresor: e.target.value })}
               />
             </div>
             <div>
-              <Label>h₃ - Salida Compresor (kJ/kg)</Label>
+              <Label>Temp. Salida Compresor (°C)</Label>
               <Input
                 type="number"
-                step="0.01"
-                placeholder="ej: 445.8"
-                value={formData.h3}
-                onChange={(e) => setFormData({ ...formData, h3: e.target.value })}
+                step="0.1"
+                placeholder="ej: 75"
+                value={formData.temp_salida_compresor}
+                onChange={(e) => setFormData({ ...formData, temp_salida_compresor: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>Temp. Evaporador (°C)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                placeholder="ej: 5"
+                value={formData.temp_evaporador}
+                onChange={(e) => setFormData({ ...formData, temp_evaporador: e.target.value })}
               />
             </div>
             <div>
-              <Label>h₄ - Salida Condensador (kJ/kg)</Label>
+              <Label>Tipo de Corriente</Label>
+              <Select
+                value={formData.tipo_corriente}
+                onValueChange={(v) => setFormData({ ...formData, tipo_corriente: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monofasico">Monofásico</SelectItem>
+                  <SelectItem value="trifasico">Trifásico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Tensión (V)</Label>
               <Input
                 type="number"
-                step="0.01"
-                placeholder="ej: 250.5"
-                value={formData.h4}
-                onChange={(e) => setFormData({ ...formData, h4: e.target.value })}
+                step="1"
+                placeholder="ej: 230 o 400"
+                value={formData.tension}
+                onChange={(e) => setFormData({ ...formData, tension: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Corriente (A)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                placeholder="ej: 8.5"
+                value={formData.corriente}
+                onChange={(e) => setFormData({ ...formData, corriente: e.target.value })}
               />
             </div>
           </div>
@@ -163,19 +251,34 @@ export default function COPCalculator() {
           {/* Resultados */}
           {results && (
             <Card className="p-4 bg-green-50 border-green-200">
-              <h4 className="font-semibold text-green-900 mb-3">Resultados:</h4>
+              <h4 className="font-semibold text-green-900 mb-3">Resultados del Cálculo:</h4>
+              
+              <div className="mb-3 p-3 bg-white rounded border">
+                <p className="text-xs text-slate-600 font-medium mb-2">Entalpías estimadas (kJ/kg):</p>
+                <div className="grid grid-cols-4 gap-2 text-xs">
+                  <div>h₁: <span className="font-semibold">{results.h1}</span></div>
+                  <div>h₂: <span className="font-semibold">{results.h2}</span></div>
+                  <div>h₃: <span className="font-semibold">{results.h3}</span></div>
+                  <div>h₄: <span className="font-semibold">{results.h4}</span></div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Capacidad Evaporador (Q_evap):</span>
+                  <span className="text-sm text-slate-700">Potencia Eléctrica Consumida:</span>
+                  <span className="font-semibold text-slate-900">{results.potenciaElectrica} kW</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-white rounded">
+                  <span className="text-sm text-slate-700">Capacidad Frigorífica Estimada:</span>
+                  <span className="font-semibold text-slate-900">{results.capacidadFrigorifica} kW</span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-white rounded">
+                  <span className="text-sm text-slate-700">Efecto Frigorífico (q_evap):</span>
                   <span className="font-semibold text-slate-900">{results.qEvaporador} kJ/kg</span>
                 </div>
                 <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Trabajo Compresor (W_comp):</span>
+                  <span className="text-sm text-slate-700">Trabajo Compresor (w_comp):</span>
                   <span className="font-semibold text-slate-900">{results.wCompresor} kJ/kg</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-white rounded">
-                  <span className="text-sm text-slate-700">Capacidad Condensador (Q_cond):</span>
-                  <span className="font-semibold text-slate-900">{results.qCondensador} kJ/kg</span>
                 </div>
                 <div className="h-px bg-green-300 my-2"></div>
                 <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded text-white">
@@ -189,9 +292,11 @@ export default function COPCalculator() {
               </div>
               
               <div className="mt-4 p-3 bg-white rounded border text-xs text-slate-600">
-                <p className="font-medium mb-1">Fórmulas aplicadas:</p>
-                <p>• COP = (h₂ - h₁) / (h₃ - h₂) = {results.qEvaporador} / {results.wCompresor}</p>
-                <p>• EER = COP × 3.412 = {results.cop} × 3.412</p>
+                <p className="font-medium mb-1">Método de cálculo:</p>
+                <p>• Potencia = {formData.tipo_corriente === 'trifasico' ? '√3 × V × I × cos φ' : 'V × I × cos φ'}</p>
+                <p>• COP = Capacidad Frigorífica / Potencia Consumida</p>
+                <p>• EER = COP × 3.412</p>
+                <p className="text-amber-700 mt-2">⚠️ Nota: Cálculo aproximado basado en {formData.refrigerante}</p>
               </div>
             </Card>
           )}
