@@ -66,10 +66,12 @@ import ClientIncidents from './pages/ClientIncidents';
 import ClientReportIncident from './pages/ClientReportIncident';
 import Clients from './pages/Clients';
 import ConfigCatalogo from './pages/ConfigCatalogo';
+import ConfigDocumentos from './pages/ConfigDocumentos';
 import Documentacion from './pages/Documentacion';
 import Equipment from './pages/Equipment';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
+import FacturaForm from './pages/FacturaForm';
 import Facturacion from './pages/Facturacion';
 import Facturas from './pages/Facturas';
 import Home from './pages/Home';
@@ -92,8 +94,7 @@ import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import FacturaForm from './pages/FacturaForm';
-import ConfigDocumentos from './pages/ConfigDocumentos';
+import EditScheduledRevision from './pages/EditScheduledRevision';
 import __Layout from './Layout.jsx';
 
 
@@ -117,10 +118,12 @@ export const PAGES = {
     "ClientReportIncident": ClientReportIncident,
     "Clients": Clients,
     "ConfigCatalogo": ConfigCatalogo,
+    "ConfigDocumentos": ConfigDocumentos,
     "Documentacion": Documentacion,
     "Equipment": Equipment,
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
+    "FacturaForm": FacturaForm,
     "Facturacion": Facturacion,
     "Facturas": Facturas,
     "Home": Home,
@@ -143,8 +146,7 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "FacturaForm": FacturaForm,
-    "ConfigDocumentos": ConfigDocumentos,
+    "EditScheduledRevision": EditScheduledRevision,
 }
 
 export const pagesConfig = {

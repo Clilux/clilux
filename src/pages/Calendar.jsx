@@ -249,31 +249,42 @@ export default function Calendar() {
                   const buildingInfo = getBuildingInfo(rev.building_id);
 
                   return (
-                    <Link key={rev.id} to={createPageUrl(`RevisionForm?id=${rev.id}`)}>
-                      <div className="p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="font-medium text-slate-800">
-                            {revisionTypeLabels[rev.revision_type]}
-                          </span>
-                          {rev.status === 'completed' ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Clock className="h-4 w-4 text-blue-600" />
-                          )}
-                        </div>
-                        {equipmentInfo && (
-                          <p className="text-sm text-slate-600">
-                            {equipmentInfo.brand} {equipmentInfo.model}
-                          </p>
+                    <div key={rev.id} className="p-3 border rounded-lg hover:bg-slate-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="font-medium text-slate-800">
+                          {revisionTypeLabels[rev.revision_type]}
+                        </span>
+                        {rev.status === 'completed' ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Clock className="h-4 w-4 text-blue-600" />
                         )}
-                        {buildingInfo && (
-                          <p className="text-xs text-slate-500">{buildingInfo.name}</p>
-                        )}
-                        <p className="text-xs text-slate-500 mt-1">
-                          {format(new Date(rev.scheduled_date), "d MMM yyyy", { locale: es })}
-                        </p>
                       </div>
-                    </Link>
+                      {equipmentInfo && (
+                        <p className="text-sm text-slate-600">
+                          {equipmentInfo.brand} {equipmentInfo.model}
+                        </p>
+                      )}
+                      {buildingInfo && (
+                        <p className="text-xs text-slate-500">{buildingInfo.name}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-1">
+                        {format(new Date(rev.scheduled_date), "d MMM yyyy", { locale: es })}
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <Link to={createPageUrl(`RevisionForm?id=${rev.id}`)} className="flex-1">
+                          <Button size="sm" variant="outline" className="w-full">
+                            Realizar
+                          </Button>
+                        </Link>
+                        <Link to={createPageUrl(`EditScheduledRevision?id=${rev.id}`)} className="flex-1">
+                          <Button size="sm" variant="ghost" className="w-full">
+                            <CalendarIcon className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -291,8 +302,8 @@ export default function Calendar() {
                     const buildingInfo = getBuildingInfo(rev.building_id);
 
                     return (
-                      <Link key={rev.id} to={createPageUrl(`RevisionForm?id=${rev.id}`)}>
-                        <div className="p-4 border rounded-lg hover:bg-slate-50 cursor-pointer flex items-center justify-between">
+                      <div key={rev.id} className="p-4 border rounded-lg hover:bg-slate-50">
+                        <div className="flex items-center justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
                               <span className="font-medium text-slate-800">
@@ -319,7 +330,20 @@ export default function Calendar() {
                             </p>
                           </div>
                         </div>
-                      </Link>
+                        <div className="flex gap-2">
+                          <Link to={createPageUrl(`RevisionForm?id=${rev.id}`)} className="flex-1">
+                            <Button size="sm" variant="outline" className="w-full">
+                              Realizar
+                            </Button>
+                          </Link>
+                          <Link to={createPageUrl(`EditScheduledRevision?id=${rev.id}`)} className="flex-1">
+                            <Button size="sm" variant="ghost" className="w-full">
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              Editar Fecha
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
