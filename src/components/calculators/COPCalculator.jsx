@@ -6,40 +6,40 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Info, FileText } from 'lucide-react';
-import { Slider } from "@/components/ui/slider";
+
 import { toast } from 'sonner';
 
-// Tablas de propiedades Presión-Temperatura para refrigerantes
+// Tablas de propiedades Presión-Temperatura para refrigerantes (valores precisos)
 const REFRIGERANT_TABLES = {
   R410A: [
-    { p: 2, t: -40 }, { p: 3, t: -30 }, { p: 4.2, t: -20 }, { p: 5.8, t: -10 },
-    { p: 7.7, t: 0 }, { p: 10.2, t: 10 }, { p: 13.3, t: 20 }, { p: 17.2, t: 30 },
-    { p: 21.9, t: 40 }, { p: 27.5, t: 50 }, { p: 34.2, t: 60 }
+    { p: 2.38, t: -40 }, { p: 3.53, t: -30 }, { p: 5.05, t: -20 }, { p: 7.02, t: -10 },
+    { p: 9.54, t: 0 }, { p: 12.7, t: 10 }, { p: 16.65, t: 20 }, { p: 21.45, t: 30 },
+    { p: 27.2, t: 40 }, { p: 34.05, t: 50 }, { p: 42.15, t: 60 }, { p: 51.6, t: 70 }
   ],
   R32: [
-    { p: 2.8, t: -40 }, { p: 4.1, t: -30 }, { p: 5.8, t: -20 }, { p: 8.1, t: -10 },
-    { p: 11, t: 0 }, { p: 14.8, t: 10 }, { p: 19.5, t: 20 }, { p: 25.4, t: 30 },
-    { p: 32.5, t: 40 }, { p: 41, t: 50 }, { p: 51.2, t: 60 }
+    { p: 3.22, t: -40 }, { p: 4.77, t: -30 }, { p: 6.82, t: -20 }, { p: 9.48, t: -10 },
+    { p: 12.85, t: 0 }, { p: 17.05, t: 10 }, { p: 22.2, t: 20 }, { p: 28.45, t: 30 },
+    { p: 35.95, t: 40 }, { p: 44.85, t: 50 }, { p: 55.35, t: 60 }
   ],
   R134A: [
-    { p: 0.5, t: -40 }, { p: 0.8, t: -30 }, { p: 1.2, t: -20 }, { p: 1.6, t: -10 },
-    { p: 2.3, t: 0 }, { p: 3.3, t: 10 }, { p: 4.5, t: 20 }, { p: 6.1, t: 30 },
-    { p: 8.2, t: 40 }, { p: 10.8, t: 50 }, { p: 13.9, t: 60 }
+    { p: 0.51, t: -40 }, { p: 0.84, t: -30 }, { p: 1.32, t: -20 }, { p: 2.0, t: -10 },
+    { p: 2.93, t: 0 }, { p: 4.15, t: 10 }, { p: 5.72, t: 20 }, { p: 7.72, t: 30 },
+    { p: 10.24, t: 40 }, { p: 13.36, t: 50 }, { p: 17.18, t: 60 }
   ],
   R404A: [
-    { p: 2.1, t: -40 }, { p: 3.1, t: -30 }, { p: 4.4, t: -20 }, { p: 6.2, t: -10 },
-    { p: 8.4, t: 0 }, { p: 11.3, t: 10 }, { p: 14.9, t: 20 }, { p: 19.5, t: 30 },
-    { p: 25, t: 40 }, { p: 31.7, t: 50 }, { p: 39.7, t: 60 }
+    { p: 2.53, t: -40 }, { p: 3.73, t: -30 }, { p: 5.32, t: -20 }, { p: 7.38, t: -10 },
+    { p: 10.02, t: 0 }, { p: 13.35, t: 10 }, { p: 17.5, t: 20 }, { p: 22.6, t: 30 },
+    { p: 28.8, t: 40 }, { p: 36.2, t: 50 }, { p: 45.0, t: 60 }
   ],
   R407C: [
-    { p: 2, t: -40 }, { p: 3, t: -30 }, { p: 4.2, t: -20 }, { p: 5.9, t: -10 },
-    { p: 8, t: 0 }, { p: 10.7, t: 10 }, { p: 14, t: 20 }, { p: 18.2, t: 30 },
-    { p: 23.2, t: 40 }, { p: 29.3, t: 50 }, { p: 36.5, t: 60 }
+    { p: 2.36, t: -40 }, { p: 3.5, t: -30 }, { p: 5.0, t: -20 }, { p: 6.95, t: -10 },
+    { p: 9.45, t: 0 }, { p: 12.6, t: 10 }, { p: 16.5, t: 20 }, { p: 21.3, t: 30 },
+    { p: 27.1, t: 40 }, { p: 34.0, t: 50 }, { p: 42.15, t: 60 }
   ],
   R22: [
-    { p: 1.4, t: -40 }, { p: 2, t: -30 }, { p: 2.9, t: -20 }, { p: 4.1, t: -10 },
-    { p: 5.7, t: 0 }, { p: 7.7, t: 10 }, { p: 10.3, t: 20 }, { p: 13.7, t: 30 },
-    { p: 17.8, t: 40 }, { p: 22.9, t: 50 }, { p: 29.2, t: 60 }
+    { p: 1.57, t: -40 }, { p: 2.36, t: -30 }, { p: 3.45, t: -20 }, { p: 4.95, t: -10 },
+    { p: 6.95, t: 0 }, { p: 9.55, t: 10 }, { p: 12.85, t: 20 }, { p: 16.95, t: 30 },
+    { p: 21.95, t: 40 }, { p: 27.95, t: 50 }, { p: 35.15, t: 60 }
   ]
 };
 
@@ -482,53 +482,47 @@ Hora: ${new Date().toLocaleTimeString('es-ES')}
             <Card className="p-4 bg-blue-50 border-blue-200">
               <p className="text-sm font-medium text-blue-900 mb-3">Mediciones Eléctricas (Opcional)</p>
               
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <Label>Tensión (V)</Label>
-                    <span className="text-sm font-semibold text-blue-700">{formData.tension} V</span>
-                  </div>
-                  <Slider
-                    value={[formData.tension]}
-                    onValueChange={(value) => setFormData({ ...formData, tension: value[0] })}
-                    min={0}
-                    max={500}
-                    step={10}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>0V</span>
-                    <span>230V</span>
-                    <span>400V</span>
-                    <span>500V</span>
-                  </div>
+                  <Label>Tensión (V)</Label>
+                  <Select
+                    value={formData.tension.toString()}
+                    onValueChange={(v) => setFormData({ ...formData, tension: parseInt(v) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="230">230 V (Monofásico)</SelectItem>
+                      <SelectItem value="400">400 V (Trifásico)</SelectItem>
+                      <SelectItem value="220">220 V</SelectItem>
+                      <SelectItem value="380">380 V</SelectItem>
+                      <SelectItem value="0">No medir</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <Label>Corriente (A)</Label>
-                    <span className="text-sm font-semibold text-blue-700">{formData.corriente} A</span>
-                  </div>
-                  <Slider
-                    value={[formData.corriente]}
-                    onValueChange={(value) => setFormData({ ...formData, corriente: value[0] })}
-                    min={0}
-                    max={50}
-                    step={0.1}
-                    className="w-full"
+                  <Label>Corriente (A)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="ej: 8.5"
+                    value={formData.corriente}
+                    onChange={(e) => setFormData({ ...formData, corriente: parseFloat(e.target.value) || 0 })}
                   />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>0A</span>
-                    <span>25A</span>
-                    <span>50A</span>
-                  </div>
                 </div>
 
                 {formData.tension > 0 && formData.corriente > 0 && (
-                  <div className="p-2 bg-white rounded border border-blue-300 text-sm">
+                  <div className="col-span-2 p-2 bg-white rounded border border-blue-300 text-sm">
                     <span className="text-slate-700">Potencia aproximada: </span>
                     <span className="font-semibold text-blue-900">
-                      {((formData.tension * formData.corriente * 0.9) / 1000).toFixed(2)} kW
+                      {formData.tension === 400 
+                        ? ((Math.sqrt(3) * formData.tension * formData.corriente * 0.85) / 1000).toFixed(2)
+                        : ((formData.tension * formData.corriente * 0.9) / 1000).toFixed(2)} kW
+                    </span>
+                    <span className="text-xs text-slate-600 ml-2">
+                      ({formData.tension === 400 ? 'Trifásico' : 'Monofásico'})
                     </span>
                   </div>
                 )}
