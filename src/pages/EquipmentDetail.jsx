@@ -24,6 +24,7 @@ import EditableNotes from '../components/equipment/EditableNotes';
 import EquipmentReport from '../components/reports/EquipmentReport';
 import RevisionsReport from '../components/reports/RevisionsReport';
 import MaintenancePlan from '../components/equipment/MaintenancePlan';
+import COPCalculator from '../components/calculators/COPCalculator';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -199,7 +200,8 @@ export default function EquipmentDetail() {
                     </Link>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <COPCalculator equipment={equipment} />
                   <EquipmentReport
                     equipment={equipment}
                     building={building}

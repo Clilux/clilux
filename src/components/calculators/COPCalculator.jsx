@@ -9,37 +9,37 @@ import { Calculator, Info, FileText } from 'lucide-react';
 
 import { toast } from 'sonner';
 
-// Tablas de propiedades Presión-Temperatura para refrigerantes (valores precisos)
+// Tablas de propiedades Presión-Temperatura para refrigerantes (REMLE - Presión Manométrica en bares)
 const REFRIGERANT_TABLES = {
   R410A: [
-    { p: 2.38, t: -40 }, { p: 3.53, t: -30 }, { p: 5.05, t: -20 }, { p: 7.02, t: -10 },
-    { p: 9.54, t: 0 }, { p: 12.7, t: 10 }, { p: 16.65, t: 20 }, { p: 21.45, t: 30 },
-    { p: 27.2, t: 40 }, { p: 34.05, t: 50 }, { p: 42.15, t: 60 }, { p: 51.6, t: 70 }
+    { p: 3.73, t: -30 }, { p: 5.05, t: -20 }, { p: 6.7, t: -10 }, { p: 9.54, t: 0 },
+    { p: 12.7, t: 10 }, { p: 16.65, t: 20 }, { p: 21.45, t: 30 }, { p: 27.2, t: 40 },
+    { p: 34.05, t: 50 }, { p: 42.15, t: 60 }, { p: 51.6, t: 70 }
   ],
   R32: [
-    { p: 3.22, t: -40 }, { p: 4.77, t: -30 }, { p: 6.82, t: -20 }, { p: 9.48, t: -10 },
-    { p: 12.85, t: 0 }, { p: 17.05, t: 10 }, { p: 22.2, t: 20 }, { p: 28.45, t: 30 },
-    { p: 35.95, t: 40 }, { p: 44.85, t: 50 }, { p: 55.35, t: 60 }
+    { p: 4.77, t: -30 }, { p: 6.82, t: -20 }, { p: 9.48, t: -10 }, { p: 12.85, t: 0 },
+    { p: 17.05, t: 10 }, { p: 22.2, t: 20 }, { p: 28.45, t: 30 }, { p: 35.95, t: 40 },
+    { p: 44.85, t: 50 }, { p: 55.35, t: 60 }
   ],
   R134A: [
-    { p: 0.51, t: -40 }, { p: 0.84, t: -30 }, { p: 1.32, t: -20 }, { p: 2.0, t: -10 },
-    { p: 2.93, t: 0 }, { p: 4.15, t: 10 }, { p: 5.72, t: 20 }, { p: 7.72, t: 30 },
-    { p: 10.24, t: 40 }, { p: 13.36, t: 50 }, { p: 17.18, t: 60 }
+    { p: 0.84, t: -30 }, { p: 1.32, t: -20 }, { p: 2.0, t: -10 }, { p: 2.93, t: 0 },
+    { p: 4.15, t: 10 }, { p: 5.72, t: 20 }, { p: 7.72, t: 30 }, { p: 10.24, t: 40 },
+    { p: 13.36, t: 50 }, { p: 17.18, t: 60 }
   ],
   R404A: [
-    { p: 2.53, t: -40 }, { p: 3.73, t: -30 }, { p: 5.32, t: -20 }, { p: 7.38, t: -10 },
-    { p: 10.02, t: 0 }, { p: 13.35, t: 10 }, { p: 17.5, t: 20 }, { p: 22.6, t: 30 },
-    { p: 28.8, t: 40 }, { p: 36.2, t: 50 }, { p: 45.0, t: 60 }
+    { p: 3.73, t: -30 }, { p: 5.32, t: -20 }, { p: 7.38, t: -10 }, { p: 10.02, t: 0 },
+    { p: 13.35, t: 10 }, { p: 17.5, t: 20 }, { p: 22.6, t: 30 }, { p: 28.8, t: 40 },
+    { p: 36.2, t: 50 }, { p: 45.0, t: 60 }
   ],
   R407C: [
-    { p: 2.36, t: -40 }, { p: 3.5, t: -30 }, { p: 5.0, t: -20 }, { p: 6.95, t: -10 },
-    { p: 9.45, t: 0 }, { p: 12.6, t: 10 }, { p: 16.5, t: 20 }, { p: 21.3, t: 30 },
-    { p: 27.1, t: 40 }, { p: 34.0, t: 50 }, { p: 42.15, t: 60 }
+    { p: 3.5, t: -30 }, { p: 5.0, t: -20 }, { p: 6.95, t: -10 }, { p: 9.45, t: 0 },
+    { p: 12.6, t: 10 }, { p: 16.5, t: 20 }, { p: 21.3, t: 30 }, { p: 27.1, t: 40 },
+    { p: 34.0, t: 50 }, { p: 42.15, t: 60 }
   ],
   R22: [
-    { p: 1.57, t: -40 }, { p: 2.36, t: -30 }, { p: 3.45, t: -20 }, { p: 4.95, t: -10 },
-    { p: 6.95, t: 0 }, { p: 9.55, t: 10 }, { p: 12.85, t: 20 }, { p: 16.95, t: 30 },
-    { p: 21.95, t: 40 }, { p: 27.95, t: 50 }, { p: 35.15, t: 60 }
+    { p: 2.36, t: -30 }, { p: 3.45, t: -20 }, { p: 4.95, t: -10 }, { p: 6.95, t: 0 },
+    { p: 9.55, t: 10 }, { p: 12.85, t: 20 }, { p: 16.95, t: 30 }, { p: 21.95, t: 40 },
+    { p: 27.95, t: 50 }, { p: 35.15, t: 60 }
   ]
 };
 
@@ -69,7 +69,7 @@ const getTempFromPressure = (refrigerante, presion) => {
   return null;
 };
 
-export default function COPCalculator() {
+export default function COPCalculator({ equipment }) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     presion_baja: '',
@@ -240,108 +240,302 @@ export default function COPCalculator() {
     setResults(null);
   };
 
-  const generateReport = () => {
+  const generateReport = async () => {
     if (!results) return;
 
-    const reportContent = `
-INFORME DE CÁLCULO COP Y EER - MÉTODO TESTO
-============================================
+    try {
+      // Obtener configuración de la empresa
+      const settingsList = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      const settings = settingsList[0] || {};
 
-DATOS MEDIDOS (TESTO):
----------------------
-Refrigerante: ${formData.refrigerante}
+      // Obtener datos del cliente si hay equipmentId
+      let clientData = null;
+      if (equipment?.client_id) {
+        const clients = await base44.entities.Client.filter({ id: equipment.client_id });
+        clientData = clients[0];
+      }
 
-Presión de Baja (P_baja): ${formData.presion_baja} bar
-Temperatura de Evaporación (T_evap): ${formData.temp_evaporacion} °C
-
-Presión de Alta (P_alta): ${formData.presion_alta} bar
-Temperatura de Condensación (T_cond): ${formData.temp_condensacion} °C
-
-Temperatura de Aspiración (T_asp): ${formData.temp_aspiracion} °C
-Temperatura del Líquido (T_liq): ${formData.temp_liquido} °C
-Temperatura de Descarga (T_desc): ${formData.temp_descarga} °C
-
-PARÁMETROS CALCULADOS:
----------------------
-Recalentamiento: ${results.recalentamiento} °C
-Subenfriamiento: ${results.subenfriamiento} °C
-
-ENTALPÍAS ${results.entalpiasManuales ? '(VALORES INTRODUCIDOS MANUALMENTE)' : '(ESTIMADAS)'}:
------------
-h₁ (Aspiración - Entrada Compresor): ${results.h1} kJ/kg
-   [P_baja + T_aspiración]
-
-h₂ (Descarga - Salida Compresor): ${results.h2} kJ/kg
-   [P_alta + T_descarga]
-
-h₃ (Líquido - Salida Condensador): ${results.h3} kJ/kg
-   [P_alta + T_líquido]
-
-h₄ (Evaporador - Tras Expansión): ${results.h4} kJ/kg
-   [h₄ = h₃ - Proceso isoentálpico]
-
-PROCEDIMIENTO DE CÁLCULO:
-------------------------
-1. Efecto Refrigerante (Q_e):
-   Q_e = h₁ - h₄
-   Q_e = ${results.h1} - ${results.h4}
-   Q_e = ${results.efectoRefrigerante} kJ/kg
-
-2. Trabajo de Compresión (W_c):
-   W_c = h₂ - h₁
-   W_c = ${results.h2} - ${results.h1}
-   W_c = ${results.trabajoCompresion} kJ/kg
-
-3. Calor en Condensador:
-   Q_cond = h₂ - h₃
-   Q_cond = ${results.h2} - ${results.h3}
-   Q_cond = ${results.calorCondensador} kJ/kg
-
-RESULTADOS:
-----------
-COP FRÍO = (h₁ - h₄) / (h₂ - h₁)
-COP FRÍO = ${results.efectoRefrigerante} / ${results.trabajoCompresion}
-COP FRÍO = ${results.copFrio}
-
-COP CALOR = (h₂ - h₃) / (h₂ - h₁)
-COP CALOR = ${results.calorCondensador} / ${results.trabajoCompresion}
-COP CALOR = ${results.copCalor}
-
-EER = COP FRÍO × 3.412
-EER = ${results.copFrio} × 3.412
-EER = ${results.eer} BTU/h·W
-
-INTERPRETACIÓN:
---------------
-- COP Frío: Por cada kW de energía consumida, se obtienen ${results.copFrio} kW de refrigeración
-- COP Calor: Por cada kW de energía consumida, se obtienen ${results.copCalor} kW de calefacción
-- Recalentamiento de ${results.recalentamiento}°C ${parseFloat(results.recalentamiento) > 5 && parseFloat(results.recalentamiento) < 15 ? '✓ Óptimo' : '⚠ Revisar'}
-- Subenfriamiento de ${results.subenfriamiento}°C ${parseFloat(results.subenfriamiento) > 3 && parseFloat(results.subenfriamiento) < 10 ? '✓ Óptimo' : '⚠ Revisar'}
-
-NOTAS:
-------
-${results.entalpiasManuales 
-  ? '- Cálculo basado en entalpías introducidas manualmente desde diagrama P-h' 
-  : '- Entalpías estimadas mediante correlaciones aproximadas de ' + formData.refrigerante}
-- Para máxima precisión, usar diagrama Mollier o tabla P-h del refrigerante específico
-- Los valores de COP dependen de las condiciones de operación
-
-Equipo de medición: TESTO
-Fecha: ${new Date().toLocaleDateString('es-ES')}
-Hora: ${new Date().toLocaleTimeString('es-ES')}
-`;
-
-    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Informe_COP_${formData.refrigerante}_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const reportHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    toast.success('Informe descargado');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+      position: relative;
+    }
+    .logo {
+      max-width: 200px;
+      max-height: 80px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .header p {
+      font-size: 16px;
+      font-weight: 300;
+      opacity: 0.95;
+    }
+    .content {
+      padding: 40px;
+    }
+    .client-info {
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+      border-left: 5px solid #667eea;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 10px;
+    }
+    .client-info h3 {
+      color: #667eea;
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .section {
+      margin-bottom: 35px;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #667eea;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .data-item {
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 10px;
+      border-left: 4px solid #94a3b8;
+    }
+    .data-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+    .data-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .result-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    .result-card .label {
+      font-size: 14px;
+      font-weight: 400;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+    .result-card .value {
+      font-size: 36px;
+      font-weight: 700;
+    }
+    .formula {
+      background: #fff7ed;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .footer {
+      background: #f8fafc;
+      padding: 30px 40px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .timestamp {
+      margin-top: 15px;
+      font-weight: 600;
+      color: #475569;
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      ${settings.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : ''}
+      <h1>Informe COP & EER</h1>
+      <p>Análisis de Rendimiento Térmico del Sistema de Climatización</p>
+    </div>
+
+    <div class="content">
+      ${clientData ? `
+        <div class="client-info">
+          <h3>📋 Datos del Cliente</h3>
+          <p><strong>${clientData.name}</strong></p>
+          <p>${clientData.cif || ''}</p>
+          <p>${clientData.address || ''} ${clientData.city || ''}</p>
+          <p>${clientData.phone || ''} | ${clientData.email || ''}</p>
+        </div>
+      ` : ''}
+
+      <div class="section">
+        <div class="section-title">📊 Datos Medidos (TESTO)</div>
+        <div class="data-grid">
+          <div class="data-item">
+            <div class="data-label">Refrigerante</div>
+            <div class="data-value">${formData.refrigerante}</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">Presión Baja</div>
+            <div class="data-value">${formData.presion_baja} bar</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">T. Evaporación</div>
+            <div class="data-value">${formData.temp_evaporacion} °C</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">Presión Alta</div>
+            <div class="data-value">${formData.presion_alta} bar</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">T. Condensación</div>
+            <div class="data-value">${formData.temp_condensacion} °C</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">T. Aspiración</div>
+            <div class="data-value">${formData.temp_aspiracion} °C</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">T. Líquido</div>
+            <div class="data-value">${formData.temp_liquido} °C</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">T. Descarga</div>
+            <div class="data-value">${formData.temp_descarga} °C</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🔬 Parámetros Calculados</div>
+        <div class="data-grid">
+          <div class="data-item" style="border-left-color: #10b981;">
+            <div class="data-label">Recalentamiento</div>
+            <div class="data-value">${results.recalentamiento} °C</div>
+          </div>
+          <div class="data-item" style="border-left-color: #3b82f6;">
+            <div class="data-label">Subenfriamiento</div>
+            <div class="data-value">${results.subenfriamiento} °C</div>
+          </div>
+          <div class="data-item" style="border-left-color: #f59e0b;">
+            <div class="data-label">Efecto Refrigerante</div>
+            <div class="data-value">${results.efectoRefrigerante} kJ/kg</div>
+          </div>
+          <div class="data-item" style="border-left-color: #ef4444;">
+            <div class="data-label">Trabajo Compresión</div>
+            <div class="data-value">${results.trabajoCompresion} kJ/kg</div>
+          </div>
+        </div>
+
+        <div class="formula">
+          <strong>Fórmulas aplicadas:</strong><br/>
+          COP Frío = (h₁ - h₄) / (h₂ - h₁) = ${results.efectoRefrigerante} / ${results.trabajoCompresion}<br/>
+          COP Calor = (h₂ - h₃) / (h₂ - h₁) = ${results.calorCondensador} / ${results.trabajoCompresion}<br/>
+          EER = COP Frío × 3.412
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">✅ Resultados Finales</div>
+        <div class="result-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+          <div class="label">COP FRÍO (Refrigeración)</div>
+          <div class="value">${results.copFrio}</div>
+        </div>
+        <div class="result-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+          <div class="label">COP CALOR (Calefacción)</div>
+          <div class="value">${results.copCalor}</div>
+        </div>
+        <div class="result-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <div class="label">EER (Energy Efficiency Ratio)</div>
+          <div class="value">${results.eer}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">💡 Interpretación</div>
+        <p style="margin-bottom: 10px;"><strong>COP Frío:</strong> Por cada kW de energía consumida, se obtienen <strong>${results.copFrio} kW</strong> de refrigeración</p>
+        <p style="margin-bottom: 10px;"><strong>COP Calor:</strong> Por cada kW de energía consumida, se obtienen <strong>${results.copCalor} kW</strong> de calefacción</p>
+        <p style="margin-bottom: 10px;">Recalentamiento: <strong>${results.recalentamiento}°C</strong> ${parseFloat(results.recalentamiento) > 5 && parseFloat(results.recalentamiento) < 15 ? '✅ Óptimo' : '⚠️ Revisar'}</p>
+        <p>Subenfriamiento: <strong>${results.subenfriamiento}°C</strong> ${parseFloat(results.subenfriamiento) > 3 && parseFloat(results.subenfriamiento) < 10 ? '✅ Óptimo' : '⚠️ Revisar'}</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>Equipo de medición:</strong> TESTO | <strong>Método:</strong> Entalpía</p>
+      <p class="timestamp">📅 ${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | 🕐 ${new Date().toLocaleTimeString('es-ES')}</p>
+      ${settings.company_name ? `<p style="margin-top: 15px; font-weight: 600;">${settings.company_name}</p>` : ''}
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([reportHTML], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Informe_COP_${formData.refrigerante}_${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Informe descargado');
+    } catch (error) {
+      console.error('Error generando informe:', error);
+      toast.error('Error al generar el informe');
+    }
   };
 
   return (
