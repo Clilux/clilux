@@ -63,18 +63,24 @@ export default function Equipment() {
       <div className="bg-gray-50 mx-auto max-w-7xl">
         <NavHeader title="Equipos" />
 
-        <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
+        <div className="mb-6 flex flex-col gap-4">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
               placeholder="Buscar por marca, modelo, serie, ubicación, edificio..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} className="bg-white/10 text-slate-950 pl-10 px-3 py-1 text-base rounded-md flex h-9 w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-white/20 placeholder:text-slate-400" />
-
-
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="bg-white/10 text-slate-950 pl-10 w-full" />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 w-full">
+            <Link to={createPageUrl('EquipmentForm')} className="flex-1 sm:flex-initial">
+              <Button className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Equipo
+              </Button>
+            </Link>
+            
             <ExportButton
               data={filteredEquipment.map((eq) => {
                 const building = buildings.find((b) => b.id === eq.building_id);
