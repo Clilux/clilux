@@ -40,10 +40,13 @@ export default function IncidentDetail() {
   const queryClient = useQueryClient();
 
   const [userRole, setUserRole] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [technicianNotes, setTechnicianNotes] = useState('');
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [newPriority, setNewPriority] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const [newLabel, setNewLabel] = useState('');
+  const [newComment, setNewComment] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
