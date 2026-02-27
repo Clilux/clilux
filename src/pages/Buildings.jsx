@@ -87,15 +87,50 @@ export default function Buildings() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredBuildings.map(building => (
-              <BuildingCard 
-                key={building.id} 
-                building={building}
-                equipmentCount={getEquipmentCount(building.id)}
-              />
-            ))}
-          </div>
+          <>
+            {viewMode === 'list' && (
+              <div className="space-y-4">
+                {filteredBuildings.map(building => (
+                  <BuildingCard key={building.id} building={building} equipmentCount={getEquipmentCount(building.id)} />
+                ))}
+              </div>
+            )}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredBuildings.map(building => (
+                  <Link key={building.id} to={createPageUrl(`BuildingDetail?id=${building.id}`)}>
+                    <Card className="p-5 bg-white border shadow-sm hover:shadow-md transition-all cursor-pointer h-full">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-slate-800">{building.name}</h3>
+                        <StatusBadge status={building.status || 'active'} />
+                      </div>
+                      <div className="space-y-1.5 text-sm text-slate-500">
+                        <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{building.address}, {building.city}</div>
+                        {building.floors && <div className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" />{building.floors} plantas</div>}
+                        <div className="flex items-center gap-1.5"><Thermometer className="h-3.5 w-3.5" />{getEquipmentCount(building.id)} equipo{getEquipmentCount(building.id) !== 1 ? 's' : ''}</div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {viewMode === 'compact' && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filteredBuildings.map(building => (
+                  <Link key={building.id} to={createPageUrl(`BuildingDetail?id=${building.id}`)}>
+                    <Card className="p-3 bg-white border hover:shadow-md transition-all cursor-pointer">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span className="font-semibold text-sm text-slate-800 leading-tight">{building.name}</span>
+                        <StatusBadge status={building.status || 'active'} />
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{building.city}</p>
+                      <p className="text-xs text-slate-400 mt-1">{getEquipmentCount(building.id)} equipos</p>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

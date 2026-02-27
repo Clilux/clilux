@@ -144,15 +144,51 @@ export default function Clients() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredClients.map(client => (
-              <ClientCard 
-                key={client.id} 
-                client={client}
-                buildingCount={getBuildingCount(client.id)}
-              />
-            ))}
-          </div>
+          <>
+            {viewMode === 'list' && (
+              <div className="space-y-4">
+                {filteredClients.map(client => (
+                  <ClientCard key={client.id} client={client} buildingCount={getBuildingCount(client.id)} />
+                ))}
+              </div>
+            )}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredClients.map(client => (
+                  <Link key={client.id} to={createPageUrl(`ClientDetail?id=${client.id}`)}>
+                    <Card className="p-5 bg-white border shadow-sm hover:shadow-md transition-all cursor-pointer group h-full">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-slate-800">{client.name}</h3>
+                        <StatusBadge status={client.status || 'active'} />
+                      </div>
+                      <p className="text-xs text-slate-400 mb-3">CIF: {client.cif}</p>
+                      <div className="space-y-1.5 text-sm text-slate-500">
+                        {client.city && <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{client.city}</div>}
+                        {client.phone && <div className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{client.phone}</div>}
+                        <div className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{getBuildingCount(client.id)} edificio{getBuildingCount(client.id) !== 1 ? 's' : ''}</div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {viewMode === 'compact' && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filteredClients.map(client => (
+                  <Link key={client.id} to={createPageUrl(`ClientDetail?id=${client.id}`)}>
+                    <Card className="p-3 bg-white border hover:shadow-md transition-all cursor-pointer">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span className="font-semibold text-sm text-slate-800 leading-tight">{client.name}</span>
+                        <StatusBadge status={client.status || 'active'} />
+                      </div>
+                      <p className="text-xs text-slate-400">CIF: {client.cif}</p>
+                      {client.city && <p className="text-xs text-slate-500 mt-1 truncate">{client.city}</p>}
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
