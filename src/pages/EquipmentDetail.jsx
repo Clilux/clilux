@@ -201,7 +201,6 @@ export default function EquipmentDetail() {
                   )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <COPCalculator equipment={equipment} />
                   <EquipmentReport
                     equipment={equipment}
                     building={building}
