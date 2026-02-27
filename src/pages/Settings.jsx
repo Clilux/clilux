@@ -484,6 +484,8 @@ export default function Settings() {
                 </div>
               </div>
 
+              </div>
+
               <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: formData.background_color || '#0f172a' }}>
                 <p className="text-sm mb-3" style={{ color: formData.text_color || '#ffffff' }}>Vista previa:</p>
                 <div className="flex gap-4 flex-wrap">
