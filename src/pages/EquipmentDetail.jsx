@@ -337,6 +337,13 @@ export default function EquipmentDetail() {
 
 
 
+          {/* COP Calculator below image */}
+          {equipment.photo_url && (
+            <div className="mt-4">
+              <COPCalculator equipment={equipment} />
+            </div>
+          )}
+
           {/* Related Equipment */}
           {(parentEquipment || childEquipment.length > 0) && (
             <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
