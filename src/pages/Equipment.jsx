@@ -254,7 +254,8 @@ export default function Equipment() {
               </Link>);
           })}
           </div>}
-        }
+          </>
+        )}
       </div>
     </div>);
 
