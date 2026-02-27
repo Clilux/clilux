@@ -78,6 +78,15 @@ export default function BuildingDetail() {
     enabled: !!buildingId,
   });
 
+  const { data: revisions = [] } = useQuery({
+    queryKey: ['revisions-building', buildingId],
+    queryFn: () => base44.entities.ScheduledRevision.filter({ building_id: buildingId }),
+    enabled: !!buildingId,
+  });
+
+  const totalCoolingKw = equipment.reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
+  const totalHeatingKw = equipment.reduce((sum, e) => sum + (parseFloat(e.heating_power_kw) || 0), 0);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
