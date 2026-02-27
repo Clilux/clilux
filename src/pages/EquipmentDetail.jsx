@@ -227,6 +227,18 @@ export default function EquipmentDetail() {
                     client={client}
                     revisions={scheduledRevisions}
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleEquipmentStatusMutation.mutate(equipment.status || 'operational')}
+                    disabled={toggleEquipmentStatusMutation.isPending}
+                    className={equipment.status === 'out_of_service' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}
+                  >
+                    {equipment.status === 'out_of_service'
+                      ? <><ToggleRight className="h-4 w-4 mr-2" />Activar</>
+                      : <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
+                    }
+                  </Button>
                   <Link to={createPageUrl(`EquipmentForm?id=${equipment.id}`)}>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
