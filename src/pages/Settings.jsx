@@ -558,25 +558,6 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="catalogo">
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-slate-800">Configuración de Catálogo</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Gestiona familias, importa y exporta productos
-                  </p>
-                </div>
-                <Link to={createPageUrl('ConfigCatalogo')}>
-                  <Button>
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Configurar Catálogo
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="backup">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad y Exportación</h3>
