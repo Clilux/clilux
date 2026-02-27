@@ -24,6 +24,18 @@ export default function ClientDetail() {
   const clientId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const toggleClientStatusMutation = useMutation({
+    mutationFn: async (currentStatus) => {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await base44.entities.Client.update(clientId, { status: newStatus });
+      return newStatus;
+    },
+    onSuccess: (newStatus) => {
+      queryClient.invalidateQueries({ queryKey: ['client', clientId] });
+      toast.success(newStatus === 'inactive' ? 'Cliente desactivado' : 'Cliente activado');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       toast.error('No se pueden eliminar clientes ni sus datos relacionados');
