@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2, Tag, MessageSquare, Clock } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import IncidentReport from '../components/reports/IncidentReport';
