@@ -134,6 +134,12 @@ export default function BuildingForm() {
 
         <Card className="p-6 bg-white border-0 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
+            <ImageUploader
+              value={formData.photo_url || ''}
+              onChange={(url) => handleChange('photo_url', url)}
+              label="Foto del edificio"
+            />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Label htmlFor="client_id">Cliente *</Label>
