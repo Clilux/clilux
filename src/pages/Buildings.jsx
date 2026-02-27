@@ -57,6 +57,7 @@ export default function Buildings() {
               className="pl-10 bg-white"
             />
           </div>
+          <ViewModeToggle viewMode={viewMode} onChange={handleViewChange} />
           <Link to={createPageUrl('BuildingForm')}>
             <Button className="bg-slate-800 hover:bg-slate-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
