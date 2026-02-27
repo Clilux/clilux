@@ -590,7 +590,17 @@ export default function Settings() {
                            <option value="edit">Puede editar</option>
                          </select>
                         </div>
-                        <div className="flex items-end">
+                        <div className="flex items-end gap-2">
+                         <Button 
+                           variant="outline"
+                           size="sm"
+                           onClick={() => sendAccessEmail(user)}
+                           title="Enviar credenciales por email"
+                           className="text-blue-600 hover:text-blue-700"
+                         >
+                           <Send className="h-4 w-4 mr-1" />
+                           Enviar acceso
+                         </Button>
                          <Button 
                            variant="ghost" 
                            size="icon"
