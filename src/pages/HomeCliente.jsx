@@ -61,67 +61,7 @@ export default function HomeCliente() {
     window.location.href = createPageUrl('MenuInicio');
   };
 
-  // Login screen
-  if (!clientId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
-        <div className="fixed top-10 right-10 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl" />
-        <div className="fixed bottom-20 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center mx-auto mb-4">
-              <Building2 className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Portal del Cliente</h1>
-            <p className="text-slate-400 mt-2">Accede con tus credenciales</p>
-          </div>
-
-          <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label className="text-white">Email</Label>
-                <Input
-                  type="email"
-                  value={credentials.email}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
-                  className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                  placeholder="tu@email.com"
-                  required />
-
-              </div>
-              <div>
-                <Label className="text-white">Contraseña</Label>
-                <Input
-                  type="password"
-                  value={credentials.password}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
-                  className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                  placeholder="••••••••"
-                  required />
-
-              </div>
-              {loginError &&
-              <p className="text-red-400 text-sm">{loginError}</p>
-              }
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
-                Acceder
-              </Button>
-            </form>
-          </Card>
-
-          <div className="mt-6 text-center">
-            <Link to={createPageUrl('MenuInicio')}>
-              <Button variant="ghost" className="text-slate-400 hover:text-white">
-                <LogOut className="h-4 w-4 mr-2" />
-                Volver al inicio
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>);
-
-  }
+  if (!clientId) return null;
 
   // Client view (read-only)
   return (
