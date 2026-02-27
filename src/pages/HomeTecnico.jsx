@@ -140,12 +140,7 @@ export default function HomeTecnico() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-<Link to={createPageUrl('Facturacion')}>
-                <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all">
-                  <span className="text-white font-semibold">Administración</span>
-                </div>
-              </Link>
-              <Link to={createPageUrl('TechnicianManagement')}>
+            <Link to={createPageUrl('TechnicianManagement')}>
                 <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
                   <UserCog className="h-5 w-5" />
                 </Button>
