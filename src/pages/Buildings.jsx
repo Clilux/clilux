@@ -15,6 +15,12 @@ import { Card } from "@/components/ui/card";
 
 export default function Buildings() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('buildings_view') || 'list');
+
+  const handleViewChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('buildings_view', mode);
+  };
 
   const { data: buildings = [], isLoading } = useQuery({
     queryKey: ['buildings'],

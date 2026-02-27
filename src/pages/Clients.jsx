@@ -19,6 +19,12 @@ import { toast } from 'sonner';
 export default function Clients() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
+
+  const handleViewChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('clients_view', mode);
+  };
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
