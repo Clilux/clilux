@@ -378,9 +378,7 @@ export default function Settings() {
 
             <Card className="p-6 bg-white border-0 shadow-sm">
               <h3 className="font-semibold text-slate-800 mb-6">Apariencia de la Interfaz</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-              <h4 className="font-medium text-slate-700 mt-8 mb-4">Colores de la Interfaz</h4>
+              <h4 className="font-medium text-slate-700 mb-4">Colores de la Interfaz</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label>Color de Fondo</Label>
