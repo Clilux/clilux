@@ -31,16 +31,15 @@ export default function ClientReportIncident() {
   });
 
   React.useEffect(() => {
-    const loadClient = async () => {
-      const user = await base44.auth.me();
-      setUserEmail(user.email);
-      setUserName(user.full_name || user.email);
-      const clients = await base44.entities.Client.filter({ user_email: user.email });
-      if (clients.length > 0) {
-        setClientId(clients[0].id);
-      }
-    };
-    loadClient();
+    const storedClientId = sessionStorage.getItem('client_id');
+    if (storedClientId) {
+      setClientId(storedClientId);
+    }
+    const storedEmail = localStorage.getItem('clilux_email');
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+      setUserName(storedEmail);
+    }
   }, []);
 
   const { data: equipment = [] } = useQuery({
@@ -107,7 +106,7 @@ export default function ClientReportIncident() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-3xl mx-auto">
-        <NavHeader title="Reportar Incidencia" backUrl="ClientIncidents" />
+        <NavHeader title="Reportar Incidencia" backUrl="ClientIncidents" homeUrl="HomeCliente" />
 
         <Card className="p-6 bg-white/5 backdrop-blur-sm border-white/10">
           <form onSubmit={handleSubmit} className="space-y-6">
