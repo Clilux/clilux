@@ -71,6 +71,18 @@ export default function EquipmentDetail() {
     },
   });
 
+  const toggleEquipmentStatusMutation = useMutation({
+    mutationFn: async (currentStatus) => {
+      const newStatus = currentStatus === 'out_of_service' ? 'operational' : 'out_of_service';
+      await base44.entities.Equipment.update(equipmentId, { status: newStatus });
+      return newStatus;
+    },
+    onSuccess: (newStatus) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+      toast.success(newStatus === 'out_of_service' ? 'Equipo desactivado' : 'Equipo activado');
+    },
+  });
+
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
     queryFn: async () => {
