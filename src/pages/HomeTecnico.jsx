@@ -140,8 +140,7 @@ export default function HomeTecnico() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <COPCalculator />
-              <Link to={createPageUrl('Facturacion')}>
+<Link to={createPageUrl('Facturacion')}>
                 <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all">
                   <span className="text-white font-semibold">Administración</span>
                 </div>
