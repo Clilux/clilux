@@ -178,9 +178,16 @@ export default function IncidentDetail() {
     updateMutation.mutate({
       priority: newPriority,
       status: newStatus,
+      label: newLabel,
       technician_notes: technicianNotes,
       resolution_notes: resolutionNotes,
     });
+  };
+
+  const labelConfig = {
+    resuelta: { label: 'Resuelta', color: 'bg-green-100 text-green-700 border-green-300' },
+    recambio: { label: 'Recambio', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+    irreparable: { label: 'Irreparable', color: 'bg-gray-900 text-white border-gray-700' },
   };
 
   if (isLoading) {
