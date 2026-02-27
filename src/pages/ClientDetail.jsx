@@ -290,6 +290,7 @@ export default function ClientDetail() {
                     key={building.id} 
                     building={building}
                     equipmentCount={getEquipmentCount(building.id)}
+                    totalCoolingKw={getTotalCoolingKw(building.id)}
                   />
                 ))}
               </div>
