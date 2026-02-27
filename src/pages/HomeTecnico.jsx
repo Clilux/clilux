@@ -15,7 +15,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import COPCalculator from '../components/calculators/COPCalculator';
+
 
 const defaultQuickActions = [
 { id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: 'ScanLine', bgColor: 'from-blue-500/20 to-purple-500/20', iconColor: 'text-blue-300', borderColor: 'border-blue-400/40', order: 1 },
