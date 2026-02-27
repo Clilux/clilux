@@ -54,7 +54,6 @@ export default function HomeCliente() {
 
   const handleLogout = () => {
     setClientId(null);
-    setCredentials({ email: '', password: '' });
     sessionStorage.removeItem('client_id');
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
