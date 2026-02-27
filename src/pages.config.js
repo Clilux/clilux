@@ -48,7 +48,6 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIConsulta from './pages/AIConsulta';
-import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
@@ -61,7 +60,6 @@ import ClientIncidentDetail from './pages/ClientIncidentDetail';
 import ClientIncidents from './pages/ClientIncidents';
 import ClientReportIncident from './pages/ClientReportIncident';
 import Clients from './pages/Clients';
-import ConfigDocumentos from './pages/ConfigDocumentos';
 import Documentacion from './pages/Documentacion';
 import EditScheduledRevision from './pages/EditScheduledRevision';
 import Equipment from './pages/Equipment';
@@ -89,7 +87,6 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "AIConsulta": AIConsulta,
-    "BackupDatos": BackupDatos,
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
@@ -102,7 +99,6 @@ export const PAGES = {
     "ClientIncidents": ClientIncidents,
     "ClientReportIncident": ClientReportIncident,
     "Clients": Clients,
-    "ConfigDocumentos": ConfigDocumentos,
     "Documentacion": Documentacion,
     "EditScheduledRevision": EditScheduledRevision,
     "Equipment": Equipment,

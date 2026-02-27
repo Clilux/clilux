@@ -164,14 +164,13 @@ export default function Settings() {
   // Copia de seguridad
   const handleExportBackup = async () => {
     try {
-      const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, settingsData, fieldConfigsData, techniciansData] = await Promise.all([
+      const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, settingsData, techniciansData] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Building.list(),
         base44.entities.Equipment.list(),
-        base44.entities.Revision.list(),
+        base44.entities.ScheduledRevision.list(),
         base44.entities.Incident.list(),
         base44.entities.AppSettings.list(),
-        base44.entities.RevisionFieldConfig.list(),
         base44.entities.Technician.list(),
       ]);
 
@@ -185,7 +184,6 @@ export default function Settings() {
           revisions: revisionsData,
           incidents: incidentsData,
           settings: settingsData,
-          fieldConfigs: fieldConfigsData,
           technicians: techniciansData,
         },
       };
