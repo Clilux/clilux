@@ -172,8 +172,7 @@ export default function Settings() {
       return;
     }
 
-    const appUrl = window.location.origin;
-    const portalUrl = `${appUrl}${createPageUrl('HomeCliente')}`;
+    const portalUrl = `${window.location.origin}/app/${window.location.pathname.split('/app/')[1]?.split('/')[0] || ''}#/HomeCliente`;
     const companyName = formData.company_name || 'la empresa';
 
     try {
