@@ -238,6 +238,12 @@ export default function IncidentDetail() {
                   <h2 className="text-xl font-semibold text-slate-800">{incident.title}</h2>
                   <Badge className={priority.color}>{priority.label}</Badge>
                   <Badge className={status.color}>{status.label}</Badge>
+                  {incident.label && labelConfig[incident.label] && (
+                    <Badge className={`border ${labelConfig[incident.label].color}`}>
+                      <Tag className="h-3 w-3 mr-1" />
+                      {labelConfig[incident.label].label}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-slate-600">{incident.description}</p>
               </div>
