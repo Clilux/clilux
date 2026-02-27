@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, UserPlus } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import ImageUploader from '../components/ui/ImageUploader';
 import { toast } from 'sonner';
 
 export default function ClientForm() {

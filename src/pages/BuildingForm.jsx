@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, MapPin } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import ImageUploader from '../components/ui/ImageUploader';
 import { toast } from 'sonner';
 
 export default function BuildingForm() {
