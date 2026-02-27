@@ -6,9 +6,12 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MapPin, Layers, Thermometer, ChevronRight } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
+import ViewModeToggle from '../components/ui/ViewModeToggle';
+import StatusBadge from '../components/ui/StatusBadge';
+import { Card } from "@/components/ui/card";
 
 export default function Buildings() {
   const [searchTerm, setSearchTerm] = useState('');

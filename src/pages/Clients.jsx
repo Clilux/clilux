@@ -6,11 +6,14 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone, ChevronRight } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
 import ExportButton from '../components/ExportButton';
 import ImportButton from '../components/ImportButton';
+import ViewModeToggle from '../components/ui/ViewModeToggle';
+import StatusBadge from '../components/ui/StatusBadge';
+import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
 
 export default function Clients() {
