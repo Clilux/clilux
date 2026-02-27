@@ -22,8 +22,10 @@ const statusLabels = {
   out_of_service: { label: 'Fuera de servicio', color: 'bg-red-500/20 text-red-400' }
 };
 
+// 'grid' = tarjetas grandes, 'compact' = tarjetas pequeñas, 'list' = lista
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('equipment_view') || 'grid');
 
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ['equipment'],
