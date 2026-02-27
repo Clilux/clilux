@@ -156,16 +156,16 @@ export default function Equipment() {
           </div>
         </div>
 
-        {isLoading ?
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) =>
-          <Card key={i} className="p-5 bg-white/10 backdrop-blur-sm border-white/20">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="p-5 bg-white/10 backdrop-blur-sm border-white/20">
                 <div className="h-32 animate-pulse bg-white/5 rounded" />
               </Card>
-          )}
-          </div> :
-        filteredEquipment.length === 0 ?
-        <Card className="p-12 bg-white/10 backdrop-blur-sm border-white/20 text-center">
+            ))}
+          </div>
+        ) : filteredEquipment.length === 0 ? (
+          <Card className="p-12 bg-white/10 backdrop-blur-sm border-white/20 text-center">
             <Thermometer className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">
               {searchTerm ? 'No se encontraron equipos' : 'No hay equipos registrados'}
@@ -173,13 +173,10 @@ export default function Equipment() {
             <p className="text-slate-400 mb-4">
               {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Comienza agregando tu primer equipo'}
             </p>
-            {!searchTerm &&
-          <p className="text-slate-400 text-sm mt-2">
-                Usa "Escanear" para agregar equipos desde la página principal
-              </p>
-          }
-          </Card> :
-
+            {!searchTerm && <p className="text-slate-400 text-sm mt-2">Usa "Escanear" para agregar equipos desde la página principal</p>}
+          </Card>
+        ) : (
+          <>
         {/* GRID VIEW */}
         {viewMode === 'grid' && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredEquipment.map((eq) => {
