@@ -1,33 +1,19 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Building2, Thermometer, ClipboardCheck,
   LogOut, AlertCircle, Plus } from
 'lucide-react';
-import { format } from 'date-fns';
 
 export default function HomeCliente() {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const navigate = useNavigate();
   const [clientId, setClientId] = useState(null);
-  const [loginError, setLoginError] = useState('');
-
-  const { data: settings } = useQuery({
-    queryKey: ['settings'],
-    queryFn: async () => {
-      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
-      return all[0] || null;
-    }
-  });
 
   const { data: clientData, isLoading: loadingClientData } = useQuery({
     queryKey: ['client-data', clientId],
