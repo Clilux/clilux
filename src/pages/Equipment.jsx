@@ -7,8 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Search, Plus, Filter, FileDown, FileUp, Thermometer, MapPin,
-  Building2, Calendar, AlertCircle } from
+  Search, Plus, Thermometer, MapPin,
+  Building2, Calendar, LayoutGrid, List, LayoutList } from
 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
