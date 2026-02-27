@@ -52,6 +52,7 @@ export default function IncidentDetail() {
   useEffect(() => {
     const checkRole = async () => {
       const user = await base44.auth.me();
+      setCurrentUser(user);
       const clients = await base44.entities.Client.filter({ user_email: user.email });
       setUserRole(clients.length > 0 ? 'client' : 'technician');
     };
