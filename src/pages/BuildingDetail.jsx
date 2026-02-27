@@ -131,8 +131,21 @@ export default function BuildingDetail() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <StatusBadge status={building.status || 'active'} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleStatusMutation.mutate(building.status || 'active')}
+                disabled={toggleStatusMutation.isPending}
+                className={building.status === 'inactive' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}
+              >
+                {building.status === 'inactive'
+                  ? <><ToggleRight className="h-4 w-4 mr-2" />Activar</>
+                  : <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
+                }
+              </Button>
+              <BuildingReport building={building} client={client} equipment={equipment} revisions={revisions} />
               <Link to={createPageUrl(`BuildingForm?id=${building.id}`)}>
                 <Button variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
