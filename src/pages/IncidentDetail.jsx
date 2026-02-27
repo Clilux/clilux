@@ -329,70 +329,164 @@ export default function IncidentDetail() {
           )}
         </Card>
 
-        {userRole === 'technician' && (
-          <Card className="p-6 bg-white border-0 shadow-sm">
-            <h3 className="font-semibold text-slate-800 mb-4">Gestión de la Incidencia</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label>Prioridad</Label>
-                <Select value={newPriority} onValueChange={setNewPriority}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baja</SelectItem>
-                    <SelectItem value="medium">Media</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="urgent">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="in_progress">En curso</SelectItem>
-                    <SelectItem value="resolved">Resuelto</SelectItem>
-                    <SelectItem value="closed">Cerrado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <Label>Notas del técnico</Label>
-              <Textarea
-                value={technicianNotes}
-                onChange={(e) => setTechnicianNotes(e.target.value)}
-                className="mt-1"
-                rows={3}
-                placeholder="Notas internas sobre la incidencia..."
-              />
-            </div>
-
-            <div className="mb-4">
-              <Label>Descripción de la resolución</Label>
-              <Textarea
-                value={resolutionNotes}
-                onChange={(e) => setResolutionNotes(e.target.value)}
-                className="mt-1"
-                rows={3}
-                placeholder="Describa cómo se resolvió el problema..."
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-slate-800 hover:bg-slate-700">
-                {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Guardar Cambios
-              </Button>
+        {/* Historial de comentarios */}
+        {(incident.history && incident.history.length > 0) && (
+          <Card className="p-6 bg-white border-0 shadow-sm mb-4">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <Clock className="h-4 w-4" /> Historial
+            </h3>
+            <div className="space-y-3">
+              {[...incident.history].reverse().map((entry, idx) => (
+                <div key={idx} className="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <MessageSquare className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-medium text-slate-700">{entry.technician}</span>
+                      {entry.label && labelConfig[entry.label] && (
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${labelConfig[entry.label].color}`}>
+                          <Tag className="h-2.5 w-2.5" />{labelConfig[entry.label].label}
+                        </span>
+                      )}
+                      {entry.status && statusConfig[entry.status] && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig[entry.status].color}`}>{statusConfig[entry.status].label}</span>
+                      )}
+                      <span className="text-xs text-slate-400 ml-auto">{format(new Date(entry.date), "dd/MM/yyyy HH:mm")}</span>
+                    </div>
+                    {entry.comment && <p className="text-sm text-slate-600">{entry.comment}</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
+        )}
+
+        {userRole === 'technician' && (
+          <>
+            {/* Añadir comentario con etiqueta */}
+            <Card className="p-6 bg-white border-0 shadow-sm mb-4">
+              <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" /> Añadir comentario al historial
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Label>Etiqueta</Label>
+                  <div className="flex gap-2 mt-1 flex-wrap">
+                    {[
+                      { value: 'resuelta', label: 'Resuelta', cls: 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' },
+                      { value: 'recambio', label: 'Recambio', cls: 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200' },
+                      { value: 'irreparable', label: 'Irreparable', cls: 'bg-gray-900 text-white border-gray-700 hover:bg-gray-700' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setNewLabel(newLabel === opt.value ? '' : opt.value)}
+                        className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${opt.cls} ${newLabel === opt.value ? 'ring-2 ring-offset-1 ring-slate-400' : 'opacity-70'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {newLabel === 'irreparable' && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">⚠ El equipo pasará a estado "No operativo"</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Select value={newStatus} onValueChange={setNewStatus}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="in_progress">En curso</SelectItem>
+                      <SelectItem value="resolved">Resuelto</SelectItem>
+                      <SelectItem value="closed">Cerrado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="mb-4">
+                <Label>Comentario</Label>
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="mt-1"
+                  rows={3}
+                  placeholder="Escribe un comentario sobre el estado actual..."
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => addCommentMutation.mutate()}
+                  disabled={addCommentMutation.isPending || (!newComment && !newLabel)}
+                  className="bg-slate-800 hover:bg-slate-700"
+                >
+                  {addCommentMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Añadir al historial
+                </Button>
+              </div>
+            </Card>
+
+            {/* Gestión general */}
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-800 mb-4">Gestión de la Incidencia</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Label>Prioridad</Label>
+                  <Select value={newPriority} onValueChange={setNewPriority}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baja</SelectItem>
+                      <SelectItem value="medium">Media</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                      <SelectItem value="urgent">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Select value={newStatus} onValueChange={setNewStatus}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="in_progress">En curso</SelectItem>
+                      <SelectItem value="resolved">Resuelto</SelectItem>
+                      <SelectItem value="closed">Cerrado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="mb-4">
+                <Label>Notas del técnico</Label>
+                <Textarea
+                  value={technicianNotes}
+                  onChange={(e) => setTechnicianNotes(e.target.value)}
+                  className="mt-1"
+                  rows={3}
+                  placeholder="Notas internas sobre la incidencia..."
+                />
+              </div>
+              <div className="mb-4">
+                <Label>Descripción de la resolución</Label>
+                <Textarea
+                  value={resolutionNotes}
+                  onChange={(e) => setResolutionNotes(e.target.value)}
+                  className="mt-1"
+                  rows={3}
+                  placeholder="Describa cómo se resolvió el problema..."
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-slate-800 hover:bg-slate-700">
+                  {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Guardar Cambios
+                </Button>
+              </div>
+            </Card>
+          </>
         )}
 
         <DeleteConfirmDialog
