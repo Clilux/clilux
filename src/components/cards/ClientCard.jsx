@@ -10,6 +10,10 @@ export default function ClientCard({ client, buildingCount = 0 }) {
     <Link to={createPageUrl(`ClientDetail?id=${client.id}`)}>
       <Card className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
         <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4 flex-1">
+            {client.photo_url && (
+              <img src={client.photo_url} alt={client.name} className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
+            )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="font-semibold text-slate-800 text-lg">{client.name}</h3>
@@ -36,7 +40,8 @@ export default function ClientCard({ client, buildingCount = 0 }) {
               </div>
             </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" />
         </div>
       </Card>
     </Link>
