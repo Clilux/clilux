@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
-  Layers, Square, FileText, Thermometer, Trash2
+  Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
@@ -16,6 +16,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ExportButton from '../components/ExportButton';
 import ImportButton from '../components/ImportButton';
+import BuildingReport from '../components/reports/BuildingReport';
 import { toast } from 'sonner';
 
 export default function BuildingDetail() {
