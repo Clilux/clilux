@@ -75,7 +75,29 @@ export default function Equipment() {
               className="bg-white/10 text-slate-950 pl-10 w-full" />
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full">
+          <div className="flex flex-wrap gap-3 w-full items-center">
+            {/* View mode toggles */}
+            <div className="flex gap-1 border rounded-lg p-1 bg-white">
+              <button
+                onClick={() => { setViewMode('grid'); localStorage.setItem('equipment_view', 'grid'); }}
+                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Cuadrícula">
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => { setViewMode('compact'); localStorage.setItem('equipment_view', 'compact'); }}
+                className={`p-1.5 rounded ${viewMode === 'compact' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Compacto">
+                <LayoutList className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => { setViewMode('list'); localStorage.setItem('equipment_view', 'list'); }}
+                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Lista">
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+
             <Link to={createPageUrl('EquipmentForm')} className="flex-1 sm:flex-initial">
               <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
