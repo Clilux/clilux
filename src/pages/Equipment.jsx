@@ -180,74 +180,83 @@ export default function Equipment() {
           }
           </Card> :
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* GRID VIEW */}
+        {viewMode === 'grid' && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredEquipment.map((eq) => {
+            const building = buildings.find((b) => b.id === eq.building_id);
+            const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+            return (
+              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                <Card className="p-5 bg-white hover:shadow-md transition-all group border">
+                  {eq.photo_url &&
+                    <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl">
+                      <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    </div>
+                  }
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-teal-700 text-base font-semibold">{eq.brand} {eq.model}</h3>
+                    <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">{eq.equipment_type}</p>
+                  <div className="space-y-1.5">
+                    {building && <div className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-3.5 w-3.5 text-slate-400" />{building.name}</div>}
+                    {eq.location && <div className="flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{eq.location}</div>}
+                    {eq.serial_number && <div className="text-xs text-slate-400">S/N: {eq.serial_number}</div>}
+                  </div>
+                </Card>
+              </Link>);
+          })}
+          </div>}
+
+        {/* COMPACT VIEW */}
+        {viewMode === 'compact' && <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {filteredEquipment.map((eq) => {
+            const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+            return (
+              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1">
+                  {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl"><img src={eq.photo_url} alt="" className="w-full h-full object-cover" /></div>}
+                  <div className="flex items-start justify-between gap-1">
+                    <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.brand} {eq.model}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-400">{eq.equipment_type}</p>
+                  {eq.location && <p className="text-xs text-slate-500 truncate">{eq.location}</p>}
+                </Card>
+              </Link>);
+          })}
+          </div>}
+
+        {/* LIST VIEW */}
+        {viewMode === 'list' && <div className="flex flex-col gap-2">
             {filteredEquipment.map((eq) => {
             const building = buildings.find((b) => b.id === eq.building_id);
             const client = clients.find((c) => c.id === eq.client_id);
             const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-
             return (
               <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                  <Card className="p-5 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all group">
-                    {eq.photo_url &&
-                  <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl">
-                        <img
-                      src={eq.photo_url}
-                      alt={`${eq.brand} ${eq.model}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-
-                      </div>
+                <Card className="px-4 py-3 bg-white hover:shadow-md transition-all border flex items-center gap-4">
+                  {eq.photo_url
+                    ? <img src={eq.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+                    : <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><Thermometer className="h-5 w-5 text-slate-400" /></div>
                   }
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="bg-slate-50 text-teal-700 text-lg font-semibold">
-                            {eq.brand} {eq.model}
-                          </h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.color}`}>
-                            {statusInfo.label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-400">{eq.equipment_type}</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        {building &&
-                      <div className="flex items-center gap-2 text-sm">
-                            <Building2 className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-300">{building.name}</span>
-                          </div>
-                      }
-                        
-                        {eq.location &&
-                      <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-300">{eq.location}</span>
-                          </div>
-                      }
-
-                        {eq.next_revision_date &&
-                      <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-300">
-                              Próxima: {format(parseISO(eq.next_revision_date), "dd MMM yyyy", { locale: es })}
-                            </span>
-                          </div>
-                      }
-
-                        {eq.serial_number &&
-                      <div className="text-xs text-slate-500 mt-2">
-                            S/N: {eq.serial_number}
-                          </div>
-                      }
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-teal-700">{eq.brand} {eq.model}</span>
+                      <span className="text-xs text-slate-400">{eq.equipment_type}</span>
                     </div>
-                  </Card>
-                </Link>);
-
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
+                      {client && <span>{client.name}</span>}
+                      {building && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{building.name}</span>}
+                      {eq.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{eq.location}</span>}
+                      {eq.serial_number && <span>S/N: {eq.serial_number}</span>}
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
+                </Card>
+              </Link>);
           })}
-          </div>
+          </div>}
         }
       </div>
     </div>);
