@@ -48,15 +48,11 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AIConsulta from './pages/AIConsulta';
-import AlbaranForm from './pages/AlbaranForm';
-import Albaranes from './pages/Albaranes';
 import BackupDatos from './pages/BackupDatos';
 import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
 import Calendar from './pages/Calendar';
-import Catalogo from './pages/Catalogo';
-import CertificadoRITE from './pages/CertificadoRITE';
 import ClientDetail from './pages/ClientDetail';
 import ClientEquipment from './pages/ClientEquipment';
 import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
@@ -65,16 +61,12 @@ import ClientIncidentDetail from './pages/ClientIncidentDetail';
 import ClientIncidents from './pages/ClientIncidents';
 import ClientReportIncident from './pages/ClientReportIncident';
 import Clients from './pages/Clients';
-import ConfigCatalogo from './pages/ConfigCatalogo';
 import ConfigDocumentos from './pages/ConfigDocumentos';
 import Documentacion from './pages/Documentacion';
 import EditScheduledRevision from './pages/EditScheduledRevision';
 import Equipment from './pages/Equipment';
 import EquipmentDetail from './pages/EquipmentDetail';
 import EquipmentForm from './pages/EquipmentForm';
-import FacturaForm from './pages/FacturaForm';
-import Facturacion from './pages/Facturacion';
-import Facturas from './pages/Facturas';
 import Home from './pages/Home';
 import HomeCliente from './pages/HomeCliente';
 import HomeTecnico from './pages/HomeTecnico';
@@ -84,14 +76,11 @@ import Incidents from './pages/Incidents';
 import Maps from './pages/Maps';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
-import PresupuestoForm from './pages/PresupuestoForm';
-import Presupuestos from './pages/Presupuestos';
 import Reports from './pages/Reports';
 import RevisionForm from './pages/RevisionForm';
 import ScanEquipment from './pages/ScanEquipment';
 import ScanEquipmentTech from './pages/ScanEquipmentTech';
 import Settings from './pages/Settings';
-import StelOrderIntegration from './pages/StelOrderIntegration';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
@@ -100,15 +89,11 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "AIConsulta": AIConsulta,
-    "AlbaranForm": AlbaranForm,
-    "Albaranes": Albaranes,
     "BackupDatos": BackupDatos,
     "BuildingDetail": BuildingDetail,
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
     "Calendar": Calendar,
-    "Catalogo": Catalogo,
-    "CertificadoRITE": CertificadoRITE,
     "ClientDetail": ClientDetail,
     "ClientEquipment": ClientEquipment,
     "ClientEquipmentDetail": ClientEquipmentDetail,
@@ -117,16 +102,12 @@ export const PAGES = {
     "ClientIncidents": ClientIncidents,
     "ClientReportIncident": ClientReportIncident,
     "Clients": Clients,
-    "ConfigCatalogo": ConfigCatalogo,
     "ConfigDocumentos": ConfigDocumentos,
     "Documentacion": Documentacion,
     "EditScheduledRevision": EditScheduledRevision,
     "Equipment": Equipment,
     "EquipmentDetail": EquipmentDetail,
     "EquipmentForm": EquipmentForm,
-    "FacturaForm": FacturaForm,
-    "Facturacion": Facturacion,
-    "Facturas": Facturas,
     "Home": Home,
     "HomeCliente": HomeCliente,
     "HomeTecnico": HomeTecnico,
@@ -136,14 +117,11 @@ export const PAGES = {
     "Maps": Maps,
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
-    "PresupuestoForm": PresupuestoForm,
-    "Presupuestos": Presupuestos,
     "Reports": Reports,
     "RevisionForm": RevisionForm,
     "ScanEquipment": ScanEquipment,
     "ScanEquipmentTech": ScanEquipmentTech,
     "Settings": Settings,
-    "StelOrderIntegration": StelOrderIntegration,
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
