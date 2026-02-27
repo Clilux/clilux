@@ -169,12 +169,15 @@ export default function EquipmentDetail() {
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
           <div className="flex flex-col md:flex-row gap-6">
             {equipment.photo_url && (
-              <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-                <img 
-                  src={equipment.photo_url} 
-                  alt={`${equipment.brand} ${equipment.model}`}
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden bg-slate-100">
+                  <img 
+                    src={equipment.photo_url} 
+                    alt={`${equipment.brand} ${equipment.model}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <COPCalculator equipment={equipment} />
               </div>
             )}
             
