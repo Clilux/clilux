@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, Thermometer, Trash2
+  User, FileText, Thermometer, Trash2, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
