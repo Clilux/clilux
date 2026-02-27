@@ -219,6 +219,30 @@ export default function BuildingDetail() {
             )}
           </div>
 
+          {/* Potencia instalada */}
+          {(totalCoolingKw > 0 || totalHeatingKw > 0) && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {totalCoolingKw > 0 && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
+                  <Snowflake className="h-5 w-5 text-blue-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500">Potencia Frigorífica Total</p>
+                    <p className="text-slate-700 font-semibold">{totalCoolingKw.toFixed(1)} kW</p>
+                  </div>
+                </div>
+              )}
+              {totalHeatingKw > 0 && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50">
+                  <Flame className="h-5 w-5 text-orange-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500">Potencia Calorífica Total</p>
+                    <p className="text-slate-700 font-semibold">{totalHeatingKw.toFixed(1)} kW</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {building.notes && (
             <div className="mt-4 p-3 rounded-lg bg-slate-50">
               <div className="flex items-start gap-3">
