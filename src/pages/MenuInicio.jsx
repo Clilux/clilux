@@ -107,10 +107,14 @@ export default function MenuInicio() {
       
       <Card className="w-full max-w-md p-8 bg-white/10 backdrop-blur-sm border-white/20 relative z-10">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
-            <Thermometer className="h-10 w-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Clilux M</h1>
+          {settings?.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="h-20 object-contain mx-auto mb-4" />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+              <Thermometer className="h-10 w-10 text-white" />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-white">{settings?.company_name || 'Clilux M'}</h1>
           <p className="text-slate-400 mt-2">Sistema de Gestión de Climatización</p>
         </div>
 
