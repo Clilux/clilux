@@ -125,6 +125,43 @@ export default function IncidentDetail() {
     },
   });
 
+  const addCommentMutation = useMutation({
+    mutationFn: async () => {
+      const user = currentUser || await base44.auth.me();
+      const historyEntry = {
+        date: new Date().toISOString(),
+        technician: user.full_name || user.email,
+        comment: newComment,
+        label: newLabel,
+        status: newStatus,
+      };
+      const updatedHistory = [...(incident.history || []), historyEntry];
+      const updateData = {
+        history: updatedHistory,
+        label: newLabel || incident.label,
+        status: newStatus,
+        technician_notes: technicianNotes,
+        resolution_notes: resolutionNotes,
+        assigned_technician: user.email,
+      };
+      if (newStatus === 'resolved' || newStatus === 'closed') {
+        updateData.resolution_date = new Date().toISOString().split('T')[0];
+      }
+      // Si etiqueta es irreparable, marcar equipo como fuera de servicio
+      if (newLabel === 'irreparable' && incident.equipment_id) {
+        await base44.entities.Equipment.update(incident.equipment_id, { status: 'out_of_service' });
+        queryClient.invalidateQueries({ queryKey: ['equipment-incident', incident.equipment_id] });
+      }
+      return base44.entities.Incident.update(incidentId, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      setNewComment('');
+      toast.success('Comentario añadido');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       await base44.entities.Incident.delete(incidentId);
