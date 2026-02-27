@@ -172,7 +172,9 @@ export default function Settings() {
       return;
     }
 
-    const portalUrl = `${window.location.origin}/app/${window.location.pathname.split('/app/')[1]?.split('/')[0] || ''}#/HomeCliente`;
+    // Construir URL absoluta del portal: tomar la URL actual y reemplazar el hash con la página del cliente
+    const baseHref = window.location.href.split('#')[0];
+    const portalUrl = `${baseHref}#/HomeCliente`;
     const companyName = formData.company_name || 'la empresa';
 
     try {
