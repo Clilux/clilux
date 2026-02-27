@@ -52,29 +52,6 @@ export default function HomeCliente() {
     refetchOnWindowFocus: false
   });
 
-  // Cargar clientId desde sessionStorage al montar
-  React.useEffect(() => {
-    const savedClientId = sessionStorage.getItem('client_id');
-    if (savedClientId) {
-      setClientId(savedClientId);
-    }
-  }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-
-    const clientUsers = settings?.client_users || [];
-    const user = clientUsers.find((u) => u.email === credentials.email && u.password === credentials.password);
-
-    if (user) {
-      setClientId(user.client_id);
-      sessionStorage.setItem('client_id', user.client_id);
-    } else {
-      setLoginError('Credenciales incorrectas');
-    }
-  };
-
   const handleLogout = () => {
     setClientId(null);
     setCredentials({ email: '', password: '' });
