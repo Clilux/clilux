@@ -118,8 +118,20 @@ export default function ClientDetail() {
                 <p className="text-slate-500">CIF: {client.cif}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <StatusBadge status={client.status || 'active'} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleClientStatusMutation.mutate(client.status || 'active')}
+                disabled={toggleClientStatusMutation.isPending}
+                className={client.status === 'inactive' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}
+              >
+                {client.status === 'inactive'
+                  ? <><ToggleRight className="h-4 w-4 mr-2" />Activar</>
+                  : <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
+                }
+              </Button>
               <Link to={createPageUrl(`ClientForm?id=${client.id}`)}>
                 <Button variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
