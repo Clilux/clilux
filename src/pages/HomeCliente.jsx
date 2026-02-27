@@ -15,6 +15,17 @@ export default function HomeCliente() {
   const navigate = useNavigate();
   const [clientId, setClientId] = useState(null);
 
+  // Cargar clientId desde sessionStorage al montar
+  useEffect(() => {
+    const savedClientId = sessionStorage.getItem('client_id');
+    if (savedClientId) {
+      setClientId(savedClientId);
+    } else {
+      // Si no hay sesión de cliente, redirigir al login principal
+      navigate(createPageUrl('MenuInicio'));
+    }
+  }, []);
+
   const { data: clientData, isLoading: loadingClientData } = useQuery({
     queryKey: ['client-data', clientId],
     queryFn: async () => {
