@@ -26,6 +26,24 @@ export default function BuildingDetail() {
   const buildingId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (currentStatus) => {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await base44.entities.Building.update(buildingId, { status: newStatus });
+      // Si se desactiva, marcar todos los equipos como inactivos
+      if (newStatus === 'inactive') {
+        const equips = await base44.entities.Equipment.filter({ building_id: buildingId });
+        await Promise.all(equips.map(eq => base44.entities.Equipment.update(eq.id, { status: 'out_of_service' })));
+        queryClient.invalidateQueries({ queryKey: ['equipment-building', buildingId] });
+      }
+      return newStatus;
+    },
+    onSuccess: (newStatus) => {
+      queryClient.invalidateQueries({ queryKey: ['building', buildingId] });
+      toast.success(newStatus === 'inactive' ? 'Edificio desactivado. Equipos marcados como fuera de servicio.' : 'Edificio activado');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       toast.error('No se pueden eliminar edificios relacionados con clientes');
