@@ -320,51 +320,64 @@ export default function Settings() {
           </TabsList>
 
           <TabsContent value="appearance">
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-6">Apariencia y Marca</h3>
+            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+              <h3 className="font-semibold text-slate-800 mb-6">Datos de la Empresa</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label>Nombre de la Empresa</Label>
-                  <Input
-                    value={formData.company_name || ''}
-                    onChange={(e) => handleChange('company_name', e.target.value)}
-                    className="mt-1"
-                  />
+                  <Input value={formData.company_name || ''} onChange={(e) => handleChange('company_name', e.target.value)} className="mt-1" />
                 </div>
-
                 <div>
-                  <Label>Logo</Label>
-                  <div className="mt-1 flex items-center gap-4">
-                    {formData.logo_url && (
-                      <img 
-                        src={formData.logo_url} 
-                        alt="Logo" 
-                        className="h-12 w-12 object-contain rounded-lg border"
-                      />
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <label htmlFor="logo-upload">
-                      <Button type="button" variant="outline" asChild disabled={uploading}>
-                        <span>
-                          {uploading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Upload className="h-4 w-4 mr-2" />
-                          )}
-                          Subir logo
-                        </span>
-                      </Button>
-                    </label>
-                  </div>
+                  <Label>CIF / NIF</Label>
+                  <Input value={formData.company_cif || ''} onChange={(e) => handleChange('company_cif', e.target.value)} className="mt-1" placeholder="B12345678" />
+                </div>
+                <div>
+                  <Label>Dirección</Label>
+                  <Input value={formData.company_address || ''} onChange={(e) => handleChange('company_address', e.target.value)} className="mt-1" placeholder="Calle Ejemplo, 1" />
+                </div>
+                <div>
+                  <Label>Ciudad</Label>
+                  <Input value={formData.company_city || ''} onChange={(e) => handleChange('company_city', e.target.value)} className="mt-1" placeholder="Madrid" />
+                </div>
+                <div>
+                  <Label>Código Postal</Label>
+                  <Input value={formData.company_postal_code || ''} onChange={(e) => handleChange('company_postal_code', e.target.value)} className="mt-1" placeholder="28001" />
+                </div>
+                <div>
+                  <Label>Teléfono</Label>
+                  <Input value={formData.company_phone || ''} onChange={(e) => handleChange('company_phone', e.target.value)} className="mt-1" placeholder="+34 600 000 000" />
+                </div>
+                <div>
+                  <Label>Email de Contacto</Label>
+                  <Input type="email" value={formData.company_email || ''} onChange={(e) => handleChange('company_email', e.target.value)} className="mt-1" placeholder="info@empresa.com" />
+                </div>
+                <div>
+                  <Label>Página Web</Label>
+                  <Input value={formData.company_web || ''} onChange={(e) => handleChange('company_web', e.target.value)} className="mt-1" placeholder="www.empresa.com" />
                 </div>
               </div>
+
+              <h4 className="font-medium text-slate-700 mt-8 mb-4">Logo de la Empresa</h4>
+              <div className="flex items-center gap-4">
+                {formData.logo_url && (
+                  <img src={formData.logo_url} alt="Logo" className="h-16 object-contain rounded-lg border p-1" />
+                )}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-upload" />
+                <label htmlFor="logo-upload">
+                  <Button type="button" variant="outline" asChild disabled={uploading}>
+                    <span>
+                      {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                      Subir logo
+                    </span>
+                  </Button>
+                </label>
+              </div>
+            </Card>
+
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-800 mb-6">Apariencia de la Interfaz</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               <h4 className="font-medium text-slate-700 mt-8 mb-4">Colores de la Interfaz</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
