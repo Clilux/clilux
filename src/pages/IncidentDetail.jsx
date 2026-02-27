@@ -74,6 +74,7 @@ export default function IncidentDetail() {
       setResolutionNotes(incident.resolution_notes || '');
       setNewPriority(incident.priority);
       setNewStatus(incident.status);
+      setNewLabel(incident.label || '');
     }
   }, [incident]);
 
