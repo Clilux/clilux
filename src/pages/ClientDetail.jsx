@@ -81,6 +81,12 @@ export default function ClientDetail() {
     return equipment.filter(e => e.building_id === buildingId).length;
   };
 
+  const getTotalCoolingKw = (buildingId) => {
+    return equipment
+      .filter(e => e.building_id === buildingId)
+      .reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
