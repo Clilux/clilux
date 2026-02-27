@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
-import { MapPin, Layers, Thermometer, ChevronRight } from 'lucide-react';
+import { MapPin, Layers, Thermometer, ChevronRight, Snowflake } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import StatusBadge from '../ui/StatusBadge';
 
-export default function BuildingCard({ building, equipmentCount = 0 }) {
+export default function BuildingCard({ building, equipmentCount = 0, totalCoolingKw = 0 }) {
   return (
     <Link to={createPageUrl(`BuildingDetail?id=${building.id}`)}>
-      <Card className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
+      <Card className={`p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group ${building.status === 'inactive' ? 'opacity-60' : ''}`}>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4 flex-1">
             {building.photo_url && (
@@ -35,6 +35,12 @@ export default function BuildingCard({ building, equipmentCount = 0 }) {
                 <Thermometer className="h-4 w-4" />
                 <span>{equipmentCount} equipo{equipmentCount !== 1 ? 's' : ''}</span>
               </div>
+              {totalCoolingKw > 0 && (
+                <div className="flex items-center gap-1.5 text-blue-500">
+                  <Snowflake className="h-4 w-4" />
+                  <span>{totalCoolingKw.toFixed(1)} kW</span>
+                </div>
+              )}
             </div>
           </div>
           </div>
