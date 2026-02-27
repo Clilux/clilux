@@ -260,10 +260,6 @@ export default function Settings() {
               <Users className="h-4 w-4" />
               Portal Cliente
             </TabsTrigger>
-            <TabsTrigger value="catalogo" className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              Catálogo
-            </TabsTrigger>
             <TabsTrigger value="backup" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Copias
