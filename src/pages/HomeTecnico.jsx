@@ -128,29 +128,29 @@ export default function HomeTecnico() {
       <div className="fixed bottom-1/3 right-1/4 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl" />
       
       <div className="relative z-10">
-        <div className="bg-white/5 backdrop-blur-sm border-b border-white/10 px-6 py-4">
-          <div className="bg-slate-200 mx-auto rounded max-w-7xl flex items-center justify-between">
+        <div className="bg-gray-700 px-6 py-4 backdrop-blur-sm border-b border-white/10">
+          <div className="bg-gray-700 text-slate-50 mx-auto rounded max-w-7xl flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Thermometer className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Clilux M</h1>
-                <p className="text-sm text-slate-400">Portal Empresa • v1.0.1</p>
+                <h1 className="bg-gray-700 text-slate-50 text-4xl font-medium">Clilux M</h1>
+                <p className="text-gray-200 text-base">Portal Empresa • v1.0.1</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="text-slate-200 flex items-center gap-3">
             <Link to={createPageUrl('TechnicianManagement')}>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
-                  <UserCog className="h-5 w-5" />
-                </Button>
+                
+
+
               </Link>
               <Link to={createPageUrl('Settings')}>
                 <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
                   <Settings className="h-5 w-5" />
                 </Button>
               </Link>
-              <span className="text-sm text-slate-300">{user?.full_name || user?.email || 'Técnico'}</span>
+              <span className="text-slate-50 text-lg">{user?.full_name || user?.email || 'Técnico'}</span>
               <Button onClick={handleLogout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
                 <LogOut className="h-4 w-4 mr-2" />
                 Cerrar Sesión
@@ -159,7 +159,7 @@ export default function HomeTecnico() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="bg-gray-700 mx-auto p-6 max-w-7xl space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
@@ -170,7 +170,7 @@ export default function HomeTecnico() {
                     <Users className="h-7 w-7 text-blue-400" />
                   </div>
                   <p className="text-4xl font-bold text-white">{clients.length}</p>
-                  <p className="text-sm text-slate-400">Clientes</p>
+                  <p className="text-slate-400 text-xl">Clientes</p>
                 </div>
               </Card>
             </Link>
@@ -182,7 +182,7 @@ export default function HomeTecnico() {
                     <Building2 className="h-7 w-7 text-emerald-400" />
                   </div>
                   <p className="text-4xl font-bold text-white">{buildings.length}</p>
-                  <p className="text-sm text-slate-400">Edificios</p>
+                  <p className="text-slate-400 text-xl">Edificios</p>
                 </div>
               </Card>
             </Link>
@@ -194,7 +194,7 @@ export default function HomeTecnico() {
                     <Thermometer className="h-7 w-7 text-purple-400" />
                   </div>
                   <p className="text-4xl font-bold text-white">{equipment.length}</p>
-                  <p className="text-sm text-slate-400">Equipos</p>
+                  <p className="text-slate-400 text-xl">Equipos</p>
                 </div>
               </Card>
             </Link>
@@ -206,7 +206,7 @@ export default function HomeTecnico() {
                     <ClipboardCheck className="h-7 w-7 text-amber-400" />
                   </div>
                   <p className="text-4xl font-bold text-white">{scheduledRevisions.filter((sr) => sr.status === 'pending').length}</p>
-                  <p className="text-sm text-slate-400">Revisiones Programadas</p>
+                  <p className="text-slate-400 text-xl">Revisiones</p>
                 </div>
               </Card>
             </Link>
@@ -214,7 +214,7 @@ export default function HomeTecnico() {
 
           {/* Alertas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-sky-100 text-card-foreground p-5 rounded-[32px] border shadow border-blue-500/30">
+            <Card className="bg-gray-600 text-card-foreground p-5 rounded-[32px] border shadow border-blue-500/30">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-blue-400" />
@@ -252,14 +252,14 @@ export default function HomeTecnico() {
               </div>
             </Card>
 
-            <Card className="bg-orange-100 text-card-foreground p-5 rounded-[32px] border shadow border-red-500/30">
+            <Card className="bg-gray-600 text-card-foreground p-5 rounded-[32px] border shadow border-red-500/30">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-500/30 flex items-center justify-center">
+                <div className="bg-red-800 rounded-full w-10 h-10 flex items-center justify-center">
                   <AlertCircle className="h-5 w-5 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Incidencias Pendientes</h3>
-                  <p className="text-xs text-red-300">{pendingIncidents.length} sin resolver</p>
+                  <h3 className="text-red-500 font-semibold">Incidencias Pendientes</h3>
+                  <p className="text-red-400 text-sm">{pendingIncidents.length} sin resolver</p>
                 </div>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto">
