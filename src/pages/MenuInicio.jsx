@@ -33,7 +33,7 @@ export default function MenuInicio() {
 
       if (savedEmail && savedPassword && settings) {
         const clientUsers = settings.client_users || [];
-        const clientUser = clientUsers.find(u => u.email === savedEmail && u.password === savedPassword);
+        const clientUser = clientUsers.find((u) => u.email === savedEmail && u.password === savedPassword);
 
         if (clientUser) {
           sessionStorage.setItem('client_id', clientUser.client_id);
@@ -52,7 +52,7 @@ export default function MenuInicio() {
 
     try {
       const clientUsers = settings?.client_users || [];
-      const clientUser = clientUsers.find(u => u.email === credentials.email && u.password === credentials.password);
+      const clientUser = clientUsers.find((u) => u.email === credentials.email && u.password === credentials.password);
 
       if (clientUser) {
         localStorage.setItem('clilux_email', credentials.email);
@@ -84,115 +84,115 @@ export default function MenuInicio() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center p-6">
+    <div className="bg-slate-100 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center">
       <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
       <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
 
-      <Card className="w-full max-w-md p-8 bg-white/10 backdrop-blur-sm border-white/20 relative z-10">
+      <Card className="bg-[#9ed6d4] text-card-foreground p-8 rounded-xl border shadow w-full max-w-md backdrop-blur-sm border-white/20 relative z-10">
         <div className="text-center mb-8">
-          {settings?.logo_url ? (
-            <img src={settings.logo_url} alt="Logo" className="h-20 object-contain mx-auto mb-4" />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+          {settings?.logo_url ?
+          <img src={settings.logo_url} alt="Logo" className="h-20 object-contain mx-auto mb-4" /> :
+
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
               <Thermometer className="h-10 w-10 text-white" />
             </div>
-          )}
+          }
           <h1 className="text-3xl font-bold text-white">{settings?.company_name || 'Clilux M'}</h1>
           <p className="text-slate-400 mt-2">Sistema de Gestión de Climatización</p>
         </div>
 
         {/* Selección de modo */}
-        {!mode && (
-          <div className="space-y-3">
+        {!mode &&
+        <div className="space-y-3">
             <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
             <Button
-              onClick={() => setMode('client')}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium flex items-center justify-center gap-3"
-            >
+            onClick={() => setMode('client')}
+            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium flex items-center justify-center gap-3">
+
               <Users className="h-5 w-5" />
               Acceso Cliente
             </Button>
             <Button
-              onClick={handleTechnicianLogin}
-              className="w-full h-12 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-base font-medium flex items-center justify-center gap-3"
-              variant="ghost"
-            >
+            onClick={handleTechnicianLogin}
+            className="w-full h-12 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-base font-medium flex items-center justify-center gap-3"
+            variant="ghost">
+
               <Wrench className="h-5 w-5" />
               Acceso Técnico
             </Button>
           </div>
-        )}
+        }
 
         {/* Formulario cliente */}
-        {mode === 'client' && (
-          <form onSubmit={handleClientLogin} className="space-y-5">
+        {mode === 'client' &&
+        <form onSubmit={handleClientLogin} className="space-y-5">
             <div>
               <Label className="text-white text-sm font-medium">Email</Label>
               <Input
-                type="email"
-                value={credentials.email}
-                onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
-                className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                placeholder="tu@email.com"
-                required
-                disabled={isLoggingIn}
-              />
+              type="email"
+              value={credentials.email}
+              onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
+              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+              placeholder="tu@email.com"
+              required
+              disabled={isLoggingIn} />
+
             </div>
 
             <div>
               <Label className="text-white text-sm font-medium">Contraseña</Label>
               <Input
-                type="password"
-                value={credentials.password}
-                onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                placeholder="••••••••"
-                required
-                disabled={isLoggingIn}
-              />
+              type="password"
+              value={credentials.password}
+              onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
+              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+              placeholder="••••••••"
+              required
+              disabled={isLoggingIn} />
+
             </div>
 
-            {loginError && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+            {loginError &&
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                 <p className="text-red-400 text-sm">{loginError}</p>
               </div>
-            )}
+          }
 
             <Button
-              type="submit"
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-base font-medium"
-              disabled={isLoggingIn}
-            >
-              {isLoggingIn ? (
-                <>
+            type="submit" className="bg-stone-600 text-primary-foreground px-4 py-2 text-base font-medium rounded-[10px] inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow w-full h-12 hover:bg-blue-700"
+
+            disabled={isLoggingIn}>
+
+              {isLoggingIn ?
+            <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   Iniciando sesión...
-                </>
-              ) : (
-                'Iniciar Sesión'
-              )}
+                </> :
+
+            'Iniciar Sesión'
+            }
             </Button>
 
             <Button
-              type="button"
-              onClick={() => { setMode(null); setLoginError(''); }}
-              className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
-              variant="ghost"
-            >
+            type="button"
+            onClick={() => {setMode(null);setLoginError('');}}
+            className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
+            variant="ghost">
+
               ← Volver
             </Button>
 
             <Button
-              type="button"
-              onClick={handleForget}
-              className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
-              variant="ghost"
-            >
+            type="button"
+            onClick={handleForget}
+            className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
+            variant="ghost">
+
               Olvidar credenciales
             </Button>
           </form>
-        )}
+        }
 
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-400">Acceso para técnicos y clientes</p>
@@ -202,6 +202,6 @@ export default function MenuInicio() {
       <p className="absolute bottom-6 text-center text-slate-500 text-sm">
         © 2024 Clilux - Todos los derechos reservados
       </p>
-    </div>
-  );
+    </div>);
+
 }
