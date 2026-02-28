@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2 } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState(null); // null | 'client' | 'technician'
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -24,75 +25,62 @@ export default function MenuInicio() {
     }
   });
 
-  // Cargar credenciales guardadas al montar
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('clilux_email');
-    const savedPassword = localStorage.getItem('clilux_password');
-    if (savedEmail && savedPassword) {
-      setCredentials({ email: savedEmail, password: savedPassword });
-    }
-  }, []);
-
-  // Auto-login si hay credenciales guardadas
+  // Auto-login para cliente si hay credenciales guardadas
   useEffect(() => {
     const autoLogin = async () => {
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
-      
+
       if (savedEmail && savedPassword && settings) {
-        // Verificar si es usuario cliente
         const clientUsers = settings.client_users || [];
         const clientUser = clientUsers.find(u => u.email === savedEmail && u.password === savedPassword);
-        
+
         if (clientUser) {
           sessionStorage.setItem('client_id', clientUser.client_id);
           navigate(createPageUrl('HomeCliente'));
-          return;
-        }
-
-        // Si no es cliente, verificar si está autenticado como técnico y redirigir directo
-        const isAuth = await base44.auth.isAuthenticated();
-        if (isAuth) {
-          navigate(createPageUrl('HomeTecnico'));
         }
       }
     };
-    
+
     autoLogin();
   }, [settings, navigate]);
 
-  const handleLogin = async (e) => {
+  const handleClientLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     setIsLoggingIn(true);
 
     try {
-      // Verificar si es usuario cliente
       const clientUsers = settings?.client_users || [];
       const clientUser = clientUsers.find(u => u.email === credentials.email && u.password === credentials.password);
-      
+
       if (clientUser) {
-        // Guardar credenciales
         localStorage.setItem('clilux_email', credentials.email);
         localStorage.setItem('clilux_password', credentials.password);
         sessionStorage.setItem('client_id', clientUser.client_id);
-        
-        // Login como cliente (sin autenticación de Base44)
         navigate(createPageUrl('HomeCliente'));
-        return;
+      } else {
+        setLoginError('Email o contraseña incorrectos');
       }
-
-      // Si no es cliente, redirigir directamente al login de Base44 (técnico)
-      // Guardamos email para autocompletar si vuelve
-      localStorage.setItem('clilux_email', credentials.email);
-      
-      await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
     } catch (error) {
-      console.error('Login error:', error);
       setLoginError('Error al iniciar sesión');
     } finally {
       setIsLoggingIn(false);
     }
+  };
+
+  const handleTechnicianLogin = async () => {
+    setIsLoggingIn(true);
+    await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
+  };
+
+  const handleForget = () => {
+    localStorage.removeItem('clilux_email');
+    localStorage.removeItem('clilux_password');
+    sessionStorage.removeItem('client_id');
+    setCredentials({ email: '', password: '' });
+    setMode(null);
+    toast.success('Credenciales olvidadas');
   };
 
   return (
@@ -100,7 +88,7 @@ export default function MenuInicio() {
       <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
       <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
-      
+
       <Card className="w-full max-w-md p-8 bg-white/10 backdrop-blur-sm border-white/20 relative z-10">
         <div className="text-center mb-8">
           {settings?.logo_url ? (
@@ -114,74 +102,100 @@ export default function MenuInicio() {
           <p className="text-slate-400 mt-2">Sistema de Gestión de Climatización</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <Label className="text-white text-sm font-medium">Email</Label>
-            <Input
-              type="email"
-              value={credentials.email}
-              onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="tu@email.com"
-              required
-              disabled={isLoggingIn}
-            />
+        {/* Selección de modo */}
+        {!mode && (
+          <div className="space-y-3">
+            <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
+            <Button
+              onClick={() => setMode('client')}
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium flex items-center justify-center gap-3"
+            >
+              <Users className="h-5 w-5" />
+              Acceso Cliente
+            </Button>
+            <Button
+              onClick={handleTechnicianLogin}
+              className="w-full h-12 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-base font-medium flex items-center justify-center gap-3"
+              variant="ghost"
+            >
+              <Wrench className="h-5 w-5" />
+              Acceso Técnico
+            </Button>
           </div>
+        )}
 
-          <div>
-            <Label className="text-white text-sm font-medium">Contraseña</Label>
-            <Input
-              type="password"
-              value={credentials.password}
-              onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="••••••••"
-              required
-              disabled={isLoggingIn}
-            />
-          </div>
-
-          {loginError && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400 text-sm">{loginError}</p>
+        {/* Formulario cliente */}
+        {mode === 'client' && (
+          <form onSubmit={handleClientLogin} className="space-y-5">
+            <div>
+              <Label className="text-white text-sm font-medium">Email</Label>
+              <Input
+                type="email"
+                value={credentials.email}
+                onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                placeholder="tu@email.com"
+                required
+                disabled={isLoggingIn}
+              />
             </div>
-          )}
 
-          <Button 
-            type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700 h-11"
-            disabled={isLoggingIn}
-          >
-            {isLoggingIn ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Iniciando sesión...
-              </>
-            ) : (
-              'Iniciar Sesión'
+            <div>
+              <Label className="text-white text-sm font-medium">Contraseña</Label>
+              <Input
+                type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                placeholder="••••••••"
+                required
+                disabled={isLoggingIn}
+              />
+            </div>
+
+            {loginError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                <p className="text-red-400 text-sm">{loginError}</p>
+              </div>
             )}
-          </Button>
-          
-          <Button 
-            type="button"
-            variant="outline"
-            onClick={() => {
-              localStorage.removeItem('clilux_email');
-              localStorage.removeItem('clilux_password');
-              sessionStorage.removeItem('client_id');
-              setCredentials({ email: '', password: '' });
-              toast.success('Credenciales olvidadas');
-            }}
-            className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10 mt-2"
-          >
-            Olvidar credenciales
-          </Button>
-        </form>
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-base font-medium"
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Iniciando sesión...
+                </>
+              ) : (
+                'Iniciar Sesión'
+              )}
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => { setMode(null); setLoginError(''); }}
+              className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
+              variant="ghost"
+            >
+              ← Volver
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleForget}
+              className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
+              variant="ghost"
+            >
+              Olvidar credenciales
+            </Button>
+          </form>
+        )}
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400">
-            Acceso para técnicos y clientes
-          </p>
+          <p className="text-xs text-slate-400">Acceso para técnicos y clientes</p>
         </div>
       </Card>
 
