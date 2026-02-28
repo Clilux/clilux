@@ -42,24 +42,24 @@ export default function ClientEquipment() {
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ['client-equipment', clientId],
     queryFn: () => base44.entities.Equipment.filter({ client_id: clientId }),
-    enabled: !!clientId,
+    enabled: !!clientId
   });
 
   const { data: buildings = [] } = useQuery({
     queryKey: ['client-buildings', clientId],
     queryFn: () => base44.entities.Building.filter({ client_id: clientId }),
-    enabled: !!clientId,
+    enabled: !!clientId
   });
 
-  const filteredEquipment = equipment.filter(eq =>
-    !searchTerm ||
-    eq.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEquipment = equipment.filter((eq) =>
+  !searchTerm ||
+  eq.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  eq.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  eq.location?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getBuildingName = (buildingId) => {
-    const building = buildings.find(b => b.id === buildingId);
+    const building = buildings.find((b) => b.id === buildingId);
     return building?.name || 'N/A';
   };
 
@@ -69,16 +69,16 @@ export default function ClientEquipment() {
         <div className="max-w-6xl mx-auto">
           <Skeleton className="h-10 w-64 mb-6" />
           <div className="grid gap-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32" />)}
           </div>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-slate-200 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900">
+      <div className="bg-slate-200 mx-auto max-w-6xl">
         <NavHeader title="Mis Equipos" showBack={false} homeUrl="HomeCliente" />
 
         <div className="mb-6">
@@ -88,13 +88,13 @@ export default function ClientEquipment() {
               placeholder="Buscar por marca, modelo o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/5 border-white/20 text-white"
-            />
+              className="pl-10 bg-white/5 border-white/20 text-white" />
+
           </div>
         </div>
 
-        {filteredEquipment.length === 0 ? (
-          <Card className="p-12 bg-white/5 backdrop-blur-sm border-white/10 text-center">
+        {filteredEquipment.length === 0 ?
+        <Card className="p-12 bg-white/5 backdrop-blur-sm border-white/10 text-center">
             <div className="flex flex-col items-center gap-4">
               <AlertCircle className="h-16 w-16 text-slate-400" />
               <div>
@@ -110,27 +110,27 @@ export default function ClientEquipment() {
                 </Button>
               </Link>
             </div>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {filteredEquipment.map(eq => (
-              <Link key={eq.id} to={createPageUrl(`ClientEquipmentDetail?id=${eq.id}`)}>
-                <Card className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+          </Card> :
+
+        <div className="grid gap-4">
+            {filteredEquipment.map((eq) =>
+          <Link key={eq.id} to={createPageUrl(`ClientEquipmentDetail?id=${eq.id}`)}>
+                <Card className="bg-gray-50 text-card-foreground p-6 rounded-2xl border shadow backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all cursor-pointer">
                   <div className="flex gap-6">
-                    {eq.photo_url && (
-                      <div className="w-32 h-32 rounded-lg overflow-hidden bg-slate-700 flex-shrink-0">
+                    {eq.photo_url &&
+                <div className="w-32 h-32 rounded-lg overflow-hidden bg-slate-700 flex-shrink-0">
                         <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-cover" />
                       </div>
-                    )}
+                }
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="text-xl font-semibold text-white mb-1">
                             {eq.brand} {eq.model}
                           </h3>
-                          {eq.serial_number && (
-                            <p className="text-sm text-slate-400">S/N: {eq.serial_number}</p>
-                          )}
+                          {eq.serial_number &&
+                      <p className="text-sm text-slate-400">S/N: {eq.serial_number}</p>
+                      }
                         </div>
                         <Badge className={statusColors[eq.status || 'operational']}>
                           {statusLabels[eq.status || 'operational']}
@@ -138,31 +138,31 @@ export default function ClientEquipment() {
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        {eq.location && (
-                          <div className="flex items-center gap-2 text-slate-300">
+                        {eq.location &&
+                    <div className="flex items-center gap-2 text-slate-300">
                             <MapPin className="h-4 w-4 text-slate-400" />
                             <span>{eq.location}</span>
                           </div>
-                        )}
+                    }
                         <div className="flex items-center gap-2 text-slate-300">
                           <Thermometer className="h-4 w-4 text-slate-400" />
                           <span>{getBuildingName(eq.building_id)}</span>
                         </div>
-                        {eq.installation_date && (
-                          <div className="flex items-center gap-2 text-slate-300">
+                        {eq.installation_date &&
+                    <div className="flex items-center gap-2 text-slate-300">
                             <Calendar className="h-4 w-4 text-slate-400" />
                             <span>Instalado: {format(new Date(eq.installation_date), 'dd/MM/yyyy')}</span>
                           </div>
-                        )}
+                    }
                       </div>
                     </div>
                   </div>
                 </Card>
               </Link>
-            ))}
+          )}
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
