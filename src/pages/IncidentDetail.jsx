@@ -332,9 +332,28 @@ export default function IncidentDetail() {
         {/* Historial de comentarios */}
         {(incident.history && incident.history.length > 0) && (
           <Card className="p-6 bg-white border-0 shadow-sm mb-4">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Historial
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Historial
+              </h3>
+              {userRole === 'technician' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-500 hover:text-red-600 text-xs"
+                  onClick={() => {
+                    if (confirm('¿Eliminar todo el historial de esta incidencia?')) {
+                      base44.entities.Incident.update(incidentId, { history: [] }).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
+                        toast.success('Historial eliminado');
+                      });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Borrar historial
+                </Button>
+              )}
+            </div>
             <div className="space-y-3">
               {[...incident.history].reverse().map((entry, idx) => (
                 <div key={idx} className="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
