@@ -86,9 +86,9 @@ export default function MenuInicio() {
         return;
       }
 
-      // Si no es cliente, guardar credenciales y redirigir a login técnico
+      // Si no es cliente, redirigir directamente al login de Base44 (técnico)
+      // Guardamos email para autocompletar si vuelve
       localStorage.setItem('clilux_email', credentials.email);
-      localStorage.setItem('clilux_password', credentials.password);
       
       await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
     } catch (error) {
