@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   ArrowLeft, Home, Thermometer, MapPin, Calendar, FileText,
-  Snowflake, Flame, Wind, Droplet, ClipboardCheck, AlertCircle
-} from 'lucide-react';
+  Snowflake, Flame, Wind, Droplet, ClipboardCheck, AlertCircle } from
+'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -27,13 +27,13 @@ const equipmentTypeLabels = {
   uta: 'UTA',
   rooftop: 'Rooftop',
   torre_refrigeracion: 'Torre de refrigeración',
-  otro: 'Otro',
+  otro: 'Otro'
 };
 
 const statusInfo = {
   operational: { label: 'Operativo', color: 'bg-emerald-100 text-emerald-800', icon: '✓' },
   maintenance_needed: { label: 'Requiere mantenimiento', color: 'bg-amber-100 text-amber-800', icon: '⚠' },
-  out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-800', icon: '✕' },
+  out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-800', icon: '✕' }
 };
 
 export default function ClientEquipmentDetail() {
@@ -48,7 +48,7 @@ export default function ClientEquipmentDetail() {
       const items = await base44.entities.Equipment.filter({ id: equipmentId });
       return items[0] || null;
     },
-    enabled: !!equipmentId,
+    enabled: !!equipmentId
   });
 
   const { data: building } = useQuery({
@@ -57,19 +57,19 @@ export default function ClientEquipmentDetail() {
       const buildings = await base44.entities.Building.filter({ id: equipment.building_id });
       return buildings[0] || null;
     },
-    enabled: !!equipment?.building_id,
+    enabled: !!equipment?.building_id
   });
 
   const { data: revisions = [] } = useQuery({
     queryKey: ['revisions-equipment', equipmentId],
     queryFn: () => base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'completed' }, '-completed_date'),
-    enabled: !!equipmentId,
+    enabled: !!equipmentId
   });
 
   const { data: incidents = [] } = useQuery({
     queryKey: ['incidents-equipment', equipmentId],
     queryFn: () => base44.entities.Incident.filter({ equipment_id: equipmentId }, '-created_date'),
-    enabled: !!equipmentId,
+    enabled: !!equipmentId
   });
 
   if (isLoading) {
@@ -79,8 +79,8 @@ export default function ClientEquipmentDetail() {
           <Skeleton className="h-10 w-64 mb-6 bg-white/10" />
           <Skeleton className="h-64 rounded-xl bg-white/10" />
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (!equipment) {
@@ -92,8 +92,8 @@ export default function ClientEquipmentDetail() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="rounded-full hover:bg-white/10 text-white"
-            >
+              className="rounded-full hover:bg-white/10 text-white">
+
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-semibold text-white">Equipo</h1>
@@ -115,12 +115,12 @@ export default function ClientEquipmentDetail() {
             </div>
           </Card>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="bg-slate-100 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900">
       <div className="fixed top-10 right-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
       <div className="fixed bottom-20 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
       
@@ -131,8 +131,8 @@ export default function ClientEquipmentDetail() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl(`HomeCliente`))}
-              className="rounded-full hover:bg-white/10 text-white"
-            >
+              className="rounded-full hover:bg-white/10 text-white">
+
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-semibold text-white">
@@ -142,17 +142,17 @@ export default function ClientEquipmentDetail() {
         </div>
 
         {/* Status Overview Card */}
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+        <Card className="bg-slate-200 text-slate-950 mb-6 p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
           <div className="flex flex-col md:flex-row gap-6">
-            {equipment.photo_url && (
-              <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
-                <img 
-                  src={equipment.photo_url} 
-                  alt={`${equipment.brand} ${equipment.model}`}
-                  className="w-full h-full object-cover"
-                />
+            {equipment.photo_url &&
+            <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+                <img
+                src={equipment.photo_url}
+                alt={`${equipment.brand} ${equipment.model}`}
+                className="w-full h-full object-cover" />
+
               </div>
-            )}
+            }
             
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
@@ -169,60 +169,60 @@ export default function ClientEquipmentDetail() {
                     {equipmentTypeLabels[equipment.equipment_type] || equipment.equipment_type}
                     {equipment.serial_number && ` · S/N: ${equipment.serial_number}`}
                   </p>
-                  {building && (
-                    <p className="text-sm text-slate-500 mt-1">{building.name}</p>
-                  )}
+                  {building &&
+                  <p className="text-sm text-slate-500 mt-1">{building.name}</p>
+                  }
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {equipment.location && (
-                  <div className="flex items-start gap-2">
+                {equipment.location &&
+                <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Ubicación</p>
                       <p className="text-sm text-white">{equipment.location}</p>
                     </div>
                   </div>
-                )}
-                {equipment.cooling_power_kw && (
-                  <div className="flex items-start gap-2">
+                }
+                {equipment.cooling_power_kw &&
+                <div className="flex items-start gap-2">
                     <Snowflake className="h-4 w-4 text-blue-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Pot. Frigorífica</p>
                       <p className="text-sm text-white">{equipment.cooling_power_kw} kW</p>
                     </div>
                   </div>
-                )}
-                {equipment.heating_power_kw && (
-                  <div className="flex items-start gap-2">
+                }
+                {equipment.heating_power_kw &&
+                <div className="flex items-start gap-2">
                     <Flame className="h-4 w-4 text-orange-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Pot. Calorífica</p>
                       <p className="text-sm text-white">{equipment.heating_power_kw} kW</p>
                     </div>
                   </div>
-                )}
-                {equipment.refrigerant_type && (
-                  <div className="flex items-start gap-2">
+                }
+                {equipment.refrigerant_type &&
+                <div className="flex items-start gap-2">
                     <Wind className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Refrigerante</p>
                       <p className="text-sm text-white">{equipment.refrigerant_type}</p>
                     </div>
                   </div>
-                )}
-                {equipment.refrigerant_charge_kg && (
-                  <div className="flex items-start gap-2">
+                }
+                {equipment.refrigerant_charge_kg &&
+                <div className="flex items-start gap-2">
                     <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Carga</p>
                       <p className="text-sm text-white">{equipment.refrigerant_charge_kg} kg</p>
                     </div>
                   </div>
-                )}
-                {equipment.installation_date && (
-                  <div className="flex items-start gap-2">
+                }
+                {equipment.installation_date &&
+                <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <p className="text-xs text-slate-500">Instalación</p>
@@ -231,13 +231,13 @@ export default function ClientEquipmentDetail() {
                       </p>
                     </div>
                   </div>
-                )}
+                }
               </div>
             </div>
           </div>
 
-          {equipment.notes && (
-            <div className="mt-4 p-3 rounded-lg bg-white/5">
+          {equipment.notes &&
+          <div className="mt-4 p-3 rounded-lg bg-white/5">
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                 <div>
@@ -246,91 +246,91 @@ export default function ClientEquipmentDetail() {
                 </div>
               </div>
             </div>
-          )}
+          }
         </Card>
 
         {/* Revisiones */}
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+        <Card className="bg-slate-100 text-card-foreground mb-6 p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5" />
             Historial de Revisiones ({revisions.length})
           </h2>
 
-          {revisions.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">No hay revisiones registradas</p>
-          ) : (
-            <div className="space-y-3">
-              {revisions.map(revision => (
-                <div 
-                  key={revision.id}
-                  className="p-4 rounded-xl bg-white/5 border border-white/10"
-                >
+          {revisions.length === 0 ?
+          <p className="text-slate-400 text-center py-8">No hay revisiones registradas</p> :
+
+          <div className="space-y-3">
+              {revisions.map((revision) =>
+            <div
+              key={revision.id}
+              className="p-4 rounded-xl bg-white/5 border border-white/10">
+
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-white">
                         {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
                       </h3>
                       <p className="text-sm text-slate-400">
-                        Tipo: {revision.revision_type === 'monthly' ? 'Mensual' : 
-                               revision.revision_type === 'quarterly' ? 'Trimestral' :
-                               revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
+                        Tipo: {revision.revision_type === 'monthly' ? 'Mensual' :
+                    revision.revision_type === 'quarterly' ? 'Trimestral' :
+                    revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
                       </p>
                     </div>
                     <Badge className="bg-emerald-500/20 text-emerald-400">
                       Completada
                     </Badge>
                   </div>
-                  {revision.notes && (
-                    <p className="text-sm text-slate-400 mt-2">{revision.notes}</p>
-                  )}
+                  {revision.notes &&
+              <p className="text-sm text-slate-400 mt-2">{revision.notes}</p>
+              }
                 </div>
-              ))}
+            )}
             </div>
-          )}
+          }
         </Card>
 
         {/* Incidencias */}
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+        <Card className="bg-amber-50 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
             Incidencias ({incidents.length})
           </h2>
 
-          {incidents.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">No hay incidencias registradas</p>
-          ) : (
-            <div className="space-y-3">
-              {incidents.map(incident => (
-                <div 
-                  key={incident.id}
-                  className="p-4 rounded-xl bg-white/5 border border-white/10"
-                >
+          {incidents.length === 0 ?
+          <p className="text-slate-400 text-center py-8">No hay incidencias registradas</p> :
+
+          <div className="space-y-3">
+              {incidents.map((incident) =>
+            <div
+              key={incident.id}
+              className="p-4 rounded-xl bg-white/5 border border-white/10">
+
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-medium text-white">{incident.title}</h3>
                     <Badge className={
-                      incident.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
-                      incident.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                      incident.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' :
-                      'bg-slate-500/20 text-slate-400'
-                    }>
+                incident.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                incident.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                incident.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' :
+                'bg-slate-500/20 text-slate-400'
+                }>
                       {incident.status === 'pending' ? 'Pendiente' :
-                       incident.status === 'in_progress' ? 'En progreso' :
-                       incident.status === 'resolved' ? 'Resuelto' : 'Cerrado'}
+                  incident.status === 'in_progress' ? 'En progreso' :
+                  incident.status === 'resolved' ? 'Resuelto' : 'Cerrado'}
                     </Badge>
                   </div>
                   <p className="text-sm text-slate-400">{incident.description}</p>
-                  {incident.resolution_notes && (
-                    <div className="mt-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  {incident.resolution_notes &&
+              <div className="mt-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
                       <p className="text-xs text-emerald-400 font-medium">Resolución:</p>
                       <p className="text-sm text-emerald-300">{incident.resolution_notes}</p>
                     </div>
-                  )}
+              }
                 </div>
-              ))}
+            )}
             </div>
-          )}
+          }
         </Card>
       </div>
-    </div>
-  );
+    </div>);
+
 }
