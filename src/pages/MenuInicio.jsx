@@ -50,14 +50,10 @@ export default function MenuInicio() {
           return;
         }
 
-        // Si no es cliente, verificar si está autenticado como técnico
-        try {
-          const isAuth = await base44.auth.isAuthenticated();
-          if (isAuth) {
-            navigate(createPageUrl('HomeTecnico'));
-          }
-        } catch (error) {
-          // No hacer nada, mostrar login normal
+        // Si no es cliente, verificar si está autenticado como técnico y redirigir directo
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          navigate(createPageUrl('HomeTecnico'));
         }
       }
     };
