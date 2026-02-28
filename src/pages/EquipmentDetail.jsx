@@ -408,13 +408,14 @@ export default function EquipmentDetail() {
           <EditableNotes equipment={equipment} equipmentId={equipmentId} />
         </Card>
 
-        {/* Tabs: Plan de Mantenimiento, Revisiones, Intervenciones, Imágenes, Documentos */}
+        {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 mb-6">
-            <TabsTrigger value="plan">Plan Mantenimiento</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6">
+            <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
+            <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
           </TabsList>
 
