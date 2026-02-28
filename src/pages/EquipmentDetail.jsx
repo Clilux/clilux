@@ -25,6 +25,7 @@ import EquipmentReport from '../components/reports/EquipmentReport';
 import RevisionsReport from '../components/reports/RevisionsReport';
 import MaintenancePlan from '../components/equipment/MaintenancePlan';
 import COPCalculator from '../components/calculators/COPCalculator';
+import SparePartsTab from '../components/equipment/SparePartsTab';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
