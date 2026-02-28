@@ -447,6 +447,12 @@ export default function EquipmentDetail() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="spareparts">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <SparePartsTab equipment={equipment} equipmentId={equipmentId} />
+            </Card>
+          </TabsContent>
+
           <TabsContent value="documents">
             <EquipmentDocuments 
               equipment={equipment} 
