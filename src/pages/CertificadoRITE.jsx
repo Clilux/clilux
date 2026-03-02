@@ -85,6 +85,9 @@ export default function CertificadoRITE() {
   const [generating, setGenerating] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingPdfBlob, setPendingPdfBlob] = useState(null);
+  const [pendingFilename, setPendingFilename] = useState('');
 
   const [form, setForm] = useState({
     num_certificado: '',
