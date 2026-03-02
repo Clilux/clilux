@@ -508,15 +508,15 @@ export default function CertificadoRITE() {
 
       // Generadores de frío header
       checkPageBreak(6);
-      doc.setFillColor(230, 230, 230);
-      doc.rect(margin, y, contentW - 50, 5, 'F');
-      doc.rect(margin + contentW - 50, y, 25, 5, 'F');
+      doc.setFillColor(cr * 0.85, cg * 0.85, cb * 0.85);
+      doc.rect(margin, y, contentW - 25, 5, 'F');
       doc.rect(margin + contentW - 25, y, 25, 5, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
+      doc.setTextColor(255, 255, 255);
       doc.text('Generadores de frío', margin + 2, y + 3.5);
-      doc.text('Resultado', margin + contentW - 48, y + 3.5);
-      doc.text('Fecha', margin + contentW - 23, y + 3.5);
+      doc.text('Resultado', margin + contentW - 23, y + 3.5);
+      doc.setTextColor(0, 0, 0);
       y += 5;
 
       gestionFrio.forEach((op, i) => {
