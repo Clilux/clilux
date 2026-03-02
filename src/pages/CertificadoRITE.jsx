@@ -265,25 +265,43 @@ export default function CertificadoRITE() {
         if (y + needed > 280) addPage();
       };
 
+      // Color corporativo desde settings
+      const corpColorHex = settings?.button_color || '#1e3a5f';
+      const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+      };
+      const [cr, cg, cb] = hexToRgb(corpColorHex);
+
       const addPageHeader = (pageNum) => {
-        // Logo en cabecera de cada página
-        let headerTextX = pageW / 2 - 20;
+        // Fondo corporativo en cabecera
+        doc.setFillColor(cr, cg, cb);
+        doc.rect(margin, y, contentW, 22, 'F');
+
+        // Logo a la izquierda
         if (logoData) {
           const logoMaxH = 18;
           const logoAspect = logoData.w / logoData.h;
           const logoW = Math.min(logoMaxH * logoAspect, 40);
           const logoH = logoW / logoAspect;
-          doc.addImage(logoData.dataUrl, 'PNG', margin, y + 1, logoW, logoH);
+          doc.addImage(logoData.dataUrl, 'PNG', margin + 2, y + 2, logoW, logoH);
         }
-        doc.setFillColor(240, 240, 240);
-        doc.rect(margin + (logoData ? 44 : 0), y, contentW - 20 - (logoData ? 44 : 0), 20, 'F');
+
+        // Texto centrado en blanco
+        doc.setTextColor(255, 255, 255);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text('CERTIFICADO DE MANTENIMIENTO', headerTextX, y + 7, { align: 'center' });
-        doc.text('DE INSTALACIONES TÉRMICAS EN LOS EDIFICIOS', headerTextX, y + 13, { align: 'center' });
-        doc.setFontSize(14);
-        doc.text(String(pageNum), margin + contentW - 18, y + 12);
-        y += 22;
+        doc.text('CERTIFICADO DE MANTENIMIENTO', pageW / 2, y + 8, { align: 'center' });
+        doc.text('DE INSTALACIONES TÉRMICAS EN LOS EDIFICIOS', pageW / 2, y + 15, { align: 'center' });
+
+        // Número de página en esquina derecha
+        doc.setFontSize(13);
+        doc.text(String(pageNum), margin + contentW - 5, y + 14, { align: 'right' });
+
+        doc.setTextColor(0, 0, 0);
+        y += 24;
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'normal');
         doc.text('Art. 28 del Reglamento de Instalaciones Térmicas en los Edificios (Real Decreto 1027/2007)', margin, y);
@@ -294,11 +312,13 @@ export default function CertificadoRITE() {
 
       const drawSection = (title) => {
         checkPageBreak(12);
-        doc.setFillColor(220, 220, 220);
+        doc.setFillColor(cr, cg, cb);
         doc.rect(margin, y, contentW, 6, 'F');
         doc.setFontSize(8.5);
         doc.setFont('helvetica', 'bold');
-        doc.text(title, margin + 2, y + 4.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text(title, pageW / 2, y + 4.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'normal');
         y += 7;
       };
