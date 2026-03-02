@@ -10,11 +10,20 @@ export default function Documentacion() {
     {
       id: 'certificado-rite',
       title: 'Certificado RITE',
-      description: 'Certificados de mantenimiento RITE',
+      description: 'Certificado anual de mantenimiento (Art. 28 RITE)',
       icon: FileCheck,
       page: 'CertificadoRITE',
       color: 'text-green-400',
       bgColor: 'bg-green-500/20'
+    },
+    {
+      id: 'libro-mantenimiento-rite',
+      title: 'Libro de Mantenimiento RITE',
+      description: 'Registro completo anual: fichas técnicas, plan preventivo, consumos e incidencias',
+      icon: Book,
+      page: 'LibroMantenimientoRITE',
+      color: 'text-teal-400',
+      bgColor: 'bg-teal-500/20'
     },
     {
       id: 'informes',
