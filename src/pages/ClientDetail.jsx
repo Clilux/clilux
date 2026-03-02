@@ -15,6 +15,7 @@ import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
+import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
 import { toast } from 'sonner';
 
 export default function ClientDetail() {
