@@ -598,13 +598,64 @@ export default function CertificadoRITE() {
       doc.text(notaLines, margin, y);
 
       const filename = `Certificado_RITE_${form.titular_nombre || 'cliente'}_${new Date().getFullYear()}.pdf`;
-      doc.save(filename);
-      toast.success('Certificado RITE generado correctamente');
+      const blob = doc.output('blob');
+      setPendingPdfBlob(blob);
+      setPendingFilename(filename);
+      setShowSaveDialog(true);
     } catch (error) {
       console.error(error);
       toast.error('Error al generar el certificado');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDownloadOnly = () => {
+    if (!pendingPdfBlob) return;
+    const url = URL.createObjectURL(pendingPdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = pendingFilename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowSaveDialog(false);
+    toast.success('Certificado RITE descargado');
+  };
+
+  const handleSaveAndDownload = async () => {
+    if (!pendingPdfBlob || !selectedClientId) {
+      toast.error('Debes seleccionar un cliente para guardar el documento');
+      return;
+    }
+    try {
+      const file = new File([pendingPdfBlob], pendingFilename, { type: 'application/pdf' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const building = buildings.find(b => b.id === selectedBuildingId);
+      const fechaFirma = [form.dia_firma, form.mes_firma, form.anio_firma].filter(Boolean).join(' de ');
+      await base44.entities.ClientDocument.create({
+        client_id: selectedClientId,
+        title: `Certificado RITE – ${form.inst_emplazamiento || building?.name || form.titular_nombre || 'Sin nombre'}`,
+        document_type: 'certificado_rite',
+        file_url,
+        num_certificado: form.num_certificado,
+        building_name: form.inst_emplazamiento || building?.name || '',
+        tecnico_nombre: form.tecnico_nombre,
+        observaciones: form.observaciones,
+        fecha_firma: fechaFirma,
+        form_data: form,
+      });
+      // También descargar
+      const url = URL.createObjectURL(pendingPdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pendingFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+      setShowSaveDialog(false);
+      toast.success('Certificado guardado en el cliente y descargado');
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al guardar el documento');
     }
   };
 
