@@ -52,6 +52,7 @@ import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
 import Calendar from './pages/Calendar';
+import CertificadoRITE from './pages/CertificadoRITE';
 import ClientBuildings from './pages/ClientBuildings';
 import ClientDetail from './pages/ClientDetail';
 import ClientEquipment from './pages/ClientEquipment';
@@ -84,7 +85,7 @@ import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import CertificadoRITE from './pages/CertificadoRITE';
+import LibroMantenimientoRITE from './pages/LibroMantenimientoRITE';
 import __Layout from './Layout.jsx';
 
 
@@ -94,6 +95,7 @@ export const PAGES = {
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
     "Calendar": Calendar,
+    "CertificadoRITE": CertificadoRITE,
     "ClientBuildings": ClientBuildings,
     "ClientDetail": ClientDetail,
     "ClientEquipment": ClientEquipment,
@@ -126,7 +128,7 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "CertificadoRITE": CertificadoRITE,
+    "LibroMantenimientoRITE": LibroMantenimientoRITE,
 }
 
 export const pagesConfig = {
