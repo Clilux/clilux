@@ -800,8 +800,7 @@ export default function CertificadoRITE() {
                 <tr className="bg-slate-100">
                   <th className="text-left p-2 w-8">#</th>
                   <th className="text-left p-2">Operación</th>
-                  <th className="text-left p-2 w-28">Resultado</th>
-                  <th className="text-left p-2 w-32">Fecha</th>
+                  <th className="text-left p-2 w-36">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -817,14 +816,6 @@ export default function CertificadoRITE() {
                         placeholder="Valor"
                       />
                     </td>
-                    <td className="p-2">
-                      <Input
-                        type="date"
-                        value={form.gestion_calor[i]?.fecha || ''}
-                        onChange={e => handleOperacion('gestion_calor', i, 'fecha', e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -838,8 +829,7 @@ export default function CertificadoRITE() {
                 <tr className="bg-slate-100">
                   <th className="text-left p-2 w-8">#</th>
                   <th className="text-left p-2">Operación</th>
-                  <th className="text-left p-2 w-28">Resultado</th>
-                  <th className="text-left p-2 w-32">Fecha</th>
+                  <th className="text-left p-2 w-36">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -853,14 +843,6 @@ export default function CertificadoRITE() {
                         onChange={e => handleOperacion('gestion_frio', i, 'resultado', e.target.value)}
                         className="h-7 text-xs"
                         placeholder="Valor"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <Input
-                        type="date"
-                        value={form.gestion_frio[i]?.fecha || ''}
-                        onChange={e => handleOperacion('gestion_frio', i, 'fecha', e.target.value)}
-                        className="h-7 text-xs"
                       />
                     </td>
                   </tr>
