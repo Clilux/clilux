@@ -1016,6 +1016,39 @@ export default function CertificadoRITE() {
           </Button>
         </div>
       </div>
+
+      {/* Diálogo guardar o solo descargar */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Certificado generado</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-slate-600 text-sm">
+            <p className="mb-2">¿Deseas guardar este certificado en la ficha del cliente?</p>
+            {selectedClientId ? (
+              <p className="text-slate-400">
+                Se guardará en la pestaña <strong>Documentos</strong> del cliente seleccionado y podrás consultarlo en cualquier momento.
+              </p>
+            ) : (
+              <p className="text-amber-600 font-medium">⚠️ No has seleccionado un cliente. Solo podrás descargarlo.</p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 flex-col sm:flex-row">
+            <Button variant="outline" onClick={handleDownloadOnly} className="flex-1">
+              <Download className="h-4 w-4 mr-2" />
+              Solo descargar
+            </Button>
+            <Button
+              onClick={handleSaveAndDownload}
+              disabled={!selectedClientId}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Guardar y descargar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
