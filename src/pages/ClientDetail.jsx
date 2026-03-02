@@ -329,6 +329,10 @@ export default function ClientDetail() {
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="documents">
+            <ClientDocumentsTab clientId={clientId} />
+          </TabsContent>
         </Tabs>
 
         <DeleteConfirmDialog
