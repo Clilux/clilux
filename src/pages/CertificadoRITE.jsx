@@ -540,11 +540,13 @@ export default function CertificadoRITE() {
 
       // Observaciones
       checkPageBreak(20);
-      doc.setFillColor(220, 220, 220);
+      doc.setFillColor(cr, cg, cb);
       doc.rect(margin, y, contentW, 6, 'F');
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
-      doc.text('OBSERVACIONES', margin + 2, y + 4.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('OBSERVACIONES', pageW / 2, y + 4.5, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
       y += 7;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
