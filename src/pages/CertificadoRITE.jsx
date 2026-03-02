@@ -471,11 +471,13 @@ export default function CertificadoRITE() {
 
       // Gestión energética - calor
       checkPageBreak(10);
-      doc.setFillColor(220, 220, 220);
+      doc.setFillColor(cr, cg, cb);
       doc.rect(margin, y, contentW, 6, 'F');
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
-      doc.text('OPERACIONES DE MANTENIMIENTO DEL PROGRAMA DE GESTIÓN ENERGÉTICA', margin + 2, y + 4.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('OPERACIONES DE MANTENIMIENTO DEL PROGRAMA DE GESTIÓN ENERGÉTICA', pageW / 2, y + 4.5, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
       y += 7;
 
       // Generadores de calor header
