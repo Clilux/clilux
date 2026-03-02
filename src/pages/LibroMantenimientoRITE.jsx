@@ -751,6 +751,8 @@ export default function LibroMantenimientoRITE() {
     }
   };
 
+  const mesesEspanol = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const mesesKeys = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const periodoColor = { 'Mensual': 'bg-orange-100 text-orange-700', 'Trimestral': 'bg-blue-100 text-blue-700', 'Semestral': 'bg-green-100 text-green-700', 'Anual': 'bg-purple-100 text-purple-700' };
 
   return (
