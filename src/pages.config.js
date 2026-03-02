@@ -86,6 +86,7 @@ import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
 import LibroMantenimientoRITE from './pages/LibroMantenimientoRITE';
+import MemoriaTecnicaRITE from './pages/MemoriaTecnicaRITE';
 import __Layout from './Layout.jsx';
 
 
@@ -129,6 +130,7 @@ export const PAGES = {
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
     "LibroMantenimientoRITE": LibroMantenimientoRITE,
+    "MemoriaTecnicaRITE": MemoriaTecnicaRITE,
 }
 
 export const pagesConfig = {

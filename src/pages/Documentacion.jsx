@@ -26,6 +26,15 @@ export default function Documentacion() {
       bgColor: 'bg-teal-500/20'
     },
     {
+      id: 'memoria-tecnica-rite',
+      title: 'Memoria Técnica RITE',
+      description: 'Memoria técnica de instalación para registro ante la administración',
+      icon: FileSpreadsheet,
+      page: 'MemoriaTecnicaRITE',
+      color: 'text-orange-400',
+      bgColor: 'bg-orange-500/20'
+    },
+    {
       id: 'informes',
       title: 'Informes de Revisión',
       description: 'Reportes de mantenimiento',
