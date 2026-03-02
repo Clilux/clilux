@@ -762,8 +762,7 @@ export default function CertificadoRITE() {
                 <tr className="bg-slate-100">
                   <th className="text-left p-2 w-8">#</th>
                   <th className="text-left p-2">Operación</th>
-                  <th className="text-left p-2 w-28">Resultado</th>
-                  <th className="text-left p-2 w-32">Fecha</th>
+                  <th className="text-left p-2 w-36">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -772,20 +771,16 @@ export default function CertificadoRITE() {
                     <td className="p-2 text-slate-500 font-medium">{i + 1}</td>
                     <td className="p-2 text-slate-700">{op}</td>
                     <td className="p-2">
-                      <Input
+                      <select
                         value={form.preventivo[i]?.resultado || ''}
                         onChange={e => handleOperacion('preventivo', i, 'resultado', e.target.value)}
-                        className="h-7 text-xs"
-                        placeholder="OK / NOK"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <Input
-                        type="date"
-                        value={form.preventivo[i]?.fecha || ''}
-                        onChange={e => handleOperacion('preventivo', i, 'fecha', e.target.value)}
-                        className="h-7 text-xs"
-                      />
+                        className="h-7 text-xs w-full rounded border border-input bg-background px-2"
+                      >
+                        <option value="">—</option>
+                        <option value="OK">OK</option>
+                        <option value="NOK">NOK</option>
+                        <option value="No procede">No procede</option>
+                      </select>
                     </td>
                   </tr>
                 ))}
