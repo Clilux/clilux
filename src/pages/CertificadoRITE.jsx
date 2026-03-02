@@ -224,6 +224,22 @@ export default function CertificadoRITE() {
     });
   };
 
+  const loadImageAsBase64 = (url) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.width, h: img.height });
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
   const generatePDF = async () => {
     setGenerating(true);
     try {
@@ -232,6 +248,12 @@ export default function CertificadoRITE() {
       const margin = 15;
       const contentW = pageW - margin * 2;
       let y = 15;
+
+      // Precargar logo
+      let logoData = null;
+      if (settings?.logo_url) {
+        logoData = await loadImageAsBase64(settings.logo_url);
+      }
 
       const addPage = () => {
         doc.addPage();
