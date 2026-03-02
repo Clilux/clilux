@@ -137,25 +137,29 @@ export default function HomeCliente() {
                 </Link>
               </div>
 
-              {/* Quick Summary - read-only */}
+              {/* Quick Summary - Clickable cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-slate-200 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-                  <div className="flex items-center gap-4 mb-4">
-                    <Building2 className="h-8 w-8 text-blue-400" />
-                    <h2 className="text-lg font-semibold text-white">Mis Edificios</h2>
-                  </div>
-                  <p className="text-3xl font-bold text-white mb-2">{clientData.buildings.length}</p>
-                  <p className="text-sm text-slate-400">Edificios registrados</p>
-                </Card>
+                <Link to={createPageUrl('ClientBuildings')}>
+                  <Card className="bg-slate-200 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                      <Building2 className="h-8 w-8 text-blue-400" />
+                      <h2 className="text-lg font-semibold text-white">Mis Edificios</h2>
+                    </div>
+                    <p className="text-3xl font-bold text-white mb-2">{clientData.buildings.length}</p>
+                    <p className="text-sm text-slate-400">Edificios registrados</p>
+                  </Card>
+                </Link>
 
-                <Card className="bg-slate-200 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-                  <div className="flex items-center gap-4 mb-4">
-                    <ClipboardCheck className="h-8 w-8 text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">Revisiones</h2>
-                  </div>
-                  <p className="text-3xl font-bold text-white mb-2">{clientData.revisions.length}</p>
-                  <p className="text-sm text-slate-400">Revisiones completadas</p>
-                </Card>
+                <Link to={createPageUrl('ClientRevisions')}>
+                  <Card className="bg-slate-200 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                      <ClipboardCheck className="h-8 w-8 text-purple-400" />
+                      <h2 className="text-lg font-semibold text-white">Revisiones</h2>
+                    </div>
+                    <p className="text-3xl font-bold text-white mb-2">{clientData.revisions.length}</p>
+                    <p className="text-sm text-slate-400">Revisiones completadas</p>
+                  </Card>
+                </Link>
               </div>
             </> :
 
