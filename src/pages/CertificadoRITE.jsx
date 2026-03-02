@@ -266,12 +266,21 @@ export default function CertificadoRITE() {
       };
 
       const addPageHeader = (pageNum) => {
+        // Logo en cabecera de cada página
+        let headerTextX = pageW / 2 - 20;
+        if (logoData) {
+          const logoMaxH = 18;
+          const logoAspect = logoData.w / logoData.h;
+          const logoW = Math.min(logoMaxH * logoAspect, 40);
+          const logoH = logoW / logoAspect;
+          doc.addImage(logoData.dataUrl, 'PNG', margin, y + 1, logoW, logoH);
+        }
         doc.setFillColor(240, 240, 240);
-        doc.rect(margin, y, contentW - 20, 20, 'F');
+        doc.rect(margin + (logoData ? 44 : 0), y, contentW - 20 - (logoData ? 44 : 0), 20, 'F');
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text('CERTIFICADO DE MANTENIMIENTO', pageW / 2 - 20, y + 7, { align: 'center' });
-        doc.text('DE INSTALACIONES TÉRMICAS EN LOS EDIFICIOS', pageW / 2 - 20, y + 13, { align: 'center' });
+        doc.text('CERTIFICADO DE MANTENIMIENTO', headerTextX, y + 7, { align: 'center' });
+        doc.text('DE INSTALACIONES TÉRMICAS EN LOS EDIFICIOS', headerTextX, y + 13, { align: 'center' });
         doc.setFontSize(14);
         doc.text(String(pageNum), margin + contentW - 18, y + 12);
         y += 22;
@@ -280,13 +289,6 @@ export default function CertificadoRITE() {
         doc.text('Art. 28 del Reglamento de Instalaciones Térmicas en los Edificios (Real Decreto 1027/2007)', margin, y);
         y += 6;
       };
-
-      // Empresa logo y datos
-      if (settings?.logo_url) {
-        try {
-          doc.addImage(settings.logo_url, 'PNG', margin, y, 30, 15);
-        } catch(e) {}
-      }
 
       addPageHeader(1);
 
