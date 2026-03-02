@@ -146,6 +146,12 @@ export default function CertificadoRITE() {
     enabled: !!selectedClientId,
   });
 
+  const { data: buildingEquipment = [] } = useQuery({
+    queryKey: ['equipment-rite', selectedBuildingId],
+    queryFn: () => base44.entities.Equipment.filter({ building_id: selectedBuildingId }),
+    enabled: !!selectedBuildingId,
+  });
+
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
@@ -185,6 +191,26 @@ export default function CertificadoRITE() {
       }));
     }
   };
+
+  // Cuando llegan los equipos del edificio, autocalcular potencias y tipos
+  React.useEffect(() => {
+    if (buildingEquipment.length === 0) return;
+    const potFrio = buildingEquipment.reduce((sum, eq) => sum + (parseFloat(eq.cooling_power_kw) || 0), 0);
+    const potCalor = buildingEquipment.reduce((sum, eq) => sum + (parseFloat(eq.heating_power_kw) || 0), 0);
+    const tiposFrio = [...new Set(buildingEquipment.filter(eq => eq.cooling_power_kw > 0).map(eq => eq.equipment_type).filter(Boolean))].join(', ');
+    const tiposCalor = [...new Set(buildingEquipment.filter(eq => eq.heating_power_kw > 0).map(eq => eq.equipment_type).filter(Boolean))].join(', ');
+    const numFrio = buildingEquipment.filter(eq => eq.cooling_power_kw > 0).length;
+    const numCalor = buildingEquipment.filter(eq => eq.heating_power_kw > 0).length;
+    setForm(prev => ({
+      ...prev,
+      pot_frio: potFrio > 0 ? potFrio.toFixed(2) : prev.pot_frio,
+      pot_calor: potCalor > 0 ? potCalor.toFixed(2) : prev.pot_calor,
+      tipos_gen_frio: tiposFrio || prev.tipos_gen_frio,
+      tipos_gen_calor: tiposCalor || prev.tipos_gen_calor,
+      num_gen_frio: numFrio > 0 ? String(numFrio) : prev.num_gen_frio,
+      num_gen_calor: numCalor > 0 ? String(numCalor) : prev.num_gen_calor,
+    }));
+  }, [buildingEquipment]);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
