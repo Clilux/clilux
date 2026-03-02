@@ -255,6 +255,10 @@ export default function ClientDetail() {
                 <Thermometer className="h-4 w-4" />
                 Equipos ({equipment.length})
               </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Documentos
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Link to={createPageUrl(`EquipmentForm?client_id=${client.id}`)}>
