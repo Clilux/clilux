@@ -52,6 +52,7 @@ import BuildingDetail from './pages/BuildingDetail';
 import BuildingForm from './pages/BuildingForm';
 import Buildings from './pages/Buildings';
 import Calendar from './pages/Calendar';
+import ClientBuildings from './pages/ClientBuildings';
 import ClientDetail from './pages/ClientDetail';
 import ClientEquipment from './pages/ClientEquipment';
 import ClientEquipmentDetail from './pages/ClientEquipmentDetail';
@@ -59,6 +60,7 @@ import ClientForm from './pages/ClientForm';
 import ClientIncidentDetail from './pages/ClientIncidentDetail';
 import ClientIncidents from './pages/ClientIncidents';
 import ClientReportIncident from './pages/ClientReportIncident';
+import ClientRevisions from './pages/ClientRevisions';
 import Clients from './pages/Clients';
 import Documentacion from './pages/Documentacion';
 import EditScheduledRevision from './pages/EditScheduledRevision';
@@ -82,8 +84,7 @@ import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import ClientBuildings from './pages/ClientBuildings';
-import ClientRevisions from './pages/ClientRevisions';
+import CertificadoRITE from './pages/CertificadoRITE';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +94,7 @@ export const PAGES = {
     "BuildingForm": BuildingForm,
     "Buildings": Buildings,
     "Calendar": Calendar,
+    "ClientBuildings": ClientBuildings,
     "ClientDetail": ClientDetail,
     "ClientEquipment": ClientEquipment,
     "ClientEquipmentDetail": ClientEquipmentDetail,
@@ -100,6 +102,7 @@ export const PAGES = {
     "ClientIncidentDetail": ClientIncidentDetail,
     "ClientIncidents": ClientIncidents,
     "ClientReportIncident": ClientReportIncident,
+    "ClientRevisions": ClientRevisions,
     "Clients": Clients,
     "Documentacion": Documentacion,
     "EditScheduledRevision": EditScheduledRevision,
@@ -123,8 +126,7 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "ClientBuildings": ClientBuildings,
-    "ClientRevisions": ClientRevisions,
+    "CertificadoRITE": CertificadoRITE,
 }
 
 export const pagesConfig = {
