@@ -46,11 +46,14 @@ export default function BuildingDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      toast.error('No se pueden eliminar edificios relacionados con clientes');
-      throw new Error('Eliminación de edificios no permitida');
+      await base44.entities.Building.delete(buildingId);
+    },
+    onSuccess: () => {
+      toast.success('Edificio eliminado correctamente');
+      navigate(createPageUrl('Buildings'));
     },
     onError: () => {
-      // Ya mostrado el toast en mutationFn
+      toast.error('Error al eliminar el edificio');
     },
   });
 
