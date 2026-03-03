@@ -882,7 +882,7 @@ export default function MemoriaTecnicaRITE() {
 
                   <div>
                     <Label>Categoría IDA (calidad del aire)</Label>
-                    <Select value={zona.ida} onValueChange={v=>updZona(i,'ida',v)}>
+                    <Select value={zona.ida} onValueChange={v=>handleIdaChange(i,v)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {idaCategorias.map(c=>(
