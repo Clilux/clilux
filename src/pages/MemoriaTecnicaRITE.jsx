@@ -912,22 +912,34 @@ export default function MemoriaTecnicaRITE() {
                     <SelectContent>
                       {metodosVentilacion.map(m=>(
                         <SelectItem key={m.value} value={m.value}>
-                          <div><div className="font-medium">{m.label}</div><div className="text-xs text-slate-500">{m.descripcion}</div></div>
+                          <div><div className="font-medium text-xs">{m.label}</div><div className="text-xs text-slate-500">{m.descripcion}</div></div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {zona.metodo_ventilacion && (
+                    <p className="text-xs text-slate-400 mt-1 italic">
+                      {metodosVentilacion.find(m=>m.value===zona.metodo_ventilacion)?.formula}
+                    </p>
+                  )}
                 </div>
 
-                {/* Caudal calculado automáticamente */}
-                {calcularCaudal(zona) && (
+                {/* Caudal calculado automáticamente — con fórmula detallada */}
+                {(() => { const det = calcularCaudalDetalle(zona); return det ? (
                   <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-800">
-                      <strong>Caudal calculado (orientativo):</strong> {calcularCaudal(zona)}
-                      <span className="text-xs ml-2 text-green-600">según {zona.ida} y {zona.metodo_ventilacion?.replace('metodo_','Método ')}</span>
-                    </p>
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <span className="text-sm font-semibold text-green-800">Caudal calculado: {det.valor}</span>
+                      <span className="text-xs text-green-600 bg-green-100 rounded px-2 py-0.5">{det.norma}</span>
+                    </div>
+                    <p className="text-xs text-green-700 mt-1 font-mono">{det.formula}</p>
+                    {idaCategorias.find(c=>c.value===zona.ida) && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Parámetros IDA: {idaCategorias.find(c=>c.value===zona.ida)?.caudal_lsp_persona} l/s·pers
+                        {' / '}{idaCategorias.find(c=>c.value===zona.ida)?.caudal_lsm2} l/s·m²
+                      </p>
+                    )}
                   </div>
-                )}
+                ) : null; })()}
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                   <div><Label>Caudal impulsión (m³/h)</Label><Input className="mt-1" type="number" value={zona.caudal_impulsion} onChange={e=>updZona(i,'caudal_impulsion',e.target.value)} placeholder={calcularCaudal(zona)||'Auto'} /></div>
@@ -935,20 +947,35 @@ export default function MemoriaTecnicaRITE() {
                   {zona.metodo_ventilacion === 'metodo_c' && <div><Label>Renovaciones/hora</Label><Input className="mt-1" type="number" value={zona.renovaciones_hora} onChange={e=>updZona(i,'renovaciones_hora',e.target.value)} /></div>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <Label>Filtro de impulsión</Label>
-                    <Select value={zona.tipo_filtro_impulsion} onValueChange={v=>updZona(i,'tipo_filtro_impulsion',v)}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>{tiposFiltro.map(f=><SelectItem key={f.value} value={f.value}><div><div className="font-medium">{f.label}</div><div className="text-xs text-slate-500">{f.descripcion}</div></div></SelectItem>)}</SelectContent>
-                    </Select>
+                {/* Filtros — auto según IDA con opción a manual */}
+                <div className="mb-4 p-3 bg-slate-50 rounded-lg border">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-slate-700">Filtración (ISO 16890 — RD 178/2021)</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{zona.filtros_manual ? 'Modo manual' : 'Auto según IDA'}</span>
+                      <Switch checked={zona.filtros_manual} onCheckedChange={v=>updZona(i,'filtros_manual',v)} id={`fman-${i}`} />
+                    </div>
                   </div>
-                  <div>
-                    <Label>Filtro de retorno</Label>
-                    <Select value={zona.tipo_filtro_retorno} onValueChange={v=>updZona(i,'tipo_filtro_retorno',v)}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>{tiposFiltro.map(f=><SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                  {!zona.filtros_manual && (
+                    <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-3">
+                      {idaCategorias.find(c=>c.value===zona.ida)?.nota_filtro}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Filtro de impulsión</Label>
+                      <Select value={zona.tipo_filtro_impulsion} onValueChange={v=>updZona(i,'tipo_filtro_impulsion',v)} disabled={!zona.filtros_manual}>
+                        <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>{tiposFiltro.map(f=><SelectItem key={f.value} value={f.value}><div><div className="font-medium text-xs">{f.label}</div><div className="text-xs text-slate-500">{f.descripcion}</div></div></SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Filtro de retorno / prefiltro</Label>
+                      <Select value={zona.tipo_filtro_retorno} onValueChange={v=>updZona(i,'tipo_filtro_retorno',v)} disabled={!zona.filtros_manual}>
+                        <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>{tiposFiltro.map(f=><SelectItem key={f.value} value={f.value}><div className="text-xs">{f.label}</div></SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
