@@ -645,16 +645,23 @@ export default function MemoriaTecnicaRITE() {
       sec('3. VENTILACIÓN Y CALIDAD DEL AIRE INTERIOR (RITE IT 1.1.4)');
 
       form.zonas.forEach((zona, i) => {
-        chk(50);
+        chk(60);
         sub(`ZONA ${i+1}: ${zona.nombre || 'Sin nombre'}`);
-        const idaInfo = idaCategorias.find(c=>c.value===zona.ida);
-        fila([{label:'Actividad',value:zona.actividad,w:cW*0.4},{label:'Categoría IDA',value:zona.ida,w:cW*0.3},{label:'Método ventilación',value:zona.metodo_ventilacion?.replace('metodo_','Método '),w:cW*0.3}]);
-        fila([{label:'Superficie (m²)',value:zona.superficie,w:cW*0.25},{label:'Altura (m)',value:zona.altura,w:cW*0.25},{label:'Ocupación (personas)',value:zona.ocupacion,w:cW*0.25},{label:'Vol. (m³)',value:zona.superficie&&zona.altura?String((parseFloat(zona.superficie||0)*parseFloat(zona.altura||0)).toFixed(1)):'',w:cW*0.25}]);
+        fila([{label:'Actividad',value:zona.actividad,w:cW*0.4},{label:'IDA',value:zona.ida,w:cW*0.2},{label:'ODA',value:zona.oda||'ODA2',w:cW*0.2},{label:'Método',value:zona.metodo_ventilacion?.replace('metodo_','M'),w:cW*0.2}]);
+        fila([{label:'Superficie (m²)',value:zona.superficie,w:cW*0.25},{label:'Altura (m)',value:zona.altura,w:cW*0.25},{label:'Ocupantes',value:zona.ocupacion,w:cW*0.25},{label:'Volumen (m³)',value:zona.superficie&&zona.altura?String((parseFloat(zona.superficie||0)*parseFloat(zona.altura||0)).toFixed(1)):'',w:cW*0.25}]);
+        // Condiciones interiores
+        fila([{label:'T° verano (°C)',value:zona.temp_verano||'23-25',w:cW*0.25},{label:'HR verano (%)',value:zona.hr_verano||'45-60',w:cW*0.25},{label:'T° invierno (°C)',value:zona.temp_invierno||'21-23',w:cW*0.25},{label:'HR invierno (%)',value:zona.hr_invierno||'40-50',w:cW*0.25}]);
         const caudalCalc = calcularCaudal(zona);
-        fila([{label:'Caudal impulsión',value:zona.caudal_impulsion||caudalCalc||'',w:cW*0.4},{label:'Caudal retorno',value:zona.caudal_retorno,w:cW*0.3},{label:'Ren./hora',value:zona.renovaciones_hora,w:cW*0.3}]);
-        fila([{label:'Filtro impulsión',value:zona.tipo_filtro_impulsion,w:cW*0.35},{label:'Filtro retorno',value:zona.tipo_filtro_retorno,w:cW*0.35},{label:'Recuperador de calor',value:zona.necesita_recuperador?'Sí':'No',w:cW*0.3}]);
+        const caudalImp = zona.caudal_impulsion || caudalCalc || '';
+        const caudalExp = zona.caudal_expulsion || caudalImp; // expulsión = impulsión
+        fila([{label:'Caudal impulsión',value:caudalImp,w:cW*0.4},{label:'Caudal expulsión',value:caudalExp,w:cW*0.3},{label:'Ren./hora',value:zona.renovaciones_hora,w:cW*0.3}]);
+        // Filtros
+        const filtrosInfo = getFiltrosPorIdaOda(zona.ida, zona.oda||'ODA2');
+        fila([{label:'Filtro impulsión',value:zona.tipo_filtro_impulsion,w:cW*0.4},{label:'Filtro retorno',value:zona.tipo_filtro_retorno,w:cW*0.35},{label:'Recuperador',value:zona.necesita_recuperador?'Sí':'No',w:cW*0.25}]);
+        chk(5); doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(80,80,80);
+        doc.text(filtrosInfo.nota, margin+2, y+4); y+=6; doc.setTextColor(0,0,0); doc.setFont('helvetica','normal');
         if (zona.usa_sonda_co2) {
-          fila([{label:'Sonda CO₂',value:'SÍ — Control ventilación variable',w:cW*0.6},{label:'Concentración máx.',value:(zona.concentracion_co2_max||'1000')+' ppm',w:cW*0.4}]);
+          fila([{label:'Sonda CO₂',value:'SÍ — Ventilación variable por demanda',w:cW*0.6},{label:'CO₂ máx.',value:(zona.concentracion_co2_max||'1000')+' ppm',w:cW*0.4}]);
         }
         y+=2;
       });
