@@ -92,25 +92,52 @@ const tiposFiltro = [
   { value: 'HEPA_H13',      label: 'HEPA H13',                     descripcion: 'Retención >99,95% partículas ≥0,3 µm. Hospitales, salas limpias' },
 ];
 
-const actividadOcupacion = [
-  { value: 'oficina', label: 'Oficina / Despacho', m2_persona: 10, carga_interna_w: 8 },
-  { value: 'comercio', label: 'Comercio / Tienda', m2_persona: 3, carga_interna_w: 15 },
-  { value: 'restaurante', label: 'Restaurante / Cafetería', m2_persona: 2, carga_interna_w: 20 },
-  { value: 'aula', label: 'Aula / Centro educativo', m2_persona: 2.5, carga_interna_w: 6 },
-  { value: 'hotel', label: 'Hotel / Residencia', m2_persona: 15, carga_interna_w: 5 },
-  { value: 'hospital', label: 'Hospital / Clínica', m2_persona: 8, carga_interna_w: 12 },
-  { value: 'industria', label: 'Industrial / Almacén', m2_persona: 30, carga_interna_w: 25 },
-  { value: 'vivienda', label: 'Vivienda', m2_persona: 20, carga_interna_w: 4 },
-  { value: 'otros', label: 'Otros (definir manualmente)', m2_persona: 10, carga_interna_w: 8 },
+// ODA — Calidad del aire exterior (RITE IT 1.1.4.2.4)
+const odaCategorias = [
+  { value: 'ODA1', label: 'ODA 1 — Aire puro', descripcion: 'Solo partículas temporalmente. Zonas rurales, montaña', filtro_extra: null },
+  { value: 'ODA2', label: 'ODA 2 — Concentraciones altas de partículas', descripcion: 'Zonas urbanas, polvo, partículas. Periferia industrial', filtro_extra: 'ISO_ePM10_50' },
+  { value: 'ODA3', label: 'ODA 3 — Gases contaminantes y partículas', descripcion: 'Zonas urbanas densas, tráfico intenso, CO, NOx, SOx', filtro_extra: 'ISO_ePM1_55' },
 ];
 
-const getFiltrosAuto = (ida) => {
-  const cat = idaCategorias.find(c => c.value === ida);
-  return { impulsion: cat?.filtro_impulsion || 'ISO_ePM10_50', retorno: cat?.filtro_retorno || 'ISO_coarse_60' };
+// Tabla de filtros según combinación IDA + ODA — RITE IT 1.1.4.2.6 (RD 178/2021)
+// Devuelve {impulsion, retorno, nota}
+const getFiltrosPorIdaOda = (ida, oda) => {
+  const tabla = {
+    'IDA1+ODA1': { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'IDA1+ODA1: Prefiltro ISO ePM10≥50% + Filtro final ISO ePM1≥55%' },
+    'IDA1+ODA2': { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'IDA1+ODA2: Prefiltro ISO ePM10≥50% + Filtro final ISO ePM1≥55%' },
+    'IDA1+ODA3': { impulsion: 'ISO_ePM1_80', retorno: 'ISO_ePM1_55',  nota: 'IDA1+ODA3: Doble filtración ISO ePM1≥55% + ISO ePM1≥80% o HEPA' },
+    'IDA2+ODA1': { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'IDA2+ODA1: Prefiltro ISO ePM10≥50% + Filtro ISO ePM1≥55%' },
+    'IDA2+ODA2': { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'IDA2+ODA2: Prefiltro ISO ePM10≥50% + Filtro ISO ePM1≥55%' },
+    'IDA2+ODA3': { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'IDA2+ODA3: Prefiltro ISO ePM10≥50% + Filtro ISO ePM1≥55% + considerar carbono activo' },
+    'IDA3+ODA1': { impulsion: 'ISO_ePM10_50', retorno: 'ISO_coarse_60', nota: 'IDA3+ODA1: Prefiltro ISO Coarse≥60% + Filtro ISO ePM10≥50%' },
+    'IDA3+ODA2': { impulsion: 'ISO_ePM10_50', retorno: 'ISO_coarse_60', nota: 'IDA3+ODA2: Prefiltro ISO Coarse≥60% + Filtro ISO ePM10≥50%' },
+    'IDA3+ODA3': { impulsion: 'ISO_ePM1_55',  retorno: 'ISO_ePM10_50', nota: 'IDA3+ODA3: Prefiltro ISO ePM10≥50% + Filtro ISO ePM1≥55%' },
+    'IDA4+ODA1': { impulsion: 'ISO_coarse_60', retorno: 'ISO_coarse_60', nota: 'IDA4+ODA1: Prefiltro ISO Coarse≥60%' },
+    'IDA4+ODA2': { impulsion: 'ISO_coarse_60', retorno: 'ISO_coarse_60', nota: 'IDA4+ODA2: Prefiltro ISO Coarse≥60% + Filtro ISO Coarse≥80%' },
+    'IDA4+ODA3': { impulsion: 'ISO_ePM10_50', retorno: 'ISO_coarse_60', nota: 'IDA4+ODA3: Prefiltro ISO Coarse≥60% + Filtro ISO ePM10≥50%' },
+  };
+  return tabla[`${ida}+${oda}`] || { impulsion: 'ISO_ePM1_55', retorno: 'ISO_ePM10_50', nota: 'Consultar tabla RITE IT 1.1.4.2.6' };
+};
+
+// Temperaturas y humedades óptimas según RITE IT 1.1.4.1 — Tabla 1.4.1.1
+const actividadOcupacion = [
+  { value: 'oficina',     label: 'Oficina / Despacho',       m2_persona: 10, ida_recomendada: 'IDA2', temp_verano: '23-25', temp_invierno: '21-23', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'comercio',   label: 'Comercio / Tienda',          m2_persona: 3,  ida_recomendada: 'IDA3', temp_verano: '24-26', temp_invierno: '20-22', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'restaurante', label: 'Restaurante / Cafetería',   m2_persona: 2,  ida_recomendada: 'IDA3', temp_verano: '24-26', temp_invierno: '20-22', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'aula',       label: 'Aula / Centro educativo',    m2_persona: 2.5, ida_recomendada: 'IDA2', temp_verano: '23-25', temp_invierno: '21-23', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'hotel',      label: 'Hotel / Residencia',         m2_persona: 15, ida_recomendada: 'IDA2', temp_verano: '23-25', temp_invierno: '21-23', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'hospital',   label: 'Hospital / Clínica',         m2_persona: 8,  ida_recomendada: 'IDA1', temp_verano: '22-24', temp_invierno: '22-24', hr_verano: '45-55', hr_invierno: '45-55' },
+  { value: 'industria',  label: 'Industrial / Almacén',       m2_persona: 30, ida_recomendada: 'IDA4', temp_verano: '25-27', temp_invierno: '18-20', hr_verano: '40-70', hr_invierno: '35-60' },
+  { value: 'vivienda',   label: 'Vivienda',                   m2_persona: 20, ida_recomendada: 'IDA2', temp_verano: '23-25', temp_invierno: '21-23', hr_verano: '45-60', hr_invierno: '40-50' },
+  { value: 'otros',      label: 'Otros (definir manualmente)', m2_persona: 10, ida_recomendada: 'IDA2', temp_verano: '23-25', temp_invierno: '21-23', hr_verano: '45-60', hr_invierno: '40-50' },
+];
+
+const getFiltrosAuto = (ida, oda = 'ODA2') => {
+  return getFiltrosPorIdaOda(ida, oda);
 };
 
 const emptyZona = () => {
-  const filtros = getFiltrosAuto('IDA2');
+  const filtros = getFiltrosAuto('IDA2', 'ODA2');
   return {
     id: Date.now(),
     nombre: '',
@@ -119,16 +146,23 @@ const emptyZona = () => {
     altura: '',
     ocupacion: '',
     ida: 'IDA2',
+    ida_manual: false,       // false = auto según actividad
+    oda: 'ODA2',
     metodo_ventilacion: 'metodo_a',
     caudal_impulsion: '',
-    caudal_retorno: '',
+    caudal_expulsion: '',    // = impulsión (RITE: caudal extracción = aportación)
     renovaciones_hora: '',
     concentracion_co2_max: '1000',
     usa_sonda_co2: false,
     necesita_recuperador: false,
     tipo_filtro_impulsion: filtros.impulsion,
     tipo_filtro_retorno: filtros.retorno,
-    filtros_manual: false, // false = auto según IDA
+    filtros_manual: false,
+    // Condiciones interiores
+    temp_verano: '23-25',
+    temp_invierno: '21-23',
+    hr_verano: '45-60',
+    hr_invierno: '40-50',
     observaciones: '',
   };
 };

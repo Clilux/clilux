@@ -74,7 +74,9 @@ import HomeTecnico from './pages/HomeTecnico';
 import IncidentDetail from './pages/IncidentDetail';
 import IncidentForm from './pages/IncidentForm';
 import Incidents from './pages/Incidents';
+import LibroMantenimientoRITE from './pages/LibroMantenimientoRITE';
 import Maps from './pages/Maps';
+import MemoriaTecnicaRITE from './pages/MemoriaTecnicaRITE';
 import MenuCustomization from './pages/MenuCustomization';
 import MenuInicio from './pages/MenuInicio';
 import Reports from './pages/Reports';
@@ -85,8 +87,6 @@ import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
-import LibroMantenimientoRITE from './pages/LibroMantenimientoRITE';
-import MemoriaTecnicaRITE from './pages/MemoriaTecnicaRITE';
 import __Layout from './Layout.jsx';
 
 
@@ -118,7 +118,9 @@ export const PAGES = {
     "IncidentDetail": IncidentDetail,
     "IncidentForm": IncidentForm,
     "Incidents": Incidents,
+    "LibroMantenimientoRITE": LibroMantenimientoRITE,
     "Maps": Maps,
+    "MemoriaTecnicaRITE": MemoriaTecnicaRITE,
     "MenuCustomization": MenuCustomization,
     "MenuInicio": MenuInicio,
     "Reports": Reports,
@@ -129,8 +131,6 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
-    "LibroMantenimientoRITE": LibroMantenimientoRITE,
-    "MemoriaTecnicaRITE": MemoriaTecnicaRITE,
 }
 
 export const pagesConfig = {
