@@ -373,17 +373,47 @@ export default function MemoriaTecnicaRITE() {
   const updZona = (i, f, v) => setForm(prev => { const z = [...prev.zonas]; z[i] = { ...z[i], [f]: v }; return { ...prev, zonas: z }; });
   const delZona = (i) => setForm(prev => ({ ...prev, zonas: prev.zonas.filter((_, idx) => idx !== i) }));
 
-  // Auto-set filtros cuando cambia IDA (solo si no están en modo manual)
-  const handleIdaChange = (i, newIda) => {
+  // Auto-set IDA cuando cambia actividad (si IDA no está en manual)
+  const handleActividadChange = (i, newActividad) => {
     const zona = form.zonas[i];
-    const filtros = getFiltrosAuto(newIda);
+    const act = actividadOcupacion.find(a => a.value === newActividad);
+    const newIda = (!zona.ida_manual && act) ? act.ida_recomendada : zona.ida;
+    const filtros = (!zona.filtros_manual) ? getFiltrosAuto(newIda, zona.oda) : {};
+    const newOcupacion = (act && zona.superficie) ? String(Math.ceil(parseFloat(zona.superficie) / act.m2_persona)) : zona.ocupacion;
     setForm(prev => {
       const z = [...prev.zonas];
       z[i] = {
         ...z[i],
+        actividad: newActividad,
         ida: newIda,
-        ...((!zona.filtros_manual) ? { tipo_filtro_impulsion: filtros.impulsion, tipo_filtro_retorno: filtros.retorno } : {}),
+        ocupacion: newOcupacion,
+        temp_verano: act?.temp_verano || z[i].temp_verano,
+        temp_invierno: act?.temp_invierno || z[i].temp_invierno,
+        hr_verano: act?.hr_verano || z[i].hr_verano,
+        hr_invierno: act?.hr_invierno || z[i].hr_invierno,
+        ...filtros,
       };
+      return { ...prev, zonas: z };
+    });
+  };
+
+  // Auto-set filtros cuando cambia IDA o ODA (solo si no están en modo manual)
+  const handleIdaChange = (i, newIda) => {
+    const zona = form.zonas[i];
+    const filtros = !zona.filtros_manual ? getFiltrosAuto(newIda, zona.oda) : {};
+    setForm(prev => {
+      const z = [...prev.zonas];
+      z[i] = { ...z[i], ida: newIda, ...filtros };
+      return { ...prev, zonas: z };
+    });
+  };
+
+  const handleOdaChange = (i, newOda) => {
+    const zona = form.zonas[i];
+    const filtros = !zona.filtros_manual ? getFiltrosAuto(zona.ida, newOda) : {};
+    setForm(prev => {
+      const z = [...prev.zonas];
+      z[i] = { ...z[i], oda: newOda, ...filtros };
       return { ...prev, zonas: z };
     });
   };
