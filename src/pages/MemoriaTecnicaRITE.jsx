@@ -339,25 +339,61 @@ export default function MemoriaTecnicaRITE() {
   const updZona = (i, f, v) => setForm(prev => { const z = [...prev.zonas]; z[i] = { ...z[i], [f]: v }; return { ...prev, zonas: z }; });
   const delZona = (i) => setForm(prev => ({ ...prev, zonas: prev.zonas.filter((_, idx) => idx !== i) }));
 
-  // Calcular caudal automático según zona
-  const calcularCaudal = (zona) => {
+  // Auto-set filtros cuando cambia IDA (solo si no están en modo manual)
+  const handleIdaChange = (i, newIda) => {
+    const zona = form.zonas[i];
+    const filtros = getFiltrosAuto(newIda);
+    setForm(prev => {
+      const z = [...prev.zonas];
+      z[i] = {
+        ...z[i],
+        ida: newIda,
+        ...((!zona.filtros_manual) ? { tipo_filtro_impulsion: filtros.impulsion, tipo_filtro_retorno: filtros.retorno } : {}),
+      };
+      return { ...prev, zonas: z };
+    });
+  };
+
+  // Calcular caudal automático según zona — RITE IT 1.1.4.2
+  const calcularCaudalDetalle = (zona) => {
     const ida = idaCategorias.find(c => c.value === zona.ida);
     if (!ida) return null;
     const ocupantes = zona.ocupacion ? parseInt(zona.ocupacion) : null;
     const superficie = zona.superficie ? parseFloat(zona.superficie) : null;
+    const altura = zona.altura ? parseFloat(zona.altura) : null;
 
     if (zona.metodo_ventilacion === 'metodo_a' && ocupantes) {
-      return (ocupantes * ida.caudal_recomendado / 3600 * 3600).toFixed(0) + ' m³/h';
+      const caudal_m3h = Math.ceil(ocupantes * ida.caudal_lsp_persona * 3.6);
+      return {
+        valor: caudal_m3h + ' m³/h',
+        formula: `${ocupantes} pers × ${ida.caudal_lsp_persona} l/s·pers × 3,6 = ${caudal_m3h} m³/h`,
+        norma: 'RITE IT 1.1.4.2.3 Tabla 1.4.2.1 — Método A',
+      };
     }
     if (zona.metodo_ventilacion === 'metodo_b' && superficie) {
-      return (superficie * 3).toFixed(0) + ' m³/h';
+      const caudal_m3h = Math.ceil(superficie * ida.caudal_lsm2 * 3.6);
+      return {
+        valor: caudal_m3h + ' m³/h',
+        formula: `${superficie} m² × ${ida.caudal_lsm2} l/s·m² × 3,6 = ${caudal_m3h} m³/h`,
+        norma: 'RITE IT 1.1.4.2.3 Tabla 1.4.2.2 — Método B',
+      };
     }
-    if (zona.metodo_ventilacion === 'metodo_c' && zona.renovaciones_hora && zona.superficie && zona.altura) {
-      const vol = parseFloat(zona.superficie) * parseFloat(zona.altura);
-      return (vol * parseFloat(zona.renovaciones_hora)).toFixed(0) + ' m³/h';
+    if (zona.metodo_ventilacion === 'metodo_c' && zona.renovaciones_hora && superficie && altura) {
+      const vol = superficie * altura;
+      const caudal_m3h = Math.ceil(vol * parseFloat(zona.renovaciones_hora));
+      return {
+        valor: caudal_m3h + ' m³/h',
+        formula: `${superficie} m² × ${altura} m × ${zona.renovaciones_hora} ren/h = ${caudal_m3h} m³/h`,
+        norma: 'RITE IT 1.1.4.2.3 Tabla 1.4.2.3 — Método C',
+      };
+    }
+    if (zona.metodo_ventilacion === 'metodo_indirecto') {
+      return { valor: 'Variable (VCD)', formula: 'Caudal variable según sonda CO₂', norma: 'RITE IT 1.1.4.2 — Ventilación por demanda' };
     }
     return null;
   };
+
+  const calcularCaudal = (zona) => calcularCaudalDetalle(zona)?.valor || null;
 
   // Upload adjuntos
   const handleUploadAdjunto = async (seccion, e) => {
