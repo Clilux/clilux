@@ -16,27 +16,80 @@ import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
-// IDA según RITE IT 1.1.4.2 - Categorías de calidad del aire interior
+// IDA según RITE IT 1.1.4.2.3 — Tabla 1.4.2.1
+// Caudales en l/s por persona (Método A) y en l/s·m² (Método B)
+// RD 1027/2007 modificado por RD 178/2021
 const idaCategorias = [
-  { value: 'IDA1', label: 'IDA 1 — Aire de óptima calidad', descripcion: 'Hospitales, clínicas, laboratorios, guarderías', ocupacion: 'Alta sensibilidad', caudal_recomendado: 72 },
-  { value: 'IDA2', label: 'IDA 2 — Aire de buena calidad', descripcion: 'Oficinas, residencias, salas de lectura, museos, juzgados, aulas', ocupacion: 'Normal', caudal_recomendado: 45 },
-  { value: 'IDA3', label: 'IDA 3 — Aire de calidad media', descripcion: 'Edificios comerciales, cines, teatros, salones de actos, hoteles', ocupacion: 'Variable', caudal_recomendado: 28 },
-  { value: 'IDA4', label: 'IDA 4 — Aire de calidad baja', descripcion: 'Solo para usos industriales o especiales justificados', ocupacion: 'Baja', caudal_recomendado: 18 },
+  {
+    value: 'IDA1', label: 'IDA 1 — Aire de óptima calidad',
+    descripcion: 'Hospitales, clínicas, laboratorios, guarderías, salas de neonatos',
+    caudal_lsp_persona: 20,     // l/s·persona (Método A) — RITE Tabla 1.4.2.1
+    caudal_lsm2: 0.83,          // l/s·m² (Método B)
+    filtro_impulsion: 'ISO_ePM1_55',
+    filtro_retorno: 'ISO_ePM10_50',
+    nota_filtro: 'RITE IT 1.1.4.2.6 — Mínimo ISO ePM1 ≥55% en impulsión para IDA1',
+  },
+  {
+    value: 'IDA2', label: 'IDA 2 — Aire de buena calidad',
+    descripcion: 'Oficinas, residencias, salas de lectura, museos, juzgados, aulas',
+    caudal_lsp_persona: 12.5,
+    caudal_lsm2: 0.56,
+    filtro_impulsion: 'ISO_ePM1_55',
+    filtro_retorno: 'ISO_ePM10_50',
+    nota_filtro: 'RITE IT 1.1.4.2.6 — Mínimo ISO ePM1 ≥55% en impulsión para IDA2',
+  },
+  {
+    value: 'IDA3', label: 'IDA 3 — Aire de calidad media',
+    descripcion: 'Edificios comerciales, cines, teatros, salones de actos, hoteles',
+    caudal_lsp_persona: 8,
+    caudal_lsm2: 0.28,
+    filtro_impulsion: 'ISO_ePM10_50',
+    filtro_retorno: 'ISO_coarse_60',
+    nota_filtro: 'RITE IT 1.1.4.2.6 — Mínimo ISO ePM10 ≥50% en impulsión para IDA3',
+  },
+  {
+    value: 'IDA4', label: 'IDA 4 — Aire de calidad baja',
+    descripcion: 'Solo admisible en usos industriales o espacios especiales justificados',
+    caudal_lsp_persona: 5,
+    caudal_lsm2: 0.17,
+    filtro_impulsion: 'ISO_coarse_60',
+    filtro_retorno: 'ISO_coarse_60',
+    nota_filtro: 'RITE IT 1.1.4.2.6 — Mínimo ISO Coarse ≥60% en impulsión para IDA4',
+  },
 ];
 
 const metodosVentilacion = [
-  { value: 'metodo_a', label: 'Método A — Caudal por persona (más habitual)', descripcion: 'Se calcula en función del número de ocupantes' },
-  { value: 'metodo_b', label: 'Método B — Caudal por superficie (m²)', descripcion: 'Se calcula en función de la superficie del local' },
-  { value: 'metodo_c', label: 'Método C — Número de renovaciones/hora', descripcion: 'Según tipo de local (cocinas, baños, aparcamientos...)' },
-  { value: 'metodo_indirecto', label: 'Indirecto — Control por sonda CO₂', descripcion: 'Sistema de ventilación variable según concentración de CO₂' },
+  {
+    value: 'metodo_a', label: 'Método A — Caudal por persona',
+    descripcion: 'Q = n_personas × q_p (l/s·persona). El más habitual en locales ocupados. Tabla 1.4.2.1 RITE.',
+    formula: 'Q [m³/h] = Nº personas × caudal IDA [l/s/persona] × 3,6',
+  },
+  {
+    value: 'metodo_b', label: 'Método B — Caudal por superficie',
+    descripcion: 'Q = Superficie × q_A (l/s·m²). Para locales con ocupación variable o desconocida. Tabla 1.4.2.2 RITE.',
+    formula: 'Q [m³/h] = Superficie [m²] × caudal IDA [l/s·m²] × 3,6',
+  },
+  {
+    value: 'metodo_c', label: 'Método C — Renovaciones por hora',
+    descripcion: 'Q = Volumen × n_ren/h. Apto para zonas sin ocupación permanente (aparcamientos, almacenes, aseos). Tabla 1.4.2.3 RITE.',
+    formula: 'Q [m³/h] = Volumen [m³] × Renovaciones/hora',
+  },
+  {
+    value: 'metodo_indirecto', label: 'Indirecto — Control por sonda CO₂ (VCD)',
+    descripcion: 'Ventilación de Caudal Variable según Demanda. El caudal se ajusta automáticamente según la concentración de CO₂ medida. Recomendado para IDA2 con ocupación variable.',
+    formula: 'Caudal variable: mínimo cuando CO₂ < umbral, máximo cuando CO₂ > 1000 ppm',
+  },
 ];
 
+// Filtros según RITE IT 1.1.4.2.6 — RD 178/2021 adopta ISO 16890 (sustituye EN 779)
 const tiposFiltro = [
-  { value: 'G4', label: 'G4 — Prefiltro de fibra', descripcion: 'Retención partículas gruesas >10 µm' },
-  { value: 'F7', label: 'F7 — Filtro medio', descripcion: 'Retención partículas medianas, pol, esporas' },
-  { value: 'F8', label: 'F8 — Filtro de alta eficiencia', descripcion: 'Adecuado para IDA 1 e IDA 2' },
-  { value: 'F9', label: 'F9 — Filtro muy alta eficiencia', descripcion: 'Para hospitales y zonas críticas' },
-  { value: 'HEPA_H13', label: 'HEPA H13 — Alta pureza', descripcion: 'Retención >99.95% partículas ≥0.3 µm' },
+  { value: 'ISO_ePM1_55',   label: 'ISO ePM1 ≥55% (equiv. F7)',   descripcion: 'Partículas ≤1 µm. Obligatorio IDA1 e IDA2. Reemplaza F7 (ISO 16890)' },
+  { value: 'ISO_ePM1_80',   label: 'ISO ePM1 ≥80% (equiv. F8)',   descripcion: 'Alta eficiencia partículas finas. Hospitales, zonas críticas' },
+  { value: 'ISO_ePM2_5_65', label: 'ISO ePM2,5 ≥65% (equiv. F8)', descripcion: 'Partículas ≤2,5 µm. Buena protección polvo fino' },
+  { value: 'ISO_ePM10_50',  label: 'ISO ePM10 ≥50% (equiv. F5/F6)', descripcion: 'Partículas ≤10 µm. Mínimo IDA3 en impulsión, retorno IDA1/IDA2' },
+  { value: 'ISO_coarse_60', label: 'ISO Coarse ≥60% (equiv. G4)',  descripcion: 'Prefiltro partículas gruesas. Retorno IDA3/IDA4, primera etapa' },
+  { value: 'ISO_coarse_80', label: 'ISO Coarse ≥80% (equiv. G4+)', descripcion: 'Prefiltro alta retención. Primera etapa en instalaciones con alta carga de polvo' },
+  { value: 'HEPA_H13',      label: 'HEPA H13',                     descripcion: 'Retención >99,95% partículas ≥0,3 µm. Hospitales, salas limpias' },
 ];
 
 const actividadOcupacion = [
