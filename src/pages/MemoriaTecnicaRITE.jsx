@@ -1044,8 +1044,19 @@ export default function MemoriaTecnicaRITE() {
                 ) : null; })()}
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                  <div><Label>Caudal impulsión (m³/h)</Label><Input className="mt-1" type="number" value={zona.caudal_impulsion} onChange={e=>updZona(i,'caudal_impulsion',e.target.value)} placeholder={calcularCaudal(zona)||'Auto'} /></div>
-                  <div><Label>Caudal retorno (m³/h)</Label><Input className="mt-1" type="number" value={zona.caudal_retorno} onChange={e=>updZona(i,'caudal_retorno',e.target.value)} /></div>
+                  <div>
+                    <Label>Caudal impulsión (m³/h)</Label>
+                    <Input className="mt-1" type="number" value={zona.caudal_impulsion} onChange={e=>{ updZona(i,'caudal_impulsion',e.target.value); updZona(i,'caudal_expulsion',e.target.value); }} placeholder={calcularCaudal(zona)||'Auto'} />
+                  </div>
+                  <div>
+                    <Label>Caudal expulsión (m³/h)</Label>
+                    <Input className="mt-1" type="number"
+                      value={zona.caudal_expulsion || zona.caudal_impulsion || calcularCaudal(zona) || ''}
+                      onChange={e=>updZona(i,'caudal_expulsion',e.target.value)}
+                      placeholder={zona.caudal_impulsion || calcularCaudal(zona) || 'Igual a impulsión'}
+                    />
+                    <p className="text-xs text-slate-400 mt-0.5">RITE: caudal extracción = aportación</p>
+                  </div>
                   {zona.metodo_ventilacion === 'metodo_c' && <div><Label>Renovaciones/hora</Label><Input className="mt-1" type="number" value={zona.renovaciones_hora} onChange={e=>updZona(i,'renovaciones_hora',e.target.value)} /></div>}
                 </div>
 
