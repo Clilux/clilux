@@ -853,9 +853,13 @@ export default function MemoriaTecnicaRITE() {
           {/* ===================== TAB VENTILACIÓN ===================== */}
           <TabsContent value="ventilacion" className="space-y-4">
             <Card className="p-4 bg-amber-50 border-amber-200">
-              <p className="text-sm text-amber-800">
-                <strong>RITE IT 1.1.4.2</strong> — Define la categoría de calidad del aire (IDA), el caudal mínimo de ventilación y los sistemas de filtrado para cada zona. El asistente calcula el caudal orientativo según el método seleccionado.
-              </p>
+              <p className="text-sm text-amber-800 font-medium mb-1">RITE IT 1.1.4.2 — RD 178/2021 (actualización ISO 16890)</p>
+              <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
+                <li><strong>Método A:</strong> Q [m³/h] = Nº personas × q_p [l/s·pers] × 3,6 — Tabla 1.4.2.1</li>
+                <li><strong>Método B:</strong> Q [m³/h] = Superficie [m²] × q_A [l/s·m²] × 3,6 — Tabla 1.4.2.2</li>
+                <li><strong>Método C:</strong> Q [m³/h] = Volumen [m³] × Renovaciones/hora — Tabla 1.4.2.3</li>
+                <li><strong>Filtros:</strong> RD 178/2021 adopta norma ISO 16890 (sustituye EN 779). Se asignan automáticamente según categoría IDA.</li>
+              </ul>
             </Card>
 
             {form.zonas.map((zona, i) => (
