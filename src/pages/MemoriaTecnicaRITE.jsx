@@ -938,15 +938,26 @@ export default function MemoriaTecnicaRITE() {
 
                   <div>
                     <Label>Actividad / Uso</Label>
-                    <Select value={zona.actividad} onValueChange={v=>{ updZona(i,'actividad',v); const act=actividadOcupacion.find(a=>a.value===v); if(act&&zona.superficie){ updZona(i,'ocupacion',String(Math.ceil(parseFloat(zona.superficie)/act.m2_persona))); } }}>
+                    <Select value={zona.actividad} onValueChange={v=>handleActividadChange(i,v)}>
                       <SelectTrigger className="mt-1"><SelectValue placeholder="Seleccionar actividad..." /></SelectTrigger>
-                      <SelectContent>{actividadOcupacion.map(a=><SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{actividadOcupacion.map(a=><SelectItem key={a.value} value={a.value}>{a.label} <span className="text-xs text-slate-400">({a.ida_recomendada})</span></SelectItem>)}</SelectContent>
                     </Select>
+                    {zona.actividad && (() => { const act = actividadOcupacion.find(a=>a.value===zona.actividad); return act ? (
+                      <div className="mt-1 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                        🌡️ Verano: {act.temp_verano}°C / {act.hr_verano}% HR — Invierno: {act.temp_invierno}°C / {act.hr_invierno}% HR
+                      </div>
+                    ) : null; })()}
                   </div>
 
                   <div>
-                    <Label>Categoría IDA (calidad del aire)</Label>
-                    <Select value={zona.ida} onValueChange={v=>handleIdaChange(i,v)}>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label>Categoría IDA</Label>
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <span>{zona.ida_manual ? 'Manual' : 'Auto'}</span>
+                        <Switch checked={zona.ida_manual} onCheckedChange={v=>updZona(i,'ida_manual',v)} className="scale-75" />
+                      </div>
+                    </div>
+                    <Select value={zona.ida} onValueChange={v=>handleIdaChange(i,v)} disabled={!zona.ida_manual}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {idaCategorias.map(c=>(
@@ -957,6 +968,33 @@ export default function MemoriaTecnicaRITE() {
                       </SelectContent>
                     </Select>
                     {zona.ida && <p className="text-xs text-slate-500 mt-1">{idaCategorias.find(c=>c.value===zona.ida)?.descripcion}</p>}
+                  </div>
+
+                  {/* ODA — Calidad del aire exterior */}
+                  <div className="md:col-span-2">
+                    <Label>ODA — Calidad del aire exterior (toma de aire)</Label>
+                    <Select value={zona.oda} onValueChange={v=>handleOdaChange(i,v)}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {odaCategorias.map(c=>(
+                          <SelectItem key={c.value} value={c.value}>
+                            <div><div className="font-medium">{c.value}</div><div className="text-xs text-slate-500">{c.descripcion}</div></div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {zona.oda && <p className="text-xs text-slate-500 mt-1">📍 {odaCategorias.find(c=>c.value===zona.oda)?.descripcion}</p>}
+                  </div>
+                </div>
+
+                {/* Condiciones interiores de diseño */}
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs font-medium text-orange-800 mb-2">🌡️ Condiciones interiores de diseño — RITE IT 1.1.4.1 Tabla 1.4.1.1</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div><Label className="text-xs">T° verano (°C)</Label><Input className="mt-1 h-7 text-xs" value={zona.temp_verano} onChange={e=>updZona(i,'temp_verano',e.target.value)} /></div>
+                    <div><Label className="text-xs">T° invierno (°C)</Label><Input className="mt-1 h-7 text-xs" value={zona.temp_invierno} onChange={e=>updZona(i,'temp_invierno',e.target.value)} /></div>
+                    <div><Label className="text-xs">HR verano (%)</Label><Input className="mt-1 h-7 text-xs" value={zona.hr_verano} onChange={e=>updZona(i,'hr_verano',e.target.value)} /></div>
+                    <div><Label className="text-xs">HR invierno (%)</Label><Input className="mt-1 h-7 text-xs" value={zona.hr_invierno} onChange={e=>updZona(i,'hr_invierno',e.target.value)} /></div>
                   </div>
                 </div>
 
