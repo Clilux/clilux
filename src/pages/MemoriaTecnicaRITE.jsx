@@ -104,25 +104,34 @@ const actividadOcupacion = [
   { value: 'otros', label: 'Otros (definir manualmente)', m2_persona: 10, carga_interna_w: 8 },
 ];
 
-const emptyZona = () => ({
-  id: Date.now(),
-  nombre: '',
-  actividad: '',
-  superficie: '',
-  altura: '',
-  ocupacion: '',
-  ida: 'IDA2',
-  metodo_ventilacion: 'metodo_a',
-  caudal_impulsion: '',
-  caudal_retorno: '',
-  renovaciones_hora: '',
-  concentracion_co2_max: '1000',
-  usa_sonda_co2: false,
-  necesita_recuperador: false,
-  tipo_filtro_impulsion: 'F7',
-  tipo_filtro_retorno: 'G4',
-  observaciones: '',
-});
+const getFiltrosAuto = (ida) => {
+  const cat = idaCategorias.find(c => c.value === ida);
+  return { impulsion: cat?.filtro_impulsion || 'ISO_ePM10_50', retorno: cat?.filtro_retorno || 'ISO_coarse_60' };
+};
+
+const emptyZona = () => {
+  const filtros = getFiltrosAuto('IDA2');
+  return {
+    id: Date.now(),
+    nombre: '',
+    actividad: '',
+    superficie: '',
+    altura: '',
+    ocupacion: '',
+    ida: 'IDA2',
+    metodo_ventilacion: 'metodo_a',
+    caudal_impulsion: '',
+    caudal_retorno: '',
+    renovaciones_hora: '',
+    concentracion_co2_max: '1000',
+    usa_sonda_co2: false,
+    necesita_recuperador: false,
+    tipo_filtro_impulsion: filtros.impulsion,
+    tipo_filtro_retorno: filtros.retorno,
+    filtros_manual: false, // false = auto según IDA
+    observaciones: '',
+  };
+};
 
 const emptyEquipo = () => ({
   id: Date.now(),
