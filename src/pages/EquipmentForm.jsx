@@ -1364,6 +1364,7 @@ export default function EquipmentForm() {
                 </Button>
               )}
               </div>
+            </div>
           </Card>
         )}
 
