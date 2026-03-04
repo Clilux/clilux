@@ -31,12 +31,15 @@ export default function ClientReportIncident() {
   });
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    // Client ID: prefer URL param, then sessionStorage
+    const urlClientId = urlParams.get('client_id');
     const storedClientId = sessionStorage.getItem('client_id');
-    if (storedClientId) setClientId(storedClientId);
+    setClientId(urlClientId || storedClientId);
+
     const storedEmail = localStorage.getItem('clilux_email');
     if (storedEmail) { setUserEmail(storedEmail); setUserName(storedEmail); }
-    // Pre-fill equipment if passed via URL
-    const urlParams = new URLSearchParams(window.location.search);
+
     const eqId = urlParams.get('equipment_id');
     if (eqId) setFormData(prev => ({ ...prev, equipment_id: eqId }));
   }, []);
