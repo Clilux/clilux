@@ -378,53 +378,34 @@ export default function ClientEquipmentDetail() {
           <p className="text-slate-500 text-center py-8">No hay revisiones registradas</p> :
 
           <div className="space-y-3">
-              {revisions.map((revision) => {
-                const handleDownload = () => {
-                  const tipoLabel = revision.revision_type === 'monthly' ? 'Mensual' :
-                    revision.revision_type === 'quarterly' ? 'Trimestral' :
-                    revision.revision_type === 'biannual' ? 'Semestral' : 'Anual';
-                  const fecha = format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es });
-                  const datos = revision.revision_data ? Object.entries(revision.revision_data).map(([k, v]) => `${k}: ${v}`).join('\n') : '';
-                  const contenido = `REVISIÓN ${tipoLabel.toUpperCase()}\nEquipo: ${equipment?.brand || ''} ${equipment?.model || ''}\nFecha: ${fecha}\n\n${datos}${revision.notes ? '\nNotas: ' + revision.notes : ''}`;
-                  const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `Revision_${tipoLabel}_${fecha.replace(/ /g,'_')}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                };
-                return (
-                  <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-slate-800">
-                          {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Tipo: {revision.revision_type === 'monthly' ? 'Mensual' :
-                          revision.revision_type === 'quarterly' ? 'Trimestral' :
-                          revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
-                        <Button size="sm" variant="outline" onClick={handleDownload} className="h-7 px-2 text-xs">
-                          <Download className="h-3 w-3 mr-1" />Descargar
-                        </Button>
-                      </div>
+              {revisions.map((revision) => (
+                <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-slate-800">
+                        {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        Tipo: {revisionTypeLabels[revision.revision_type] || revision.revision_type}
+                      </p>
                     </div>
-                    {revision.notes && <p className="text-sm text-slate-500 mt-2">{revision.notes}</p>}
-                    {revision.revision_data && Object.keys(revision.revision_data).length > 0 && (
-                      <div className="mt-2 grid grid-cols-2 gap-1">
-                        {Object.entries(revision.revision_data).slice(0, 6).map(([k, v]) => (
-                          <p key={k} className="text-xs text-slate-500"><span className="font-medium">{k}:</span> {String(v)}</p>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
+                      <Button size="sm" variant="outline" onClick={() => handleRevisionPDF(revision, equipment)} className="h-7 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-50">
+                        <Download className="h-3 w-3 mr-1" />PDF
+                      </Button>
+                    </div>
                   </div>
-                );
-              })}
+                  {revision.notes && <p className="text-sm text-slate-500 mt-2">{revision.notes}</p>}
+                  {revision.revision_data && Object.keys(revision.revision_data).length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-1">
+                      {Object.entries(revision.revision_data).slice(0, 6).map(([k, v]) => (
+                        <p key={k} className="text-xs text-slate-500"><span className="font-medium">{k}:</span> {String(v)}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           }
         </Card>
