@@ -176,7 +176,7 @@ export default function EquipmentDetail() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
-        <NavHeader title={`${equipment.brand} ${equipment.model}`} />
+        <NavHeader title={equipment.reference_name || `${equipment.brand} ${equipment.model}`} />
 
         {/* Status Overview Card */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
