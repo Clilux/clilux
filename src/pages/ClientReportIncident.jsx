@@ -36,7 +36,13 @@ export default function ClientReportIncident() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlClientId = urlParams.get('client_id');
     const storedClientId = sessionStorage.getItem('client_id');
-    setClientId(urlClientId || storedClientId);
+    const resolvedClientId = urlClientId || storedClientId;
+    setClientId(resolvedClientId);
+
+    // Ensure clientId is persisted in sessionStorage (e.g. coming from equipment page with URL param)
+    if (resolvedClientId && !storedClientId) {
+      sessionStorage.setItem('client_id', resolvedClientId);
+    }
 
     const storedEmail = localStorage.getItem('clilux_email');
     if (storedEmail) { setUserEmail(storedEmail); setUserName(storedEmail); }
