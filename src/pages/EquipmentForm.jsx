@@ -1135,10 +1135,18 @@ export default function EquipmentForm() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
-              <Button onClick={handleNext} disabled={!canProceedStep2} className="bg-blue-600">
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Siguiente
-              </Button>
+              <div className="flex gap-2">
+                {equipmentId && (
+                  <Button onClick={savePartial} variant="outline" className="bg-green-600/20 border-green-500/40 text-green-300 hover:bg-green-600/30">
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar
+                  </Button>
+                )}
+                <Button onClick={handleNext} disabled={!canProceedStep2} className="bg-blue-600">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Siguiente
+                </Button>
+              </div>
             </div>
           </Card>
         )}
