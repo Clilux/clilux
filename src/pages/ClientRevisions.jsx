@@ -50,106 +50,161 @@ export default function ClientRevisions() {
   const handleDownloadPDF = (revision) => {
     const eq = getEquipment(revision.equipment_id);
     const doc = new jsPDF();
-    const primaryColor = [41, 128, 185];
-    const darkColor = [30, 30, 50];
-    const lightGray = [245, 247, 250];
-    const midGray = [100, 110, 130];
-
-    // Header background
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 210, 38, 'F');
-
-    // Title
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INFORME DE REVISIÓN', 14, 16);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
     const tipoLabel = revisionTypeLabels[revision.revision_type] || revision.revision_type;
     const fecha = format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es });
-    doc.text(`Tipo: ${tipoLabel}  ·  Fecha: ${fecha}`, 14, 26);
-    doc.text(`Estado: Completada`, 14, 33);
 
-    // Equipment info box
-    doc.setFillColor(...lightGray);
-    doc.roundedRect(14, 44, 182, 32, 3, 3, 'F');
-    doc.setTextColor(...darkColor);
-    doc.setFontSize(12);
+    // Colors
+    const blue = [41, 98, 255];
+    const teal = [0, 188, 212];
+    const purple = [103, 58, 183];
+    const white = [255, 255, 255];
+    const darkBg = [15, 23, 42];
+    const lightBg = [241, 245, 249];
+    const midGray = [100, 116, 139];
+    const darkText = [15, 23, 42];
+
+    // === HEADER GRADIENT (simulate with two rects) ===
+    doc.setFillColor(...blue);
+    doc.rect(0, 0, 210, 45, 'F');
+    doc.setFillColor(...teal);
+    doc.rect(140, 0, 70, 45, 'F');
+
+    // Decorative circle
+    doc.setFillColor(255, 255, 255, 0.1);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.3);
+    doc.circle(190, 10, 18, 'D');
+    doc.circle(185, 38, 10, 'D');
+
+    // Title
+    doc.setTextColor(...white);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('Equipo', 20, 54);
-    doc.setFont('helvetica', 'normal');
+    doc.text('INFORME DE REVISIÓN', 14, 18);
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Tipo: ${tipoLabel}   ·   Fecha: ${fecha}`, 14, 28);
+
+    // Status badge
+    doc.setFillColor(34, 197, 94);
+    doc.roundedRect(14, 33, 32, 7, 2, 2, 'F');
+    doc.setTextColor(...white);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COMPLETADA', 16, 38);
+
+    // === EQUIPMENT CARD ===
+    doc.setFillColor(...lightBg);
+    doc.roundedRect(14, 52, 182, 38, 4, 4, 'F');
+    doc.setFillColor(...blue);
+    doc.roundedRect(14, 52, 5, 38, 2, 2, 'F');
+
+    doc.setTextColor(...blue);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EQUIPO', 24, 60);
+
+    doc.setTextColor(...darkText);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    if (eq) {
+      doc.text(`${eq.brand} ${eq.model}`, 24, 69);
+    } else {
+      doc.text('Equipo no especificado', 24, 69);
+    }
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(...midGray);
     if (eq) {
-      doc.text(`${eq.brand} ${eq.model}`, 20, 62);
-      if (eq.serial_number) doc.text(`S/N: ${eq.serial_number}`, 20, 69);
-      if (eq.location) doc.text(`Ubicación: ${eq.location}`, 100, 62);
-      if (eq.equipment_type) doc.text(`Tipo: ${eq.equipment_type}`, 100, 69);
+      const details = [
+        eq.serial_number ? `S/N: ${eq.serial_number}` : null,
+        eq.location ? `Ubicación: ${eq.location}` : null,
+        eq.equipment_type ? `Tipo: ${eq.equipment_type}` : null
+      ].filter(Boolean).join('   ·   ');
+      if (details) doc.text(details, 24, 76);
     }
 
-    let y = 88;
+    let y = 100;
 
-    // Revision data
+    // === REVISION DATA ===
     if (revision.revision_data && Object.keys(revision.revision_data).length > 0) {
-      doc.setTextColor(...primaryColor);
-      doc.setFontSize(12);
+      // Section header
+      doc.setFillColor(...blue);
+      doc.roundedRect(14, y - 6, 182, 10, 2, 2, 'F');
+      doc.setTextColor(...white);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('Datos de la Revisión', 14, y);
-      y += 6;
-      doc.setDrawColor(...primaryColor);
-      doc.setLineWidth(0.5);
-      doc.line(14, y, 196, y);
-      y += 8;
+      doc.text('DATOS DE LA REVISIÓN', 18, y + 1);
+      y += 14;
 
       const entries = Object.entries(revision.revision_data);
+      const colW = 88;
       entries.forEach(([key, value], i) => {
-        if (i % 2 === 0 && i > 0) y += 10;
-        if (y > 270) { doc.addPage(); y = 20; }
-        const col = i % 2 === 0 ? 14 : 110;
-        doc.setFillColor(...lightGray);
-        doc.roundedRect(col, y - 4, 88, 9, 1, 1, 'F');
-        doc.setTextColor(...midGray);
-        doc.setFontSize(8);
+        const col = i % 2 === 0 ? 14 : 108;
+        if (i % 2 === 0 && i > 0) y += 18;
+        if (y > 265) { doc.addPage(); y = 20; }
+
+        const bgColor = i % 4 < 2 ? [235, 245, 255] : [240, 253, 250];
+        doc.setFillColor(...bgColor);
+        doc.roundedRect(col, y - 5, colW, 16, 2, 2, 'F');
+
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
-        doc.text(String(key), col + 3, y + 1);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...darkColor);
-        doc.setFontSize(9);
-        doc.text(String(value ?? ''), col + 3, y + 6);
+        doc.setTextColor(...midGray);
+        doc.text(String(key).toUpperCase(), col + 3, y + 1);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...darkText);
+        doc.text(String(value ?? '-'), col + 3, y + 9);
       });
-      y += 18;
+
+      // If odd number of entries, advance row
+      if (entries.length % 2 !== 0) y += 18;
+      else y += 18;
+      y += 6;
     }
 
-    // Notes
+    // === NOTES ===
     if (revision.notes) {
       if (y > 250) { doc.addPage(); y = 20; }
-      doc.setTextColor(...primaryColor);
-      doc.setFontSize(12);
+      doc.setFillColor(...purple);
+      doc.roundedRect(14, y - 6, 182, 10, 2, 2, 'F');
+      doc.setTextColor(...white);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('Observaciones', 14, y);
-      y += 6;
-      doc.setDrawColor(...primaryColor);
-      doc.line(14, y, 196, y);
-      y += 8;
-      doc.setTextColor(...darkColor);
+      doc.text('OBSERVACIONES', 18, y + 1);
+      y += 14;
+
+      doc.setFillColor(250, 245, 255);
+      const notesLines = doc.splitTextToSize(revision.notes, 174);
+      const notesH = notesLines.length * 6 + 8;
+      doc.roundedRect(14, y - 4, 182, notesH, 3, 3, 'F');
+      doc.setFillColor(...purple);
+      doc.roundedRect(14, y - 4, 4, notesH, 2, 2, 'F');
+
+      doc.setTextColor(74, 20, 140);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(revision.notes, 180);
-      doc.text(lines, 14, y);
-      y += lines.length * 6 + 6;
+      doc.text(notesLines, 22, y + 2);
+      y += notesH + 10;
     }
 
-    // Footer
+    // === FOOTER ===
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFillColor(230, 235, 245);
+      doc.setFillColor(...blue);
       doc.rect(0, 284, 210, 13, 'F');
-      doc.setTextColor(...midGray);
+      doc.setFillColor(...teal);
+      doc.rect(150, 284, 60, 13, 'F');
+      doc.setTextColor(...white);
       doc.setFontSize(8);
-      doc.text('Informe generado automáticamente', 14, 291);
-      doc.text(`Página ${i} de ${pageCount}`, 180, 291);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Informe generado automáticamente · Clilux', 14, 292);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Pág. ${i}/${pageCount}`, 185, 292);
     }
 
     doc.save(`Revision_${tipoLabel}_${fecha.replace(/ /g, '_')}.pdf`);
