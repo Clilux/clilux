@@ -406,54 +406,7 @@ export default function ClientEquipmentDetail() {
           }
         </Card>
 
-        {/* Incidencias */}
-        <Card className="bg-amber-50 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-          <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-500" />
-            Incidencias ({incidents.length})
-          </h2>
-          <Link to={createPageUrl(`ClientReportIncident`) + `?equipment_id=${equipmentId}&client_id=${clientId}`}>
-            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
-              <Plus className="h-3 w-3 mr-1" />Reportar Incidencia
-            </Button>
-          </Link>
-          </div>
 
-          {incidents.length === 0 ?
-          <p className="text-slate-400 text-center py-8">No hay incidencias registradas</p> :
-
-          <div className="space-y-3">
-              {incidents.map((incident) =>
-            <div
-              key={incident.id}
-              className="p-4 rounded-xl bg-white/5 border border-white/10">
-
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-white">{incident.title}</h3>
-                    <Badge className={
-                incident.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
-                incident.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                incident.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' :
-                'bg-slate-500/20 text-slate-400'
-                }>
-                      {incident.status === 'pending' ? 'Pendiente' :
-                  incident.status === 'in_progress' ? 'En progreso' :
-                  incident.status === 'resolved' ? 'Resuelto' : 'Cerrado'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-slate-400">{incident.description}</p>
-                  {incident.resolution_notes &&
-              <div className="mt-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-xs text-emerald-400 font-medium">Resolución:</p>
-                      <p className="text-sm text-emerald-300">{incident.resolution_notes}</p>
-                    </div>
-              }
-                </div>
-            )}
-            </div>
-          }
-        </Card>
       </div>
     </div>);
 
