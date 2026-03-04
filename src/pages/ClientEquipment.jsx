@@ -125,11 +125,12 @@ export default function ClientEquipment() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-xl font-semibold text-white mb-1">
-                            {eq.brand} {eq.model}
+                          <h3 className="text-xl font-semibold text-white mb-0.5">
+                            {eq.reference_name || `${eq.brand} ${eq.model}`}
                           </h3>
+                          <p className="text-sm text-slate-400 mb-0.5">{eq.brand} {eq.model}</p>
                           {eq.serial_number &&
-                      <p className="text-sm text-slate-400">S/N: {eq.serial_number}</p>
+                      <p className="text-xs text-slate-500">S/N: {eq.serial_number}</p>
                       }
                         </div>
                         <Badge className={statusColors[eq.status || 'operational']}>
