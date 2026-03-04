@@ -271,6 +271,14 @@ export default function RevisionForm() {
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">Editar datos</h3>
                 <div className="space-y-4">
                   <div>
+                    <Label className="text-slate-700 mb-2">Fecha de realización</Label>
+                    <Input
+                      type="date"
+                      value={formData._completed_date || scheduledRevision.completed_date || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, _completed_date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
                     <Label className="text-slate-700 mb-2">Técnico que realizó la revisión</Label>
                     <Input
                       value={technicianName}
