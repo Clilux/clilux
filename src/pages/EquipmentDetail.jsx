@@ -141,6 +141,37 @@ export default function EquipmentDetail() {
     enabled: !!equipmentId && equipment?.unit_type === 'exterior',
   });
 
+  const updateSpecsMutation = useMutation({
+    mutationFn: (data) => base44.entities.Equipment.update(equipmentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+      setEditingSpecs(false);
+      toast.success('Datos actualizados');
+    },
+    onError: () => toast.error('Error al guardar'),
+  });
+
+  const handleEditSpecs = () => {
+    setSpecs({
+      cooling_power_kw: equipment.cooling_power_kw || '',
+      heating_power_kw: equipment.heating_power_kw || '',
+      refrigerant_type: equipment.refrigerant_type || '',
+      refrigerant_charge_kg: equipment.refrigerant_charge_kg || '',
+      location: equipment.location || '',
+    });
+    setEditingSpecs(true);
+  };
+
+  const handleSaveSpecs = () => {
+    updateSpecsMutation.mutate({
+      cooling_power_kw: specs.cooling_power_kw ? Number(specs.cooling_power_kw) : null,
+      heating_power_kw: specs.heating_power_kw ? Number(specs.heating_power_kw) : null,
+      refrigerant_type: specs.refrigerant_type || '',
+      refrigerant_charge_kg: specs.refrigerant_charge_kg ? Number(specs.refrigerant_charge_kg) : null,
+      location: specs.location || '',
+    });
+  };
+
   // Calcular última y próxima revisión
   const completedRevisions = scheduledRevisions.filter(r => r.status === 'completed');
   const pendingRevisions = scheduledRevisions.filter(r => r.status === 'pending');
