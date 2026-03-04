@@ -107,6 +107,7 @@ export default function ClientReportIncident() {
 
     createMutation.mutate({
       ...formData,
+      equipment_id: formData.equipment_id === 'none' ? '' : formData.equipment_id,
       client_id: clientId,
       reported_by: userEmail,
       reported_by_name: userName,
