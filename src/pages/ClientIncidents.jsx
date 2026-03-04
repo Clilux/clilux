@@ -31,21 +31,28 @@ const statusConfig = {
 export default function ClientIncidents() {
   const [clientId, setClientId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [deletingId, setDeletingId] = useState(null);
+  const queryClient = useQueryClient();
 
-  React.useEffect(() => {
-    const loadClient = async () => {
-      const storedClientId = sessionStorage.getItem('client_id');
-      if (storedClientId) {
-        setClientId(storedClientId);
-      }
-    };
-    loadClient();
+  useEffect(() => {
+    const storedClientId = sessionStorage.getItem('client_id');
+    if (storedClientId) setClientId(storedClientId);
   }, []);
 
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['client-incidents', clientId],
     queryFn: () => base44.entities.Incident.filter({ client_id: clientId }),
     enabled: !!clientId,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Incident.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-incidents', clientId] });
+      toast.success('Incidencia eliminada');
+      setDeletingId(null);
+    },
+    onError: () => toast.error('Error al eliminar'),
   });
 
   const { data: equipment = [] } = useQuery({
