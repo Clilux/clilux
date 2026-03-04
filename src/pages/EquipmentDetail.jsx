@@ -341,64 +341,104 @@ export default function EquipmentDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {equipment.location && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+              {editingSpecs ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-slate-500">Ubicación</p>
-                      <p className="text-sm text-slate-700">{equipment.location}</p>
+                      <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><MapPin className="h-3 w-3" />Ubicación</p>
+                      <Input value={specs.location} onChange={e => setSpecs(p => ({...p, location: e.target.value}))} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Snowflake className="h-3 w-3 text-blue-400" />Pot. Frigorífica (kW)</p>
+                      <Input type="number" value={specs.cooling_power_kw} onChange={e => setSpecs(p => ({...p, cooling_power_kw: e.target.value}))} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Flame className="h-3 w-3 text-orange-400" />Pot. Calorífica (kW)</p>
+                      <Input type="number" value={specs.heating_power_kw} onChange={e => setSpecs(p => ({...p, heating_power_kw: e.target.value}))} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Wind className="h-3 w-3" />Refrigerante</p>
+                      <Input value={specs.refrigerant_type} onChange={e => setSpecs(p => ({...p, refrigerant_type: e.target.value}))} className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-cyan-400" />Carga refrigerante (kg)</p>
+                      <Input type="number" value={specs.refrigerant_charge_kg} onChange={e => setSpecs(p => ({...p, refrigerant_charge_kg: e.target.value}))} className="h-8 text-sm" />
                     </div>
                   </div>
-                )}
-                {equipment.cooling_power_kw && (
-                  <div className="flex items-start gap-2">
-                    <Snowflake className="h-4 w-4 text-blue-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Pot. Frigorífica</p>
-                      <p className="text-sm text-slate-700">{equipment.cooling_power_kw} kW</p>
-                    </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveSpecs} disabled={updateSpecsMutation.isPending} className="bg-blue-600">
+                      <Save className="h-3 w-3 mr-1" />Guardar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingSpecs(false)}>
+                      <X className="h-3 w-3 mr-1" />Cancelar
+                    </Button>
                   </div>
-                )}
-                {equipment.heating_power_kw && (
-                  <div className="flex items-start gap-2">
-                    <Flame className="h-4 w-4 text-orange-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Pot. Calorífica</p>
-                      <p className="text-sm text-slate-700">{equipment.heating_power_kw} kW</p>
-                    </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {equipment.location && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Ubicación</p>
+                          <p className="text-sm text-slate-700">{equipment.location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {equipment.cooling_power_kw && (
+                      <div className="flex items-start gap-2">
+                        <Snowflake className="h-4 w-4 text-blue-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Pot. Frigorífica</p>
+                          <p className="text-sm text-slate-700">{equipment.cooling_power_kw} kW</p>
+                        </div>
+                      </div>
+                    )}
+                    {equipment.heating_power_kw && (
+                      <div className="flex items-start gap-2">
+                        <Flame className="h-4 w-4 text-orange-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Pot. Calorífica</p>
+                          <p className="text-sm text-slate-700">{equipment.heating_power_kw} kW</p>
+                        </div>
+                      </div>
+                    )}
+                    {equipment.refrigerant_type && (
+                      <div className="flex items-start gap-2">
+                        <Wind className="h-4 w-4 text-slate-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Refrigerante</p>
+                          <p className="text-sm text-slate-700">{equipment.refrigerant_type}</p>
+                        </div>
+                      </div>
+                    )}
+                    {equipment.refrigerant_charge_kg && (
+                      <div className="flex items-start gap-2">
+                        <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Carga</p>
+                          <p className="text-sm text-slate-700">{equipment.refrigerant_charge_kg} kg</p>
+                        </div>
+                      </div>
+                    )}
+                    {equipment.installation_date && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Instalación</p>
+                          <p className="text-sm text-slate-700">
+                            {format(new Date(equipment.installation_date), 'dd/MM/yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                {equipment.refrigerant_type && (
-                  <div className="flex items-start gap-2">
-                    <Wind className="h-4 w-4 text-slate-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Refrigerante</p>
-                      <p className="text-sm text-slate-700">{equipment.refrigerant_type}</p>
-                    </div>
-                  </div>
-                )}
-                {equipment.refrigerant_charge_kg && (
-                  <div className="flex items-start gap-2">
-                    <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Carga</p>
-                      <p className="text-sm text-slate-700">{equipment.refrigerant_charge_kg} kg</p>
-                    </div>
-                  </div>
-                )}
-                {equipment.installation_date && (
-                  <div className="flex items-start gap-2">
-                    <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Instalación</p>
-                      <p className="text-sm text-slate-700">
-                        {format(new Date(equipment.installation_date), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  <Button size="sm" variant="outline" onClick={handleEditSpecs} className="mt-2 text-xs">
+                    <Edit className="h-3 w-3 mr-1" />Editar datos técnicos
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
