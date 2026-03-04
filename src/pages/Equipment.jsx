@@ -190,10 +190,11 @@ export default function Equipment() {
                       <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </div>
                   }
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="text-teal-700 text-base font-semibold">{eq.brand} {eq.model}</h3>
+                  <div className="flex items-start justify-between gap-2 mb-0.5">
+                    <h3 className="text-teal-700 text-base font-semibold">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
                   </div>
+                  <p className="text-xs text-slate-500 mb-1">{eq.brand} {eq.model}</p>
                   <p className="text-xs text-slate-400 mb-3">{eq.equipment_type}</p>
                   <div className="space-y-1.5">
                     {building && <div className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-3.5 w-3.5 text-slate-400" />{building.name}</div>}
