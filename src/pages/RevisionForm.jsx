@@ -411,6 +411,17 @@ export default function RevisionForm() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Datos a registrar</h3>
           
+          <div className="space-y-4 mb-6 pb-6 border-b">
+            <div>
+              <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
+              <Input
+                value={technicianName}
+                onChange={(e) => setTechnicianName(e.target.value)}
+                placeholder="Nombre del técnico"
+              />
+            </div>
+          </div>
+
           {fields.length === 0 ? (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
