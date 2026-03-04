@@ -113,6 +113,7 @@ export default function RevisionForm() {
         completed_date: new Date().toISOString().split('T')[0],
         revision_data: formData,
         notes: notes,
+        technician_name: technicianName,
       });
     },
     onSuccess: () => {
