@@ -252,50 +252,79 @@ export default function ClientEquipmentDetail() {
 
         {/* Revisiones */}
         <Card className="bg-slate-100 text-card-foreground mb-6 p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5" />
+          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5 text-purple-500" />
             Historial de Revisiones ({revisions.length})
           </h2>
 
           {revisions.length === 0 ?
-          <p className="text-slate-400 text-center py-8">No hay revisiones registradas</p> :
+          <p className="text-slate-500 text-center py-8">No hay revisiones registradas</p> :
 
           <div className="space-y-3">
-              {revisions.map((revision) =>
-            <div
-              key={revision.id}
-              className="p-4 rounded-xl bg-white/5 border border-white/10">
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-white">
-                        {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
-                      </h3>
-                      <p className="text-sm text-slate-400">
-                        Tipo: {revision.revision_type === 'monthly' ? 'Mensual' :
+              {revisions.map((revision) => {
+                const handleDownload = () => {
+                  const tipoLabel = revision.revision_type === 'monthly' ? 'Mensual' :
                     revision.revision_type === 'quarterly' ? 'Trimestral' :
-                    revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
-                      </p>
+                    revision.revision_type === 'biannual' ? 'Semestral' : 'Anual';
+                  const fecha = format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es });
+                  const datos = revision.revision_data ? Object.entries(revision.revision_data).map(([k, v]) => `${k}: ${v}`).join('\n') : '';
+                  const contenido = `REVISIÓN ${tipoLabel.toUpperCase()}\nEquipo: ${equipment?.brand || ''} ${equipment?.model || ''}\nFecha: ${fecha}\n\n${datos}${revision.notes ? '\nNotas: ' + revision.notes : ''}`;
+                  const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Revision_${tipoLabel}_${fecha.replace(/ /g,'_')}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                };
+                return (
+                  <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-slate-800">
+                          {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          Tipo: {revision.revision_type === 'monthly' ? 'Mensual' :
+                          revision.revision_type === 'quarterly' ? 'Trimestral' :
+                          revision.revision_type === 'biannual' ? 'Semestral' : 'Anual'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
+                        <Button size="sm" variant="outline" onClick={handleDownload} className="h-7 px-2 text-xs">
+                          <Download className="h-3 w-3 mr-1" />Descargar
+                        </Button>
+                      </div>
                     </div>
-                    <Badge className="bg-emerald-500/20 text-emerald-400">
-                      Completada
-                    </Badge>
+                    {revision.notes && <p className="text-sm text-slate-500 mt-2">{revision.notes}</p>}
+                    {revision.revision_data && Object.keys(revision.revision_data).length > 0 && (
+                      <div className="mt-2 grid grid-cols-2 gap-1">
+                        {Object.entries(revision.revision_data).slice(0, 6).map(([k, v]) => (
+                          <p key={k} className="text-xs text-slate-500"><span className="font-medium">{k}:</span> {String(v)}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {revision.notes &&
-              <p className="text-sm text-slate-400 mt-2">{revision.notes}</p>
-              }
-                </div>
-            )}
+                );
+              })}
             </div>
           }
         </Card>
 
         {/* Incidencias */}
         <Card className="bg-amber-50 text-card-foreground p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
+          <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
             Incidencias ({incidents.length})
           </h2>
+          <Link to={createPageUrl(`ClientReportIncident`) + `?equipment_id=${equipmentId}`}>
+            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
+              <Plus className="h-3 w-3 mr-1" />Reportar Incidencia
+            </Button>
+          </Link>
+          </div>
 
           {incidents.length === 0 ?
           <p className="text-slate-400 text-center py-8">No hay incidencias registradas</p> :
