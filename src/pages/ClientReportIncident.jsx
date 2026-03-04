@@ -57,15 +57,29 @@ export default function ClientReportIncident() {
     enabled: !!clientId,
   });
 
-  // Cuando se selecciona un equipo, auto-rellenar building_id
+  // Cuando cargan los equipos, si venimos de un equipo concreto, preseleccionarlo junto con su edificio
   useEffect(() => {
-    if (formData.equipment_id && equipment.length > 0) {
+    if (presetEquipmentId && equipment.length > 0) {
+      const eq = equipment.find(e => e.id === presetEquipmentId);
+      if (eq) {
+        setFormData(prev => ({
+          ...prev,
+          equipment_id: eq.id,
+          building_id: eq.building_id || prev.building_id
+        }));
+      }
+    }
+  }, [presetEquipmentId, equipment]);
+
+  // Cuando el usuario cambia el equipo manualmente, auto-rellenar edificio
+  useEffect(() => {
+    if (formData.equipment_id && !presetEquipmentId && equipment.length > 0) {
       const eq = equipment.find(e => e.id === formData.equipment_id);
       if (eq?.building_id) {
         setFormData(prev => ({ ...prev, building_id: eq.building_id }));
       }
     }
-  }, [formData.equipment_id, equipment]);
+  }, [formData.equipment_id]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Incident.create(data),
