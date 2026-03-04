@@ -612,7 +612,12 @@ export default function EquipmentForm() {
     setUploadingPhoto(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, photo_url: file_url }));
+      setFormData(prev => {
+        // Mantener foto principal; agregar nueva a galería si ya había una
+        const existingPhotos = prev.photos || existingEquipment?.photos || [];
+        const newPhotos = prev.photo_url ? [...existingPhotos, prev.photo_url].filter((v, i, a) => a.indexOf(v) === i) : existingPhotos;
+        return { ...prev, photo_url: file_url, photos: newPhotos };
+      });
       toast.success('Foto subida');
     } catch (error) {
       toast.error('Error al subir la foto');
