@@ -115,8 +115,7 @@ export default function HomeTecnico() {
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
     sessionStorage.removeItem('client_id');
-    await base44.auth.logout();
-    navigate(createPageUrl('MenuInicio'));
+    base44.auth.logout(createPageUrl('MenuInicio'));
   };
 
   return (
