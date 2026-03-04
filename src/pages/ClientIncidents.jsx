@@ -26,6 +26,7 @@ const statusConfig = {
   in_progress: { label: 'En curso', color: 'bg-blue-100 text-blue-700' },
   resolved: { label: 'Resuelto', color: 'bg-green-100 text-green-700' },
   closed: { label: 'Cerrado', color: 'bg-slate-100 text-slate-600' },
+  deleted_by_technician: { label: 'Borrada por técnico', color: 'bg-red-100 text-red-600' },
 };
 
 export default function ClientIncidents() {
