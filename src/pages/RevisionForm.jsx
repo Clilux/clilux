@@ -125,10 +125,12 @@ export default function RevisionForm() {
 
   const editMutation = useMutation({
     mutationFn: async () => {
+      const { _completed_date, ...cleanData } = formData;
       await base44.entities.ScheduledRevision.update(scheduledRevisionId, {
-        revision_data: formData,
+        revision_data: cleanData,
         notes: notes,
         technician_name: technicianName,
+        ...(formData._completed_date && { completed_date: formData._completed_date }),
       });
     },
     onSuccess: () => {
