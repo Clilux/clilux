@@ -32,14 +32,13 @@ export default function ClientReportIncident() {
 
   React.useEffect(() => {
     const storedClientId = sessionStorage.getItem('client_id');
-    if (storedClientId) {
-      setClientId(storedClientId);
-    }
+    if (storedClientId) setClientId(storedClientId);
     const storedEmail = localStorage.getItem('clilux_email');
-    if (storedEmail) {
-      setUserEmail(storedEmail);
-      setUserName(storedEmail);
-    }
+    if (storedEmail) { setUserEmail(storedEmail); setUserName(storedEmail); }
+    // Pre-fill equipment if passed via URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const eqId = urlParams.get('equipment_id');
+    if (eqId) setFormData(prev => ({ ...prev, equipment_id: eqId }));
   }, []);
 
   const { data: equipment = [] } = useQuery({
