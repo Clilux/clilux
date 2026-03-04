@@ -197,13 +197,18 @@ export default function EquipmentDetail() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl font-semibold text-slate-800">
-                      {equipment.brand} {equipment.model}
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-2xl font-bold text-slate-800">
+                      {equipment.reference_name || `${equipment.brand} ${equipment.model}`}
                     </h2>
                     <StatusBadge status={equipment.status || 'operational'} />
                   </div>
-                  <p className="text-slate-500">
+                  {equipment.reference_name && (
+                    <p className="text-base text-slate-600 font-medium mb-1">
+                      {equipment.brand} {equipment.model}
+                    </p>
+                  )}
+                  <p className="text-slate-500 text-sm">
                     {equipmentTypeLabels[equipment.equipment_type] || equipment.equipment_type}
                     {equipment.serial_number && ` · S/N: ${equipment.serial_number}`}
                   </p>
