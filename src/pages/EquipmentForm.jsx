@@ -557,7 +557,47 @@ export default function EquipmentForm() {
     });
   };
 
-  const handleNext = () => {
+  // Guarda parcialmente en modo edición al avanzar paso
+  const savePartial = async () => {
+    if (!equipmentId) return;
+    await base44.entities.Equipment.update(equipmentId, {
+      reference_name: formData.reference_name,
+      client_id: formData.client_id,
+      building_id: formData.building_id,
+      equipment_type: formData.equipment_type,
+      brand: formData.technical_data.marca || '',
+      model: formData.technical_data.modelo || '',
+      serial_number: formData.technical_data.numero_serie || '',
+      location: formData.technical_data.ubicacion || '',
+      cooling_power_kw: formData.technical_data.potencia_frigorifica || formData.technical_data.potencia_nominal || null,
+      heating_power_kw: formData.technical_data.potencia_calorifica || null,
+      refrigerant_type: formData.technical_data.tipo_refrigerante || '',
+      refrigerant_charge_kg: formData.technical_data.carga_refrigerante || null,
+      technical_data: { ...formData.technical_data, custom_fields: formData.custom_fields },
+      registration_date: formData.registration_date,
+      status: formData.status,
+      photo_url: formData.photo_url || existingEquipment?.photo_url || null,
+      photos: formData.photos || existingEquipment?.photos || [],
+      first_revision_date: formData.first_revision_date,
+      unit_type: formData.unit_type || 'standalone',
+      parent_equipment_id: formData.parent_equipment_id || null,
+      maintenance_config: {
+        monthly_enabled: formData.selected_periods.includes('mensual'),
+        monthly_fields: formData.maintenance_fields.filter(f => f.periods.includes('mensual')),
+        quarterly_enabled: formData.selected_periods.includes('trimestral'),
+        quarterly_fields: formData.maintenance_fields.filter(f => f.periods.includes('trimestral')),
+        biannual_enabled: formData.selected_periods.includes('semestral'),
+        biannual_fields: formData.maintenance_fields.filter(f => f.periods.includes('semestral')),
+        annual_enabled: formData.selected_periods.includes('anual'),
+        annual_fields: formData.maintenance_fields.filter(f => f.periods.includes('anual')),
+      }
+    });
+    toast.success('Cambios guardados');
+    queryClient.invalidateQueries({ queryKey: ['equipment-edit', equipmentId] });
+  };
+
+  const handleNext = async () => {
+    if (equipmentId) await savePartial();
     if (step < 4) setStep(step + 1);
   };
 
