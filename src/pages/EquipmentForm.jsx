@@ -1363,6 +1363,7 @@ export default function EquipmentForm() {
                   Siguiente
                 </Button>
               )}
+              </div>
             </div>
           </Card>
         )}
