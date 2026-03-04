@@ -868,6 +868,37 @@ export default function EquipmentForm() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div>
+                  <Label className="text-slate-300">Fecha de Instalación</Label>
+                  <Input
+                    type="date"
+                    value={formData.installation_date}
+                    onChange={(e) => handleChange('installation_date', e.target.value)}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-slate-300">Fin de Garantía</Label>
+                  <Input
+                    type="date"
+                    value={formData.warranty_end}
+                    onChange={(e) => handleChange('warranty_end', e.target.value)}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Observaciones</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => handleChange('notes', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                  rows={3}
+                  placeholder="Notas adicionales del equipo..."
+                />
               </div>
 
               {equipmentFields && (
