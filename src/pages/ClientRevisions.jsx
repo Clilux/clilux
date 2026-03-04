@@ -11,6 +11,7 @@ import { ClipboardCheck, Home, Calendar, Download } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import jsPDF from 'jspdf';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
