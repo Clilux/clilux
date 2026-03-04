@@ -184,11 +184,7 @@ export default function ClientEquipmentDetail() {
     enabled: !!equipmentId
   });
 
-  const { data: incidents = [] } = useQuery({
-    queryKey: ['incidents-equipment', equipmentId],
-    queryFn: () => base44.entities.Incident.filter({ equipment_id: equipmentId }, '-created_date'),
-    enabled: !!equipmentId
-  });
+
 
   if (isLoading) {
     return (
