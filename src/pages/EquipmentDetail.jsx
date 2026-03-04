@@ -59,6 +59,8 @@ export default function EquipmentDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingSpecs, setEditingSpecs] = useState(false);
+  const [specs, setSpecs] = useState({});
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
