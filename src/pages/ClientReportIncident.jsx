@@ -32,7 +32,6 @@ export default function ClientReportIncident() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    // Client ID: prefer URL param, then sessionStorage
     const urlClientId = urlParams.get('client_id');
     const storedClientId = sessionStorage.getItem('client_id');
     setClientId(urlClientId || storedClientId);
@@ -43,6 +42,16 @@ export default function ClientReportIncident() {
     const eqId = urlParams.get('equipment_id');
     if (eqId) setFormData(prev => ({ ...prev, equipment_id: eqId }));
   }, []);
+
+  // Cuando se selecciona un equipo, auto-rellenar building_id
+  useEffect(() => {
+    if (formData.equipment_id && equipment.length > 0) {
+      const eq = equipment.find(e => e.id === formData.equipment_id);
+      if (eq?.building_id) {
+        setFormData(prev => ({ ...prev, building_id: eq.building_id }));
+      }
+    }
+  }, [formData.equipment_id, equipment]);
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['client-equipment-report', clientId],
