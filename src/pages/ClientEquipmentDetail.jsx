@@ -11,7 +11,6 @@ import {
   ArrowLeft, Home, Thermometer, MapPin, Calendar, FileText,
   Snowflake, Flame, Wind, Droplet, ClipboardCheck, AlertCircle, Plus, Download } from
 'lucide-react';
-import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
