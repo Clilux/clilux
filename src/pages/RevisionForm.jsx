@@ -32,6 +32,8 @@ export default function RevisionForm() {
   
   const [formData, setFormData] = useState({});
   const [notes, setNotes] = useState('');
+  const [technicianName, setTechnicianName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: scheduledRevision, isLoading } = useQuery({
     queryKey: ['scheduled-revision', scheduledRevisionId],
