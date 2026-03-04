@@ -45,6 +45,116 @@ export default function ClientRevisions() {
     return eq ? `${eq.brand} ${eq.model}` : 'Equipo';
   };
 
+  const getEquipment = (equipmentId) => equipment.find((e) => e.id === equipmentId);
+
+  const handleDownloadPDF = (revision) => {
+    const eq = getEquipment(revision.equipment_id);
+    const doc = new jsPDF();
+    const primaryColor = [41, 128, 185];
+    const darkColor = [30, 30, 50];
+    const lightGray = [245, 247, 250];
+    const midGray = [100, 110, 130];
+
+    // Header background
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 38, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORME DE REVISIÓN', 14, 16);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const tipoLabel = revisionTypeLabels[revision.revision_type] || revision.revision_type;
+    const fecha = format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es });
+    doc.text(`Tipo: ${tipoLabel}  ·  Fecha: ${fecha}`, 14, 26);
+    doc.text(`Estado: Completada`, 14, 33);
+
+    // Equipment info box
+    doc.setFillColor(...lightGray);
+    doc.roundedRect(14, 44, 182, 32, 3, 3, 'F');
+    doc.setTextColor(...darkColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Equipo', 20, 54);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...midGray);
+    if (eq) {
+      doc.text(`${eq.brand} ${eq.model}`, 20, 62);
+      if (eq.serial_number) doc.text(`S/N: ${eq.serial_number}`, 20, 69);
+      if (eq.location) doc.text(`Ubicación: ${eq.location}`, 100, 62);
+      if (eq.equipment_type) doc.text(`Tipo: ${eq.equipment_type}`, 100, 69);
+    }
+
+    let y = 88;
+
+    // Revision data
+    if (revision.revision_data && Object.keys(revision.revision_data).length > 0) {
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Datos de la Revisión', 14, y);
+      y += 6;
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.5);
+      doc.line(14, y, 196, y);
+      y += 8;
+
+      const entries = Object.entries(revision.revision_data);
+      entries.forEach(([key, value], i) => {
+        if (i % 2 === 0 && i > 0) y += 10;
+        if (y > 270) { doc.addPage(); y = 20; }
+        const col = i % 2 === 0 ? 14 : 110;
+        doc.setFillColor(...lightGray);
+        doc.roundedRect(col, y - 4, 88, 9, 1, 1, 'F');
+        doc.setTextColor(...midGray);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(key), col + 3, y + 1);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...darkColor);
+        doc.setFontSize(9);
+        doc.text(String(value ?? ''), col + 3, y + 6);
+      });
+      y += 18;
+    }
+
+    // Notes
+    if (revision.notes) {
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Observaciones', 14, y);
+      y += 6;
+      doc.setDrawColor(...primaryColor);
+      doc.line(14, y, 196, y);
+      y += 8;
+      doc.setTextColor(...darkColor);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(revision.notes, 180);
+      doc.text(lines, 14, y);
+      y += lines.length * 6 + 6;
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFillColor(230, 235, 245);
+      doc.rect(0, 284, 210, 13, 'F');
+      doc.setTextColor(...midGray);
+      doc.setFontSize(8);
+      doc.text('Informe generado automáticamente', 14, 291);
+      doc.text(`Página ${i} de ${pageCount}`, 180, 291);
+    }
+
+    doc.save(`Revision_${tipoLabel}_${fecha.replace(/ /g, '_')}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-stone-500 p-6">
