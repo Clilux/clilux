@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { 
   Edit, MapPin, Calendar, FileText, 
   Snowflake, Flame, Wind, Droplet, 
-  Shield, Trash2, Wrench, ToggleLeft, ToggleRight
+  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
