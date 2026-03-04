@@ -149,6 +149,7 @@ export default function IncidentDetail() {
   const addCommentMutation = useMutation({
     mutationFn: async () => {
       const user = currentUser || await base44.auth.me();
+      const prevStatus = incident.status;
       const historyEntry = {
         date: new Date().toISOString(),
         technician: user.full_name || user.email,
@@ -173,7 +174,17 @@ export default function IncidentDetail() {
         await base44.entities.Equipment.update(incident.equipment_id, { status: 'out_of_service' });
         queryClient.invalidateQueries({ queryKey: ['equipment-incident', incident.equipment_id] });
       }
-      return base44.entities.Incident.update(incidentId, updateData);
+      await base44.entities.Incident.update(incidentId, updateData);
+
+      // Notify client if status changed
+      if (newStatus && newStatus !== prevStatus) {
+        base44.functions.invoke('incidentNotifications', {
+          type: 'status_changed',
+          incidentId,
+          oldStatus: prevStatus,
+          newStatus,
+        }).catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
