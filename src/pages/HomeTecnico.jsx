@@ -112,6 +112,7 @@ export default function HomeTecnico() {
   sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   const handleLogout = async () => {
+    sessionStorage.setItem('just_logged_out', '1');
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
     sessionStorage.removeItem('client_id');
