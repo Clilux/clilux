@@ -1017,7 +1017,15 @@ export default function EquipmentForm() {
               )}
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-between mt-6">
+              <div>
+                {equipmentId && (
+                  <Button onClick={savePartial} variant="outline" className="bg-green-600/20 border-green-500/40 text-green-300 hover:bg-green-600/30">
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar cambios
+                  </Button>
+                )}
+              </div>
               <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-600">
                 <ArrowRight className="h-4 w-4 mr-2" />
                 Siguiente
