@@ -143,33 +143,47 @@ export default function ClientIncidents() {
               const status = statusConfig[incident.status] || statusConfig.pending;
 
               return (
-                <Link key={incident.id} to={createPageUrl(`ClientIncidentDetail?id=${incident.id}`)}>
-                  <Card className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">{incident.title}</h3>
-                          <Badge className={priority.color}>{priority.label}</Badge>
-                          <Badge className={status.color}>{status.label}</Badge>
-                        </div>
-                        <p className="text-slate-300 text-sm line-clamp-2">{incident.description}</p>
+                <Card key={incident.id} className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <Link to={createPageUrl(`ClientIncidentDetail?id=${incident.id}`)} className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="text-lg font-semibold text-white">{incident.title}</h3>
+                        <Badge className={priority.color}>{priority.label}</Badge>
+                        <Badge className={status.color}>{status.label}</Badge>
                       </div>
-                    </div>
+                      <p className="text-slate-300 text-sm line-clamp-2">{incident.description}</p>
+                    </Link>
+                    {(incident.status === 'pending' || incident.status === 'closed') && (
+                      deletingId === incident.id ? (
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(incident.id)} disabled={deleteMutation.isPending} className="text-xs">
+                            Confirmar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeletingId(null)} className="text-xs text-slate-400">
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="icon" variant="ghost" onClick={() => setDeletingId(incident.id)} className="ml-4 text-slate-400 hover:text-red-400">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
+                  </div>
 
-                    <div className="flex items-center gap-6 text-sm text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(new Date(incident.created_date), "d 'de' MMMM, yyyy", { locale: es })}</span>
-                      </div>
-                      {incident.equipment_id && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500">Equipo:</span>
-                          <span className="text-slate-300">{getEquipmentName(incident.equipment_id)}</span>
-                        </div>
-                      )}
+                  <div className="flex items-center gap-6 text-sm text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{format(new Date(incident.created_date), "d 'de' MMMM, yyyy", { locale: es })}</span>
                     </div>
-                  </Card>
-                </Link>
+                    {incident.equipment_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500">Equipo:</span>
+                        <span className="text-slate-300">{getEquipmentName(incident.equipment_id)}</span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
               );
             })}
           </div>
