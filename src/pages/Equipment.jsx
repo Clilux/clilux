@@ -241,7 +241,8 @@ export default function Equipment() {
                   }
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-teal-700">{eq.brand} {eq.model}</span>
+                      <span className="font-semibold text-teal-700">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
+                      <span className="text-xs text-slate-500">{eq.brand} {eq.model}</span>
                       <span className="text-xs text-slate-400">{eq.equipment_type}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
