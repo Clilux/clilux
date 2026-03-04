@@ -26,10 +26,10 @@ export default function Incidents() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Incident.delete(id),
+    mutationFn: (id) => base44.entities.Incident.update(id, { status: 'deleted_by_technician' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      toast.success('Incidencia eliminada');
+      toast.success('Incidencia marcada como eliminada');
       setDeleteId(null);
     },
     onError: () => toast.error('Error al eliminar la incidencia'),
