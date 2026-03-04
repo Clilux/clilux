@@ -30,7 +30,7 @@ export default function ClientReportIncident() {
     photos: []
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const storedClientId = sessionStorage.getItem('client_id');
     if (storedClientId) setClientId(storedClientId);
     const storedEmail = localStorage.getItem('clilux_email');
