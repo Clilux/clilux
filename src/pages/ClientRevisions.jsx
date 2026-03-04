@@ -271,7 +271,7 @@ export default function ClientRevisions() {
                       {revisionTypeLabels[revision.revision_type] || revision.revision_type}
                     </Badge>
                     <Button size="sm" variant="outline" onClick={() => handleDownloadPDF(revision)} className="h-7 px-2 text-xs gap-1 border-purple-300 text-purple-700 hover:bg-purple-50">
-                      <Download className="h-3 w-3" />PDF
+                      <Download className="h-3 w-3" />Descargar
                     </Button>
                   </div>
                 </div>

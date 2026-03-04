@@ -392,7 +392,7 @@ export default function ClientEquipmentDetail() {
                     <div className="flex items-center gap-2">
                       <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
                       <Button size="sm" variant="outline" onClick={() => handleRevisionPDF(revision, equipment)} className="h-7 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-50">
-                        <Download className="h-3 w-3 mr-1" />PDF
+                        <Download className="h-3 w-3 mr-1" />Descargar
                       </Button>
                     </div>
                   </div>
