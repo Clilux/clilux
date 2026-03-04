@@ -56,7 +56,7 @@ export default function HomeCliente() {
     sessionStorage.removeItem('client_id');
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
-    window.location.href = createPageUrl('MenuInicio');
+    navigate(createPageUrl('MenuInicio'));
   };
 
   if (!clientId) return null;
