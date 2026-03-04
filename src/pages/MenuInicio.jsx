@@ -25,9 +25,14 @@ export default function MenuInicio() {
     }
   });
 
-  // Auto-login para cliente si hay credenciales guardadas
+  // Auto-login para cliente si hay credenciales guardadas (solo si no viene de logout)
   useEffect(() => {
     const autoLogin = async () => {
+      // Si hay flag de logout reciente, no hacer auto-login
+      if (sessionStorage.getItem('just_logged_out')) {
+        sessionStorage.removeItem('just_logged_out');
+        return;
+      }
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
 
