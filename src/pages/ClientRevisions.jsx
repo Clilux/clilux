@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, Home, Calendar } from 'lucide-react';
+import { ClipboardCheck, Home, Calendar, Download } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
