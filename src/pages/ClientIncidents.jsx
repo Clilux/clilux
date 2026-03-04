@@ -86,7 +86,7 @@ export default function ClientIncidents() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
-        <NavHeader title="Mis Incidencias" showBack={false} homeUrl="HomeCliente" />
+        <NavHeader title="Mis Incidencias" showBack={true} backUrl="HomeCliente" homeUrl="HomeCliente" />
 
         <div className="flex gap-4 mb-6">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
