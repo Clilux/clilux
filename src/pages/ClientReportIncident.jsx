@@ -144,6 +144,23 @@ export default function ClientReportIncident() {
               />
             </div>
 
+            <div>
+              <Label className="text-slate-300">Equipo afectado (opcional)</Label>
+              <Select value={formData.equipment_id} onValueChange={(v) => setFormData(prev => ({ ...prev, equipment_id: v }))}>
+                <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                  <SelectValue placeholder="Seleccionar equipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin equipo específico</SelectItem>
+                  {equipment.map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.brand} {eq.model}{eq.location ? ` - ${eq.location}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-300">Prioridad</Label>
@@ -175,23 +192,6 @@ export default function ClientReportIncident() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div>
-              <Label className="text-slate-300">Equipo (opcional)</Label>
-              <Select value={formData.equipment_id} onValueChange={(v) => setFormData({ ...formData, equipment_id: v })}>
-                <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
-                  <SelectValue placeholder="Seleccionar equipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>Sin equipo específico</SelectItem>
-                  {equipment.map(eq => (
-                    <SelectItem key={eq.id} value={eq.id}>
-                      {eq.brand} {eq.model} - {eq.location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div>
