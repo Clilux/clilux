@@ -43,16 +43,6 @@ export default function ClientReportIncident() {
     if (eqId) setFormData(prev => ({ ...prev, equipment_id: eqId }));
   }, []);
 
-  // Cuando se selecciona un equipo, auto-rellenar building_id
-  useEffect(() => {
-    if (formData.equipment_id && equipment.length > 0) {
-      const eq = equipment.find(e => e.id === formData.equipment_id);
-      if (eq?.building_id) {
-        setFormData(prev => ({ ...prev, building_id: eq.building_id }));
-      }
-    }
-  }, [formData.equipment_id, equipment]);
-
   const { data: equipment = [] } = useQuery({
     queryKey: ['client-equipment-report', clientId],
     queryFn: () => base44.entities.Equipment.filter({ client_id: clientId }),
@@ -64,6 +54,16 @@ export default function ClientReportIncident() {
     queryFn: () => base44.entities.Building.filter({ client_id: clientId }),
     enabled: !!clientId,
   });
+
+  // Cuando se selecciona un equipo, auto-rellenar building_id
+  useEffect(() => {
+    if (formData.equipment_id && equipment.length > 0) {
+      const eq = equipment.find(e => e.id === formData.equipment_id);
+      if (eq?.building_id) {
+        setFormData(prev => ({ ...prev, building_id: eq.building_id }));
+      }
+    }
+  }, [formData.equipment_id, equipment]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Incident.create(data),
