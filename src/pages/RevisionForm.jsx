@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +28,14 @@ export default function RevisionForm() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const scheduledRevisionId = urlParams.get('id');
-  
+
+  // ALL hooks at the top - no conditional hooks
   const [formData, setFormData] = useState({});
   const [notes, setNotes] = useState('');
   const [technicianName, setTechnicianName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningType, setWarningType] = useState('');
 
   const { data: scheduledRevision, isLoading } = useQuery({
     queryKey: ['scheduled-revision', scheduledRevisionId],
@@ -71,34 +73,30 @@ export default function RevisionForm() {
     enabled: !!scheduledRevision?.building_id,
   });
 
-  // Verificar revisiones anteriores pendientes
   const { data: previousPendingRevisions = [] } = useQuery({
     queryKey: ['previous-revisions', scheduledRevision?.equipment_id, scheduledRevision?.scheduled_date],
     queryFn: async () => {
-      const all = await base44.entities.ScheduledRevision.filter({ 
+      const all = await base44.entities.ScheduledRevision.filter({
         equipment_id: scheduledRevision.equipment_id,
         status: 'pending'
       });
-      return all.filter(r => 
-        r.id !== scheduledRevision.id && 
+      return all.filter(r =>
+        r.id !== scheduledRevision.id &&
         new Date(r.scheduled_date) < new Date(scheduledRevision.scheduled_date)
       ).sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
     },
-    enabled: !!scheduledRevision?.equipment_id && !!scheduledRevision?.scheduled_date,
+    enabled: !!scheduledRevision?.equipment_id && !!scheduledRevision?.scheduled_date && scheduledRevision?.status === 'pending',
   });
 
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningType, setWarningType] = useState('');
-
   useEffect(() => {
-    if (scheduledRevision && previousPendingRevisions.length > 0) {
+    if (!scheduledRevision || scheduledRevision.status === 'completed') return;
+    if (previousPendingRevisions.length > 0) {
       setWarningType('previous');
       setShowWarning(true);
-    } else if (scheduledRevision) {
+    } else {
       const today = new Date();
       const scheduledDate = new Date(scheduledRevision.scheduled_date);
       const daysDiff = Math.ceil((scheduledDate - today) / (1000 * 60 * 60 * 24));
-      
       if (daysDiff > 7) {
         setWarningType('early');
         setShowWarning(true);
@@ -107,7 +105,7 @@ export default function RevisionForm() {
   }, [scheduledRevision, previousPendingRevisions]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async () => {
       await base44.entities.ScheduledRevision.update(scheduledRevisionId, {
         status: 'completed',
         completed_date: new Date().toISOString().split('T')[0],
@@ -122,35 +120,9 @@ export default function RevisionForm() {
       toast.success('Revisión completada');
       navigate(-1);
     },
-    onError: () => {
-      toast.error('Error al guardar la revisión');
-    },
+    onError: () => toast.error('Error al guardar la revisión'),
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!scheduledRevision || !equipment) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-3xl mx-auto text-center py-12">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-slate-500">Revisión no encontrada</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Update mutation for editing completed revisions
   const editMutation = useMutation({
     mutationFn: async () => {
       await base44.entities.ScheduledRevision.update(scheduledRevisionId, {
@@ -180,29 +152,68 @@ export default function RevisionForm() {
     onError: () => toast.error('Error al eliminar la revisión'),
   });
 
+  const handleFieldChange = (fieldKey, value) => {
+    setFormData(prev => ({ ...prev, [fieldKey]: value }));
+  };
+
+  const handleSubmit = () => {
+    if (warningType === 'previous') {
+      toast.error('Debes completar primero las revisiones anteriores pendientes');
+      return;
+    }
+    if (warningType === 'early' && showWarning) return;
+    saveMutation.mutate();
+  };
+
+  const handleConfirmEarly = () => {
+    setShowWarning(false);
+    saveMutation.mutate();
+  };
+
+  const enterEditMode = () => {
+    setFormData(scheduledRevision?.revision_data || {});
+    setNotes(scheduledRevision?.notes || '');
+    setTechnicianName(scheduledRevision?.technician_name || '');
+    setIsEditing(true);
+  };
+
+  // --- Loading ---
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="max-w-3xl mx-auto text-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!scheduledRevision || !equipment) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="max-w-3xl mx-auto text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-slate-500">Revisión no encontrada</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maintenanceConfig = equipment.maintenance_config || {};
+  const fields = maintenanceConfig[`${scheduledRevision.revision_type}_fields`] || [];
+
+  // --- Completed revision view ---
   if (scheduledRevision.status === 'completed') {
-    // Populate edit state when entering edit mode
-    const enterEditMode = () => {
-      setFormData(scheduledRevision.revision_data || {});
-      setNotes(scheduledRevision.notes || '');
-      setTechnicianName(scheduledRevision.technician_name || '');
-      setIsEditing(true);
-    };
-
-    const maintenanceConfig = equipment?.maintenance_config || {};
-    const fieldsKey = `${scheduledRevision.revision_type}_fields`;
-    const fields = maintenanceConfig[fieldsKey] || [];
-
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-3xl mx-auto">
           <NavHeader title="Revisión Completada" />
 
-          {/* Info */}
           <Card className="p-6 mb-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <h2 className="text-xl font-semibold text-slate-800">{equipment?.brand} {equipment?.model}</h2>
+                <h2 className="text-xl font-semibold text-slate-800">{equipment.reference_name || `${equipment.brand} ${equipment.model}`}</h2>
+                <p className="text-slate-600 text-sm">{equipment.brand} {equipment.model}</p>
                 {client && <p className="text-slate-600">{client.name}</p>}
                 {building && <p className="text-slate-500 text-sm">{building.name}</p>}
                 <p className="text-slate-500 text-sm">
@@ -242,7 +253,7 @@ export default function RevisionForm() {
                 <div className="flex justify-between items-center pt-4 border-t">
                   <Button
                     variant="outline"
-                    onClick={() => { if (window.confirm('¿Eliminar esta revisión?')) deleteMutation.mutate(); }}
+                    onClick={() => { if (window.confirm('¿Eliminar esta revisión? Esta acción no se puede deshacer.')) deleteMutation.mutate(); }}
                     disabled={deleteMutation.isPending}
                     className="text-red-600 border-red-200 hover:bg-red-50"
                   >
@@ -251,9 +262,7 @@ export default function RevisionForm() {
                   </Button>
                   <div className="flex gap-3">
                     <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
-                    <Button onClick={enterEditMode}>
-                      Editar
-                    </Button>
+                    <Button onClick={enterEditMode}>Editar</Button>
                   </div>
                 </div>
               </>
@@ -311,40 +320,12 @@ export default function RevisionForm() {
     );
   }
 
-  const handleFieldChange = (fieldKey, value) => {
-    setFormData(prev => ({ ...prev, [fieldKey]: value }));
-  };
-
-  const maintenanceConfig = equipment.maintenance_config || {};
-  const configKey = scheduledRevision.revision_type;
-  const fieldsKey = `${configKey}_fields`;
-  const fields = maintenanceConfig[fieldsKey] || [];
-
-  const handleSubmit = () => {
-    if (warningType === 'previous') {
-      toast.error('Debes completar primero las revisiones anteriores pendientes');
-      return;
-    }
-    
-    if (warningType === 'early' && showWarning) {
-      // Solo mostrar el diálogo
-      return;
-    }
-    
-    saveMutation.mutate();
-  };
-
-  const handleConfirmEarly = () => {
-    setShowWarning(false);
-    saveMutation.mutate();
-  };
-
+  // --- Pending revision form ---
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-3xl mx-auto">
         <NavHeader title="Realizar Revisión" />
 
-        {/* Warning Card */}
         {warningType === 'previous' && previousPendingRevisions.length > 0 && (
           <Card className="p-4 mb-6 bg-red-50 border-red-200">
             <div className="flex items-start gap-3">
@@ -352,7 +333,7 @@ export default function RevisionForm() {
               <div className="flex-1">
                 <h4 className="font-medium text-red-900 mb-1">No se puede realizar esta revisión</h4>
                 <p className="text-sm text-red-700 mb-2">
-                  Existe{previousPendingRevisions.length > 1 ? 'n' : ''} {previousPendingRevisions.length} revisión{previousPendingRevisions.length > 1 ? 'es' : ''} anterior{previousPendingRevisions.length > 1 ? 'es' : ''} pendiente{previousPendingRevisions.length > 1 ? 's' : ''} que debe{previousPendingRevisions.length > 1 ? 'n' : ''} completarse primero:
+                  Existen revisiones anteriores pendientes que deben completarse primero:
                 </p>
                 <div className="space-y-1">
                   {previousPendingRevisions.map(rev => (
@@ -373,7 +354,7 @@ export default function RevisionForm() {
               <div className="flex-1">
                 <h4 className="font-medium text-amber-900 mb-1">Revisión anticipada</h4>
                 <p className="text-sm text-amber-700">
-                  Esta revisión está programada para el {format(new Date(scheduledRevision.scheduled_date), "d 'de' MMMM", { locale: es })}. 
+                  Esta revisión está programada para el {format(new Date(scheduledRevision.scheduled_date), "d 'de' MMMM", { locale: es })}.
                   ¿Estás seguro de que quieres realizarla ahora?
                 </p>
               </div>
@@ -381,17 +362,17 @@ export default function RevisionForm() {
           </Card>
         )}
 
-        {/* Info Card */}
         <Card className="p-6 mb-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-800">
-                {equipment.brand} {equipment.model}
+                {equipment.reference_name || `${equipment.brand} ${equipment.model}`}
               </h2>
               <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
                 {revisionTypeLabels[scheduledRevision.revision_type]}
               </span>
             </div>
+            <p className="text-slate-600 text-sm">{equipment.brand} {equipment.model}</p>
             {client && <p className="text-slate-600">{client.name}</p>}
             {building && <p className="text-slate-500 text-sm">{building.name}</p>}
             <p className="text-slate-500 text-sm">
@@ -400,10 +381,9 @@ export default function RevisionForm() {
           </div>
         </Card>
 
-        {/* Form */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Datos a registrar</h3>
-          
+
           <div className="space-y-4 mb-6 pb-6 border-b">
             <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
@@ -418,60 +398,29 @@ export default function RevisionForm() {
           {fields.length === 0 ? (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <p className="text-slate-500">
-                No hay campos configurados para este tipo de revisión
-              </p>
+              <p className="text-slate-500">No hay campos configurados para este tipo de revisión</p>
             </div>
           ) : (
             <div className="space-y-4">
               {fields.map((field, idx) => (
                 <div key={idx}>
                   <Label className="text-slate-700 mb-2">{field.field_label}</Label>
-                  
                   {field.field_type === 'text' && (
-                    <Input
-                      value={formData[field.field_key] || ''}
-                      onChange={(e) => handleFieldChange(field.field_key, e.target.value)}
-                      placeholder={field.field_label}
-                    />
+                    <Input value={formData[field.field_key] || ''} onChange={(e) => handleFieldChange(field.field_key, e.target.value)} placeholder={field.field_label} />
                   )}
-                  
                   {field.field_type === 'number' && (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData[field.field_key] || ''}
-                      onChange={(e) => handleFieldChange(field.field_key, e.target.value)}
-                      placeholder={field.field_label}
-                    />
+                    <Input type="number" step="0.01" value={formData[field.field_key] || ''} onChange={(e) => handleFieldChange(field.field_key, e.target.value)} placeholder={field.field_label} />
                   )}
-                  
                   {field.field_type === 'select' && (
-                    <Select
-                      value={formData[field.field_key] || ''}
-                      onValueChange={(v) => handleFieldChange(field.field_key, v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {field.options?.map(opt => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                        ))}
-                      </SelectContent>
+                    <Select value={formData[field.field_key] || ''} onValueChange={(v) => handleFieldChange(field.field_key, v)}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                      <SelectContent>{field.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                     </Select>
                   )}
-                  
                   {field.field_type === 'checkbox' && (
                     <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={field.field_key}
-                        checked={formData[field.field_key] === true}
-                        onCheckedChange={(checked) => handleFieldChange(field.field_key, checked)}
-                      />
-                      <Label htmlFor={field.field_key} className="text-slate-600 cursor-pointer">
-                        Sí
-                      </Label>
+                      <Checkbox id={field.field_key} checked={formData[field.field_key] === true} onCheckedChange={(checked) => handleFieldChange(field.field_key, checked)} />
+                      <Label htmlFor={field.field_key} className="text-slate-600 cursor-pointer">Sí</Label>
                     </div>
                   )}
                 </div>
@@ -479,23 +428,16 @@ export default function RevisionForm() {
 
               <div className="pt-4">
                 <Label className="text-slate-700 mb-2">Observaciones</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Añade cualquier observación o incidencia detectada..."
-                  rows={4}
-                />
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Añade cualquier observación o incidencia detectada..." rows={4} />
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={saveMutation.isPending || warningType === 'previous'} 
+            <Button variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={saveMutation.isPending || warningType === 'previous'}
               className="bg-green-600"
             >
               {saveMutation.isPending ? (
@@ -507,7 +449,6 @@ export default function RevisionForm() {
           </div>
         </Card>
 
-        {/* Confirmation Dialog for Early Revision */}
         <Dialog open={showWarning && warningType === 'early'} onOpenChange={setShowWarning}>
           <DialogContent>
             <DialogHeader>
@@ -517,17 +458,11 @@ export default function RevisionForm() {
               <p className="text-slate-600">
                 Esta revisión está programada para el <strong>{format(new Date(scheduledRevision.scheduled_date), "d 'de' MMMM 'de' yyyy", { locale: es })}</strong>.
               </p>
-              <p className="text-slate-600 mt-2">
-                ¿Deseas completarla ahora de todas formas?
-              </p>
+              <p className="text-slate-600 mt-2">¿Deseas completarla ahora de todas formas?</p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowWarning(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleConfirmEarly} className="bg-green-600">
-                Sí, continuar
-              </Button>
+              <Button variant="outline" onClick={() => setShowWarning(false)}>Cancelar</Button>
+              <Button onClick={handleConfirmEarly} className="bg-green-600">Sí, continuar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
