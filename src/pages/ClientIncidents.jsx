@@ -70,6 +70,21 @@ export default function ClientIncidents() {
     return eq ? `${eq.brand} ${eq.model}` : 'N/A';
   };
 
+  if (!clientId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-slate-400 text-center mt-20">Sesión no encontrada. Por favor, vuelve al inicio.</p>
+          <div className="flex justify-center mt-4">
+            <Link to={createPageUrl('MenuInicio')}>
+              <Button variant="outline" className="border-white/20 text-white">Ir al inicio</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
