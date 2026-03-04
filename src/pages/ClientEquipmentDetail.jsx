@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Home, Thermometer, MapPin, Calendar, FileText,
-  Snowflake, Flame, Wind, Droplet, ClipboardCheck, AlertCircle, Plus, Download } from
+  Snowflake, Flame, Wind, Droplet, ClipboardCheck, Download } from
 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
