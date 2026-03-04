@@ -21,6 +21,8 @@ export default function ClientReportIncident() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   
+  const [presetEquipmentId, setPresetEquipmentId] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -40,7 +42,7 @@ export default function ClientReportIncident() {
     if (storedEmail) { setUserEmail(storedEmail); setUserName(storedEmail); }
 
     const eqId = urlParams.get('equipment_id');
-    if (eqId) setFormData(prev => ({ ...prev, equipment_id: eqId }));
+    if (eqId) setPresetEquipmentId(eqId);
   }, []);
 
   const { data: equipment = [] } = useQuery({
