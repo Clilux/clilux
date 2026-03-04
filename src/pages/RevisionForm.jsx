@@ -173,7 +173,7 @@ export default function RevisionForm() {
   };
 
   const enterEditMode = () => {
-    setFormData(scheduledRevision?.revision_data || {});
+    setFormData({ ...(scheduledRevision?.revision_data || {}), _completed_date: scheduledRevision?.completed_date || '' });
     setNotes(scheduledRevision?.notes || '');
     setTechnicianName(scheduledRevision?.technician_name || '');
     setIsEditing(true);
