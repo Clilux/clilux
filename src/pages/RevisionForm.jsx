@@ -150,44 +150,161 @@ export default function RevisionForm() {
     );
   }
 
+  // Update mutation for editing completed revisions
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.ScheduledRevision.update(scheduledRevisionId, {
+        revision_data: formData,
+        notes: notes,
+        technician_name: technicianName,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revision', scheduledRevisionId] });
+      queryClient.invalidateQueries({ queryKey: ['all-revisions-equipment'] });
+      toast.success('Revisión actualizada');
+      setIsEditing(false);
+    },
+    onError: () => toast.error('Error al actualizar la revisión'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.ScheduledRevision.delete(scheduledRevisionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-revisions-equipment'] });
+      toast.success('Revisión eliminada');
+      navigate(-1);
+    },
+    onError: () => toast.error('Error al eliminar la revisión'),
+  });
+
   if (scheduledRevision.status === 'completed') {
+    // Populate edit state when entering edit mode
+    const enterEditMode = () => {
+      setFormData(scheduledRevision.revision_data || {});
+      setNotes(scheduledRevision.notes || '');
+      setTechnicianName(scheduledRevision.technician_name || '');
+      setIsEditing(true);
+    };
+
+    const maintenanceConfig = equipment?.maintenance_config || {};
+    const fieldsKey = `${scheduledRevision.revision_type}_fields`;
+    const fields = maintenanceConfig[fieldsKey] || [];
+
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-3xl mx-auto">
           <NavHeader title="Revisión Completada" />
-          <Card className="p-6">
-            <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <Save className="h-8 w-8 text-green-600" />
+
+          {/* Info */}
+          <Card className="p-6 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold text-slate-800">{equipment?.brand} {equipment?.model}</h2>
+                {client && <p className="text-slate-600">{client.name}</p>}
+                {building && <p className="text-slate-500 text-sm">{building.name}</p>}
+                <p className="text-slate-500 text-sm">
+                  Completada: {scheduledRevision.completed_date && format(new Date(scheduledRevision.completed_date), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                </p>
+                {scheduledRevision.technician_name && (
+                  <p className="text-slate-500 text-sm">Técnico: <span className="font-medium text-slate-700">{scheduledRevision.technician_name}</span></p>
+                )}
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-2">
-                Revisión ya completada
-              </h3>
-              <p className="text-slate-500 mb-6">
-                Esta revisión fue completada el {scheduledRevision.completed_date && format(new Date(scheduledRevision.completed_date), "d 'de' MMMM 'de' yyyy", { locale: es })}
-              </p>
-              {scheduledRevision.revision_data && (
-                <div className="bg-slate-50 rounded-lg p-4 text-left mb-6">
-                  <h4 className="font-medium text-slate-700 mb-3">Datos registrados:</h4>
-                  <div className="space-y-2">
-                    {Object.entries(scheduledRevision.revision_data).map(([key, value]) => (
-                      <div key={key} className="flex justify-between text-sm">
-                        <span className="text-slate-600">{key}:</span>
-                        <span className="font-medium text-slate-800">{String(value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {scheduledRevision.notes && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm text-slate-600">
-                        <strong>Observaciones:</strong> {scheduledRevision.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              <Button onClick={() => navigate(-1)}>Volver</Button>
+              <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+                {revisionTypeLabels[scheduledRevision.revision_type]}
+              </span>
             </div>
+          </Card>
+
+          <Card className="p-6">
+            {!isEditing ? (
+              <>
+                {scheduledRevision.revision_data && Object.keys(scheduledRevision.revision_data).length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-slate-700 mb-3">Datos registrados:</h4>
+                    <div className="space-y-2">
+                      {Object.entries(scheduledRevision.revision_data).map(([key, value]) => (
+                        <div key={key} className="flex justify-between text-sm py-1 border-b border-slate-100">
+                          <span className="text-slate-600">{key}:</span>
+                          <span className="font-medium text-slate-800">{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {scheduledRevision.notes && (
+                  <div className="mb-6 p-3 bg-slate-50 rounded-lg">
+                    <p className="text-sm text-slate-600"><strong>Observaciones:</strong> {scheduledRevision.notes}</p>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => { if (window.confirm('¿Eliminar esta revisión?')) deleteMutation.mutate(); }}
+                    disabled={deleteMutation.isPending}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </Button>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
+                    <Button onClick={enterEditMode}>
+                      Editar
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Editar datos</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-700 mb-2">Técnico que realizó la revisión</Label>
+                    <Input
+                      value={technicianName}
+                      onChange={(e) => setTechnicianName(e.target.value)}
+                      placeholder="Nombre del técnico"
+                    />
+                  </div>
+                  {fields.map((field, idx) => (
+                    <div key={idx}>
+                      <Label className="text-slate-700 mb-2">{field.field_label}</Label>
+                      {field.field_type === 'text' && (
+                        <Input value={formData[field.field_key] || ''} onChange={(e) => handleFieldChange(field.field_key, e.target.value)} />
+                      )}
+                      {field.field_type === 'number' && (
+                        <Input type="number" step="0.01" value={formData[field.field_key] || ''} onChange={(e) => handleFieldChange(field.field_key, e.target.value)} />
+                      )}
+                      {field.field_type === 'select' && (
+                        <Select value={formData[field.field_key] || ''} onValueChange={(v) => handleFieldChange(field.field_key, v)}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                          <SelectContent>{field.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                        </Select>
+                      )}
+                      {field.field_type === 'checkbox' && (
+                        <div className="flex items-center gap-2">
+                          <Checkbox id={field.field_key} checked={formData[field.field_key] === true} onCheckedChange={(v) => handleFieldChange(field.field_key, v)} />
+                          <Label htmlFor={field.field_key} className="text-slate-600 cursor-pointer">Sí</Label>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div>
+                    <Label className="text-slate-700 mb-2">Observaciones</Label>
+                    <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                  <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending} className="bg-green-600">
+                    {editMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar cambios</>}
+                  </Button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       </div>
