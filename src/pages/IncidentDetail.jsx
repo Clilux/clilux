@@ -108,6 +108,7 @@ export default function IncidentDetail() {
   const updateMutation = useMutation({
     mutationFn: async (data) => {
       const user = await base44.auth.me();
+      const prevStatus = incident.status;
       const updateData = {
         ...data,
         assigned_technician: user.email,
@@ -116,7 +117,27 @@ export default function IncidentDetail() {
       if (data.status === 'resolved' || data.status === 'closed') {
         updateData.resolution_date = new Date().toISOString().split('T')[0];
       }
-      return base44.entities.Incident.update(incidentId, updateData);
+      await base44.entities.Incident.update(incidentId, updateData);
+
+      // Notify client if status changed
+      if (data.status && data.status !== prevStatus) {
+        base44.functions.invoke('incidentNotifications', {
+          type: 'status_changed',
+          incidentId,
+          oldStatus: prevStatus,
+          newStatus: data.status,
+        }).catch(() => {});
+      }
+
+      // Notify technician if newly assigned
+      const wasAssigned = !incident.assigned_technician;
+      if (wasAssigned) {
+        base44.functions.invoke('incidentNotifications', {
+          type: 'technician_assigned',
+          incidentId,
+          technicianEmail: user.email,
+        }).catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
