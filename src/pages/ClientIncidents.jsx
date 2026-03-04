@@ -169,7 +169,7 @@ export default function ClientIncidents() {
                       </div>
                       <p className="text-slate-300 text-sm line-clamp-2">{incident.description}</p>
                     </Link>
-                    {(incident.status === 'pending' || incident.status === 'closed') && (
+                    {(incident.status === 'pending' || incident.status === 'closed') && incident.status !== 'deleted_by_technician' && (
                       deletingId === incident.id ? (
                         <div className="flex items-center gap-2 ml-4">
                           <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(incident.id)} disabled={deleteMutation.isPending} className="text-xs">
