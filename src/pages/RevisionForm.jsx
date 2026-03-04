@@ -311,21 +311,14 @@ export default function RevisionForm() {
     );
   }
 
-  const maintenanceConfig = equipment.maintenance_config || {};
-  const revisionTypeMap = {
-    monthly: 'monthly',
-    quarterly: 'quarterly',
-    biannual: 'biannual',
-    annual: 'annual'
-  };
-  
-  const configKey = revisionTypeMap[scheduledRevision.revision_type];
-  const fieldsKey = `${configKey}_fields`;
-  const fields = maintenanceConfig[fieldsKey] || [];
-
   const handleFieldChange = (fieldKey, value) => {
     setFormData(prev => ({ ...prev, [fieldKey]: value }));
   };
+
+  const maintenanceConfig = equipment.maintenance_config || {};
+  const configKey = scheduledRevision.revision_type;
+  const fieldsKey = `${configKey}_fields`;
+  const fields = maintenanceConfig[fieldsKey] || [];
 
   const handleSubmit = () => {
     if (warningType === 'previous') {
