@@ -318,7 +318,7 @@ export default function ClientEquipmentDetail() {
             <AlertCircle className="h-5 w-5 text-amber-500" />
             Incidencias ({incidents.length})
           </h2>
-          <Link to={createPageUrl(`ClientReportIncident`) + `?equipment_id=${equipmentId}`}>
+          <Link to={createPageUrl(`ClientReportIncident`) + `?equipment_id=${equipmentId}&client_id=${clientId}`}>
             <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
               <Plus className="h-3 w-3 mr-1" />Reportar Incidencia
             </Button>
