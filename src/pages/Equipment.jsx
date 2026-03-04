@@ -215,9 +215,10 @@ export default function Equipment() {
                 <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1">
                   {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl"><img src={eq.photo_url} alt="" className="w-full h-full object-cover" /></div>}
                   <div className="flex items-start justify-between gap-1">
-                    <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.brand} {eq.model}</span>
+                    <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
                   </div>
+                  <p className="text-xs text-slate-500">{eq.brand} {eq.model}</p>
                   <p className="text-xs text-slate-400">{eq.equipment_type}</p>
                   {eq.location && <p className="text-xs text-slate-500 truncate">{eq.location}</p>}
                 </Card>
