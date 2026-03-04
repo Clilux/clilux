@@ -161,22 +161,42 @@ export default function ClientReportIncident() {
               />
             </div>
 
-            <div>
-              <Label className="text-slate-300">Equipo afectado (opcional)</Label>
-              <Select value={formData.equipment_id} onValueChange={(v) => setFormData(prev => ({ ...prev, equipment_id: v }))}>
-                <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
-                  <SelectValue placeholder="Seleccionar equipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin equipo específico</SelectItem>
-                  {equipment.map(eq => (
-                    <SelectItem key={eq.id} value={eq.id}>
-                      {eq.brand} {eq.model}{eq.location ? ` - ${eq.location}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {presetEquipmentId ? (
+              // Viniendo de un equipo: mostrar equipo y edificio como info fija
+              <div className="p-3 rounded-lg bg-white/10 border border-white/20">
+                <p className="text-xs text-slate-400 mb-1">Equipo</p>
+                <p className="text-white font-medium">
+                  {equipment.find(e => e.id === formData.equipment_id)
+                    ? `${equipment.find(e => e.id === formData.equipment_id).brand} ${equipment.find(e => e.id === formData.equipment_id).model}`
+                    : 'Cargando...'}
+                </p>
+                {formData.building_id && (
+                  <>
+                    <p className="text-xs text-slate-400 mt-2 mb-1">Edificio</p>
+                    <p className="text-white font-medium">
+                      {buildings.find(b => b.id === formData.building_id)?.name || 'Cargando...'}
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label className="text-slate-300">Equipo afectado (opcional)</Label>
+                <Select value={formData.equipment_id} onValueChange={(v) => setFormData(prev => ({ ...prev, equipment_id: v }))}>
+                  <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Seleccionar equipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin equipo específico</SelectItem>
+                    {equipment.map(eq => (
+                      <SelectItem key={eq.id} value={eq.id}>
+                        {eq.brand} {eq.model}{eq.location ? ` - ${eq.location}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -194,21 +214,23 @@ export default function ClientReportIncident() {
                 </Select>
               </div>
 
-              <div>
-                <Label className="text-slate-300">Edificio</Label>
-                <Select value={formData.building_id} onValueChange={(v) => setFormData({ ...formData, building_id: v })}>
-                  <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Seleccionar edificio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buildings.map(building => (
-                      <SelectItem key={building.id} value={building.id}>
-                        {building.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!presetEquipmentId && (
+                <div>
+                  <Label className="text-slate-300">Edificio</Label>
+                  <Select value={formData.building_id} onValueChange={(v) => setFormData({ ...formData, building_id: v })}>
+                    <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                      <SelectValue placeholder="Seleccionar edificio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {buildings.map(building => (
+                        <SelectItem key={building.id} value={building.id}>
+                          {building.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div>
