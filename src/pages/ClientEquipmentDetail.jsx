@@ -13,6 +13,124 @@ import {
 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+
+const revisionTypeLabels = {
+  monthly: 'Mensual',
+  quarterly: 'Trimestral',
+  biannual: 'Semestral',
+  annual: 'Anual'
+};
+
+const handleRevisionPDF = (revision, equipment) => {
+  const doc = new jsPDF();
+  const tipoLabel = revisionTypeLabels[revision.revision_type] || revision.revision_type;
+  const fecha = format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es });
+  const blue = [41, 98, 255];
+  const teal = [0, 188, 212];
+  const white = [255, 255, 255];
+  const lightBg = [241, 245, 249];
+  const midGray = [100, 116, 139];
+  const darkText = [15, 23, 42];
+  const purple = [103, 58, 183];
+
+  doc.setFillColor(...blue);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setFillColor(...teal);
+  doc.rect(140, 0, 70, 45, 'F');
+  doc.setTextColor(...white);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INFORME DE REVISIÓN', 14, 18);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Tipo: ${tipoLabel}   ·   Fecha: ${fecha}`, 14, 28);
+  doc.setFillColor(34, 197, 94);
+  doc.roundedRect(14, 33, 32, 7, 2, 2, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('COMPLETADA', 16, 38);
+
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(14, 52, 182, 38, 4, 4, 'F');
+  doc.setFillColor(...blue);
+  doc.roundedRect(14, 52, 5, 38, 2, 2, 'F');
+  doc.setTextColor(...blue);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EQUIPO', 24, 60);
+  doc.setTextColor(...darkText);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text(equipment ? `${equipment.brand} ${equipment.model}` : 'Equipo', 24, 69);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...midGray);
+  if (equipment) {
+    const details = [
+      equipment.serial_number ? `S/N: ${equipment.serial_number}` : null,
+      equipment.location ? `Ubicación: ${equipment.location}` : null,
+    ].filter(Boolean).join('   ·   ');
+    if (details) doc.text(details, 24, 76);
+  }
+
+  let y = 100;
+
+  if (revision.revision_data && Object.keys(revision.revision_data).length > 0) {
+    doc.setFillColor(...blue);
+    doc.roundedRect(14, y - 6, 182, 10, 2, 2, 'F');
+    doc.setTextColor(...white);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DE LA REVISIÓN', 18, y + 1);
+    y += 14;
+    const entries = Object.entries(revision.revision_data);
+    entries.forEach(([key, value], i) => {
+      const col = i % 2 === 0 ? 14 : 108;
+      if (i % 2 === 0 && i > 0) y += 18;
+      if (y > 265) { doc.addPage(); y = 20; }
+      doc.setFillColor(...(i % 4 < 2 ? [235, 245, 255] : [240, 253, 250]));
+      doc.roundedRect(col, y - 5, 88, 16, 2, 2, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...midGray);
+      doc.text(String(key).toUpperCase(), col + 3, y + 1);
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+      doc.text(String(value ?? '-'), col + 3, y + 9);
+    });
+    y += 24;
+  }
+
+  if (revision.notes) {
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFillColor(...purple);
+    doc.roundedRect(14, y - 6, 182, 10, 2, 2, 'F');
+    doc.setTextColor(...white);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    doc.text('OBSERVACIONES', 18, y + 1);
+    y += 14;
+    const notesLines = doc.splitTextToSize(revision.notes, 174);
+    doc.setFillColor(250, 245, 255);
+    doc.roundedRect(14, y - 4, 182, notesLines.length * 6 + 8, 3, 3, 'F');
+    doc.setFillColor(...purple);
+    doc.roundedRect(14, y - 4, 4, notesLines.length * 6 + 8, 2, 2, 'F');
+    doc.setTextColor(74, 20, 140); doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text(notesLines, 22, y + 2);
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...blue);
+    doc.rect(0, 284, 210, 13, 'F');
+    doc.setFillColor(...teal);
+    doc.rect(150, 284, 60, 13, 'F');
+    doc.setTextColor(...white);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.text('Informe generado automáticamente · Clilux', 14, 292);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Pág. ${i}/${pageCount}`, 185, 292);
+  }
+  doc.save(`Revision_${tipoLabel}_${fecha.replace(/ /g, '_')}.pdf`);
+};
 
 const equipmentTypeLabels = {
   split_mural: 'Split Mural',
