@@ -127,6 +127,15 @@ export default function Calendar() {
           </Select>
 
           <div className="flex gap-2 ml-auto">
+            <Button
+              variant="outline"
+              onClick={handleSyncGoogleCalendar}
+              disabled={syncing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Sincronizando...' : 'Sync Google Calendar'}
+            </Button>
             <ExportButton
               data={filteredRevisions.map(rev => {
                 const eq = equipment.find(e => e.id === rev.equipment_id);
