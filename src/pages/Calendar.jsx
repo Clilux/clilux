@@ -27,6 +27,20 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [filterClient, setFilterClient] = useState('all');
   const [viewMode, setViewMode] = useState('calendar');
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncGoogleCalendar = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncToGoogleCalendar', {});
+      const { created, failed, total } = res.data;
+      toast.success(`Sincronizados ${created} de ${total} eventos con Google Calendar${failed > 0 ? ` (${failed} errores)` : ''}`);
+    } catch (e) {
+      toast.error('Error al sincronizar con Google Calendar');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduled-revisions'],
