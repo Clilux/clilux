@@ -22,6 +22,8 @@ const revisionTypeLabels = {
 
 export default function ClientRevisions() {
   const [clientId, setClientId] = useState(null);
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterEquipment, setFilterEquipment] = useState('all');
 
   useEffect(() => {
     const storedClientId = sessionStorage.getItem('client_id');
@@ -38,6 +40,22 @@ export default function ClientRevisions() {
     queryKey: ['client-equipment-rev', clientId],
     queryFn: () => base44.entities.Equipment.filter({ client_id: clientId }),
     enabled: !!clientId
+  });
+
+  // Obtener meses únicos de las revisiones
+  const availableMonths = [...new Set(revisions.map(r => {
+    const d = new Date(r.completed_date || r.scheduled_date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }))].sort().reverse();
+
+  const filteredRevisions = revisions.filter(r => {
+    if (filterEquipment !== 'all' && r.equipment_id !== filterEquipment) return false;
+    if (filterMonth !== 'all') {
+      const d = new Date(r.completed_date || r.scheduled_date);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (monthKey !== filterMonth) return false;
+    }
+    return true;
   });
 
   const getEquipmentName = (equipmentId) => {

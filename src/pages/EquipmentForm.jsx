@@ -64,6 +64,7 @@ const camposIDAE = {
       { key: 'estado_compresor', label: 'Estado compresor', type: 'select', options: ['Bueno', 'Aceptable', 'Necesita revisión', 'Cambiar'], periods: ['trimestral', 'anual'] },
       { key: 'fugas_refrigerante', label: 'Fugas refrigerante detectadas', type: 'checkbox', periods: ['trimestral', 'anual'] },
       { key: 'limpieza_condensador', label: 'Limpieza condensador', type: 'checkbox', periods: ['trimestral', 'anual'] },
+      { key: 'consumo_agua', label: 'Consumo de agua (m³)', type: 'number', periods: ['mensual', 'trimestral', 'semestral', 'anual'] },
     ]
   },
   split: {
