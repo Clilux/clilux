@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardCheck, Home, Calendar, Download } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { format } from 'date-fns';
@@ -246,7 +247,42 @@ export default function ClientRevisions() {
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Revisiones" showBack={true} homeUrl="HomeCliente" />
 
-        {revisions.length === 0 ? (
+        {/* Filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Filtrar por mes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los meses</SelectItem>
+              {availableMonths.map(m => {
+                const [year, month] = m.split('-');
+                const date = new Date(parseInt(year), parseInt(month) - 1);
+                return (
+                  <SelectItem key={m} value={m}>
+                    {format(date, 'MMMM yyyy', { locale: es })}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEquipment} onValueChange={setFilterEquipment}>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Filtrar por equipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los equipos</SelectItem>
+              {equipment.map(eq => (
+                <SelectItem key={eq.id} value={eq.id}>
+                  {eq.reference_name || `${eq.brand} ${eq.model}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {filteredRevisions.length === 0 ? (
           <Card className="p-12 bg-white/10 border-white/20 text-center">
             <div className="flex flex-col items-center gap-4">
               <ClipboardCheck className="h-16 w-16 text-slate-400" />
@@ -261,7 +297,7 @@ export default function ClientRevisions() {
           </Card>
         ) : (
           <div className="grid gap-3">
-            {revisions.map((revision) => (
+            {filteredRevisions.map((revision) => (
               <Card key={revision.id} className="bg-slate-200 p-5 rounded-xl border shadow">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
