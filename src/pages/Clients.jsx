@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Building2, MapPin, Phone, ChevronRight } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
 import StatusBadge from '../components/ui/StatusBadge';
 import { Card } from "@/components/ui/card";
-import { toast } from 'sonner';
-
 export default function Clients() {
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
 
@@ -28,24 +25,6 @@ export default function Clients() {
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date'),
   });
-
-  const handleImport = async (data) => {
-    const clientsToImport = data.map(row => ({
-      name: row.Nombre || row.name || '',
-      cif: row.CIF || row.cif || '',
-      address: row.Dirección || row.address || '',
-      city: row.Ciudad || row.city || '',
-      province: row.Provincia || row.province || '',
-      postal_code: row['Código Postal'] || row.postal_code || '',
-      phone: row.Teléfono || row.phone || '',
-      email: row.Email || row.email || '',
-      contact_person: row.Contacto || row.contact_person || '',
-      status: row.Estado || row.status || 'active',
-    }));
-    
-    await base44.entities.Client.bulkCreate(clientsToImport);
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
-  };
 
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings'],
