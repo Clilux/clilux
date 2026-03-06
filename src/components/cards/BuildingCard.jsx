@@ -12,7 +12,7 @@ export default function BuildingCard({ building, equipmentCount = 0, totalCoolin
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4 flex-1">
             {building.photo_url && (
-              <img src={building.photo_url} alt={building.name} className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
+              <img src={building.photo_url} alt={building.name} className="h-12 w-12 rounded-lg object-contain flex-shrink-0 border border-slate-100 bg-slate-50" />
             )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">

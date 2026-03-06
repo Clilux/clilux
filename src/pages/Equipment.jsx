@@ -131,17 +131,17 @@ export default function Equipment() {
           <>
         {/* GRID VIEW */}
         {viewMode === 'grid' && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredEquipment.map((eq) => {
-            const building = buildings.find((b) => b.id === eq.building_id);
-            const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-            return (
-              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                <Card className="p-5 bg-white hover:shadow-md transition-all group border">
-                  {eq.photo_url &&
-                    <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl">
-                      <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    </div>
-                  }
+          {filteredEquipment.map((eq) => {
+          const building = buildings.find((b) => b.id === eq.building_id);
+          const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+          return (
+            <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+              <Card className="p-5 bg-white hover:shadow-md transition-all group border">
+                {eq.photo_url &&
+                  <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl bg-slate-50">
+                    <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+                  </div>
+                }
                   <div className="flex items-start justify-between gap-2 mb-0.5">
                     <h3 className="text-teal-700 text-base font-semibold">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
@@ -160,12 +160,12 @@ export default function Equipment() {
 
         {/* COMPACT VIEW */}
         {viewMode === 'compact' && <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filteredEquipment.map((eq) => {
-            const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-            return (
-              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1">
-                  {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl"><img src={eq.photo_url} alt="" className="w-full h-full object-cover" /></div>}
+          {filteredEquipment.map((eq) => {
+          const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+          return (
+            <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+              <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1">
+                {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl bg-slate-50"><img src={eq.photo_url} alt="" className="w-full h-full object-contain" /></div>}
                   <div className="flex items-start justify-between gap-1">
                     <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
