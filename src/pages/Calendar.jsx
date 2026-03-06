@@ -136,37 +136,7 @@ export default function Calendar() {
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Sincronizando...' : 'Sync Google Calendar'}
             </Button>
-            <ExportButton
-              data={filteredRevisions.map(rev => {
-                const eq = equipment.find(e => e.id === rev.equipment_id);
-                const building = buildings.find(b => b.id === rev.building_id);
-                const client = clients.find(c => c.id === rev.client_id);
-                return {
-                  'Cliente': client?.name || '',
-                  'Edificio': building?.name || '',
-                  'Equipo': eq ? `${eq.brand} ${eq.model}` : '',
-                  'Tipo Revisión': revisionTypeLabels[rev.revision_type] || '',
-                  'Fecha': rev.scheduled_date || '',
-                  'Estado': rev.status === 'completed' ? 'Completada' : 'Pendiente'
-                };
-              })}
-              filename="revisiones"
-            />
-            <ImportButton
-              onImport={async (data) => {
-                const revisionsToImport = data.map(row => ({
-                  client_id: row.client_id || '',
-                  building_id: row.building_id || '',
-                  equipment_id: row.equipment_id || '',
-                  scheduled_date: row.scheduled_date || row['Fecha'] || '',
-                  revision_type: row.revision_type || row['Tipo Revisión'] || 'monthly',
-                  status: row.status || row['Estado'] === 'Completada' ? 'completed' : 'pending'
-                }));
-                await base44.entities.ScheduledRevision.bulkCreate(revisionsToImport);
-                queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
-              }}
-              label="Importar"
-            />
+
             <Button
               variant={viewMode === 'calendar' ? 'default' : 'outline'}
               onClick={() => setViewMode('calendar')}

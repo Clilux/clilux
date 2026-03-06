@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Thermometer, MapPin, Calendar, Home, AlertCircle } from 'lucide-react';
+import { Search, Thermometer, MapPin, Calendar, Home, AlertCircle, LayoutGrid, List, LayoutList } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { format } from 'date-fns';
 

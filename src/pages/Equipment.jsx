@@ -105,53 +105,7 @@ export default function Equipment() {
               </Button>
             </Link>
             
-            <ExportButton
-              data={filteredEquipment.map((eq) => {
-                const building = buildings.find((b) => b.id === eq.building_id);
-                const client = clients.find((c) => c.id === eq.client_id);
-                return {
-                  'Cliente': client?.name || '',
-                  'Edificio': building?.name || '',
-                  'Tipo': eq.equipment_type || '',
-                  'Marca': eq.brand || '',
-                  'Modelo': eq.model || '',
-                  'Nº Serie': eq.serial_number || '',
-                  'Ubicación': eq.location || '',
-                  'Estado': statusLabels[eq.status]?.label || '',
-                  'Potencia Frío (kW)': eq.cooling_power_kw || '',
-                  'Potencia Calor (kW)': eq.heating_power_kw || '',
-                  'Refrigerante': eq.refrigerant_type || '',
-                  'Carga (kg)': eq.refrigerant_charge_kg || '',
-                  'Instalación': eq.installation_date || '',
-                  'Próxima Revisión': eq.next_revision_date || ''
-                };
-              })}
-              fileName="equipos" />
 
-            
-            <ImportButton
-              onImport={async (data) => {
-                const equipmentToImport = data.map(row => ({
-                  client_id: row.client_id || '',
-                  building_id: row.building_id || '',
-                  equipment_type: row.equipment_type || row['Tipo'] || '',
-                  brand: row.brand || row['Marca'] || '',
-                  model: row.model || row['Modelo'] || '',
-                  serial_number: row.serial_number || row['Nº Serie'] || '',
-                  location: row.location || row['Ubicación'] || '',
-                  cooling_power_kw: parseFloat(row.cooling_power_kw || row['Potencia Frío (kW)'] || 0),
-                  heating_power_kw: parseFloat(row.heating_power_kw || row['Potencia Calor (kW)'] || 0),
-                  refrigerant_type: row.refrigerant_type || row['Refrigerante'] || '',
-                  refrigerant_charge_kg: parseFloat(row.refrigerant_charge_kg || row['Carga (kg)'] || 0),
-                  installation_date: row.installation_date || row['Instalación'] || '',
-                  registration_date: row.registration_date || new Date().toISOString().split('T')[0],
-                  status: row.status || row['Estado'] || 'operational'
-                }));
-                await base44.entities.Equipment.bulkCreate(equipmentToImport);
-                window.location.reload();
-              }}
-              label="Importar"
-            />
 
           </div>
         </div>
