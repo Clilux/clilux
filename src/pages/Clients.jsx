@@ -9,8 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, Building2, MapPin, Phone, ChevronRight } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
-import ExportButton from '../components/ExportButton';
-import ImportButton from '../components/ImportButton';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
 import StatusBadge from '../components/ui/StatusBadge';
 import { Card } from "@/components/ui/card";

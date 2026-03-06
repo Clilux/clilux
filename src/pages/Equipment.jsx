@@ -13,8 +13,6 @@ import {
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import NavHeader from '../components/navigation/NavHeader';
-import ExportButton from '../components/ExportButton';
-import ImportButton from '../components/ImportButton';
 
 const statusLabels = {
   operational: { label: 'Operativo', color: 'bg-emerald-500/20 text-emerald-400' },

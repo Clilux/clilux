@@ -11,8 +11,6 @@ import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import NavHeader from '../components/navigation/NavHeader';
-import ExportButton from '../components/ExportButton';
-import ImportButton from '../components/ImportButton';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
