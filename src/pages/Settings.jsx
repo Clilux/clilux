@@ -374,6 +374,46 @@ export default function Settings() {
                   </Button>
                 </label>
               </div>
+
+              <h4 className="font-medium text-slate-700 mt-8 mb-2">Marca de Agua para Documentos</h4>
+              <p className="text-sm text-slate-500 mb-3">Esta imagen aparecerá como marca de agua semitransparente en los certificados y documentos PDF generados.</p>
+              <div className="flex items-center gap-4">
+                {formData.watermark_url && (
+                  <div className="relative h-20 w-32 border rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
+                    <img src={formData.watermark_url} alt="Marca de agua" className="h-full w-full object-contain opacity-40" />
+                    <span className="absolute bottom-1 left-1 text-xs text-slate-400 bg-white/70 px-1 rounded">Vista previa</span>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploading(true);
+                    try {
+                      const result = await base44.integrations.Core.UploadFile({ file });
+                      handleChange('watermark_url', result.file_url);
+                      toast.success('Marca de agua subida');
+                    } catch {
+                      toast.error('Error al subir la imagen');
+                    } finally {
+                      setUploading(false);
+                    }
+                  }} className="hidden" id="watermark-upload" />
+                  <label htmlFor="watermark-upload">
+                    <Button type="button" variant="outline" asChild disabled={uploading}>
+                      <span>
+                        {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                        Subir marca de agua
+                      </span>
+                    </Button>
+                  </label>
+                  {formData.watermark_url && (
+                    <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-600 block" onClick={() => handleChange('watermark_url', '')}>
+                      Eliminar marca de agua
+                    </Button>
+                  )}
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6 bg-white border-0 shadow-sm">

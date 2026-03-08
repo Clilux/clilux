@@ -29,6 +29,7 @@ export default function IncidentCard({ incident, equipmentName, buildingName, sh
 
   const handleDelete = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (onDelete) {
       onDelete(incident.id);
     }
