@@ -906,6 +906,37 @@ export default function MemoriaTecnicaRITE() {
 
           {/* ===================== TAB DESCRIPCIÓN TÉCNICA ===================== */}
           <TabsContent value="tecnica" className="space-y-4">
+            {/* Selector modo */}
+            <Card className="p-5 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-800 mb-3">¿Cómo quieres introducir la descripción técnica?</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => hC('tecnica_modo', 'formulario')}
+                  className={`flex-1 p-3 rounded-lg border-2 text-sm font-medium transition-all ${form.tecnica_modo === 'formulario' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                >
+                  <Settings className="h-4 w-4 mx-auto mb-1" />
+                  Rellenar formulario
+                  <p className="text-xs font-normal mt-1 text-slate-400">Equipos, distribución, terminales...</p>
+                </button>
+                <button
+                  onClick={() => hC('tecnica_modo', 'documento')}
+                  className={`flex-1 p-3 rounded-lg border-2 text-sm font-medium transition-all ${form.tecnica_modo === 'documento' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                >
+                  <Upload className="h-4 w-4 mx-auto mb-1" />
+                  Adjuntar documento
+                  <p className="text-xs font-normal mt-1 text-slate-400">Subir PDF o archivo ya redactado</p>
+                </button>
+              </div>
+            </Card>
+
+            {form.tecnica_modo === 'documento' ? (
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="font-semibold text-slate-800 mb-2">Adjuntar descripción técnica</h3>
+                <p className="text-sm text-slate-500 mb-4">Sube el documento con la descripción técnica ya redactada (PDF, DOCX...). Se referenciará en la memoria generada.</p>
+                <AdjuntosSection seccion="descripcion_tecnica" label="Subir documento de descripción técnica (PDF, DOCX...)" />
+              </Card>
+            ) : (
+            <>
             <Card className="p-6 bg-white border-0 shadow-sm">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
                 <h3 className="font-semibold text-slate-800">Equipos generadores</h3>
