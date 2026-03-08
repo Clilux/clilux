@@ -987,6 +987,8 @@ export default function MemoriaTecnicaRITE() {
             </Card>
 
             <AdjuntosSection seccion="descripcion_tecnica" label="Adjuntar fichas técnicas y documentación de equipos" />
+            </>
+            )}
           </TabsContent>
 
           {/* ===================== TAB VENTILACIÓN ===================== */}
