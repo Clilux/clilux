@@ -89,8 +89,43 @@ export default function CertificadoRITE() {
   const [pendingPdfBlob, setPendingPdfBlob] = useState(null);
   const [pendingFilename, setPendingFilename] = useState('');
 
+  // RITE compliance criteria per RD 1027/2007
+  const criteriasRITE = [
+    // IT 1 - Diseño y dimensionado
+    { id: 'it1_1', seccion: 'IT 1.1 – Calidad del ambiente interior', texto: 'La instalación garantiza las condiciones de calidad del aire interior (categorías IDA) según tabla 1.4.2.1' },
+    { id: 'it1_2', seccion: 'IT 1.2 – Exigencia de calidad del aire interior', texto: 'El caudal de aire exterior es el mínimo exigido para cada categoría de calidad del aire (IDA 1 a IDA 4)' },
+    { id: 'it1_3', seccion: 'IT 1.2.4.5 – Filtración', texto: 'Los filtros de aire cumplen los requisitos de eficacia mínima (clases G4, F6, F7, F8, F9 o superiores según corresponda)' },
+    { id: 'it1_4', seccion: 'IT 1.3.4 – Eficiencia energética', texto: 'Los equipos de generación de frío y calor cumplen los rendimientos mínimos exigidos (COP/EER mínimos)' },
+    { id: 'it1_5', seccion: 'IT 1.3.4.1 – Generadores de calor', texto: 'Las calderas tienen rendimiento estacional ≥ 90% (gas natural) o ≥ 85% (gasóleo) para potencias > 70 kW' },
+    { id: 'it1_6', seccion: 'IT 1.3.4.2 – Generadores de frío', texto: 'Las enfriadoras cumplen los valores mínimos de EER en condiciones de referencia según tabla IT 1.3.4.2' },
+    { id: 'it1_7', seccion: 'IT 1.3.4.4 – Redes de tuberías y conductos', texto: 'Las redes de distribución disponen del aislamiento térmico exigido (Tabla 1.2.4.2 de espesores mínimos)' },
+    { id: 'it1_8', seccion: 'IT 1.3.4.5 – Control', texto: 'La instalación dispone de un sistema de control automático con regulación de temperatura (termostatos, sondas, etc.)' },
+    { id: 'it1_9', seccion: 'IT 1.3.4.6 – Contabilización de energía', texto: 'La instalación dispone de contadores de energía según los umbrales de potencia exigidos (≥ 70 kW)' },
+    { id: 'it1_10', seccion: 'IT 1.3.4.7 – Recuperación de energía', texto: 'La instalación incorpora sistemas de recuperación de calor donde es preceptivo (caudal ≥ 0,5 m³/s)' },
+    // IT 2 - Montaje
+    { id: 'it2_1', seccion: 'IT 2 – Montaje', texto: 'La instalación ha sido ejecutada por empresa instaladora habilitada y se dispone del certificado de instalación' },
+    { id: 'it2_2', seccion: 'IT 2.1 – Proyecto', texto: 'La instalación dispone de proyecto técnico firmado por técnico competente (obligatorio para P > 70 kW)' },
+    // IT 3 - Mantenimiento
+    { id: 'it3_1', seccion: 'IT 3.1 – Manual de uso y mantenimiento', texto: 'Existe el "Manual de uso y mantenimiento" de la instalación disponible en el edificio' },
+    { id: 'it3_2', seccion: 'IT 3.2 – Empresa mantenedora', texto: 'El mantenimiento es realizado por empresa mantenedora habilitada con contrato vigente (para P > 5 kW)' },
+    { id: 'it3_3', seccion: 'IT 3.3 – Frecuencia mantenimiento', texto: 'Las operaciones de mantenimiento se realizan con la frecuencia exigida según tablas 3.3 y 3.4 del RITE' },
+    { id: 'it3_4', seccion: 'IT 3.3 – Registro operaciones', texto: 'Existe el "Libro de mantenimiento" o registro de todas las operaciones realizadas con fechas y resultados' },
+    { id: 'it3_5', seccion: 'IT 3.3 – Inspecciones periódicas', texto: 'Se han realizado las inspecciones periódicas obligatorias por organismo de control autorizado (OCA) en el plazo exigido' },
+    // IT 4 - Inspección
+    { id: 'it4_1', seccion: 'IT 4.1 – Inspección de calderas', texto: 'Las calderas con potencia > 20 kW (calef.) o > 12 kW (ACS) han sido inspeccionadas en los plazos reglamentarios' },
+    { id: 'it4_2', seccion: 'IT 4.2 – Inspección de instalaciones de A/A', texto: 'Las instalaciones de climatización con P > 12 kW (frío) han sido inspeccionadas cada 5 años por OCA' },
+    { id: 'it4_3', seccion: 'IT 4 – Certificado de inspección', texto: 'Se dispone del certificado de inspección vigente emitido por OCA o técnico competente' },
+    // Refrigerantes
+    { id: 'ref_1', seccion: 'Reglamento F-Gas – Refrigerantes HFC', texto: 'Los equipos con refrigerantes HFC cumplen la normativa de control de fugas (Reg. 517/2014): revisiones periódicas según carga' },
+    { id: 'ref_2', seccion: 'F-Gas – Registro operador', texto: 'El operador de equipos con ≥ 5 ton CO2-eq de refrigerante tiene contrato con empresa frigorista certificada (carné F-Gas)' },
+    // Legionella (si aplica)
+    { id: 'leg_1', seccion: 'RD 487/2022 – Legionella (si aplica)', texto: 'Las instalaciones de riesgo de legionella (torres, ACS, adiabáticos) disponen de programa de control aprobado por sanidad' },
+  ];
+
   const [form, setForm] = useState({
     num_certificado: '',
+    // Cumplimiento RITE
+    criterias_rite: criteriasRITE.map(c => ({ id: c.id, cumple: '', observacion: '' })),
     // Titular
     titular_nombre: '',
     titular_nif: '',
@@ -218,6 +253,14 @@ export default function CertificadoRITE() {
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCriteriaRITE = (index, field, value) => {
+    setForm(prev => {
+      const updated = [...prev.criterias_rite];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, criterias_rite: updated };
+    });
   };
 
   const handleOperacion = (type, index, field, value) => {
@@ -854,6 +897,72 @@ export default function CertificadoRITE() {
               <Label>Tipos generadores calor</Label>
               <Input className="mt-1" value={form.tipos_gen_calor} onChange={e => handleChange('tipos_gen_calor', e.target.value)} placeholder="Ej: Caldera gas, Bomba calor..." />
             </div>
+          </div>
+        </Card>
+
+        {/* Criterios de Cumplimiento RITE */}
+        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+          <h3 className="font-semibold text-slate-800 mb-2 border-b pb-2">Criterios de Cumplimiento RITE (RD 1027/2007)</h3>
+          <p className="text-xs text-slate-500 mb-4">Marca si cada criterio del Reglamento de Instalaciones Térmicas en Edificios se cumple, no cumple, o no aplica a esta instalación.</p>
+          
+          {/* Summary badges */}
+          <div className="flex gap-3 mb-4 flex-wrap">
+            {['Sí cumple', 'No cumple', 'No aplica'].map(estado => {
+              const count = (form.criterias_rite || []).filter(c => c.cumple === estado).length;
+              const color = estado === 'Sí cumple' ? 'bg-green-100 text-green-700' : estado === 'No cumple' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600';
+              return (
+                <span key={estado} className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
+                  {estado}: {count}
+                </span>
+              );
+            })}
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+              Sin responder: {(form.criterias_rite || []).filter(c => !c.cumple).length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {criteriasRITE.map((criterio, i) => {
+              const val = form.criterias_rite?.[i] || {};
+              const rowColor = val.cumple === 'Sí cumple' ? 'bg-green-50 border-green-200' : val.cumple === 'No cumple' ? 'bg-red-50 border-red-200' : val.cumple === 'No aplica' ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200';
+              return (
+                <div key={criterio.id} className={`p-3 border rounded-lg ${rowColor} transition-colors`}>
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <div className="flex-1">
+                      <div className="text-xs font-semibold text-slate-500 mb-0.5">{criterio.seccion}</div>
+                      <div className="text-sm text-slate-700">{criterio.texto}</div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <select
+                        value={val.cumple || ''}
+                        onChange={e => handleCriteriaRITE(i, 'cumple', e.target.value)}
+                        className={`h-8 text-xs rounded border px-2 font-medium
+                          ${val.cumple === 'Sí cumple' ? 'bg-green-100 border-green-300 text-green-800' :
+                            val.cumple === 'No cumple' ? 'bg-red-100 border-red-300 text-red-800' :
+                            val.cumple === 'No aplica' ? 'bg-slate-100 border-slate-300 text-slate-600' :
+                            'bg-white border-slate-300 text-slate-500'}`}
+                      >
+                        <option value="">— Valorar —</option>
+                        <option value="Sí cumple">✓ Sí cumple</option>
+                        <option value="No cumple">✗ No cumple</option>
+                        <option value="No aplica">— No aplica</option>
+                      </select>
+                    </div>
+                  </div>
+                  {val.cumple === 'No cumple' && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        value={val.observacion || ''}
+                        onChange={e => handleCriteriaRITE(i, 'observacion', e.target.value)}
+                        placeholder="Observación o acción correctiva..."
+                        className="w-full h-7 text-xs rounded border border-red-300 bg-white px-2 text-slate-700"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
 
