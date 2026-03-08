@@ -687,8 +687,40 @@ export default function MemoriaTecnicaRITE() {
 
       // ===== SECCIÓN 6: PLANOS Y DOCUMENTACIÓN =====
       sec('6. PLANOS Y DOCUMENTACIÓN COMPLEMENTARIA');
+
+      // Planos
+      const planosAdj = form.adjuntos['planos'] || [];
+      chk(8);
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.text('Planos adjuntos:', margin, y+4); y+=6;
+      if (!form.incluir_planos || planosAdj.length === 0) {
+        doc.setFont('helvetica','italic'); doc.setTextColor(150,150,150); doc.setFontSize(7.5);
+        doc.text(form.incluir_planos ? 'No se han adjuntado planos.' : 'No se han incluido planos en esta memoria.', margin+4, y+4);
+        doc.setTextColor(0,0,0); y+=7;
+      } else {
+        // Listar todos los planos
+        planosAdj.forEach(d => { chk(5); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text(`• ${d.name}`, margin+4, y+4); y+=5; });
+        // Incrustar imágenes PNG/JPG en páginas propias
+        const imgPlanos = planosAdj.filter(d => d.type && (d.type.includes('image/png') || d.type.includes('image/jpeg') || d.type.includes('image/jpg')));
+        for (const plano of imgPlanos) {
+          const imgData = await loadImageAsBase64(plano.url);
+          if (imgData) {
+            newPage();
+            doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(cr,cg,cb);
+            doc.text(`PLANO: ${plano.name}`, pageW/2, y, { align: 'center' }); y+=5;
+            doc.setTextColor(0,0,0);
+            const maxW = cW; const maxH = 240;
+            const aspect = imgData.w / imgData.h;
+            let imgW = maxW, imgH = maxW / aspect;
+            if (imgH > maxH) { imgH = maxH; imgW = maxH * aspect; }
+            const imgX = margin + (cW - imgW) / 2;
+            doc.addImage(imgData.dataUrl, 'PNG', imgX, y, imgW, imgH);
+            y += imgH + 5;
+          }
+        }
+      }
+
+      // Documentación complementaria y cálculos
       const adjSecs = [
-        {key:'planos', label:'Planos adjuntos'},
         {key:'complementaria', label:'Documentación complementaria (CE, fichas técnicas...)'},
         {key:'calculos', label:'Anexos de cálculo'},
       ];
