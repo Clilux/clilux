@@ -271,6 +271,9 @@ export default function MemoriaTecnicaRITE() {
       planos: [],
       complementaria: [],
     },
+    // Modo de entrada por sección
+    tecnica_modo: 'formulario', // 'formulario' | 'documento'
+    ventilacion_modo: 'formulario', // 'formulario' | 'documento'
     // Planos
     incluir_planos: false,
     observaciones_generales: '',
