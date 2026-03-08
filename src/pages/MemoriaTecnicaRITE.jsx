@@ -936,7 +936,7 @@ export default function MemoriaTecnicaRITE() {
                 <AdjuntosSection seccion="descripcion_tecnica" label="Subir documento de descripción técnica (PDF, DOCX...)" />
               </Card>
             ) : (
-            <>
+            <div className="space-y-4">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <div className="flex justify-between items-center mb-4 border-b pb-2">
                 <h3 className="font-semibold text-slate-800">Equipos generadores</h3>
@@ -987,7 +987,7 @@ export default function MemoriaTecnicaRITE() {
             </Card>
 
             <AdjuntosSection seccion="descripcion_tecnica" label="Adjuntar fichas técnicas y documentación de equipos" />
-            </>
+            </div>
             )}
           </TabsContent>
 
@@ -1023,7 +1023,7 @@ export default function MemoriaTecnicaRITE() {
                 <AdjuntosSection seccion="calculos" label="Subir estudio de ventilación (PDF, DOCX...)" />
               </Card>
             ) : (
-            <>
+            <div className="space-y-4">
             <Card className="p-4 bg-amber-50 border-amber-200">
               <p className="text-sm text-amber-800 font-medium mb-1">RITE IT 1.1.4.2 — RD 178/2021 (actualización ISO 16890)</p>
               <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
@@ -1237,7 +1237,7 @@ export default function MemoriaTecnicaRITE() {
             ))}
 
             <Button onClick={addZona} variant="outline" className="w-full border-dashed"><Plus className="h-4 w-4 mr-2" />Añadir zona</Button>
-            </>
+            </div>
             )}
           </TabsContent>
 
