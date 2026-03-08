@@ -1237,6 +1237,8 @@ export default function MemoriaTecnicaRITE() {
             ))}
 
             <Button onClick={addZona} variant="outline" className="w-full border-dashed"><Plus className="h-4 w-4 mr-2" />Añadir zona</Button>
+            </>
+            )}
           </TabsContent>
 
           {/* ===================== TAB CÁLCULOS ===================== */}
