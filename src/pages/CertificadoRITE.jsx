@@ -296,16 +296,35 @@ export default function CertificadoRITE() {
       const contentW = pageW - margin * 2;
       let y = 15;
 
-      // Precargar logo
+      // Precargar logo y marca de agua
       let logoData = null;
       if (settings?.logo_url) {
         logoData = await loadImageAsBase64(settings.logo_url);
       }
+      let watermarkData = null;
+      if (settings?.watermark_url) {
+        watermarkData = await loadImageAsBase64(settings.watermark_url);
+      }
 
+      const addWatermark = () => {
+        if (!watermarkData) return;
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.08 }));
+        const wmMaxW = 120;
+        const wmAspect = watermarkData.w / watermarkData.h;
+        const wmW = wmMaxW;
+        const wmH = wmW / wmAspect;
+        doc.addImage(watermarkData.dataUrl, 'PNG', (pageW - wmW) / 2, (297 - wmH) / 2, wmW, wmH);
+        doc.restoreGraphicsState();
+      };
+
+      let pageCount = 1;
       const addPage = () => {
+        addWatermark();
         doc.addPage();
+        pageCount++;
         y = 15;
-        addPageHeader(2);
+        addPageHeader(pageCount);
       };
 
       const checkPageBreak = (needed = 8) => {
@@ -356,6 +375,7 @@ export default function CertificadoRITE() {
       };
 
       addPageHeader(1);
+      addWatermark();
 
       const drawSection = (title) => {
         checkPageBreak(12);
