@@ -993,6 +993,37 @@ export default function MemoriaTecnicaRITE() {
 
           {/* ===================== TAB VENTILACIÓN ===================== */}
           <TabsContent value="ventilacion" className="space-y-4">
+            {/* Selector modo */}
+            <Card className="p-5 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-800 mb-3">¿Cómo quieres introducir los datos de ventilación?</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => hC('ventilacion_modo', 'formulario')}
+                  className={`flex-1 p-3 rounded-lg border-2 text-sm font-medium transition-all ${form.ventilacion_modo === 'formulario' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                >
+                  <Wind className="h-4 w-4 mx-auto mb-1" />
+                  Rellenar formulario
+                  <p className="text-xs font-normal mt-1 text-slate-400">Zonas, IDA, ODA, caudales, filtros...</p>
+                </button>
+                <button
+                  onClick={() => hC('ventilacion_modo', 'documento')}
+                  className={`flex-1 p-3 rounded-lg border-2 text-sm font-medium transition-all ${form.ventilacion_modo === 'documento' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                >
+                  <Upload className="h-4 w-4 mx-auto mb-1" />
+                  Adjuntar documento
+                  <p className="text-xs font-normal mt-1 text-slate-400">Subir informe de ventilación ya redactado</p>
+                </button>
+              </div>
+            </Card>
+
+            {form.ventilacion_modo === 'documento' ? (
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="font-semibold text-slate-800 mb-2">Adjuntar estudio de ventilación</h3>
+                <p className="text-sm text-slate-500 mb-4">Sube el documento con el estudio de ventilación ya redactado (PDF, DOCX...). Se referenciará en la sección 3 de la memoria generada.</p>
+                <AdjuntosSection seccion="calculos" label="Subir estudio de ventilación (PDF, DOCX...)" />
+              </Card>
+            ) : (
+            <>
             <Card className="p-4 bg-amber-50 border-amber-200">
               <p className="text-sm text-amber-800 font-medium mb-1">RITE IT 1.1.4.2 — RD 178/2021 (actualización ISO 16890)</p>
               <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
