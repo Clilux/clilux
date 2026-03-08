@@ -271,6 +271,8 @@ export default function MemoriaTecnicaRITE() {
       planos: [],
       complementaria: [],
     },
+    // Planos
+    incluir_planos: false,
     observaciones_generales: '',
   });
 
@@ -1176,18 +1178,40 @@ export default function MemoriaTecnicaRITE() {
 
           {/* ===================== TAB PLANOS Y DOCS ===================== */}
           <TabsContent value="planos" className="space-y-4">
+            {/* Pregunta si incluir planos */}
             <Card className="p-6 bg-white border-0 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-4 border-b pb-2">Planos y esquemas</h3>
-              <div className="space-y-3 text-sm text-slate-600">
-                {['Plano de emplazamiento y situación','Plano en planta con ubicación de equipos y trazado','Esquema de principio (diámetros, seguridad, vasos...)','Plano detalle sala de calderas / máquinas','Plano PDC (evacuación productos combustión)'].map((p,i)=>(
-                  <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded border">
-                    <ChevronRight className="h-3 w-3 text-slate-400 flex-shrink-0" />
-                    <span>{p}</span>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-800">¿Deseas adjuntar planos a la memoria?</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    El RITE exige planos de la instalación para expedientes con P &gt; 70 kW o cuando lo requiera el órgano competente de la CCAA. Los planos en imagen (PNG/JPG) se incrustarán en el PDF generado.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 ml-6">
+                  <span className={`text-sm font-medium ${!form.incluir_planos ? 'text-slate-800' : 'text-slate-400'}`}>No</span>
+                  <Switch checked={form.incluir_planos} onCheckedChange={v => hC('incluir_planos', v)} />
+                  <span className={`text-sm font-medium ${form.incluir_planos ? 'text-slate-800' : 'text-slate-400'}`}>Sí</span>
+                </div>
               </div>
-              <AdjuntosSection seccion="planos" label="Subir planos (PDF, DWG, DXF, PNG...)" />
             </Card>
+
+            {form.incluir_planos && (
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="font-semibold text-slate-800 mb-3 border-b pb-2">Planos y esquemas</h3>
+                <div className="space-y-2 text-sm text-slate-600 mb-4">
+                  {['Plano de emplazamiento y situación','Plano en planta con ubicación de equipos y trazado','Esquema de principio (diámetros, seguridad, vasos...)','Plano detalle sala de calderas / máquinas','Plano PDC (evacuación productos combustión)'].map((p,i)=>(
+                    <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded border">
+                      <ChevronRight className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                      <span>{p}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-3">
+                  💡 Los archivos <strong>PNG/JPG</strong> se incrustarán directamente en el PDF. Los archivos <strong>PDF, DWG, DXF</strong> se referenciarán como anexos adjuntos.
+                </p>
+                <AdjuntosSection seccion="planos" label="Subir planos (PDF, DWG, DXF, PNG, JPG...)" />
+              </Card>
+            )}
 
             <Card className="p-6 bg-white border-0 shadow-sm">
               <h3 className="font-semibold text-slate-800 mb-4 border-b pb-2">Documentación complementaria</h3>
