@@ -522,6 +522,15 @@ export default function EquipmentDetail() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="incidents">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />Historial de Incidencias
+              </h3>
+              <EquipmentIncidents equipmentId={equipmentId} />
+            </Card>
+          </TabsContent>
+
           <TabsContent value="photos">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <PhotosTab equipment={equipment} equipmentId={equipmentId} />
