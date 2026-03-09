@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCheck, Home, Calendar, Download } from 'lucide-react';
+import { ClipboardCheck, Home, Calendar, Download, MapPin, List, LayoutGrid, LayoutList } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
