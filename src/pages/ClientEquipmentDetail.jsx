@@ -365,47 +365,58 @@ export default function ClientEquipmentDetail() {
           }
         </Card>
 
-        {/* Revisiones */}
+        {/* Revisiones e Incidencias */}
         <Card className="bg-slate-100 text-card-foreground mb-6 p-6 rounded-xl border shadow backdrop-blur-sm border-white/20">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-purple-500" />
-            Historial de Revisiones ({revisions.length})
-          </h2>
+          <Tabs defaultValue="revisions">
+            <TabsList className="mb-4">
+              <TabsTrigger value="revisions" className="flex items-center gap-1.5">
+                <ClipboardCheck className="h-4 w-4" />Revisiones
+              </TabsTrigger>
+              <TabsTrigger value="incidents" className="flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" />Incidencias
+              </TabsTrigger>
+            </TabsList>
 
-          {revisions.length === 0 ?
-          <p className="text-slate-500 text-center py-8">No hay revisiones registradas</p> :
-
-          <div className="space-y-3">
-              {revisions.map((revision) => (
-                <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-slate-800">
-                        {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
-                      </h3>
-                      <p className="text-sm text-slate-500">
-                        Tipo: {revisionTypeLabels[revision.revision_type] || revision.revision_type}
-                      </p>
+            <TabsContent value="revisions">
+              {revisions.length === 0 ?
+              <p className="text-slate-500 text-center py-8">No hay revisiones registradas</p> :
+              <div className="space-y-3">
+                {revisions.map((revision) => (
+                  <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-slate-800">
+                          {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          Tipo: {revisionTypeLabels[revision.revision_type] || revision.revision_type}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
+                        <Button size="sm" variant="outline" onClick={() => handleRevisionPDF(revision, equipment)} className="h-7 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-50">
+                          <Download className="h-3 w-3 mr-1" />Descargar
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
-                      <Button size="sm" variant="outline" onClick={() => handleRevisionPDF(revision, equipment)} className="h-7 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-50">
-                        <Download className="h-3 w-3 mr-1" />Descargar
-                      </Button>
-                    </div>
+                    {revision.notes && <p className="text-sm text-slate-500 mt-2">{revision.notes}</p>}
+                    {revision.revision_data && Object.keys(revision.revision_data).length > 0 && (
+                      <div className="mt-2 grid grid-cols-2 gap-1">
+                        {Object.entries(revision.revision_data).slice(0, 6).map(([k, v]) => (
+                          <p key={k} className="text-xs text-slate-500"><span className="font-medium">{k}:</span> {String(v)}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {revision.notes && <p className="text-sm text-slate-500 mt-2">{revision.notes}</p>}
-                  {revision.revision_data && Object.keys(revision.revision_data).length > 0 && (
-                    <div className="mt-2 grid grid-cols-2 gap-1">
-                      {Object.entries(revision.revision_data).slice(0, 6).map(([k, v]) => (
-                        <p key={k} className="text-xs text-slate-500"><span className="font-medium">{k}:</span> {String(v)}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          }
+                ))}
+              </div>
+              }
+            </TabsContent>
+
+            <TabsContent value="incidents">
+              <EquipmentIncidents equipmentId={equipmentId} isClientView={true} />
+            </TabsContent>
+          </Tabs>
         </Card>
 
 
