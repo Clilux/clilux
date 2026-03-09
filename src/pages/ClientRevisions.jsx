@@ -25,6 +25,7 @@ export default function ClientRevisions() {
   const [clientId, setClientId] = useState(null);
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterEquipment, setFilterEquipment] = useState('all');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('client_revisions_view') || 'list');
 
   useEffect(() => {
     const storedClientId = sessionStorage.getItem('client_id');
