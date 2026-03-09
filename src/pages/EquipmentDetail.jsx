@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Edit, MapPin, Calendar, FileText, 
   Snowflake, Flame, Wind, Droplet, 
-  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X
+  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X, AlertTriangle
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
