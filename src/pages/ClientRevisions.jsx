@@ -248,8 +248,8 @@ export default function ClientRevisions() {
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Revisiones" showBack={true} homeUrl="HomeCliente" />
 
-        {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Filtros y vista */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6 items-start sm:items-center">
           <Select value={filterMonth} onValueChange={setFilterMonth}>
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="Filtrar por mes" />
