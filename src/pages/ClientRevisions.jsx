@@ -281,6 +281,12 @@ export default function ClientRevisions() {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="flex gap-1 border rounded-lg p-1 bg-white w-fit flex-shrink-0">
+            <button onClick={() => { setViewMode('list'); localStorage.setItem('client_revisions_view', 'list'); }} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`} title="Lista"><List className="h-4 w-4" /></button>
+            <button onClick={() => { setViewMode('grid'); localStorage.setItem('client_revisions_view', 'grid'); }} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`} title="Cuadrícula"><LayoutGrid className="h-4 w-4" /></button>
+            <button onClick={() => { setViewMode('compact'); localStorage.setItem('client_revisions_view', 'compact'); }} className={`p-1.5 rounded ${viewMode === 'compact' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`} title="Compacto"><LayoutList className="h-4 w-4" /></button>
+          </div>
         </div>
 
         {filteredRevisions.length === 0 ? (
