@@ -303,42 +303,105 @@ export default function ClientRevisions() {
             </div>
           </Card>
         ) : (
-          <div className="grid gap-3">
-            {filteredRevisions.map((revision) => (
-              <Card key={revision.id} className="bg-slate-200 p-5 rounded-xl border shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <ClipboardCheck className="h-5 w-5 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">
-                        {getEquipmentName(revision.equipment_id)}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                        <p className="text-sm text-slate-600">
-                          {format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}
-                        </p>
+          <>
+            {/* LIST VIEW */}
+            {viewMode === 'list' && (
+              <div className="grid gap-3">
+                {filteredRevisions.map((revision) => {
+                  const eq = getEquipment(revision.equipment_id);
+                  return (
+                    <Card key={revision.id} className="bg-slate-200 p-5 rounded-xl border shadow">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <ClipboardCheck className="h-5 w-5 text-purple-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xl font-bold text-slate-900 leading-tight">
+                              {eq?.reference_name || getEquipmentName(revision.equipment_id)}
+                            </p>
+                            {eq && <p className="text-sm text-slate-500 mt-0.5">{eq.brand} {eq.model}</p>}
+                            {eq?.location && <div className="flex items-center gap-1 mt-0.5 text-sm text-blue-700 font-medium"><MapPin className="h-3.5 w-3.5" />{eq.location}</div>}
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                              <p className="text-sm text-slate-600">{format(new Date(revision.completed_date || revision.scheduled_date), "dd 'de' MMMM yyyy", { locale: es })}</p>
+                            </div>
+                            {revision.notes && <p className="text-sm text-slate-500 mt-1">{revision.notes}</p>}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                          <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
+                          <Badge className="bg-purple-100 text-purple-700 text-xs">{revisionTypeLabels[revision.revision_type] || revision.revision_type}</Badge>
+                          <Button size="sm" variant="outline" onClick={() => handleDownloadPDF(revision)} className="h-7 px-2 text-xs gap-1 border-purple-300 text-purple-700 hover:bg-purple-50">
+                            <Download className="h-3 w-3" />Descargar
+                          </Button>
+                        </div>
                       </div>
-                      {revision.notes && (
-                        <p className="text-sm text-slate-500 mt-1">{revision.notes}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge className="bg-emerald-100 text-emerald-700">Completada</Badge>
-                    <Badge className="bg-purple-100 text-purple-700 text-xs">
-                      {revisionTypeLabels[revision.revision_type] || revision.revision_type}
-                    </Badge>
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadPDF(revision)} className="h-7 px-2 text-xs gap-1 border-purple-300 text-purple-700 hover:bg-purple-50">
-                      <Download className="h-3 w-3" />Descargar
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* GRID VIEW */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredRevisions.map((revision) => {
+                  const eq = getEquipment(revision.equipment_id);
+                  return (
+                    <Card key={revision.id} className="bg-slate-200 p-4 rounded-xl border shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge className="bg-purple-100 text-purple-700 text-xs">{revisionTypeLabels[revision.revision_type] || revision.revision_type}</Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs">Completada</Badge>
+                      </div>
+                      <p className="text-lg font-bold text-slate-900 leading-tight">{eq?.reference_name || getEquipmentName(revision.equipment_id)}</p>
+                      {eq && <p className="text-sm text-slate-500 mt-0.5">{eq.brand} {eq.model}</p>}
+                      {eq?.location && <div className="flex items-center gap-1 mt-0.5 text-sm text-blue-700 font-medium"><MapPin className="h-3.5 w-3.5" />{eq.location}</div>}
+                      <div className="flex items-center gap-1.5 mt-2 text-sm text-slate-500">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {format(new Date(revision.completed_date || revision.scheduled_date), "dd MMM yyyy", { locale: es })}
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => handleDownloadPDF(revision)} className="mt-3 w-full h-7 text-xs gap-1 border-purple-300 text-purple-700 hover:bg-purple-50">
+                        <Download className="h-3 w-3" />Descargar PDF
+                      </Button>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* COMPACT VIEW */}
+            {viewMode === 'compact' && (
+              <div className="grid gap-2">
+                {filteredRevisions.map((revision) => {
+                  const eq = getEquipment(revision.equipment_id);
+                  return (
+                    <Card key={revision.id} className="bg-slate-200 px-4 py-3 rounded-lg border shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <ClipboardCheck className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 text-sm leading-tight truncate">{eq?.reference_name || getEquipmentName(revision.equipment_id)}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {eq && <span className="text-xs text-slate-500">{eq.brand} {eq.model}</span>}
+                              {eq?.location && <div className="flex items-center gap-0.5 text-xs text-blue-700 font-medium"><MapPin className="h-3 w-3" />{eq.location}</div>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-xs text-slate-500">{format(new Date(revision.completed_date || revision.scheduled_date), "dd/MM/yy")}</span>
+                          <Badge className="bg-purple-100 text-purple-700 text-xs hidden sm:inline-flex">{revisionTypeLabels[revision.revision_type] || revision.revision_type}</Badge>
+                          <Button size="sm" variant="ghost" onClick={() => handleDownloadPDF(revision)} className="h-7 w-7 p-0 text-purple-700 hover:bg-purple-50">
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
