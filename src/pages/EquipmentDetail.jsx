@@ -490,10 +490,11 @@ export default function EquipmentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-6">
             <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
+            <TabsTrigger value="incidents">Incidencias</TabsTrigger>
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
