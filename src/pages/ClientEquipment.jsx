@@ -147,18 +147,17 @@ export default function ClientEquipment() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-800 mb-0.5">
+                          <h3 className="text-xl font-bold text-slate-900 leading-tight">
                             {eq.reference_name || `${eq.brand} ${eq.model}`}
                           </h3>
-                          <p className="text-sm text-slate-500 mb-0.5">{eq.brand} {eq.model}</p>
-                          {eq.serial_number && <p className="text-xs text-slate-400">S/N: {eq.serial_number}</p>}
+                          <p className="text-sm text-slate-500 mt-0.5">{eq.brand} {eq.model}</p>
+                          {eq.location && <div className="flex items-center gap-1 mt-1 text-sm text-blue-700 font-medium"><MapPin className="h-3.5 w-3.5" />{eq.location}</div>}
                         </div>
                         <Badge className={statusColors[eq.status || 'operational']}>
                           {statusLabels[eq.status || 'operational']}
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                        {eq.location && <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{eq.location}</div>}
                         <div className="flex items-center gap-1.5"><Thermometer className="h-3.5 w-3.5" />{getBuildingName(eq.building_id)}</div>
                         {eq.installation_date && <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" />Instalado: {format(new Date(eq.installation_date), 'dd/MM/yyyy')}</div>}
                       </div>
@@ -177,11 +176,11 @@ export default function ClientEquipment() {
                   {eq.photo_url && <div className="h-40 overflow-hidden rounded-t-xl"><img src={eq.photo_url} alt="" className="w-full h-full object-contain bg-slate-50" /></div>}
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-semibold text-slate-800 text-sm leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
+                      <h3 className="font-bold text-slate-900 text-base leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
                       <Badge className={`${statusColors[eq.status || 'operational']} text-xs ml-1`}>{statusLabels[eq.status || 'operational']}</Badge>
                     </div>
-                    <p className="text-xs text-slate-500">{eq.equipment_type}</p>
-                    {eq.location && <p className="text-xs text-slate-400 mt-1 truncate">{eq.location}</p>}
+                    <p className="text-xs text-slate-500">{eq.brand} {eq.model}</p>
+                    {eq.location && <div className="flex items-center gap-1 mt-1 text-xs text-blue-700 font-medium"><MapPin className="h-3 w-3" />{eq.location}</div>}
                   </div>
                 </Card>
               </Link>
@@ -194,9 +193,9 @@ export default function ClientEquipment() {
               <Link key={eq.id} to={createPageUrl(`ClientEquipmentDetail?id=${eq.id}`)}>
                 <Card className="bg-white border p-3 hover:shadow-md transition-all cursor-pointer">
                   {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl"><img src={eq.photo_url} alt="" className="w-full h-full object-contain bg-slate-50" /></div>}
-                  <p className="font-semibold text-sm text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{eq.equipment_type}</p>
-                  {eq.location && <p className="text-xs text-slate-400 truncate">{eq.location}</p>}
+                  <p className="font-bold text-sm text-slate-900 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{eq.brand} {eq.model}</p>
+                  {eq.location && <div className="flex items-center gap-0.5 mt-1 text-xs text-blue-700 font-medium"><MapPin className="h-3 w-3 flex-shrink-0" /><span className="truncate">{eq.location}</span></div>}
                 </Card>
               </Link>
             )}
