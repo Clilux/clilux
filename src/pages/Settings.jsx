@@ -181,35 +181,60 @@ export default function Settings() {
       await base44.integrations.Core.SendEmail({
         to: user.email,
         subject: `Acceso a tu Portal Cliente - ${companyName}`,
-        body: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-            <div style="background-color: #1e293b; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-              ${formData.logo_url ? `<img src="${formData.logo_url}" alt="Logo" style="height: 50px; margin-bottom: 16px;" />` : ''}
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${companyName}</h1>
-            </div>
-            <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0;">
-              <h2 style="color: #1e293b; margin-top: 0;">Bienvenido/a al Portal de Cliente</h2>
-              <p style="color: #64748b;">Estimado/a ${client ? client.name : 'cliente'},</p>
-              <p style="color: #64748b;">Ya puedes acceder a tu portal de cliente para consultar el estado de tus equipos, incidencias y revisiones.</p>
-              
-              <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                <h3 style="color: #1e293b; margin-top: 0; font-size: 16px;">Tus credenciales de acceso:</h3>
-                <p style="margin: 8px 0;"><strong style="color: #475569;">Usuario (email):</strong> <span style="color: #0f172a;">${user.email}</span></p>
-                <p style="margin: 8px 0;"><strong style="color: #475569;">Contraseña:</strong> <span style="color: #0f172a;">${user.password}</span></p>
-              </div>
+        body: `<div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; background-color: #f8fafc; padding: 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1e293b; border-radius: 10px 10px 0 0;">
+    <tr>
+      <td style="padding: 28px 30px; text-align: center;">
+        ${formData.logo_url ? `<img src="${formData.logo_url}" alt="Logo" style="height: 44px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;" />` : ''}
+        <div style="color: #ffffff; font-size: 22px; font-weight: bold;">${companyName}</div>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px;">
+    <tr>
+      <td style="padding: 30px;">
+        <p style="color: #1e293b; font-size: 18px; font-weight: bold; margin: 0 0 12px 0;">Bienvenido/a al Portal de Cliente</p>
+        <p style="color: #475569; margin: 0 0 8px 0;">Estimado/a ${client ? client.name : 'cliente'},</p>
+        <p style="color: #475569; margin: 0 0 24px 0;">Ya puedes acceder a tu portal de cliente para consultar el estado de tus equipos, incidencias y revisiones.</p>
 
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${portalUrl}" style="background-color: #3b82f6; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-                  Acceder al Portal
-                </a>
-              </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; margin-bottom: 24px;">
+          <tr>
+            <td style="padding: 20px;">
+              <p style="color: #1e3a5f; font-weight: bold; font-size: 15px; margin: 0 0 14px 0;">🔐 Tus credenciales de acceso</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 8px 12px; background-color: #dbeafe; border-radius: 6px; margin-bottom: 8px; display: block;">
+                    <span style="color: #1e40af; font-size: 12px; font-weight: bold; display: block; margin-bottom: 2px;">USUARIO (EMAIL)</span>
+                    <span style="color: #0f172a; font-size: 15px; font-weight: bold;">${user.email}</span>
+                  </td>
+                </tr>
+                <tr><td style="height: 8px;"></td></tr>
+                <tr>
+                  <td style="padding: 8px 12px; background-color: #dbeafe; border-radius: 6px; display: block;">
+                    <span style="color: #1e40af; font-size: 12px; font-weight: bold; display: block; margin-bottom: 2px;">CONTRASEÑA</span>
+                    <span style="color: #0f172a; font-size: 15px; font-weight: bold; letter-spacing: 1px;">${user.password}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
 
-              <p style="color: #94a3b8; font-size: 13px; margin-top: 24px;">
-                Si tienes algún problema para acceder, contacta con nosotros respondiendo a este email.
-              </p>
-            </div>
-          </div>
-        `,
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="text-align: center; padding: 8px 0 24px 0;">
+              <a href="${portalUrl}" style="background-color: #3b82f6; color: #ffffff; padding: 13px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; display: inline-block;">
+                Acceder al Portal
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <p style="color: #94a3b8; font-size: 12px; margin: 0;">Si tienes algún problema para acceder, contacta con nosotros respondiendo a este email.</p>
+      </td>
+    </tr>
+  </table>
+</div>`,
       });
       toast.success(`Email de acceso enviado a ${user.email}`);
     } catch (error) {
