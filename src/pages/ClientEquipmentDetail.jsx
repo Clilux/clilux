@@ -9,8 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Home, Thermometer, MapPin, Calendar, FileText,
-  Snowflake, Flame, Wind, Droplet, ClipboardCheck, Download } from
+  Snowflake, Flame, Wind, Droplet, ClipboardCheck, Download, AlertTriangle } from
 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EquipmentIncidents from '../components/equipment/EquipmentIncidents';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import jsPDF from 'jspdf';
