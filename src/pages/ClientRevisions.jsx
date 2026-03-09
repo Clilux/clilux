@@ -62,7 +62,7 @@ export default function ClientRevisions() {
 
   const getEquipmentName = (equipmentId) => {
     const eq = equipment.find((e) => e.id === equipmentId);
-    return eq ? `${eq.brand} ${eq.model}` : 'Equipo';
+    return eq ? (eq.reference_name || `${eq.brand} ${eq.model}`) : 'Equipo';
   };
 
   const getEquipment = (equipmentId) => equipment.find((e) => e.id === equipmentId);
