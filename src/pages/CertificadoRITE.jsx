@@ -490,13 +490,15 @@ export default function CertificadoRITE() {
         { label: 'Población', value: form.inst_poblacion, w: contentW * 0.5 },
       ]);
 
-      // Director obra
-      drawSection('DIRECTOR DE OBRA (cuando su participación se preceptiva)');
-      drawRow([
-        { label: 'Nombre', value: form.director_nombre, w: contentW * 0.6 },
-        { label: 'Colegiado', value: form.director_colegiado, w: contentW * 0.4 },
-      ]);
-      drawRow([{ label: 'Colegio profesional', value: form.director_colegio, w: contentW }]);
+      // Director de Mantenimiento (solo obligatorio si > 5.000 kW calor o > 1.000 kW frío)
+      if (requiresDirectorPDF) {
+        drawSection('DIRECTOR DE MANTENIMIENTO (obligatorio: pot. calor > 5.000 kW y/o frío > 1.000 kW)');
+        drawRow([
+          { label: 'Nombre y Apellidos', value: form.director_nombre, w: contentW * 0.6 },
+          { label: 'Núm. Colegiado', value: form.director_colegiado, w: contentW * 0.4 },
+        ]);
+        drawRow([{ label: 'Colegio / Titulación profesional', value: form.director_colegio, w: contentW }]);
+      }
 
       // Empresa mantenedora
       drawSection('EMPRESA MANTENEDORA HABILITADA');
