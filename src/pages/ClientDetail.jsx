@@ -227,18 +227,22 @@ export default function ClientDetail() {
             </div>
           )}
 
-          {clientPortalUser && (
+          {clientPortalUsers.length > 0 && (
             <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-2">Acceso Portal Cliente</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-blue-600">Email:</span>
-                  <p className="font-mono text-blue-900">{clientPortalUser.email}</p>
-                </div>
-                <div>
-                  <span className="text-blue-600">Contraseña:</span>
-                  <p className="font-mono text-blue-900">{clientPortalUser.password}</p>
-                </div>
+              <h4 className="font-medium text-blue-900 mb-3">Acceso Portal Cliente</h4>
+              <div className="space-y-3">
+                {clientPortalUsers.map((u, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-3 text-sm border-t border-blue-100 pt-2 first:border-t-0 first:pt-0">
+                    <div>
+                      <span className="text-blue-600">Email:</span>
+                      <p className="font-mono text-blue-900">{u.email}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-600">Contraseña:</span>
+                      <p className="font-mono text-blue-900">{u.password}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

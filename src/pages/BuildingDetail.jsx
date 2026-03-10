@@ -264,38 +264,7 @@ export default function BuildingDetail() {
               Equipos ({equipment.length})
             </h2>
             <div className="flex gap-2 flex-wrap">
-              <ImportButton 
-                onImport={async (data) => {
-                  const equipmentData = data.map(row => ({
-                    building_id: building.id,
-                    client_id: building.client_id,
-                    brand: row.Marca || row.brand || '',
-                    model: row.Modelo || row.model || '',
-                    serial_number: row['Nº Serie'] || row.serial_number || '',
-                    equipment_type: row.Tipo || row.equipment_type || '',
-                    location: row.Ubicación || row.location || '',
-                    status: row.Estado || row.status || 'operational',
-                    installation_date: row['Fecha Instalación'] || row.installation_date || null,
-                  }));
-                  await base44.entities.Equipment.bulkCreate(equipmentData);
-                  queryClient.invalidateQueries({ queryKey: ['equipment-building', buildingId] });
-                }} 
-                label="Importar"
-              />
-              <ExportButton
-                data={equipment}
-                filename={`equipos_${building.name}`}
-                columns={[
-                  { key: 'brand', label: 'Marca' },
-                  { key: 'model', label: 'Modelo' },
-                  { key: 'serial_number', label: 'Nº Serie' },
-                  { key: 'equipment_type', label: 'Tipo' },
-                  { key: 'location', label: 'Ubicación' },
-                  { key: 'status', label: 'Estado' },
-                  { key: 'installation_date', label: 'Fecha Instalación' },
-                ]}
-                label="Exportar"
-              />
+
               <Link to={createPageUrl(`NuevaRevision`)}>
                 <Button className="bg-slate-800 hover:bg-slate-700">
                   <Plus className="h-4 w-4 mr-2" />
