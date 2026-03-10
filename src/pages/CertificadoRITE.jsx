@@ -287,6 +287,8 @@ export default function CertificadoRITE() {
     });
   };
 
+  const requiresDirector = parseFloat(form.pot_calor) > 5000 || parseFloat(form.pot_frio) > 1000;
+
   const generatePDF = async () => {
     setGenerating(true);
     try {
@@ -295,6 +297,7 @@ export default function CertificadoRITE() {
       const margin = 15;
       const contentW = pageW - margin * 2;
       let y = 15;
+      const requiresDirectorPDF = parseFloat(form.pot_calor) > 5000 || parseFloat(form.pot_frio) > 1000;
 
       // Precargar logo y marca de agua
       let logoData = null;
