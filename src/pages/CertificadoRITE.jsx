@@ -657,40 +657,97 @@ export default function CertificadoRITE() {
       y += obsH + 5;
 
       // Declaración
-      checkPageBreak(20);
-      doc.setFontSize(8);
+      checkPageBreak(28);
+      y += 4;
+      // Caja declaración con fondo
+      const decText = requiresDirectorPDF
+        ? 'El mantenedor habilitado y el Director de Mantenimiento (técnico titulado competente, RD 178/2021) certifican que la instalación indicada ha sido mantenida conforme al "Manual de uso y mantenimiento" y cumple los requisitos de la IT 3 del RITE (Real Decreto 1027/2007, modificado por RD 178/2021).'
+        : 'El mantenedor habilitado certifica que la instalación indicada ha sido mantenida de acuerdo con el "Manual de uso y mantenimiento" y que cumple con los requisitos exigidos en la IT 3 del Reglamento de instalaciones térmicas en los edificios (Real Decreto 1027/2007, modificado por RD 178/2021).';
+      const decLines = doc.splitTextToSize(decText, contentW - 8);
+      const decBoxH = decLines.length * 5 + 8;
+      doc.setFillColor(245, 247, 250);
+      doc.setDrawColor(cr, cg, cb);
+      doc.setLineWidth(0.8);
+      doc.rect(margin, y, contentW, decBoxH, 'FD');
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(0, 0, 0);
       doc.setFont('helvetica', 'normal');
-      const decText = 'El mantenedor habilitador y el director de mantenimiento, cuando su participación sea preceptiva, certifica o certifican que la instalación antes indicada ha sido mantenida de acuerdo con el "Manual de uso y mantenimiento" y que cumple con los requisitos exigidos en la IT 3 del Reglamento de instalaciones térmicas en los edificios (Real Decreto 1027/2007).';
-      const decLines = doc.splitTextToSize(decText, contentW);
-      doc.text(decLines, margin, y);
-      y += decLines.length * 5 + 6;
+      doc.setFontSize(8);
+      doc.setTextColor(30, 30, 30);
+      doc.text(decLines, margin + 4, y + 6);
+      y += decBoxH + 6;
 
       // Lugar y fecha firma
       checkPageBreak(10);
-      doc.setFontSize(8);
-      doc.text(`${form.lugar_firma || '_______________'}, ${form.dia_firma || '__'} de ${form.mes_firma || '___________'} de ${form.anio_firma || '20__'}`, margin, y);
-      y += 10;
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(60, 60, 60);
+      doc.text(`En ${form.lugar_firma || '_______________'}, a ${form.dia_firma || '__'} de ${form.mes_firma || '___________'} de ${form.anio_firma || '20__'}`, margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      y += 12;
 
-      // Firmas
-      checkPageBreak(20);
-      const fw = contentW / 3;
+      // Firmas — condicional según potencia
+      checkPageBreak(30);
       doc.setFontSize(7.5);
-      doc.rect(margin, y, fw - 2, 18);
-      doc.text('Firma del mantenedor', margin + 2, y + 14);
-      doc.text('y sello de la empresa instaladora', margin + 2, y + 17);
-      doc.rect(margin + fw, y, fw - 2, 18);
-      doc.text('Firma del director de mantenimiento', margin + fw + 2, y + 14);
-      doc.rect(margin + fw * 2, y, fw, 18);
-      doc.text('Firma del titular', margin + fw * 2 + 2, y + 14);
-      y += 20;
+      if (requiresDirectorPDF) {
+        // 3 columnas: mantenedor, director de mantenimiento, titular
+        const fw3 = contentW / 3;
+        const boxes = [
+          { label: 'El Mantenedor Habilitado', sub: 'y sello de la empresa', x: margin },
+          { label: 'El Director de Mantenimiento', sub: '(técnico titulado competente)', x: margin + fw3 },
+          { label: 'El Titular de la Instalación', sub: '', x: margin + fw3 * 2 },
+        ];
+        boxes.forEach(box => {
+          doc.setFillColor(252, 252, 255);
+          doc.rect(box.x, y, fw3 - 2, 25, 'FD');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7);
+          doc.setTextColor(cr, cg, cb);
+          doc.text(box.label, box.x + (fw3 - 2) / 2, y + 20, { align: 'center' });
+          if (box.sub) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(6.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(box.sub, box.x + (fw3 - 2) / 2, y + 23.5, { align: 'center' });
+          }
+        });
+      } else {
+        // Solo 2 columnas: mantenedor y titular
+        const fw2 = contentW / 2;
+        const boxes = [
+          { label: 'El Mantenedor Habilitado', sub: 'y sello de la empresa', x: margin },
+          { label: 'El Titular de la Instalación', sub: '', x: margin + fw2 },
+        ];
+        boxes.forEach(box => {
+          doc.setFillColor(252, 252, 255);
+          doc.rect(box.x, y, fw2 - 2, 25, 'FD');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.setTextColor(cr, cg, cb);
+          doc.text(box.label, box.x + (fw2 - 2) / 2, y + 20, { align: 'center' });
+          if (box.sub) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(6.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(box.sub, box.x + (fw2 - 2) / 2, y + 23.5, { align: 'center' });
+          }
+        });
+      }
+      y += 28;
 
       // Nota final
-      checkPageBreak(12);
+      checkPageBreak(16);
+      y += 3;
+      doc.setFillColor(255, 248, 220);
+      const notaText = 'NOTA: Este certificado tiene una validez de un año (art. 28.1 del Real Decreto 1027/2007, modificado por RD 178/2021). El titular de la instalación ha de conservar una copia y estará a disposición de las autoridades competentes. Para instalaciones de potencia útil nominal > 5.000 kW en calor y/o > 1.000 kW en frío es obligatoria la figura del Director de Mantenimiento (técnico titulado competente).';
+      const notaLines = doc.splitTextToSize(notaText, contentW - 8);
+      doc.rect(margin, y, contentW, notaLines.length * 4.5 + 6, 'FD');
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
-      const nota = 'Este certificado tiene una validez de un año (art. 28.1 del Real Decreto 1027/2007). El titular de la instalación ha de mantener una copia de éste en posesión, i estará a disposición de las autoridades competentes que así lo exijan para inspección o cualquier otro requerimiento.';
-      const notaLines = doc.splitTextToSize(nota, contentW);
-      doc.text(notaLines, margin, y);
+      doc.setTextColor(80, 60, 0);
+      doc.text(notaLines, margin + 3, y + 5);
+      doc.setTextColor(0, 0, 0);
 
       const filename = `Certificado_RITE_${form.titular_nombre || 'cliente'}_${new Date().getFullYear()}.pdf`;
       const blob = doc.output('blob');
