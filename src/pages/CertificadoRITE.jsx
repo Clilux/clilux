@@ -413,31 +413,38 @@ export default function CertificadoRITE() {
         y += 9;
       };
 
-      const drawField = (label, value, x, w, rowH = 6) => {
-        doc.setFontSize(7.5);
+      const drawField = (label, value, x, w, rowH = 8) => {
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
-        doc.text(label, x + 1, y + 4);
+        doc.setTextColor(80, 80, 80);
+        doc.text(label, x + 2, y + 3);
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(8);
         const val = value || '';
-        doc.text(String(val), x + 1 + doc.getTextWidth(label) + 2, y + 4);
-        doc.rect(x, y, w, rowH);
+        doc.text(String(val), x + 2, y + 6.5);
+        doc.setFillColor(248, 249, 250);
+        doc.rect(x, y, w, rowH, 'FD');
         y += rowH;
       };
 
       const drawRow = (items) => {
-        // items: [{label, value, w}]
         let x = margin;
-        const rowH = 6;
+        const rowH = 8;
         items.forEach(item => {
-          doc.setFontSize(7.5);
+          doc.setFillColor(248, 249, 250);
+          doc.rect(x, y, item.w, rowH, 'FD');
+          doc.setFontSize(7);
           doc.setFont('helvetica', 'bold');
-          doc.text(item.label + ':', x + 1, y + 4);
+          doc.setTextColor(90, 90, 110);
+          doc.text(item.label + ':', x + 2, y + 3);
           doc.setFont('helvetica', 'normal');
-          if (item.value) doc.text(String(item.value), x + 1 + doc.getTextWidth(item.label + ':') + 1, y + 4);
-          doc.rect(x, y, item.w, rowH);
+          doc.setTextColor(20, 20, 20);
+          doc.setFontSize(8);
+          if (item.value) doc.text(String(item.value), x + 2, y + 6.5);
           x += item.w;
         });
-        y += rowH;
+        y += rowH + 1;
       };
 
       // Num certificado
