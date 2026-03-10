@@ -87,6 +87,7 @@ import Settings from './pages/Settings';
 import TechnicianManagement from './pages/TechnicianManagement';
 import Technicians from './pages/Technicians';
 import TutorialEquipo from './pages/TutorialEquipo';
+import ClientDocuments from './pages/ClientDocuments';
 import __Layout from './Layout.jsx';
 
 
@@ -131,6 +132,7 @@ export const PAGES = {
     "TechnicianManagement": TechnicianManagement,
     "Technicians": Technicians,
     "TutorialEquipo": TutorialEquipo,
+    "ClientDocuments": ClientDocuments,
 }
 
 export const pagesConfig = {

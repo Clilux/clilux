@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, Thermometer, ClipboardCheck,
-  LogOut, AlertCircle, Plus } from
+  LogOut, AlertCircle, Plus, FileText } from
 'lucide-react';
 
 export default function HomeCliente() {
