@@ -1226,12 +1226,15 @@ export default function CertificadoRITE() {
         </Card>
 
         {/* Declaración legal */}
-        <Card className="p-5 bg-slate-50 border border-slate-200 mb-6">
-          <p className="text-xs text-slate-600">
-            <strong>Declaración:</strong> El mantenedor habilitador y el director de mantenimiento, cuando su participación sea preceptiva, certifica o certifican que la instalación antes indicada ha sido mantenida de acuerdo con el "Manual de uso y mantenimiento" y que cumple con los requisitos exigidos en la IT 3 del Reglamento de instalaciones térmicas en los edificios (Real Decreto 1027/2007).
+        <Card className="p-5 bg-blue-50 border border-blue-200 mb-6">
+          <p className="text-xs text-blue-800 font-semibold mb-1">Declaración legal</p>
+          <p className="text-xs text-blue-700">
+            {requiresDirector
+              ? 'El mantenedor habilitado y el Director de Mantenimiento (técnico titulado competente) certifican que la instalación ha sido mantenida conforme al "Manual de uso y mantenimiento" y cumple los requisitos de la IT 3 del RITE (RD 1027/2007, modificado por RD 178/2021).'
+              : 'El mantenedor habilitado certifica que la instalación ha sido mantenida de acuerdo con el "Manual de uso y mantenimiento" y cumple los requisitos de la IT 3 del RITE (Real Decreto 1027/2007, modificado por RD 178/2021).'}
           </p>
-          <p className="text-xs text-slate-500 mt-2">
-            Este certificado tiene una validez de un año (art. 28.1 del Real Decreto 1027/2007).
+          <p className="text-xs text-blue-600 mt-2">
+            📋 Validez: 1 año (art. 28.1 RD 1027/2007) · Base legal: RD 178/2021 (modificación RITE)
           </p>
         </Card>
 
