@@ -244,7 +244,7 @@ export default function ClientRevisions() {
   }
 
   return (
-    <div className="bg-stone-500 min-h-screen p-6">
+    <div className="bg-white min-h-screen p-6">
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Revisiones" showBack={true} homeUrl="HomeCliente" />
 
@@ -290,12 +290,12 @@ export default function ClientRevisions() {
         </div>
 
         {filteredRevisions.length === 0 ? (
-          <Card className="p-12 bg-white/10 border-white/20 text-center">
+          <Card className="p-12 bg-white border text-center">
             <div className="flex flex-col items-center gap-4">
               <ClipboardCheck className="h-16 w-16 text-slate-400" />
-              <p className="text-slate-300 text-lg">No hay revisiones completadas</p>
+              <p className="text-slate-600 text-lg">No hay revisiones completadas</p>
               <Link to={createPageUrl('HomeCliente')}>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button variant="outline">
                   <Home className="h-4 w-4 mr-2" />
                   Volver al inicio
                 </Button>
