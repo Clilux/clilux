@@ -154,6 +154,16 @@ export default function HomeCliente() {
                     <p className="text-sm text-slate-500">Revisiones completadas</p>
                   </Card>
                 </Link>
+
+                <Link to={createPageUrl('ClientDocuments')}>
+                  <Card className="bg-white p-6 rounded-xl border shadow hover:shadow-md transition-all cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <h2 className="text-lg font-semibold text-slate-800">Mis Documentos</h2>
+                    </div>
+                    <p className="text-sm text-slate-500">Certificados RITE y otros documentos de tu instalación</p>
+                  </Card>
+                </Link>
               </div>
             </> :
 
