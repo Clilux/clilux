@@ -819,8 +819,12 @@ export default function CertificadoRITE() {
         {/* Cabecera informativa */}
         <Card className="p-4 bg-blue-50 border-blue-200 mb-6">
           <p className="text-sm text-blue-700">
-            <strong>Art. 28 del RITE (Real Decreto 1027/2007)</strong> — Rellena el formulario y genera el certificado oficial en PDF. 
-            Validez: 1 año.
+            <strong>Art. 28 del RITE (Real Decreto 1027/2007, modificado por RD 178/2021)</strong> — Rellena el formulario y genera el certificado oficial en PDF. Validez: 1 año.
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            📌 <strong>Novedad RD 178/2021:</strong> Para instalaciones con potencia útil nominal &gt; 5.000 kW en calor y/o &gt; 1.000 kW en frío, 
+            es obligatoria la figura del <strong>Director de Mantenimiento</strong> (técnico titulado competente). 
+            El formulario se adapta automáticamente según la potencia introducida.
           </p>
         </Card>
 
