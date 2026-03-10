@@ -14,8 +14,6 @@ import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
-import ExportButton from '../components/ExportButton';
-import ImportButton from '../components/ImportButton';
 import BuildingReport from '../components/reports/BuildingReport';
 import { toast } from 'sonner';
 

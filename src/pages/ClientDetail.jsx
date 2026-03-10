@@ -76,7 +76,7 @@ export default function ClientDetail() {
     },
   });
 
-  const clientPortalUser = settings?.client_users?.find(u => u.client_id === clientId);
+  const clientPortalUsers = settings?.client_users?.filter(u => u.client_id === clientId) || [];
 
   const getEquipmentCount = (buildingId) => {
     return equipment.filter(e => e.building_id === buildingId).length;
