@@ -380,17 +380,37 @@ export default function CertificadoRITE() {
       addPageHeader(1);
       addWatermark();
 
+      // Paleta de colores para secciones
+      const sectionColors = [
+        [cr, cg, cb],           // corporativo
+        [41, 128, 185],          // azul
+        [39, 174, 96],           // verde
+        [142, 68, 173],          // morado
+        [211, 84, 0],            // naranja
+        [22, 160, 133],          // teal
+        [192, 57, 43],           // rojo
+        [41, 128, 185],          // azul repite
+      ];
+      let sectionIdx = 0;
+
       const drawSection = (title) => {
-        checkPageBreak(12);
-        doc.setFillColor(cr, cg, cb);
-        doc.rect(margin, y, contentW, 6, 'F');
-        doc.setFontSize(8.5);
+        checkPageBreak(14);
+        y += 2; // espacio extra antes del título de sección
+        const [sr, sg, sb] = sectionColors[sectionIdx % sectionColors.length];
+        sectionIdx++;
+        // Barra izquierda decorativa
+        doc.setFillColor(sr, sg, sb);
+        doc.rect(margin, y, contentW, 7, 'F');
+        // Sombra sutil (segunda capa más oscura a 1px)
+        doc.setFillColor(Math.max(sr - 30, 0), Math.max(sg - 30, 0), Math.max(sb - 30, 0));
+        doc.rect(margin, y + 7, contentW, 0.5, 'F');
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(title, pageW / 2, y + 4.5, { align: 'center' });
+        doc.text(title.toUpperCase(), margin + 3, y + 5);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'normal');
-        y += 7;
+        y += 9;
       };
 
       const drawField = (label, value, x, w, rowH = 6) => {
