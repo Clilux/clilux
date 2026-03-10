@@ -167,8 +167,17 @@ export default function Settings() {
       toast.error('El usuario debe tener email y contraseña configurados');
       return;
     }
-    if (!user.email) {
-      toast.error('El usuario no tiene email configurado');
+
+    // Guardar automáticamente antes de enviar para asegurar que los datos están persistidos
+    try {
+      if (settings?.id) {
+        await base44.entities.AppSettings.update(settings.id, formData);
+      } else {
+        await base44.entities.AppSettings.create({ ...formData, setting_key: 'main' });
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+    } catch {
+      toast.error('Error al guardar antes de enviar');
       return;
     }
 
