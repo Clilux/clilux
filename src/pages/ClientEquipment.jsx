@@ -66,7 +66,7 @@ export default function ClientEquipment() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="min-h-screen bg-white p-6">
         <div className="max-w-6xl mx-auto">
           <Skeleton className="h-10 w-64 mb-6" />
           <div className="grid gap-4">
@@ -78,8 +78,8 @@ export default function ClientEquipment() {
   }
 
   return (
-    <div className="bg-slate-200 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900">
-      <div className="bg-slate-200 mx-auto max-w-6xl">
+    <div className="bg-white p-6 min-h-screen">
+      <div className="bg-white mx-auto max-w-6xl">
         <NavHeader title="Mis Equipos" showBack={false} homeUrl="HomeCliente" />
 
         <div className="mb-6 space-y-3">

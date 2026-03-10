@@ -73,9 +73,9 @@ export default function ClientIncidents() {
 
   if (!clientId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="min-h-screen bg-white p-6">
         <div className="max-w-6xl mx-auto">
-          <p className="text-slate-400 text-center mt-20">Sesión no encontrada. Por favor, vuelve al inicio.</p>
+          <p className="text-slate-500 text-center mt-20">Sesión no encontrada. Por favor, vuelve al inicio.</p>
           <div className="flex justify-center mt-4">
             <Link to={createPageUrl('MenuInicio')}>
               <Button variant="outline" className="border-white/20 text-white">Ir al inicio</Button>
@@ -88,7 +88,7 @@ export default function ClientIncidents() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="min-h-screen bg-white p-6">
         <div className="max-w-6xl mx-auto">
           <Skeleton className="h-10 w-64 mb-6" />
           <div className="grid gap-4">
@@ -100,13 +100,13 @@ export default function ClientIncidents() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-6xl mx-auto">
         <NavHeader title="Mis Incidencias" showBack={true} backUrl="HomeCliente" homeUrl="HomeCliente" />
 
         <div className="flex gap-4 mb-6">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
+            <SelectTrigger className="w-48 bg-white border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -127,11 +127,11 @@ export default function ClientIncidents() {
         </div>
 
         {filteredIncidents.length === 0 ? (
-          <Card className="p-12 bg-white/5 backdrop-blur-sm border-white/10 text-center">
+          <Card className="p-12 bg-white border text-center">
             <div className="flex flex-col items-center gap-4">
               <AlertCircle className="h-16 w-16 text-slate-400" />
               <div>
-                <p className="text-slate-300 text-lg mb-2">No hay incidencias</p>
+                <p className="text-slate-600 text-lg mb-2">No hay incidencias</p>
                 <p className="text-slate-400 text-sm mb-4">
                   {filterStatus !== 'all' ? 'No hay incidencias con este estado' : 'Aún no has reportado ninguna incidencia'}
                 </p>
@@ -144,7 +144,7 @@ export default function ClientIncidents() {
                   </Button>
                 </Link>
                 <Link to={createPageUrl('HomeCliente')}>
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Button variant="outline">
                     <Home className="h-4 w-4 mr-2" />
                     Volver al inicio
                   </Button>
@@ -159,15 +159,15 @@ export default function ClientIncidents() {
               const status = statusConfig[incident.status] || statusConfig.pending;
 
               return (
-                <Card key={incident.id} className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all">
+                <Card key={incident.id} className="p-6 bg-white border hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <Link to={createPageUrl(`ClientIncidentDetail?id=${incident.id}`)} className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="text-lg font-semibold text-white">{incident.title}</h3>
+                        <h3 className="text-lg font-semibold text-slate-800">{incident.title}</h3>
                         <Badge className={priority.color}>{priority.label}</Badge>
                         <Badge className={status.color}>{status.label}</Badge>
                       </div>
-                      <p className="text-slate-300 text-sm line-clamp-2">{incident.description}</p>
+                      <p className="text-slate-600 text-sm line-clamp-2">{incident.description}</p>
                     </Link>
                     {(incident.status === 'pending' || incident.status === 'closed') && incident.status !== 'deleted_by_technician' && (
                       deletingId === incident.id ? (
@@ -187,7 +187,7 @@ export default function ClientIncidents() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-6 text-sm text-slate-400">
+                  <div className="flex items-center gap-6 text-sm text-slate-500">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>{format(new Date(incident.created_date), "d 'de' MMMM, yyyy", { locale: es })}</span>

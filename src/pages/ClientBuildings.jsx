@@ -25,7 +25,7 @@ export default function ClientBuildings() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-stone-500 p-6">
+      <div className="min-h-screen bg-white p-6">
         <div className="max-w-4xl mx-auto">
           <Skeleton className="h-10 w-64 mb-6 bg-white/10" />
           <div className="grid gap-4">
@@ -37,7 +37,7 @@ export default function ClientBuildings() {
   }
 
   return (
-    <div className="bg-stone-500 min-h-screen p-6">
+    <div className="bg-white min-h-screen p-6">
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Mis Edificios" showBack={true} homeUrl="HomeCliente" />
 
