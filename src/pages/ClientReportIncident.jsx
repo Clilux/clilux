@@ -138,30 +138,30 @@ export default function ClientReportIncident() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-3xl mx-auto">
         <NavHeader title="Reportar Incidencia" backUrl="ClientIncidents" homeUrl="HomeCliente" />
 
-        <Card className="p-6 bg-white/5 backdrop-blur-sm border-white/10">
+        <Card className="p-6 bg-white border">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label className="text-slate-300">Título *</Label>
+              <Label>Título *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Resumen breve del problema"
-                className="mt-1 bg-white/5 border-white/20 text-white"
+                className="mt-1"
                 required
               />
             </div>
 
             <div>
-              <Label className="text-slate-300">Descripción *</Label>
+              <Label>Descripción *</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe detalladamente el problema..."
-                className="mt-1 bg-white/5 border-white/20 text-white"
+                className="mt-1"
                 rows={5}
                 required
               />
@@ -169,17 +169,17 @@ export default function ClientReportIncident() {
 
             {presetEquipmentId ? (
               // Viniendo de un equipo: mostrar equipo y edificio como info fija
-              <div className="p-3 rounded-lg bg-white/10 border border-white/20">
-                <p className="text-xs text-slate-400 mb-1">Equipo</p>
-                <p className="text-white font-medium">
+              <div className="p-3 rounded-lg bg-slate-50 border">
+                <p className="text-xs text-slate-500 mb-1">Equipo</p>
+                <p className="text-slate-800 font-medium">
                   {equipment.find(e => e.id === formData.equipment_id)
                     ? `${equipment.find(e => e.id === formData.equipment_id).brand} ${equipment.find(e => e.id === formData.equipment_id).model}`
                     : 'Cargando...'}
                 </p>
                 {formData.building_id && (
                   <>
-                    <p className="text-xs text-slate-400 mt-2 mb-1">Edificio</p>
-                    <p className="text-white font-medium">
+                    <p className="text-xs text-slate-500 mt-2 mb-1">Edificio</p>
+                    <p className="text-slate-800 font-medium">
                       {buildings.find(b => b.id === formData.building_id)?.name || 'Cargando...'}
                     </p>
                   </>
@@ -187,9 +187,9 @@ export default function ClientReportIncident() {
               </div>
             ) : (
               <div>
-                <Label className="text-slate-300">Equipo afectado (opcional)</Label>
+                <Label>Equipo afectado (opcional)</Label>
                 <Select value={formData.equipment_id} onValueChange={(v) => setFormData(prev => ({ ...prev, equipment_id: v }))}>
-                  <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar equipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,9 +206,9 @@ export default function ClientReportIncident() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-slate-300">Prioridad</Label>
+                <Label>Prioridad</Label>
                 <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                  <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                  <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,9 +222,9 @@ export default function ClientReportIncident() {
 
               {!presetEquipmentId && (
                 <div>
-                  <Label className="text-slate-300">Edificio</Label>
+                  <Label>Edificio</Label>
                   <Select value={formData.building_id} onValueChange={(v) => setFormData({ ...formData, building_id: v })}>
-                    <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Seleccionar edificio" />
                     </SelectTrigger>
                     <SelectContent>
@@ -240,7 +240,7 @@ export default function ClientReportIncident() {
             </div>
 
             <div>
-              <Label className="text-slate-300">Fotos (opcional)</Label>
+              <Label>Fotos (opcional)</Label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -253,7 +253,7 @@ export default function ClientReportIncident() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 variant="outline"
-                className="w-full mt-1 border-white/20 text-white hover:bg-white/10"
+                className="w-full mt-1"
               >
                 {uploading ? (
                   <>
@@ -291,7 +291,7 @@ export default function ClientReportIncident() {
                 type="button"
                 variant="outline"
                 onClick={() => navigate(createPageUrl('ClientIncidents'))}
-                className="flex-1 border-white/20 text-white hover:bg-white/10"
+                className="flex-1"
               >
                 Cancelar
               </Button>
