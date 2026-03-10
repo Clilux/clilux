@@ -925,24 +925,40 @@ export default function CertificadoRITE() {
           </div>
         </Card>
 
-        {/* Director obra */}
-        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-          <h3 className="font-semibold text-slate-800 mb-4 border-b pb-2">Director de Obra <span className="text-xs font-normal text-slate-400">(cuando su participación sea preceptiva)</span></h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Nombre</Label>
-              <Input className="mt-1" value={form.director_nombre} onChange={e => handleChange('director_nombre', e.target.value)} />
+        {/* Director de Mantenimiento — solo si potencia > umbrales RD 178/2021 */}
+        {requiresDirector ? (
+          <Card className="p-6 bg-orange-50 border border-orange-300 shadow-sm mb-6">
+            <h3 className="font-semibold text-orange-800 mb-1 border-b border-orange-200 pb-2">
+              Director de Mantenimiento <span className="text-xs font-normal text-orange-600 ml-1">(obligatorio — RD 178/2021)</span>
+            </h3>
+            <p className="text-xs text-orange-700 mb-4 bg-orange-100 rounded p-2">
+              ⚠️ Esta instalación supera los umbrales del RD 178/2021: <strong>{'>'} 5.000 kW en calor</strong> y/o <strong>{'>'} 1.000 kW en frío</strong>. 
+              El mantenimiento debe realizarse bajo la supervisión de un <strong>Director de Mantenimiento</strong> (técnico titulado competente).
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Nombre y Apellidos</Label>
+                <Input className="mt-1" value={form.director_nombre} onChange={e => handleChange('director_nombre', e.target.value)} />
+              </div>
+              <div>
+                <Label>Núm. Colegiado</Label>
+                <Input className="mt-1" value={form.director_colegiado} onChange={e => handleChange('director_colegiado', e.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Colegio / Titulación Profesional</Label>
+                <Input className="mt-1" value={form.director_colegio} onChange={e => handleChange('director_colegio', e.target.value)} />
+              </div>
             </div>
-            <div>
-              <Label>Núm. Colegiado</Label>
-              <Input className="mt-1" value={form.director_colegiado} onChange={e => handleChange('director_colegiado', e.target.value)} />
-            </div>
-            <div className="md:col-span-2">
-              <Label>Colegio Profesional</Label>
-              <Input className="mt-1" value={form.director_colegio} onChange={e => handleChange('director_colegio', e.target.value)} />
-            </div>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <Card className="p-4 bg-slate-50 border border-slate-200 shadow-sm mb-6">
+            <p className="text-xs text-slate-500">
+              <strong>Director de Mantenimiento:</strong> No requerido. Esta instalación no supera los umbrales del RD 178/2021 
+              (calor {'≤'} 5.000 kW y frío {'≤'} 1.000 kW). El Director de Mantenimiento es obligatorio únicamente para instalaciones 
+              de más de 5.000 kW de potencia útil en calor y/o 1.000 kW en frío.
+            </p>
+          </Card>
+        )}
 
         {/* Empresa mantenedora */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
