@@ -193,25 +193,48 @@ Proporciona:
               )}
             </Card>
 
-            {/* Precio */}
-            {(results.pvp_aproximado || results.rango_precios) && (
-              <Card className="p-6 bg-amber-50 border-amber-200 border shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-amber-100 shrink-0">
-                    <ShoppingCart className="h-5 w-5 text-amber-700" />
+            {/* Precios */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* PVP Tarifa */}
+              {results.pvp_tarifa && (
+                <Card className="p-5 bg-blue-50 border-blue-200 border shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 shrink-0">
+                      <Tag className="h-5 w-5 text-blue-700" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-800 mb-1">PVP Tarifa oficial</h3>
+                      <p className="text-2xl font-bold text-blue-700">{results.pvp_tarifa}</p>
+                      {results.pvp_tarifa_año && (
+                        <p className="text-xs text-blue-500 mt-1">Tarifa {results.pvp_tarifa_año}</p>
+                      )}
+                      {results.pvp_tarifa_fuente && (
+                        <p className="text-xs text-blue-500 mt-0.5">Fuente: {results.pvp_tarifa_fuente}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-amber-800 mb-1">Precio orientativo</h3>
-                    {results.pvp_aproximado && (
-                      <p className="text-2xl font-bold text-amber-700">{results.pvp_aproximado}</p>
-                    )}
-                    {results.rango_precios && (
-                      <p className="text-sm text-amber-600 mt-1">{results.rango_precios}</p>
-                    )}
+                </Card>
+              )}
+              {/* Precio orientativo */}
+              {(results.pvp_orientativo || results.rango_precios) && (
+                <Card className="p-5 bg-amber-50 border-amber-200 border shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-amber-100 shrink-0">
+                      <ShoppingCart className="h-5 w-5 text-amber-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-amber-800 mb-1">Precio orientativo de mercado</h3>
+                      {results.pvp_orientativo && (
+                        <p className="text-2xl font-bold text-amber-700">{results.pvp_orientativo}</p>
+                      )}
+                      {results.rango_precios && (
+                        <p className="text-sm text-amber-600 mt-1">{results.rango_precios}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
-            )}
+                </Card>
+              )}
+            </div>
 
             {/* Especificaciones */}
             {results.especificaciones?.length > 0 && (
