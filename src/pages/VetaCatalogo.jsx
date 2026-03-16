@@ -25,22 +25,26 @@ export default function BusquedaPVP() {
 
     try {
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Busca información técnica y el PVP (precio de venta al público) del siguiente producto de climatización, refrigeración, fontanería o instalaciones: "${query.trim()}"
+        prompt: `Busca información técnica y precios del siguiente producto de climatización, refrigeración, fontanería o instalaciones: "${query.trim()}"
 
-Consulta específicamente estas webs especializadas en España:
+Consulta específicamente estas webs especializadas en España para obtener el PVP de tarifa oficial (precio de catálogo/tarifa en vigor del fabricante o distribuidor):
 - https://www.acae.es/ (distribuidor de climatización y refrigeración)
 - https://www.erfri.com/ (distribuidor de refrigeración)
 - https://www.pecomark.com/es/ecommerce (distribuidor de climatización)
 - https://generadordeprecios.info/ (generador de precios de construcción e instalaciones)
-- También busca en otros distribuidores españoles conocidos como climamarket, suministros industriales, etc.
+- También busca en webs de fabricantes y distribuidores oficiales españoles.
+
+IMPORTANTE: Diferencia claramente entre:
+- PVP DE TARIFA: precio oficial de catálogo/tarifa publicado por el fabricante o distribuidor (el que aparece en tarifas oficiales vigentes). Indica el año de la tarifa si lo encuentras y la fuente exacta (web o distribuidor).
+- PRECIO ORIENTATIVO DE VENTA: precio real al que se vende en el mercado, incluyendo descuentos habituales del sector.
 
 Proporciona:
 1. Nombre completo y descripción del producto
 2. Fabricante/marca
 3. Especificaciones técnicas principales
-4. PVP exacto o aproximado en euros encontrado en esas webs (indica en qué web lo encontraste)
-5. Rango de precios si hay variaciones entre distribuidores
-6. Links o referencias de dónde comprar
+4. PVP de tarifa oficial (con fuente y año de tarifa si está disponible)
+5. Precio orientativo de mercado (con rango si hay variaciones)
+6. Distribuidores donde se puede comprar
 7. Equivalencias o productos similares si no encuentras el exacto`,
         add_context_from_internet: true,
         response_json_schema: {
@@ -53,7 +57,10 @@ Proporciona:
               type: "array",
               items: { type: "string" }
             },
-            pvp_aproximado: { type: "string" },
+            pvp_tarifa: { type: "string" },
+            pvp_tarifa_fuente: { type: "string" },
+            pvp_tarifa_año: { type: "string" },
+            pvp_orientativo: { type: "string" },
             rango_precios: { type: "string" },
             distribuidores: {
               type: "array",
