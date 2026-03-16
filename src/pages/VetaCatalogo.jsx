@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, Loader2, ExternalLink, Tag, Info, ShoppingCart, AlertCircle } from 'lucide-react';
 
-export default function VetaCatalogo() {
+export default function BusquedaPVP() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
@@ -25,18 +25,23 @@ export default function VetaCatalogo() {
 
     try {
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Busca información técnica y comercial sobre el siguiente producto/referencia de climatización, fontanería o instalaciones: "${query.trim()}"
+        prompt: `Busca información técnica y el PVP (precio de venta al público) del siguiente producto de climatización, refrigeración, fontanería o instalaciones: "${query.trim()}"
+
+Consulta específicamente estas webs especializadas en España:
+- https://www.acae.es/ (distribuidor de climatización y refrigeración)
+- https://www.erfri.com/ (distribuidor de refrigeración)
+- https://www.pecomark.com/es/ecommerce (distribuidor de climatización)
+- https://generadordeprecios.info/ (generador de precios de construcción e instalaciones)
+- También busca en otros distribuidores españoles conocidos como climamarket, suministros industriales, etc.
 
 Proporciona:
 1. Nombre completo y descripción del producto
 2. Fabricante/marca
 3. Especificaciones técnicas principales
-4. Precio de venta al público (PVP) aproximado en euros en España (busca en distribuidores españoles, tiendas online, etc.)
-5. Rango de precios si hay variaciones
-6. Dónde se puede comprar (distribuidores habituales en España)
-7. Cualquier dato adicional relevante (equivalencias, normativa, etc.)
-
-Si no encuentras el producto exacto, busca productos similares o equivalentes.`,
+4. PVP exacto o aproximado en euros encontrado en esas webs (indica en qué web lo encontraste)
+5. Rango de precios si hay variaciones entre distribuidores
+6. Links o referencias de dónde comprar
+7. Equivalencias o productos similares si no encuentras el exacto`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
@@ -84,8 +89,8 @@ Si no encuentras el producto exacto, busca productos similares o equivalentes.`,
               <Tag className="text-white h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-white text-xl font-bold">Veta de Catálogo</h1>
-              <p className="text-xs text-slate-400">Busca referencias y precios online</p>
+              <h1 className="text-white text-xl font-bold">Búsquedas de PVP</h1>
+              <p className="text-xs text-slate-400">Consulta precios en ACAE, ERFRI, Pecomark y más</p>
             </div>
           </div>
         </div>
