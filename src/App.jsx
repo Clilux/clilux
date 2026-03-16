@@ -59,6 +59,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/VetaCatalogo" element={<LayoutWrapper currentPageName="VetaCatalogo"><VetaCatalogo /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
