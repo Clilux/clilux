@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, Building2, Thermometer, ClipboardCheck,
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database, Bot, FileCheck } from
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database, Bot, FileCheck, Tag } from
 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -347,7 +347,8 @@ export default function HomeTecnico() {
                     'Database': Database,
                     'Bot': Bot,
                     'FileCheck': FileCheck,
-                    'FileText': FileText
+                    'FileText': FileText,
+                    'Tag': Tag
                   };
                   const IconComponent = iconMap[action.icon] || ScanLine;
 
