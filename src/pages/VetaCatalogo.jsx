@@ -122,6 +122,20 @@ Proporciona:
           <p className="text-xs text-slate-400 mt-2">
             💡 Puedes buscar por código de referencia, descripción del producto, marca o modelo.
           </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[
+              { label: 'ACAE', url: 'https://www.acae.es/' },
+              { label: 'ERFRI', url: 'https://www.erfri.com/' },
+              { label: 'Pecomark', url: 'https://www.pecomark.com/es/ecommerce' },
+              { label: 'Generador de Precios', url: 'https://generadordeprecios.info/' },
+            ].map(({ label, url }) => (
+              <a key={label} href={url} target="_blank" rel="noopener noreferrer">
+                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-700">
+                  <ExternalLink className="h-3 w-3 mr-1" />{label}
+                </Badge>
+              </a>
+            ))}
+          </div>
         </Card>
 
         {/* Loading */}
