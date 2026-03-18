@@ -137,7 +137,7 @@ export default function HomeTecnico() {
               </div>
               <div>
                 <h1 className="bg-gray-700 text-slate-50 text-4xl font-medium">Clilux M</h1>
-                <p className="text-gray-200 text-base">Portal Empresa • v1.0.1</p>
+                <p className="text-gray-200 text-base">Portal Empresa • v1.1</p>
               </div>
             </div>
             <div className="text-slate-200 flex items-center gap-3">
