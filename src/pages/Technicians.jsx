@@ -132,6 +132,19 @@ export default function Technicians() {
                 {tech.specialty && (
                   <p className="text-slate-500 italic">{tech.specialty}</p>
                 )}
+                {(tech.portal_email || tech.portal_password) && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <p className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
+                      <KeyRound className="h-3 w-3" /> Acceso Portal
+                    </p>
+                    {tech.portal_email && (
+                      <p className="text-xs text-slate-600">{tech.portal_email}</p>
+                    )}
+                    {tech.portal_password && (
+                      <p className="text-xs text-slate-400">{'•'.repeat(tech.portal_password.length)}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           ))}
