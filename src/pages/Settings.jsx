@@ -17,6 +17,22 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
 
   const [showPassword, setShowPassword] = useState({});
+  const [showTechPassword, setShowTechPassword] = useState({});
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list('-created_date'),
+  });
+
+  const updateTechMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Technician.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('Credenciales actualizadas');
+    },
+  });
+
+  const [techCredentials, setTechCredentials] = useState({});
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
