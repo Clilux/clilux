@@ -17,12 +17,15 @@ export default function Technicians() {
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);
   const [editingTech, setEditingTech] = useState(null);
+  const [showPortalPassword, setShowPortalPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     specialty: '',
     status: 'active',
+    portal_email: '',
+    portal_password: '',
   });
 
   const { data: technicians = [], isLoading } = useQuery({
