@@ -61,15 +61,17 @@ export default function Technicians() {
       setFormData(tech);
     } else {
       setEditingTech(null);
-      setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active' });
+      setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active', portal_email: '', portal_password: '' });
     }
+    setShowPortalPassword(false);
     setShowDialog(true);
   };
 
   const handleCloseDialog = () => {
     setShowDialog(false);
     setEditingTech(null);
-    setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active' });
+    setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active', portal_email: '', portal_password: '' });
+    setShowPortalPassword(false);
   };
 
   const handleSubmit = (e) => {
