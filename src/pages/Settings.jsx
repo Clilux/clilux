@@ -569,7 +569,7 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="technicians">
-            <Card className="p-6 bg-white border-0 shadow-sm">
+            <Card className="p-6 bg-white border-0 shadow-sm mb-4">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-semibold text-slate-800">Gestión de Técnicos</h3>
@@ -584,6 +584,88 @@ export default function Settings() {
                   </Button>
                 </Link>
               </div>
+            </Card>
+
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <KeyRound className="h-5 w-5 text-slate-600" />
+                <h3 className="font-semibold text-slate-800">Credenciales de Portal por Técnico</h3>
+              </div>
+              <p className="text-sm text-slate-500 mb-5">
+                Consulta y modifica el email y contraseña de acceso al portal de cada técnico.
+              </p>
+
+              {technicians.length === 0 ? (
+                <p className="text-center py-6 text-slate-400">No hay técnicos registrados.</p>
+              ) : (
+                <div className="space-y-4">
+                  {technicians.map((tech) => {
+                    const creds = techCredentials[tech.id] ?? {
+                      portal_email: tech.portal_email || '',
+                      portal_password: tech.portal_password || '',
+                    };
+                    const setCreds = (field, value) => {
+                      setTechCredentials(prev => ({
+                        ...prev,
+                        [tech.id]: { ...creds, [field]: value },
+                      }));
+                    };
+                    return (
+                      <div key={tech.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-slate-500" />
+                            <span className="font-medium text-slate-800">{tech.name}</span>
+                            <span className="text-xs text-slate-400">{tech.email}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateTechMutation.mutate({ id: tech.id, data: creds })}
+                            disabled={updateTechMutation.isPending}
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Guardar
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Email de acceso</Label>
+                            <Input
+                              type="email"
+                              value={creds.portal_email}
+                              onChange={(e) => setCreds('portal_email', e.target.value)}
+                              placeholder="tecnico@portal.com"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Contraseña</Label>
+                            <div className="relative mt-1">
+                              <Input
+                                type={showTechPassword[tech.id] ? 'text' : 'password'}
+                                value={creds.portal_password}
+                                onChange={(e) => setCreds('portal_password', e.target.value)}
+                                placeholder="••••••••"
+                                className="pr-10"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-10 w-10"
+                                onClick={() => setShowTechPassword(prev => ({ ...prev, [tech.id]: !prev[tech.id] }))}
+                              >
+                                {showTechPassword[tech.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </TabsContent>
 
