@@ -209,6 +209,46 @@ export default function Technicians() {
                   <option value="inactive">Inactivo</option>
                 </select>
               </div>
+
+              <div className="pt-2 border-t">
+                <p className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" /> Credenciales de Acceso al Portal
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Email de acceso</Label>
+                    <Input
+                      type="email"
+                      value={formData.portal_email || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, portal_email: e.target.value }))}
+                      placeholder="tecnico@portal.com"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Contraseña</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type={showPortalPassword ? 'text' : 'password'}
+                        value={formData.portal_password || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, portal_password: e.target.value }))}
+                        placeholder="••••••••"
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-10 w-10"
+                        onClick={() => setShowPortalPassword(p => !p)}
+                      >
+                        {showPortalPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>
                   Cancelar
