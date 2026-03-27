@@ -121,7 +121,7 @@ export default function HomeTecnico() {
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+    <div className="bg-slate-50 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-x-hidden">
       {/* Decorative spheres */}
       <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
@@ -129,38 +129,31 @@ export default function HomeTecnico() {
       <div className="fixed bottom-1/3 right-1/4 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl" />
       
       <div className="relative z-10">
-        <div className="bg-gray-700 px-6 py-4 backdrop-blur-sm border-b border-white/10">
-          <div className="bg-gray-700 text-slate-50 mx-auto rounded max-w-7xl flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Thermometer className="h-6 w-6 text-white" />
+        <div className="bg-gray-700 px-4 py-3 backdrop-blur-sm border-b border-white/10">
+          <div className="bg-gray-700 text-slate-50 mx-auto rounded max-w-7xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Thermometer className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <h1 className="bg-gray-700 text-slate-50 text-4xl font-medium">Clilux M</h1>
-                <p className="text-gray-200 text-base">Portal Empresa • v1.1</p>
+              <div className="min-w-0">
+                <h1 className="text-slate-50 text-xl font-medium leading-tight">Clilux M</h1>
+                <p className="text-gray-300 text-xs truncate">Portal Empresa • v1.1</p>
               </div>
             </div>
-            <div className="text-slate-200 flex items-center gap-3">
-            <Link to={createPageUrl('TechnicianManagement')}>
-                
-
-
-              </Link>
+            <div className="flex items-center gap-1 shrink-0">
               <Link to={createPageUrl('Settings')}>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white h-9 w-9">
                   <Settings className="h-5 w-5" />
                 </Button>
               </Link>
-              <span className="text-slate-50 text-lg">{user?.full_name || user?.email || 'Técnico'}</span>
-              <Button onClick={handleLogout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
+              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-400 hover:text-white h-9 w-9">
+                <LogOut className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-700 mx-auto p-6 max-w-7xl space-y-6">
+        <div className="bg-gray-700 mx-auto p-4 max-w-7xl space-y-4 pb-28">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
@@ -326,12 +319,12 @@ export default function HomeTecnico() {
             setQuickActions(updatedItems);
             saveActionsMutation.mutate(updatedItems);
           }}>
-            <Droppable droppableId="quick-actions" direction="horizontal" isDropDisabled={user?.role !== 'admin'}>
+            <Droppable droppableId="quick-actions" direction="vertical" isDropDisabled={user?.role !== 'admin'}>
               {(provided) =>
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-3">
 
                   {quickActions.map((action, index) => {
                   const iconMap = {
@@ -347,7 +340,6 @@ export default function HomeTecnico() {
                     'Database': Database,
                     'Bot': Bot,
                     'FileCheck': FileCheck,
-                    'FileText': FileText,
                     'Tag': Tag
                   };
                   const IconComponent = iconMap[action.icon] || ScanLine;
@@ -361,19 +353,19 @@ export default function HomeTecnico() {
                         className={snapshot.isDragging ? 'z-50' : ''}>
 
                             <Link to={createPageUrl(action.page)}>
-                              <Card className={`p-4 backdrop-blur-sm hover:bg-white/15 transition-all cursor-pointer group ${action.bgColor} ${action.borderColor || 'border-white/20'} ${
+                              <Card className={`p-3 backdrop-blur-sm hover:bg-white/15 transition-all cursor-pointer group relative ${action.bgColor} ${action.borderColor || 'border-white/20'} ${
                           snapshot.isDragging ? 'shadow-2xl scale-105' : ''}`
                           }>
-                                <div className="flex flex-col items-center gap-3 text-center">
+                                <div className="flex flex-col items-center gap-2 text-center">
                                   {user?.role === 'admin' &&
                               <div {...provided.dragHandleProps} className="absolute top-1 right-1 cursor-grab active:cursor-grabbing">
-                                      <GripVertical className="h-4 w-4 text-white/20 group-hover:text-white/40" />
+                                      <GripVertical className="h-3 w-3 text-white/20 group-hover:text-white/40" />
                                     </div>
                               }
-                                  <div className={`w-12 h-12 rounded-full ${action.bgColor === 'bg-white/10' ? 'bg-blue-500/20' : 'bg-blue-500/30'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                    <IconComponent className={`h-6 w-6 ${action.iconColor}`} />
+                                  <div className={`w-10 h-10 rounded-full ${action.bgColor === 'bg-white/10' ? 'bg-blue-500/20' : 'bg-blue-500/30'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                    <IconComponent className={`h-5 w-5 ${action.iconColor}`} />
                                   </div>
-                                  <span className="font-medium text-white text-sm">{action.label}</span>
+                                  <span className="font-medium text-white text-xs leading-tight">{action.label}</span>
                                 </div>
                               </Card>
                             </Link>
