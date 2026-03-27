@@ -198,7 +198,7 @@ export default function Settings() {
     }
 
     // Construir URL absoluta del portal: tomar la URL actual y reemplazar el hash con la página del cliente
-    const portalUrl = window.location.origin + window.location.pathname + '#/MenuInicio';
+    const portalUrl = window.location.origin + '/MenuInicio';
     const companyName = formData.company_name || 'la empresa';
 
     try {
