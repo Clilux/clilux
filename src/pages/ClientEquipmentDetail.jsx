@@ -186,6 +186,12 @@ export default function ClientEquipmentDetail() {
     enabled: !!equipmentId
   });
 
+  const { data: pendingRevisions = [] } = useQuery({
+    queryKey: ['revisions-pending', equipmentId],
+    queryFn: () => base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'pending' }, 'scheduled_date'),
+    enabled: !!equipmentId
+  });
+
 
 
   if (isLoading) {
@@ -378,8 +384,49 @@ export default function ClientEquipmentDetail() {
             </TabsList>
 
             <TabsContent value="revisions">
+              {/* Calendario de próximas revisiones */}
+              {pendingRevisions.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    Próximas revisiones programadas
+                  </h3>
+                  <div className="space-y-2">
+                    {pendingRevisions.map((rev) => {
+                      const date = new Date(rev.scheduled_date);
+                      const today = new Date();
+                      const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+                      const isOverdue = diffDays < 0;
+                      const isSoon = diffDays >= 0 && diffDays <= 14;
+                      return (
+                        <div key={rev.id} className={`flex items-center gap-4 p-3 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-200' : isSoon ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+                          <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold flex-shrink-0 ${isOverdue ? 'bg-red-500 text-white' : isSoon ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'}`}>
+                            <span className="text-lg leading-none">{format(date, 'dd')}</span>
+                            <span className="text-xs">{format(date, 'MMM', { locale: es })}</span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-800">{revisionTypeLabels[rev.revision_type] || rev.revision_type}</p>
+                            <p className="text-sm text-slate-500">
+                              {isOverdue ? `Vencida hace ${Math.abs(diffDays)} días` : diffDays === 0 ? 'Hoy' : `En ${diffDays} días · ${format(date, "dd 'de' MMMM yyyy", { locale: es })}`}
+                            </p>
+                          </div>
+                          <Badge className={isOverdue ? 'bg-red-100 text-red-700' : isSoon ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}>
+                            {isOverdue ? 'Vencida' : isSoon ? 'Próxima' : 'Programada'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Historial de revisiones completadas */}
+              <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                Historial de revisiones realizadas
+              </h3>
               {revisions.length === 0 ?
-              <p className="text-slate-500 text-center py-8">No hay revisiones registradas</p> :
+              <p className="text-slate-500 text-center py-8">No hay revisiones realizadas</p> :
               <div className="space-y-3">
                 {revisions.map((revision) => (
                   <div key={revision.id} className="p-4 rounded-xl bg-white border border-slate-200">
