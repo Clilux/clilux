@@ -7,10 +7,16 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, ArrowLeft, Home } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, ArrowLeft, Home, MessageSquare, Clock, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
+
+const labelConfig = {
+  resuelta: { label: 'Resuelta', color: 'bg-green-100 text-green-700 border-green-300' },
+  recambio: { label: 'Recambio', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  irreparable: { label: 'Irreparable', color: 'bg-gray-900 text-white border-gray-700' },
+};
 
 const priorityConfig = {
   low: { label: 'Baja', color: 'bg-slate-100 text-slate-700' },
@@ -199,20 +205,57 @@ export default function ClientIncidentDetail() {
           )}
 
           {incident.resolution_notes && (
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+            <div className="p-4 rounded-lg bg-green-50 border border-green-200">
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-                <p className="font-medium text-green-300">Resolución</p>
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="font-medium text-green-800">Resolución</p>
               </div>
-              <p className="text-green-200">{incident.resolution_notes}</p>
+              <p className="text-green-700">{incident.resolution_notes}</p>
               {incident.resolution_date && (
-                <p className="text-sm text-green-400 mt-2">
+                <p className="text-sm text-green-600 mt-2">
                   Resuelto el {format(new Date(incident.resolution_date), "dd/MM/yyyy")}
                 </p>
               )}
             </div>
           )}
         </Card>
+
+        {/* Actualizaciones del técnico — visibles para el cliente */}
+        {incident.history && incident.history.filter(e => e.comment).length > 0 && (
+          <Card className="p-6 bg-white border mb-6">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-blue-600" />
+              Actualizaciones del técnico
+            </h3>
+            <div className="space-y-3">
+              {[...incident.history].reverse().filter(e => e.comment).map((entry, idx) => (
+                <div key={idx} className="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <User className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-semibold text-slate-700">{entry.technician}</span>
+                      {entry.label && labelConfig[entry.label] && (
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${labelConfig[entry.label].color}`}>
+                          <Tag className="h-2.5 w-2.5" />{labelConfig[entry.label].label}
+                        </span>
+                      )}
+                      {entry.status && statusConfig[entry.status] && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig[entry.status].color}`}>{statusConfig[entry.status].label}</span>
+                      )}
+                      <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(entry.date), "dd/MM/yyyy HH:mm")}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600">{entry.comment}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -456,13 +456,16 @@ export default function IncidentDetail() {
                 </div>
               </div>
               <div className="mb-4">
-                <Label>Comentario</Label>
+                <Label className="flex items-center gap-2">
+                  Comentario
+                  <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">👁 Visible para el cliente</span>
+                </Label>
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="mt-1"
                   rows={3}
-                  placeholder="Escribe un comentario sobre el estado actual..."
+                  placeholder="Escribe un comentario que verá el cliente..."
                 />
               </div>
               <div className="flex justify-end">
@@ -511,13 +514,16 @@ export default function IncidentDetail() {
                 </div>
               </div>
               <div className="mb-4">
-                <Label>Notas del técnico</Label>
+                <Label className="flex items-center gap-2">
+                  Notas del técnico
+                  <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">🔒 Solo visible para técnicos</span>
+                </Label>
                 <Textarea
                   value={technicianNotes}
                   onChange={(e) => setTechnicianNotes(e.target.value)}
                   className="mt-1"
                   rows={3}
-                  placeholder="Notas internas sobre la incidencia..."
+                  placeholder="Notas internas sobre la incidencia (el cliente NO las verá)..."
                 />
               </div>
               <div className="mb-4">
