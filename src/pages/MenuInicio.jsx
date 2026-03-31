@@ -94,7 +94,7 @@ export default function MenuInicio() {
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
       <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
 
-      <Card className="bg-[#859392] text-card-foreground p-8 rounded-xl border shadow w-full max-w-md backdrop-blur-sm border-white/20 relative z-10">
+      <Card className="bg-[#f0f5f5] text-card-foreground p-8 rounded-xl border shadow w-full max-w-md backdrop-blur-sm border-white/20 relative z-10">
         <div className="text-center mb-8">
           {settings?.logo_url ?
           <img src={settings.logo_url} alt="Logo" className="h-20 object-contain mx-auto mb-4" /> :
@@ -119,7 +119,7 @@ export default function MenuInicio() {
               Acceso Cliente
             </Button>
             <Button
-            onClick={handleTechnicianLogin} className="bg-[#607f5c] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3"
+            onClick={handleTechnicianLogin} className="bg-[#525b57] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3"
 
             variant="ghost">
 
