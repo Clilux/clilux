@@ -129,8 +129,8 @@ export default function HomeTecnico() {
       <div className="fixed bottom-1/3 right-1/4 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl" />
       
       <div className="relative z-10">
-        <div className="bg-[#141415] px-4 py-3 backdrop-blur-sm border-b border-white/10">
-          <div className="bg-[#100f0f] text-slate-50 mx-auto rounded max-w-7xl flex items-center justify-between gap-2">
+        <div className="bg-[#222230] px-4 py-3 backdrop-blur-sm border-b border-white/10">
+          <div className="bg-[#1a1919] text-slate-50 mx-auto rounded max-w-7xl flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Thermometer className="h-5 w-5 text-white" />
@@ -153,7 +153,7 @@ export default function HomeTecnico() {
           </div>
         </div>
 
-        <div className="bg-[#2f3733] mx-auto pb-28 p-4 max-w-7xl space-y-4">
+        <div className="bg-[#ffffff] mx-auto pb-28 p-4 max-w-7xl space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
