@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,19 @@ const revisionTypeColors = {
   annual: 'bg-red-100 text-red-700',
 };
 
-export default function UnifyRevisionsModal({ open, onClose, revisions, equipment, buildings, onSuccess }) {
+export default function UnifyRevisionsModal({ open, onClose, revisions, equipment, buildings: buildingsProp, onSuccess }) {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [targetDate, setTargetDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [allBuildings, setAllBuildings] = useState(buildingsProp || []);
+
+  // Reload all buildings when modal opens to ensure we have the full list
+  useEffect(() => {
+    if (open) {
+      base44.entities.Building.list().then(data => setAllBuildings(data)).catch(() => {});
+    }
+  }, [open]);
 
   // Build list of months that have pending revisions
   const pendingRevisions = revisions.filter(r => r.status === 'pending' && !r.is_unified_revision);
@@ -58,7 +66,7 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
   });
 
   const getEquipment = (id) => equipment.find(e => e.id === id);
-  const getBuilding = (id) => buildings.find(b => b.id === id);
+  const getBuilding = (id) => allBuildings.find(b => b.id === id);
 
   const handleMonthChange = (val) => {
     setSelectedMonth(val);
