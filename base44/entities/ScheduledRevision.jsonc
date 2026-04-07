@@ -1,0 +1,89 @@
+{
+  "name": "ScheduledRevision",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string",
+      "description": "ID del equipo"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha programada"
+    },
+    "revision_type": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "quarterly",
+        "biannual",
+        "annual",
+        "unified"
+      ],
+      "description": "Tipo de revisi\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de realizaci\u00f3n"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico que realiz\u00f3 la revisi\u00f3n"
+    },
+    "revision_data": {
+      "type": "object",
+      "description": "Datos recogidos en la revisi\u00f3n"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "is_unified_revision": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si esta revisi\u00f3n es una unificaci\u00f3n de varias revisiones"
+    },
+    "unified_equipment_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "equipment_id": {
+            "type": "string"
+          },
+          "equipment_name": {
+            "type": "string"
+          },
+          "original_revision_type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Lista de equipos con sus tipos de revisi\u00f3n originales agrupados en esta revisi\u00f3n unificada"
+    }
+  },
+  "required": [
+    "client_id",
+    "building_id",
+    "scheduled_date",
+    "revision_type"
+  ]
+}

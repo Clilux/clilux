@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle2, RefreshCw, GitMerge, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay,
@@ -16,12 +16,15 @@ import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import NavHeader from '../components/navigation/NavHeader';
+import UnifyRevisionsModal from '../components/calendar/UnifyRevisionsModal';
+import UnifiedRevisionModal from '../components/calendar/UnifiedRevisionModal';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
   quarterly: 'Trimestral',
   biannual: 'Semestral',
-  annual: 'Anual'
+  annual: 'Anual',
+  unified: 'Unificada'
 };
 
 const revisionTypeColors = {
@@ -29,14 +32,19 @@ const revisionTypeColors = {
   quarterly: 'bg-purple-100 text-purple-700',
   biannual: 'bg-orange-100 text-orange-700',
   annual: 'bg-red-100 text-red-700',
+  unified: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [filterClient, setFilterClient] = useState('all');
-  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'agenda' | 'year'
+  const [viewMode, setViewMode] = useState('month');
   const [syncing, setSyncing] = useState(false);
+  const [showUnifyModal, setShowUnifyModal] = useState(false);
+  const [selectedUnifiedRevision, setSelectedUnifiedRevision] = useState(null);
+
+  const queryClient = useQueryClient();
 
   const handleSyncGoogleCalendar = async () => {
     setSyncing(true);
@@ -68,6 +76,14 @@ export default function Calendar() {
 
   const getEquipmentInfo = (id) => equipment.find(e => e.id === id);
   const getBuildingInfo = (id) => buildings.find(b => b.id === id);
+
+  const handleRevisionClick = (rev, e) => {
+    if (rev.is_unified_revision) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedUnifiedRevision(rev);
+    }
+  };
 
   // Navigation helpers
   const navigate = (dir) => {
@@ -123,11 +139,18 @@ export default function Calendar() {
                     {format(day, 'd')}
                   </div>
                   <div className="space-y-0.5">
-                    {dayRevs.slice(0, 2).map(rev => (
-                      <div key={rev.id} className={`text-xs px-1 py-0.5 rounded truncate ${rev.status === 'completed' ? 'bg-green-100 text-green-700' : revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
-                        {revisionTypeLabels[rev.revision_type]}
-                      </div>
-                    ))}
+                    {dayRevs.slice(0, 2).map(rev => {
+                      const bld = rev.is_unified_revision ? getBuildingInfo(rev.building_id) : null;
+                      return (
+                        <div
+                          key={rev.id}
+                          className={`text-xs px-1 py-0.5 rounded truncate ${rev.status === 'completed' ? 'bg-green-100 text-green-700' : revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}
+                          onClick={rev.is_unified_revision ? (e) => { e.stopPropagation(); setSelectedUnifiedRevision(rev); } : undefined}
+                        >
+                          {rev.is_unified_revision ? `🏢 ${bld?.name || 'Edificio'}` : revisionTypeLabels[rev.revision_type]}
+                        </div>
+                      );
+                    })}
                     {dayRevs.length > 2 && <div className="text-xs text-slate-400">+{dayRevs.length - 2}</div>}
                   </div>
                 </div>
@@ -166,6 +189,21 @@ export default function Calendar() {
                 <div className="space-y-1">
                   {dayRevs.map(rev => {
                     const eq = getEquipmentInfo(rev.equipment_id);
+                    const bld = rev.is_unified_revision ? getBuildingInfo(rev.building_id) : null;
+                    if (rev.is_unified_revision) {
+                      return (
+                        <div
+                          key={rev.id}
+                          onClick={e => { e.stopPropagation(); setSelectedUnifiedRevision(rev); }}
+                          className="text-xs p-1.5 rounded-lg mb-1 cursor-pointer hover:opacity-80 bg-emerald-100 text-emerald-700"
+                        >
+                          <div className="font-medium flex items-center gap-1">
+                            <Building2 className="h-3 w-3" /> {bld?.name || 'Edificio'}
+                          </div>
+                          <div className="truncate opacity-80">{(rev.unified_equipment_info || []).length} equipos</div>
+                        </div>
+                      );
+                    }
                     return (
                       <Link key={rev.id} to={createPageUrl(`RevisionForm?id=${rev.id}`)} onClick={e => e.stopPropagation()}>
                         <div className={`text-xs p-1.5 rounded-lg mb-1 cursor-pointer hover:opacity-80 ${rev.status === 'completed' ? 'bg-green-100 text-green-700' : revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
@@ -264,6 +302,28 @@ export default function Calendar() {
               {revs.map(rev => {
                 const eq = getEquipmentInfo(rev.equipment_id);
                 const bld = getBuildingInfo(rev.building_id);
+                if (rev.is_unified_revision) {
+                  return (
+                    <div key={rev.id} className="p-4 border border-emerald-200 bg-emerald-50 rounded-xl flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="text-center min-w-12">
+                          <div className="text-xl font-bold text-slate-700">{format(new Date(rev.scheduled_date), 'd')}</div>
+                          <div className="text-xs text-slate-400 capitalize">{format(new Date(rev.scheduled_date), 'EEE', { locale: es })}</div>
+                        </div>
+                        <div>
+                          <Badge className="bg-emerald-100 text-emerald-700 mb-1">Revisión Unificada</Badge>
+                          <p className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5" /> {bld?.name || 'Edificio'}
+                          </p>
+                          <p className="text-xs text-slate-400">{(rev.unified_equipment_info || []).length} equipos agrupados</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => setSelectedUnifiedRevision(rev)}>
+                        Ver equipos
+                      </Button>
+                    </div>
+                  );
+                }
                 return (
                   <div key={rev.id} className="p-4 border rounded-xl hover:bg-slate-50 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -316,6 +376,27 @@ export default function Calendar() {
           {revs.map(rev => {
             const eq = getEquipmentInfo(rev.equipment_id);
             const bld = getBuildingInfo(rev.building_id);
+            if (rev.is_unified_revision) {
+              return (
+                <div key={rev.id} className="p-3 border border-emerald-200 bg-emerald-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge className="text-xs bg-emerald-100 text-emerald-700">Unificada</Badge>
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className="text-xs font-medium text-slate-700">{bld?.name || 'Edificio'}</p>
+                  <p className="text-xs text-slate-400">{(rev.unified_equipment_info || []).length} equipos</p>
+                  {!selectedDate && <p className="text-xs text-slate-400 mt-0.5">{format(new Date(rev.scheduled_date), "d MMM", { locale: es })}</p>}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-7 mt-2"
+                    onClick={() => setSelectedUnifiedRevision(rev)}
+                  >
+                    Ver equipos
+                  </Button>
+                </div>
+              );
+            }
             return (
               <div key={rev.id} className="p-3 border rounded-lg hover:bg-slate-50">
                 <div className="flex items-center justify-between mb-1">
@@ -360,7 +441,18 @@ export default function Calendar() {
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            {/* Unify button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => setShowUnifyModal(true)}
+            >
+              <GitMerge className="h-4 w-4 mr-1" />
+              Unificar revisiones
+            </Button>
+
             {/* View mode toggles */}
             <div className="flex gap-1 bg-white border rounded-lg p-1">
               {[
@@ -406,6 +498,23 @@ export default function Calendar() {
         {viewMode === 'agenda' && <AgendaView />}
         {viewMode === 'year' && <YearView />}
       </div>
+
+      {/* Modals */}
+      <UnifyRevisionsModal
+        open={showUnifyModal}
+        onClose={() => setShowUnifyModal(false)}
+        revisions={scheduledRevisions}
+        equipment={equipment}
+        buildings={buildings}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] })}
+      />
+
+      <UnifiedRevisionModal
+        open={!!selectedUnifiedRevision}
+        onClose={() => setSelectedUnifiedRevision(null)}
+        revision={selectedUnifiedRevision}
+        building={selectedUnifiedRevision ? getBuildingInfo(selectedUnifiedRevision.building_id) : null}
+      />
     </div>
   );
 }
