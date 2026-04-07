@@ -15,6 +15,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { playFuturisticSound } from '@/lib/futuristicSound';
 
 
 const defaultQuickActions = [
@@ -156,54 +157,54 @@ export default function HomeTecnico() {
         <div className="bg-gray-100 mx-auto pb-28 p-4 max-w-7xl space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to={createPageUrl('Clients')}>
-              <Card className="bg-[#f8f6f6] text-card-foreground p-4 rounded-xl border shadow border-white/10 hover:bg-slate-700/50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-400" />
+            <Link to={createPageUrl('Clients')} onClick={playFuturisticSound}>
+              <Card className="bg-slate-800/50 border-white/10 p-5 hover:bg-slate-700/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <Users className="h-7 w-7 text-blue-400" />
                   </div>
                   <div>
-                    {loadingClients ? <Skeleton className="h-7 w-12 bg-white/10" /> : <p className="text-2xl font-bold text-white">{clients.length}</p>}
-                    <p className="text-xs text-slate-400">Clientes</p>
+                    {loadingClients ? <Skeleton className="h-8 w-12 bg-white/10" /> : <p className="text-3xl font-bold text-white">{clients.length}</p>}
+                    <p className="text-sm text-slate-400">Clientes</p>
                   </div>
                 </div>
               </Card>
             </Link>
-            <Link to={createPageUrl('Buildings')}>
-              <Card className="bg-slate-800/50 border-white/10 p-4 hover:bg-slate-700/50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <Building2 className="h-5 w-5 text-emerald-400" />
+            <Link to={createPageUrl('Buildings')} onClick={playFuturisticSound}>
+              <Card className="bg-slate-800/50 border-white/10 p-5 hover:bg-slate-700/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <Building2 className="h-7 w-7 text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{buildings.length}</p>
-                    <p className="text-xs text-slate-400">Edificios</p>
+                    <p className="text-3xl font-bold text-white">{buildings.length}</p>
+                    <p className="text-sm text-slate-400">Edificios</p>
                   </div>
                 </div>
               </Card>
             </Link>
-            <Link to={createPageUrl('Equipment')}>
-              <Card className="bg-slate-800/50 border-white/10 p-4 hover:bg-slate-700/50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <Thermometer className="h-5 w-5 text-purple-400" />
+            <Link to={createPageUrl('Equipment')} onClick={playFuturisticSound}>
+              <Card className="bg-slate-800/50 border-white/10 p-5 hover:bg-slate-700/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <Thermometer className="h-7 w-7 text-purple-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{equipment.length}</p>
-                    <p className="text-xs text-slate-400">Equipos</p>
+                    <p className="text-3xl font-bold text-white">{equipment.length}</p>
+                    <p className="text-sm text-slate-400">Equipos</p>
                   </div>
                 </div>
               </Card>
             </Link>
-            <Link to={createPageUrl('Incidents')}>
-              <Card className={`border-white/10 p-4 hover:bg-slate-700/50 transition-colors cursor-pointer ${pendingIncidents.length > 0 ? 'bg-red-900/30' : 'bg-slate-800/50'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${pendingIncidents.length > 0 ? 'bg-red-500/20' : 'bg-slate-500/20'}`}>
-                    <AlertTriangle className={`h-5 w-5 ${pendingIncidents.length > 0 ? 'text-red-400' : 'text-slate-400'}`} />
+            <Link to={createPageUrl('Incidents')} onClick={playFuturisticSound}>
+              <Card className={`border-white/10 p-5 hover:bg-slate-700/50 transition-colors cursor-pointer ${pendingIncidents.length > 0 ? 'bg-red-900/30' : 'bg-slate-800/50'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${pendingIncidents.length > 0 ? 'bg-red-500/20' : 'bg-slate-500/20'}`}>
+                    <AlertTriangle className={`h-7 w-7 ${pendingIncidents.length > 0 ? 'text-red-400' : 'text-slate-400'}`} />
                   </div>
                   <div>
-                    <p className={`text-2xl font-bold ${pendingIncidents.length > 0 ? 'text-red-300' : 'text-white'}`}>{pendingIncidents.length}</p>
-                    <p className="text-xs text-slate-400">Incidencias</p>
+                    <p className={`text-3xl font-bold ${pendingIncidents.length > 0 ? 'text-red-300' : 'text-white'}`}>{pendingIncidents.length}</p>
+                    <p className="text-sm text-slate-400">Incidencias</p>
                   </div>
                 </div>
               </Card>
@@ -251,9 +252,9 @@ export default function HomeTecnico() {
                           {...provided.draggableProps}
                           className="shrink-0">
                           
-                              <Link to={createPageUrl(action.page)}>
-                                <Card className={`bg-gradient-to-br ${action.bgColor} border ${action.borderColor} p-3 hover:scale-105 transition-transform cursor-pointer w-24 ${snapshot.isDragging ? 'opacity-70 rotate-2' : ''}`}>
-                                  <div className="flex flex-col items-center gap-2">
+                              <Link to={createPageUrl(action.page)} onClick={playFuturisticSound}>
+                                <Card className={`bg-gradient-to-br ${action.bgColor} border ${action.borderColor} p-3 hover:scale-105 transition-transform cursor-pointer w-24 h-24 ${snapshot.isDragging ? 'opacity-70 rotate-2' : ''}`}>
+                                  <div className="flex flex-col items-center justify-between h-full gap-1">
                                     <div {...provided.dragHandleProps} className="self-end opacity-30 hover:opacity-60 cursor-grab">
                                       <GripVertical className="h-3 w-3 text-white" />
                                     </div>
@@ -383,17 +384,16 @@ export default function HomeTecnico() {
 
             <div className="space-y-2">
                 {clients.slice(0, 5).map((client) =>
-              <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
+              <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`} onClick={playFuturisticSound}>
                     <Card className="bg-slate-800/40 border-white/10 p-3 hover:bg-slate-700/40 transition-colors cursor-pointer">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {client.photo_url ?
-                      <img src={client.photo_url} alt={client.name} className="w-8 h-8 rounded-full object-cover" /> :
-
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                              <Users className="h-4 w-4 text-emerald-400" />
-                            </div>
-                      }
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                            {client.photo_url
+                              ? <img src={client.photo_url} alt={client.name} className="w-10 h-10 object-cover" />
+                              : <Users className="h-5 w-5 text-emerald-400" />
+                            }
+                          </div>
                           <div>
                             <p className="text-white text-sm font-medium">{client.name}</p>
                             <p className="text-slate-400 text-xs">{client.city || client.email || ''}</p>
