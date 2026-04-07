@@ -51,10 +51,13 @@ export default function EquipmentCard({ equipment }) {
               <Icon className="h-6 w-6 text-slate-600" />
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <h3 className="font-semibold text-slate-800">{equipment.brand} {equipment.model}</h3>
+              <div className="flex items-center gap-3 mb-0.5">
+                {equipment.reference_name && (
+                  <h3 className="font-bold text-slate-900 text-base">{equipment.reference_name}</h3>
+                )}
                 <StatusBadge status={equipment.status || 'operational'} />
               </div>
+              <p className="text-sm font-medium text-slate-700 mb-1">{equipment.brand} {equipment.model}</p>
               <p className="text-sm text-slate-500 mb-2">
                 {equipmentTypeLabels[equipment.equipment_type] || equipment.equipment_type}
                 {equipment.serial_number && ` · S/N: ${equipment.serial_number}`}

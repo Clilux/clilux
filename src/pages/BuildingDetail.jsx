@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
-  Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, ToggleLeft, ToggleRight
+  Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, ToggleLeft, ToggleRight,
+  LayoutList, LayoutGrid
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
@@ -23,6 +24,7 @@ export default function BuildingDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const buildingId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid'
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
@@ -258,40 +260,78 @@ export default function BuildingDetail() {
         </Card>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <Thermometer className="h-5 w-5" />
-              Equipos ({equipment.length})
-            </h2>
-            <div className="flex gap-2 flex-wrap">
-
-              <Link to={createPageUrl(`NuevaRevision`)}>
-                <Button className="bg-slate-800 hover:bg-slate-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nueva Revisión
-                </Button>
-              </Link>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <Thermometer className="h-5 w-5" />
+            Equipos ({equipment.length})
+          </h2>
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* View mode toggle */}
+            <div className="flex gap-1 bg-white border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setViewMode('list')}
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
             </div>
+            <Link to={createPageUrl(`NuevaRevision`)}>
+              <Button className="bg-slate-800 hover:bg-slate-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Revisión
+              </Button>
+            </Link>
           </div>
+        </div>
 
-          {equipment.length === 0 ? (
-            <Card className="p-8 text-center">
-              <Thermometer className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 mb-4">No hay equipos registrados en este edificio</p>
-              <Link to={createPageUrl(`NuevaRevision`)}>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir primera revisión
-                </Button>
+        {equipment.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Thermometer className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-500 mb-4">No hay equipos registrados en este edificio</p>
+            <Link to={createPageUrl(`NuevaRevision`)}>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Añadir primera revisión
+              </Button>
+            </Link>
+          </Card>
+        ) : viewMode === 'list' ? (
+          <div className="space-y-4">
+            {equipment.map(eq => (
+              <EquipmentCard key={eq.id} equipment={eq} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {equipment.map(eq => (
+              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                <Card className="p-4 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer h-full">
+                  <div className="text-center">
+                    <div className="p-3 rounded-xl bg-slate-100 w-fit mx-auto mb-3">
+                      <Thermometer className="h-6 w-6 text-slate-600" />
+                    </div>
+                    {eq.reference_name && (
+                      <p className="font-bold text-slate-900 text-sm mb-0.5 truncate">{eq.reference_name}</p>
+                    )}
+                    <p className="text-sm font-medium text-slate-700 truncate">{eq.brand} {eq.model}</p>
+                    <p className="text-xs text-slate-400 mt-1 truncate">{eq.equipment_type}</p>
+                    {eq.location && <p className="text-xs text-slate-400 truncate">{eq.location}</p>}
+                  </div>
+                </Card>
               </Link>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {equipment.map(eq => (
-                <EquipmentCard key={eq.id} equipment={eq} />
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
+        )}
         </div>
 
         <DeleteConfirmDialog
