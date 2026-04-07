@@ -157,7 +157,7 @@ export default function HomeTecnico() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
-              <Card className="bg-slate-800/50 border-white/10 p-4 hover:bg-slate-700/50 transition-colors cursor-pointer">
+              <Card className="bg-[#f8f6f6] text-card-foreground p-4 rounded-xl border shadow border-white/10 hover:bg-slate-700/50 transition-colors cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                     <Users className="h-5 w-5 text-blue-400" />
