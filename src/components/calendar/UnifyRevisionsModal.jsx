@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { format, getMonth, getYear, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { GitMerge } from 'lucide-react';
+import { GitMerge, Building2 } from 'lucide-react';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
@@ -30,6 +30,8 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
   const [targetDate, setTargetDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [allBuildings, setAllBuildings] = useState(buildingsProp || []);
+  const [assigningBuilding, setAssigningBuilding] = useState(null); // buildingId (fake) being reassigned
+  const [assignTarget, setAssignTarget] = useState(''); // new building id selected
 
   // Reload all buildings when modal opens to ensure we have the full list
   useEffect(() => {
@@ -85,6 +87,28 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
       setSelectedIds(prev => prev.filter(id => !bRevIds.includes(id)));
     } else {
       setSelectedIds(prev => [...new Set([...prev, ...bRevIds])]);
+    }
+  };
+
+  const handleAssignBuilding = async (fakeBuildingId) => {
+    if (!assignTarget) {
+      toast.error('Selecciona un edificio');
+      return;
+    }
+    setLoading(true);
+    try {
+      const revsToFix = byBuilding[fakeBuildingId] || [];
+      for (const rev of revsToFix) {
+        await base44.entities.ScheduledRevision.update(rev.id, { building_id: assignTarget });
+      }
+      toast.success(`${revsToFix.length} revisiones actualizadas correctamente`);
+      setAssigningBuilding(null);
+      setAssignTarget('');
+      onSuccess();
+    } catch (err) {
+      toast.error('Error al actualizar las revisiones');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,7 +218,40 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
                       <Checkbox checked={allSelected} />
                       <span className="font-semibold text-slate-800 text-sm">{building?.name || 'Edificio desconocido'}</span>
                       <Badge variant="outline" className="ml-auto text-xs">{bRevs.length} revisiones</Badge>
+                      {!building && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-orange-300 text-orange-600 hover:bg-orange-50 ml-2"
+                          onClick={e => { e.stopPropagation(); setAssigningBuilding(buildingId); setAssignTarget(''); }}
+                        >
+                          <Building2 className="h-3 w-3 mr-1" /> Asignar edificio
+                        </Button>
+                      )}
                     </div>
+                    {assigningBuilding === buildingId && (
+                      <div className="px-4 py-3 bg-orange-50 border-t border-orange-100 flex gap-2 items-center">
+                        <Select value={assignTarget} onValueChange={setAssignTarget}>
+                          <SelectTrigger className="flex-1 text-sm">
+                            <SelectValue placeholder="Selecciona el edificio correcto..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allBuildings.map(b => (
+                              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                          onClick={() => handleAssignBuilding(buildingId)}
+                          disabled={loading || !assignTarget}
+                        >
+                          Guardar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setAssigningBuilding(null)}>Cancelar</Button>
+                      </div>
+                    )}
                     <div className="divide-y">
                       {bRevs.map(rev => {
                         const eq = getEquipment(rev.equipment_id);
