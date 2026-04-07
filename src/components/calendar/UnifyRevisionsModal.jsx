@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, getMonth, getYear, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { GitMerge } from 'lucide-react';
 
@@ -24,21 +25,46 @@ const revisionTypeColors = {
 };
 
 export default function UnifyRevisionsModal({ open, onClose, revisions, equipment, buildings, onSuccess }) {
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [targetDate, setTargetDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Group pending revisions by building
+  // Build list of months that have pending revisions
   const pendingRevisions = revisions.filter(r => r.status === 'pending' && !r.is_unified_revision);
 
-  const byBuilding = {};
+  const availableMonths = [];
+  const seenMonths = new Set();
   pendingRevisions.forEach(rev => {
+    const d = new Date(rev.scheduled_date);
+    const key = format(d, 'yyyy-MM');
+    if (!seenMonths.has(key)) {
+      seenMonths.add(key);
+      availableMonths.push({ key, label: format(d, 'MMMM yyyy', { locale: es }), date: d });
+    }
+  });
+  availableMonths.sort((a, b) => a.key.localeCompare(b.key));
+
+  // Filter revisions for selected month
+  const monthRevisions = selectedMonth
+    ? pendingRevisions.filter(r => format(new Date(r.scheduled_date), 'yyyy-MM') === selectedMonth)
+    : [];
+
+  // Group by building
+  const byBuilding = {};
+  monthRevisions.forEach(rev => {
     if (!byBuilding[rev.building_id]) byBuilding[rev.building_id] = [];
     byBuilding[rev.building_id].push(rev);
   });
 
   const getEquipment = (id) => equipment.find(e => e.id === id);
   const getBuilding = (id) => buildings.find(b => b.id === id);
+
+  const handleMonthChange = (val) => {
+    setSelectedMonth(val);
+    setSelectedIds([]);
+    setTargetDate('');
+  };
 
   const toggleRevision = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -60,19 +86,17 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
       return;
     }
     if (!targetDate) {
-      toast.error('Selecciona la fecha para la revisión unificada');
+      toast.error('Selecciona la fecha para la visita unificada');
       return;
     }
 
-    // Group selected revisions by building
-    const selectedRevisions = pendingRevisions.filter(r => selectedIds.includes(r.id));
+    const selectedRevisions = monthRevisions.filter(r => selectedIds.includes(r.id));
     const byBuildingSelected = {};
     selectedRevisions.forEach(rev => {
       if (!byBuildingSelected[rev.building_id]) byBuildingSelected[rev.building_id] = [];
       byBuildingSelected[rev.building_id].push(rev);
     });
 
-    // Must be same building if >1 building selected, each building gets its own unified revision
     setLoading(true);
     try {
       for (const [buildingId, buildingRevs] of Object.entries(byBuildingSelected)) {
@@ -86,7 +110,6 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
           };
         });
 
-        // Create unified revision
         await base44.entities.ScheduledRevision.create({
           client_id: buildingRevs[0].client_id,
           building_id: buildingId,
@@ -98,7 +121,6 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
           notes: `Revisión unificada del edificio ${building?.name || ''}`
         });
 
-        // Delete original revisions
         for (const rev of buildingRevs) {
           await base44.entities.ScheduledRevision.delete(rev.id);
         }
@@ -107,6 +129,7 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
       toast.success('Revisiones unificadas correctamente');
       setSelectedIds([]);
       setTargetDate('');
+      setSelectedMonth('');
       onSuccess();
       onClose();
     } catch (err) {
@@ -118,7 +141,7 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitMerge className="h-5 w-5 text-blue-600" />
@@ -127,62 +150,83 @@ export default function UnifyRevisionsModal({ open, onClose, revisions, equipmen
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Step 1: Select month */}
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Fecha de la visita unificada</label>
-            <input
-              type="date"
-              value={targetDate}
-              onChange={e => setTargetDate(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
+            <label className="text-sm font-medium text-slate-700 block mb-1">1. Selecciona el mes</label>
+            <Select value={selectedMonth} onValueChange={handleMonthChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Elige un mes con revisiones pendientes..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMonths.map(m => (
+                  <SelectItem key={m.key} value={m.key} className="capitalize">{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-slate-700 mb-2">Selecciona las revisiones a unificar</p>
-            {Object.entries(byBuilding).length === 0 && (
-              <p className="text-slate-400 text-sm text-center py-6">No hay revisiones pendientes para unificar</p>
-            )}
-            {Object.entries(byBuilding).map(([buildingId, bRevs]) => {
-              const building = getBuilding(buildingId);
-              const bRevIds = bRevs.map(r => r.id);
-              const allSelected = bRevIds.every(id => selectedIds.includes(id));
-              const someSelected = bRevIds.some(id => selectedIds.includes(id));
-              return (
-                <div key={buildingId} className="border rounded-xl mb-3 overflow-hidden">
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100"
-                    onClick={() => toggleBuilding(buildingId)}
-                  >
-                    <Checkbox checked={allSelected} data-state={someSelected && !allSelected ? 'indeterminate' : undefined} />
-                    <span className="font-semibold text-slate-800 text-sm">{building?.name || 'Edificio desconocido'}</span>
-                    <Badge variant="outline" className="ml-auto text-xs">{bRevs.length} revisiones</Badge>
-                  </div>
-                  <div className="divide-y">
-                    {bRevs.map(rev => {
-                      const eq = getEquipment(rev.equipment_id);
-                      const isSelected = selectedIds.includes(rev.id);
-                      return (
-                        <div
-                          key={rev.id}
-                          className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 ${isSelected ? 'bg-blue-50' : ''}`}
-                          onClick={() => toggleRevision(rev.id)}
-                        >
-                          <Checkbox checked={isSelected} />
-                          <div className="flex-1">
-                            <p className="text-sm text-slate-700">{eq ? (eq.reference_name || `${eq.brand} ${eq.model}`) : 'Equipo'}</p>
-                            <p className="text-xs text-slate-400">{format(new Date(rev.scheduled_date), "d MMM yyyy", { locale: es })}</p>
+          {/* Step 2: Select revisions */}
+          {selectedMonth && (
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-2">2. Selecciona las revisiones a unificar</label>
+              {Object.entries(byBuilding).length === 0 && (
+                <p className="text-slate-400 text-sm text-center py-6">No hay revisiones pendientes en este mes</p>
+              )}
+              {Object.entries(byBuilding).map(([buildingId, bRevs]) => {
+                const building = getBuilding(buildingId);
+                const bRevIds = bRevs.map(r => r.id);
+                const allSelected = bRevIds.every(id => selectedIds.includes(id));
+                const someSelected = bRevIds.some(id => selectedIds.includes(id));
+                return (
+                  <div key={buildingId} className="border rounded-xl mb-3 overflow-hidden">
+                    <div
+                      className="flex items-center gap-3 px-4 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100"
+                      onClick={() => toggleBuilding(buildingId)}
+                    >
+                      <Checkbox checked={allSelected} />
+                      <span className="font-semibold text-slate-800 text-sm">{building?.name || 'Edificio desconocido'}</span>
+                      <Badge variant="outline" className="ml-auto text-xs">{bRevs.length} revisiones</Badge>
+                    </div>
+                    <div className="divide-y">
+                      {bRevs.map(rev => {
+                        const eq = getEquipment(rev.equipment_id);
+                        const isSelected = selectedIds.includes(rev.id);
+                        return (
+                          <div
+                            key={rev.id}
+                            className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 ${isSelected ? 'bg-blue-50' : ''}`}
+                            onClick={() => toggleRevision(rev.id)}
+                          >
+                            <Checkbox checked={isSelected} />
+                            <div className="flex-1">
+                              <p className="text-sm text-slate-700">{eq ? (eq.reference_name || `${eq.brand} ${eq.model}`) : 'Equipo'}</p>
+                              <p className="text-xs text-slate-400">{format(new Date(rev.scheduled_date), "d MMM yyyy", { locale: es })}</p>
+                            </div>
+                            <Badge className={`text-xs ${revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
+                              {revisionTypeLabels[rev.revision_type] || rev.revision_type}
+                            </Badge>
                           </div>
-                          <Badge className={`text-xs ${revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
-                            {revisionTypeLabels[rev.revision_type] || rev.revision_type}
-                          </Badge>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Step 3: Target date */}
+          {selectedIds.length >= 2 && (
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">3. Fecha de la visita unificada</label>
+              <input
+                type="date"
+                value={targetDate}
+                onChange={e => setTargetDate(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
