@@ -153,7 +153,7 @@ export default function HomeTecnico() {
           </div>
         </div>
 
-        <div className="bg-[#ffffff] mx-auto pb-28 p-4 max-w-7xl space-y-4">
+        <div className="bg-[#c9c9c9] mx-auto pb-28 p-4 max-w-7xl space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
