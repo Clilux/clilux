@@ -153,7 +153,7 @@ export default function HomeTecnico() {
           </div>
         </div>
 
-        <div className="bg-[#2f3733] mx-auto pb-28 p-4 max-w-7xl space-y-4">
+        <div className="bg-gray-100 mx-auto pb-28 p-4 max-w-7xl space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link to={createPageUrl('Clients')}>
@@ -221,8 +221,8 @@ export default function HomeTecnico() {
                 size="sm"
                 variant="ghost"
                 onClick={() => saveActionsMutation.mutate(quickActions)}
-                className="text-slate-400 hover:text-white text-xs"
-              >
+                className="text-slate-400 hover:text-white text-xs">
+                
                 {saveActionsMutation.isPending ? 'Guardando...' : 'Guardar orden'}
               </Button>
             </div>
@@ -234,23 +234,23 @@ export default function HomeTecnico() {
               setQuickActions(items);
             }}>
               <Droppable droppableId="quickActions" direction="horizontal">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="flex gap-3 overflow-x-auto pb-2"
-                  >
+                {(provided) =>
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="flex gap-3 overflow-x-auto pb-2">
+                  
                     {quickActions.map((action, index) => {
-                      const iconMap = { ScanLine, Plus, FileCheck, AlertCircle, Calendar, FileText, Database, Bot, Tag, UserCog };
-                      const IconComp = iconMap[action.icon] || Plus;
-                      return (
-                        <Draggable key={action.id} draggableId={action.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className="shrink-0"
-                            >
+                    const iconMap = { ScanLine, Plus, FileCheck, AlertCircle, Calendar, FileText, Database, Bot, Tag, UserCog };
+                    const IconComp = iconMap[action.icon] || Plus;
+                    return (
+                      <Draggable key={action.id} draggableId={action.id} index={index}>
+                          {(provided, snapshot) =>
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className="shrink-0">
+                          
                               <Link to={createPageUrl(action.page)}>
                                 <Card className={`bg-gradient-to-br ${action.bgColor} border ${action.borderColor} p-3 hover:scale-105 transition-transform cursor-pointer w-24 ${snapshot.isDragging ? 'opacity-70 rotate-2' : ''}`}>
                                   <div className="flex flex-col items-center gap-2">
@@ -263,13 +263,13 @@ export default function HomeTecnico() {
                                 </Card>
                               </Link>
                             </div>
-                          )}
-                        </Draggable>
-                      );
-                    })}
+                        }
+                        </Draggable>);
+
+                  })}
                     {provided.placeholder}
                   </div>
-                )}
+                }
               </Droppable>
             </DragDropContext>
           </div>
@@ -287,18 +287,18 @@ export default function HomeTecnico() {
                 </Button>
               </Link>
             </div>
-            {upcomingRevisions.length === 0 ? (
-              <Card className="bg-slate-800/30 border-white/10 p-4 text-center">
+            {upcomingRevisions.length === 0 ?
+            <Card className="bg-slate-800/30 border-white/10 p-4 text-center">
                 <p className="text-slate-400 text-sm">No hay revisiones próximas</p>
-              </Card>
-            ) : (
-              <div className="space-y-2">
+              </Card> :
+
+            <div className="space-y-2">
                 {upcomingRevisions.slice(0, 5).map((rev) => {
-                  const client = clients.find(c => c.id === rev.client_id);
-                  const building = buildings.find(b => b.id === rev.building_id);
-                  const equip = equipment.find(e => e.id === rev.equipment_id);
-                  return (
-                    <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
+                const client = clients.find((c) => c.id === rev.client_id);
+                const building = buildings.find((b) => b.id === rev.building_id);
+                const equip = equipment.find((e) => e.id === rev.equipment_id);
+                return (
+                  <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
                       <Card className="bg-slate-800/40 border-white/10 p-3 hover:bg-slate-700/40 transition-colors cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -316,16 +316,16 @@ export default function HomeTecnico() {
                           </div>
                         </div>
                       </Card>
-                    </Link>
-                  );
-                })}
+                    </Link>);
+
+              })}
               </div>
-            )}
+            }
           </div>
 
           {/* Pending Incidents */}
-          {pendingIncidents.length > 0 && (
-            <div>
+          {pendingIncidents.length > 0 &&
+          <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-white font-semibold flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400" />
@@ -339,9 +339,9 @@ export default function HomeTecnico() {
               </div>
               <div className="space-y-2">
                 {pendingIncidents.slice(0, 3).map((inc) => {
-                  const client = clients.find(c => c.id === inc.client_id);
-                  return (
-                    <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
+                const client = clients.find((c) => c.id === inc.client_id);
+                return (
+                  <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
                       <Card className="bg-red-900/20 border-red-500/20 p-3 hover:bg-red-900/30 transition-colors cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -356,12 +356,12 @@ export default function HomeTecnico() {
                           </span>
                         </div>
                       </Card>
-                    </Link>
-                  );
-                })}
+                    </Link>);
+
+              })}
               </div>
             </div>
-          )}
+          }
 
           {/* Recent Clients */}
           <div>
@@ -376,24 +376,24 @@ export default function HomeTecnico() {
                 </Button>
               </Link>
             </div>
-            {loadingClients ? (
-              <div className="space-y-2">
-                {[1,2,3].map(i => <Skeleton key={i} className="h-16 bg-white/10 rounded-lg" />)}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {clients.slice(0, 5).map((client) => (
-                  <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
+            {loadingClients ?
+            <div className="space-y-2">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 bg-white/10 rounded-lg" />)}
+              </div> :
+
+            <div className="space-y-2">
+                {clients.slice(0, 5).map((client) =>
+              <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
                     <Card className="bg-slate-800/40 border-white/10 p-3 hover:bg-slate-700/40 transition-colors cursor-pointer">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {client.photo_url ? (
-                            <img src={client.photo_url} alt={client.name} className="w-8 h-8 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          {client.photo_url ?
+                      <img src={client.photo_url} alt={client.name} className="w-8 h-8 rounded-full object-cover" /> :
+
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
                               <Users className="h-4 w-4 text-emerald-400" />
                             </div>
-                          )}
+                      }
                           <div>
                             <p className="text-white text-sm font-medium">{client.name}</p>
                             <p className="text-slate-400 text-xs">{client.city || client.email || ''}</p>
@@ -403,9 +403,9 @@ export default function HomeTecnico() {
                       </div>
                     </Card>
                   </Link>
-                ))}
+              )}
               </div>
-            )}
+            }
           </div>
         </div>
         
