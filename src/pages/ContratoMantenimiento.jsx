@@ -38,11 +38,30 @@ const DEFAULT_CLAUSULAS = `El presente contrato se regirá por las siguientes co
 4. Cualquiera de las partes podrá resolver el contrato con un preaviso de 30 días por escrito.
 5. En caso de avería urgente, el tiempo de respuesta será de 24-48 horas hábiles.`;
 
+const DEFAULT_LOPD = `CLÁUSULA DE PROTECCIÓN DE DATOS PERSONALES
+
+En cumplimiento de lo establecido en la Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD), y del Reglamento (UE) 2016/679 del Parlamento Europeo y del Consejo, de 27 de abril de 2016 (RGPD), le informamos que:
+
+RESPONSABLE DEL TRATAMIENTO: Los datos personales facilitados por el CLIENTE serán tratados por [NOMBRE EMPRESA] como responsable del tratamiento.
+
+FINALIDAD: Los datos serán utilizados exclusivamente para la gestión, ejecución y seguimiento del presente contrato de mantenimiento, así como para el envío de comunicaciones relacionadas con el mismo.
+
+LEGITIMACIÓN: La base legal del tratamiento es la ejecución del contrato (art. 6.1.b RGPD).
+
+CONSERVACIÓN: Los datos se conservarán durante la vigencia del contrato y, una vez finalizado, durante los plazos legalmente exigibles.
+
+DESTINATARIOS: Los datos no serán cedidos a terceros salvo obligación legal.
+
+DERECHOS: El CLIENTE podrá ejercitar los derechos de acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad de sus datos dirigiéndose por escrito al domicilio del RESPONSABLE o al correo electrónico indicado en este contrato, adjuntando copia de su documento de identidad.
+
+RECLAMACIÓN: Si considera que el tratamiento no se ajusta a la normativa vigente, podrá presentar reclamación ante la Agencia Española de Protección de Datos (www.aepd.es).`;
+
 export default function ContratoMantenimiento() {
   const [step, setStep] = useState(1);
   const [clients, setClients] = useState([]);
   const [settings, setSettings] = useState(null);
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [nuevoClienteMode, setNuevoClienteMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
   const [form, setForm] = useState({
@@ -86,6 +105,7 @@ export default function ContratoMantenimiento() {
     // Trabajos
     descripcion_trabajos: DEFAULT_TRABAJOS,
     clausulas: DEFAULT_CLAUSULAS,
+    lopd_texto: DEFAULT_LOPD,
     lugar_firma: '',
     numero_contrato: `MC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
   });
@@ -110,6 +130,7 @@ export default function ContratoMantenimiento() {
           empresa_telefono: s.company_phone || '',
           empresa_email: s.company_email || '',
           empresa_web: s.company_web || '',
+          lopd_texto: DEFAULT_LOPD.replace('[NOMBRE EMPRESA]', s.company_name || '[NOMBRE EMPRESA]'),
         }));
       }
     };
@@ -274,6 +295,20 @@ export default function ContratoMantenimiento() {
     }
     y += 12;
 
+    // LOPD
+    checkPage(20);
+    doc.setFillColor(219, 234, 254);
+    doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
+    addText('CLÁUSULA DE PROTECCIÓN DE DATOS (LEY ORGÁNICA 3/2018 - LOPDGDD)', margin + 4, y + 5.5, { size: 9, bold: true, color: [30, 64, 175] });
+    y += 12;
+    const lopdLines = doc.splitTextToSize(form.lopd_texto, contentW);
+    for (const line of lopdLines) {
+      checkPage(6);
+      addText(line, margin, y, { size: 8, color: [60, 60, 80] });
+      y += 4.5;
+    }
+    y += 10;
+
     // Firmas
     checkPage(50);
     sectionTitle('FIRMAS');
@@ -319,21 +354,63 @@ export default function ContratoMantenimiento() {
 
   const inputCls = "bg-white border-slate-200 text-slate-800";
 
+  const handleNuevoCliente = () => {
+    setNuevoClienteMode(true);
+    setSelectedClientId('');
+    setForm(prev => ({
+      ...prev,
+      cliente_nombre: '',
+      cliente_cif: '',
+      cliente_direccion: '',
+      cliente_ciudad: '',
+      cliente_cp: '',
+      cliente_telefono: '',
+      cliente_email: '',
+      cliente_representante: '',
+    }));
+  };
+
   const renderStep1 = () => (
     <div className="space-y-6">
-      <div>
-        <Label className="text-slate-600 mb-2 block">Seleccionar cliente existente (opcional)</Label>
-        <Select value={selectedClientId} onValueChange={handleClientSelect}>
-          <SelectTrigger className={inputCls}>
-            <SelectValue placeholder="Buscar cliente..." />
-          </SelectTrigger>
-          <SelectContent>
-            {clients.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.name} — {c.cif}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant={!nuevoClienteMode ? 'default' : 'outline'}
+          onClick={() => setNuevoClienteMode(false)}
+          className="flex-1"
+        >
+          Cliente existente
+        </Button>
+        <Button
+          type="button"
+          variant={nuevoClienteMode ? 'default' : 'outline'}
+          onClick={handleNuevoCliente}
+          className="flex-1"
+        >
+          <Plus className="w-4 h-4 mr-1" /> Nuevo cliente (sin guardar)
+        </Button>
       </div>
+
+      {nuevoClienteMode ? (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+          ℹ️ Los datos introducidos se usarán solo para este contrato y <strong>no se guardarán</strong> en la base de datos.
+        </div>
+      ) : (
+        <div>
+          <Label className="text-slate-600 mb-2 block">Seleccionar cliente existente</Label>
+          <Select value={selectedClientId} onValueChange={handleClientSelect}>
+            <SelectTrigger className={inputCls}>
+              <SelectValue placeholder="Buscar cliente..." />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name} — {c.cif}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><Label className="text-slate-600">Nombre / Razón social *</Label><Input className={inputCls} value={form.cliente_nombre} onChange={e => set('cliente_nombre', e.target.value)} placeholder="Empresa S.L." /></div>
         <div><Label className="text-slate-600">CIF/NIF *</Label><Input className={inputCls} value={form.cliente_cif} onChange={e => set('cliente_cif', e.target.value)} placeholder="B12345678" /></div>
@@ -491,6 +568,14 @@ export default function ContratoMantenimiento() {
         <p className="text-xs text-slate-400 mb-2">Condiciones legales, penalizaciones, prórrogas, etc.</p>
         <Textarea className={`${inputCls} min-h-[180px] text-sm`} value={form.clausulas} onChange={e => set('clausulas', e.target.value)} />
       </div>
+      <div>
+        <Label className="text-slate-600 mb-1 block font-medium flex items-center gap-2">
+          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">LOPDGDD</span>
+          Cláusula de Protección de Datos
+        </Label>
+        <p className="text-xs text-slate-400 mb-2">Incluida automáticamente según Ley Orgánica 3/2018 y RGPD. Puedes editarla si es necesario.</p>
+        <Textarea className={`${inputCls} min-h-[200px] text-sm`} value={form.lopd_texto} onChange={e => set('lopd_texto', e.target.value)} />
+      </div>
     </div>
   );
 
@@ -567,6 +652,12 @@ export default function ContratoMantenimiento() {
           <div>
             <p className="text-xs font-bold text-slate-500 uppercase mb-2">Condiciones generales</p>
             <p className="text-sm text-slate-600 whitespace-pre-line bg-slate-50 rounded-lg p-3">{form.clausulas}</p>
+          </div>
+
+          {/* LOPD */}
+          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+            <p className="text-xs font-bold text-blue-700 uppercase mb-2">📋 Protección de datos — Ley Orgánica 3/2018</p>
+            <p className="text-xs text-slate-600 whitespace-pre-line">{form.lopd_texto}</p>
           </div>
         </div>
       </div>
