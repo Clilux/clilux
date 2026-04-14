@@ -319,8 +319,12 @@ export default function Settings() {
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Configuración" />
 
-        <Tabs defaultValue="appearance" className="space-y-6">
+        <Tabs defaultValue="empresa" className="space-y-6">
           <TabsList className="bg-white flex-wrap">
+            <TabsTrigger value="empresa" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Empresa
+            </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               Apariencia
@@ -339,9 +343,10 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="appearance">
+          <TabsContent value="empresa">
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-6">Datos de la Empresa</h3>
+              <h3 className="font-semibold text-slate-800 mb-2">Datos de la Empresa</h3>
+              <p className="text-sm text-slate-500 mb-6">Estos datos se utilizan en los contratos, facturas y documentos generados por la aplicación.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -352,7 +357,7 @@ export default function Settings() {
                   <Label>CIF / NIF</Label>
                   <Input value={formData.company_cif || ''} onChange={(e) => handleChange('company_cif', e.target.value)} className="mt-1" placeholder="B12345678" />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Label>Dirección</Label>
                   <Input value={formData.company_address || ''} onChange={(e) => handleChange('company_address', e.target.value)} className="mt-1" placeholder="Calle Ejemplo, 1" />
                 </div>
@@ -383,8 +388,8 @@ export default function Settings() {
                 {formData.logo_url && (
                   <img src={formData.logo_url} alt="Logo" className="h-16 object-contain rounded-lg border p-1" />
                 )}
-                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-upload" />
-                <label htmlFor="logo-upload">
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-upload-empresa" />
+                <label htmlFor="logo-upload-empresa">
                   <Button type="button" variant="outline" asChild disabled={uploading}>
                     <span>
                       {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
@@ -393,8 +398,13 @@ export default function Settings() {
                   </Button>
                 </label>
               </div>
+            </Card>
+          </TabsContent>
 
-              <h4 className="font-medium text-slate-700 mt-8 mb-2">Marca de Agua para Documentos</h4>
+          <TabsContent value="appearance">
+            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+              <h3 className="font-semibold text-slate-800 mb-6">Marca de Agua para Documentos</h3>
+              <h4 className="font-medium text-slate-700 mb-2">Marca de Agua</h4>
               <p className="text-sm text-slate-500 mb-3">Esta imagen aparecerá como marca de agua semitransparente en los certificados y documentos PDF generados.</p>
               <div className="flex items-center gap-4">
                 {formData.watermark_url && (
@@ -435,7 +445,7 @@ export default function Settings() {
               </div>
             </Card>
 
-            <Card className="p-6 bg-white border-0 shadow-sm">
+            <Card className="p-6 bg-white border-0 shadow-sm mt-6">
               <h3 className="font-semibold text-slate-800 mb-6">Apariencia de la Interfaz</h3>
               <h4 className="font-medium text-slate-700 mb-4">Colores de la Interfaz</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -7,19 +7,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
+import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, HardHat, ClipboardList } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import NavHeader from '../components/navigation/NavHeader';
 
 const STEPS = [
-  { id: 1, label: 'Cliente', icon: User },
-  { id: 2, label: 'Empresa', icon: Building2 },
-  { id: 3, label: 'Duración', icon: Calendar },
-  { id: 4, label: 'Tarifas', icon: CreditCard },
-  { id: 5, label: 'Trabajos', icon: Wrench },
-  { id: 6, label: 'Vista previa', icon: Eye },
+  { id: 1, label: 'Tipo', icon: ClipboardList },
+  { id: 2, label: 'Cliente', icon: User },
+  { id: 3, label: 'Empresa', icon: Building2 },
+  { id: 4, label: 'Duración', icon: Calendar },
+  { id: 5, label: 'Tarifas', icon: CreditCard },
+  { id: 6, label: 'Trabajos', icon: Wrench },
+  { id: 7, label: 'Vista previa', icon: Eye },
 ];
 
-const DEFAULT_TRABAJOS = `El servicio de mantenimiento preventivo incluye las siguientes actuaciones:
+const DEFAULT_TRABAJOS_MANTENIMIENTO = `El servicio de mantenimiento preventivo incluye las siguientes actuaciones:
 
 • Revisión y limpieza de filtros de aire y unidades interiores/exteriores.
 • Comprobación del circuito frigorífico: presiones, temperaturas y estanqueidad.
@@ -29,6 +31,16 @@ const DEFAULT_TRABAJOS = `El servicio de mantenimiento preventivo incluye las si
 • Comprobación de niveles de refrigerante y detección de fugas.
 • Lubricación de partes móviles cuando sea necesario.
 • Informe técnico de cada visita realizada.`;
+
+const DEFAULT_TRABAJOS_INSTALACIONES = `El presente contrato de instalación comprende los siguientes trabajos:
+
+• Suministro e instalación de los equipos descritos en el presupuesto adjunto.
+• Conexionado eléctrico y frigorífico según normativa vigente.
+• Puesta en marcha y verificación del correcto funcionamiento.
+• Configuración de parámetros y mandos a distancia.
+• Pruebas de estanqueidad y carga de refrigerante si aplica.
+• Formación básica al usuario sobre el uso y mantenimiento.
+• Documentación técnica y garantías de los equipos instalados.`;
 
 const DEFAULT_CLAUSULAS = `El presente contrato se regirá por las siguientes condiciones generales:
 
@@ -63,6 +75,7 @@ export default function ContratoMantenimiento() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [nuevoClienteMode, setNuevoClienteMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [tipoContrato, setTipoContrato] = useState('mantenimiento'); // 'mantenimiento' | 'instalaciones'
 
   const [form, setForm] = useState({
     // Cliente
@@ -101,13 +114,22 @@ export default function ContratoMantenimiento() {
     num_revisiones_anuales: '4',
     incluye_materiales: 'no',
     incluye_urgencias: 'no',
+    horas_administracion: '',
+    precio_hora_administracion: '',
+
+    // Instalaciones
+    presupuesto_numero: '',
+    presupuesto_fecha: '',
+    presupuesto_importe: '',
+    presupuesto_descripcion: '',
 
     // Trabajos
-    descripcion_trabajos: DEFAULT_TRABAJOS,
+    descripcion_trabajos: DEFAULT_TRABAJOS_MANTENIMIENTO,
     clausulas: DEFAULT_CLAUSULAS,
     lopd_texto: DEFAULT_LOPD,
     lugar_firma: '',
     numero_contrato: `MC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+    tipo_contrato: 'mantenimiento',
   });
 
   useEffect(() => {
@@ -210,9 +232,10 @@ export default function ContratoMantenimiento() {
     };
 
     // Header
+    const tituloContrato = tipoContrato === 'instalaciones' ? 'CONTRATO DE INSTALACIÓN' : 'CONTRATO DE MANTENIMIENTO';
     doc.setFillColor(30, 64, 175);
     doc.rect(0, 0, pageW, 35, 'F');
-    addText('CONTRATO DE MANTENIMIENTO', margin, 15, { size: 16, bold: true, color: [255, 255, 255] });
+    addText(tituloContrato, margin, 15, { size: 16, bold: true, color: [255, 255, 255] });
     addText(`Nº ${form.numero_contrato}`, margin, 24, { size: 10, color: [180, 200, 255] });
     addText(`Fecha: ${formatDate(form.fecha_inicio)}`, pageW - margin, 15, { size: 9, color: [200, 220, 255], align: 'right' });
     if (form.empresa_nombre) addText(form.empresa_nombre, pageW - margin, 22, { size: 10, bold: true, color: [255, 255, 255], align: 'right' });
@@ -268,11 +291,34 @@ export default function ContratoMantenimiento() {
     field('Método de pago', metodosPago[form.metodo_pago] || form.metodo_pago, col2, y, 70);
     y += 12;
     if (form.iban) { field('IBAN', form.iban, col1, y, 120); y += 12; }
-    field('Revisiones incluidas/año', form.num_revisiones_anuales, col1, y, 70);
-    field('Materiales incluidos', form.incluye_materiales === 'si' ? 'Sí' : 'No', col2, y, 70);
-    y += 12;
-    field('Urgencias incluidas (24h)', form.incluye_urgencias === 'si' ? 'Sí' : 'No', col1, y, 70);
+    if (tipoContrato === 'mantenimiento') {
+      field('Revisiones incluidas/año', form.num_revisiones_anuales, col1, y, 70);
+      field('Materiales incluidos', form.incluye_materiales === 'si' ? 'Sí' : 'No', col2, y, 70);
+      y += 12;
+      field('Urgencias incluidas (24h)', form.incluye_urgencias === 'si' ? 'Sí' : 'No', col1, y, 70);
+    }
+    if (form.horas_administracion) {
+      y += 12;
+      field('Horas de administración incluidas', `${form.horas_administracion} h`, col1, y, 90);
+      if (form.precio_hora_administracion) field('Precio/hora (fuera de contrato)', `${form.precio_hora_administracion} €/h + IVA`, col2, y, 90);
+    }
     y += 16;
+
+    // Presupuesto adjunto (instalaciones)
+    if (tipoContrato === 'instalaciones' && form.presupuesto_numero) {
+      checkPage(20);
+      sectionTitle('PRESUPUESTO ADJUNTO');
+      field('Nº Presupuesto', form.presupuesto_numero, col1, y, 70);
+      if (form.presupuesto_fecha) field('Fecha', formatDate(form.presupuesto_fecha), col2, y, 60);
+      y += 12;
+      if (form.presupuesto_importe) field('Importe total', `${form.presupuesto_importe} € + IVA`, col1, y, 70);
+      y += 12;
+      if (form.presupuesto_descripcion) {
+        const presLines = doc.splitTextToSize(form.presupuesto_descripcion, contentW);
+        for (const line of presLines) { checkPage(6); addText(line, margin, y, { size: 9 }); y += 5; }
+      }
+      y += 8;
+    }
 
     // Trabajos
     sectionTitle('DESCRIPCIÓN DE LOS TRABAJOS');
@@ -353,6 +399,50 @@ export default function ContratoMantenimiento() {
   );
 
   const inputCls = "bg-white border-slate-200 text-slate-800";
+
+  const handleTipoContrato = (tipo) => {
+    setTipoContrato(tipo);
+    set('tipo_contrato', tipo);
+    set('descripcion_trabajos', tipo === 'instalaciones' ? DEFAULT_TRABAJOS_INSTALACIONES : DEFAULT_TRABAJOS_MANTENIMIENTO);
+    set('numero_contrato', `${tipo === 'instalaciones' ? 'CI' : 'MC'}-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`);
+  };
+
+  const renderStep0 = () => (
+    <div className="space-y-6">
+      <p className="text-slate-500 text-sm">Selecciona el tipo de contrato que deseas generar.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => handleTipoContrato('mantenimiento')}
+          className={`p-6 rounded-xl border-2 text-left transition-all ${tipoContrato === 'mantenimiento' ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-300'}`}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${tipoContrato === 'mantenimiento' ? 'bg-blue-600' : 'bg-slate-100'}`}>
+              <Wrench className={`w-5 h-5 ${tipoContrato === 'mantenimiento' ? 'text-white' : 'text-slate-500'}`} />
+            </div>
+            <span className={`font-semibold text-lg ${tipoContrato === 'mantenimiento' ? 'text-blue-700' : 'text-slate-700'}`}>Mantenimiento</span>
+          </div>
+          <p className="text-sm text-slate-500">Contrato de mantenimiento preventivo y/o correctivo de equipos. Incluye revisiones periódicas, horas de asistencia y condiciones de servicio.</p>
+          {tipoContrato === 'mantenimiento' && <span className="mt-3 inline-block text-xs bg-blue-600 text-white px-2 py-1 rounded-full">Seleccionado</span>}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTipoContrato('instalaciones')}
+          className={`p-6 rounded-xl border-2 text-left transition-all ${tipoContrato === 'instalaciones' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-300'}`}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${tipoContrato === 'instalaciones' ? 'bg-orange-500' : 'bg-slate-100'}`}>
+              <HardHat className={`w-5 h-5 ${tipoContrato === 'instalaciones' ? 'text-white' : 'text-slate-500'}`} />
+            </div>
+            <span className={`font-semibold text-lg ${tipoContrato === 'instalaciones' ? 'text-orange-600' : 'text-slate-700'}`}>Instalaciones</span>
+          </div>
+          <p className="text-sm text-slate-500">Contrato de instalación de nuevos equipos. Permite adjuntar presupuesto, definir horas de administración y condiciones de la obra.</p>
+          {tipoContrato === 'instalaciones' && <span className="mt-3 inline-block text-xs bg-orange-500 text-white px-2 py-1 rounded-full">Seleccionado</span>}
+        </button>
+      </div>
+    </div>
+  );
 
   const handleNuevoCliente = () => {
     setNuevoClienteMode(true);
@@ -486,7 +576,7 @@ export default function ContratoMantenimiento() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-slate-600">Precio anual (€ sin IVA)</Label>
+          <Label className="text-slate-600">{tipoContrato === 'instalaciones' ? 'Importe total instalación (€ sin IVA)' : 'Precio anual (€ sin IVA)'}</Label>
           <Input className={inputCls} type="number" value={form.precio_anual} onChange={e => set('precio_anual', e.target.value)} placeholder="1200" />
         </div>
         <div>
@@ -523,35 +613,82 @@ export default function ContratoMantenimiento() {
             <Input className={inputCls} value={form.iban} onChange={e => set('iban', e.target.value)} placeholder="ES00 0000 0000 0000 0000 0000" />
           </div>
         )}
-        <div>
-          <Label className="text-slate-600">Nº de revisiones al año</Label>
-          <Select value={form.num_revisiones_anuales} onValueChange={v => set('num_revisiones_anuales', v)}>
-            <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {['1','2','3','4','6','12'].map(n => <SelectItem key={n} value={n}>{n} visita{n !== '1' ? 's' : ''}/año</SelectItem>)}
-            </SelectContent>
-          </Select>
+
+        {tipoContrato === 'mantenimiento' && (<>
+          <div>
+            <Label className="text-slate-600">Nº de revisiones al año</Label>
+            <Select value={form.num_revisiones_anuales} onValueChange={v => set('num_revisiones_anuales', v)}>
+              <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['1','2','3','4','6','12'].map(n => <SelectItem key={n} value={n}>{n} visita{n !== '1' ? 's' : ''}/año</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-slate-600">¿Incluye materiales?</Label>
+            <Select value={form.incluye_materiales} onValueChange={v => set('incluye_materiales', v)}>
+              <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">No incluido</SelectItem>
+                <SelectItem value="si">Sí incluido</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-slate-600">¿Incluye urgencias 24h?</Label>
+            <Select value={form.incluye_urgencias} onValueChange={v => set('incluye_urgencias', v)}>
+              <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">No incluido</SelectItem>
+                <SelectItem value="si">Sí incluido</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>)}
+
+        {tipoContrato === 'instalaciones' && (
+          <div className="md:col-span-2 p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+            <p className="text-sm font-medium text-orange-700">Datos del Presupuesto Adjunto</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-slate-600">Nº Presupuesto</Label>
+                <Input className={inputCls} value={form.presupuesto_numero} onChange={e => set('presupuesto_numero', e.target.value)} placeholder="PRES-2026-001" />
+              </div>
+              <div>
+                <Label className="text-slate-600">Fecha presupuesto</Label>
+                <Input className={inputCls} type="date" value={form.presupuesto_fecha} onChange={e => set('presupuesto_fecha', e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-slate-600">Importe (€ sin IVA)</Label>
+                <Input className={inputCls} type="number" value={form.presupuesto_importe} onChange={e => set('presupuesto_importe', e.target.value)} placeholder="5000" />
+              </div>
+              <div className="md:col-span-3">
+                <Label className="text-slate-600">Descripción del presupuesto</Label>
+                <Textarea className={`${inputCls} min-h-[80px] text-sm`} value={form.presupuesto_descripcion} onChange={e => set('presupuesto_descripcion', e.target.value)} placeholder="Equipos y trabajos descritos en el presupuesto..." />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Horas de administración — disponible en ambos tipos */}
+      <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <ClipboardList className="w-4 h-4 text-slate-500" />
+          <p className="text-sm font-medium text-slate-700">Horas de Administración</p>
+          <span className="text-xs text-slate-400">(operaciones fuera de contrato o modificaciones)</span>
         </div>
-        <div>
-          <Label className="text-slate-600">¿Incluye materiales?</Label>
-          <Select value={form.incluye_materiales} onValueChange={v => set('incluye_materiales', v)}>
-            <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no">No incluido</SelectItem>
-              <SelectItem value="si">Sí incluido</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-slate-600">Horas de administración incluidas</Label>
+            <Input className={inputCls} type="number" value={form.horas_administracion} onChange={e => set('horas_administracion', e.target.value)} placeholder="ej: 10 (dejar vacío si no aplica)" />
+          </div>
+          <div>
+            <Label className="text-slate-600">Precio por hora adicional (€/h sin IVA)</Label>
+            <Input className={inputCls} type="number" value={form.precio_hora_administracion} onChange={e => set('precio_hora_administracion', e.target.value)} placeholder="ej: 55" />
+          </div>
         </div>
-        <div>
-          <Label className="text-slate-600">¿Incluye urgencias 24h?</Label>
-          <Select value={form.incluye_urgencias} onValueChange={v => set('incluye_urgencias', v)}>
-            <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no">No incluido</SelectItem>
-              <SelectItem value="si">Sí incluido</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <p className="text-xs text-slate-400">Las horas de administración cubren desplazamientos, gestiones, modificaciones o trabajos fuera del alcance del contrato.</p>
       </div>
     </div>
   );
@@ -596,7 +733,9 @@ export default function ContratoMantenimiento() {
           {/* Header */}
           <div className="flex justify-between items-start border-b pb-4">
             <div>
-              <h2 className="text-xl font-bold text-blue-700">CONTRATO DE MANTENIMIENTO</h2>
+              <h2 className={`text-xl font-bold ${tipoContrato === 'instalaciones' ? 'text-orange-600' : 'text-blue-700'}`}>
+                {tipoContrato === 'instalaciones' ? 'CONTRATO DE INSTALACIÓN' : 'CONTRATO DE MANTENIMIENTO'}
+              </h2>
               <p className="text-slate-500 text-sm">Nº {form.numero_contrato}</p>
             </div>
             <div className="text-right text-sm text-slate-600">
@@ -628,12 +767,18 @@ export default function ContratoMantenimiento() {
             {[
               { label: 'Inicio', value: formatDate(form.fecha_inicio) },
               { label: 'Fin', value: formatDate(fechaFin) },
-              { label: 'Precio anual', value: form.precio_anual ? `${form.precio_anual} €` : '—' },
+              { label: tipoContrato === 'instalaciones' ? 'Importe total' : 'Precio anual', value: form.precio_anual ? `${form.precio_anual} €` : '—' },
               { label: 'Cuota mensual', value: form.precio_mensual ? `${form.precio_mensual} €` : '—' },
               { label: 'Facturación', value: formasPago[form.forma_pago] },
               { label: 'Pago', value: metodosPago[form.metodo_pago] },
-              { label: 'Revisiones/año', value: form.num_revisiones_anuales },
-              { label: 'Urgencias', value: form.incluye_urgencias === 'si' ? 'Incluidas' : 'No incluidas' },
+              ...(tipoContrato === 'mantenimiento' ? [
+                { label: 'Revisiones/año', value: form.num_revisiones_anuales },
+                { label: 'Urgencias', value: form.incluye_urgencias === 'si' ? 'Incluidas' : 'No incluidas' },
+              ] : []),
+              ...(form.horas_administracion ? [
+                { label: 'H. Administración', value: `${form.horas_administracion} h` },
+                { label: 'Precio/hora extra', value: form.precio_hora_administracion ? `${form.precio_hora_administracion} €/h` : '—' },
+              ] : []),
             ].map(item => (
               <div key={item.label} className="bg-slate-50 rounded-lg p-3">
                 <p className="text-xs text-slate-400 uppercase">{item.label}</p>
@@ -641,6 +786,19 @@ export default function ContratoMantenimiento() {
               </div>
             ))}
           </div>
+
+          {/* Presupuesto adjunto (instalaciones) */}
+          {tipoContrato === 'instalaciones' && form.presupuesto_numero && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <p className="text-xs font-bold text-orange-600 uppercase mb-2">Presupuesto adjunto</p>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div><span className="text-slate-400 text-xs block">Nº</span><span className="font-medium">{form.presupuesto_numero}</span></div>
+                {form.presupuesto_fecha && <div><span className="text-slate-400 text-xs block">Fecha</span><span className="font-medium">{formatDate(form.presupuesto_fecha)}</span></div>}
+                {form.presupuesto_importe && <div><span className="text-slate-400 text-xs block">Importe</span><span className="font-medium">{form.presupuesto_importe} € + IVA</span></div>}
+              </div>
+              {form.presupuesto_descripcion && <p className="text-xs text-slate-600 mt-2">{form.presupuesto_descripcion}</p>}
+            </div>
+          )}
 
           {/* Trabajos */}
           <div>
@@ -664,18 +822,20 @@ export default function ContratoMantenimiento() {
     );
   };
 
-  const stepContent = [renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6];
+  const stepContent = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-800">
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <NavHeader title="Contratos" homeUrl="HomeTecnico" />
+        <div className="bg-slate-50 rounded-2xl p-6 min-h-screen">
         {/* Title */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-            <FileText className="w-5 h-5 text-white" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tipoContrato === 'instalaciones' ? 'bg-orange-500' : 'bg-blue-600'}`}>
+            {tipoContrato === 'instalaciones' ? <HardHat className="w-5 h-5 text-white" /> : <FileText className="w-5 h-5 text-white" />}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Contrato de Mantenimiento</h1>
+            <h1 className="text-2xl font-bold text-slate-800">{tipoContrato === 'instalaciones' ? 'Contrato de Instalación' : 'Contrato de Mantenimiento'}</h1>
             <p className="text-slate-500 text-sm">Genera contratos profesionales en formato PDF</p>
           </div>
         </div>
@@ -708,6 +868,7 @@ export default function ContratoMantenimiento() {
               <Download className="w-4 h-4" /> Descargar PDF
             </Button>
           )}
+        </div>
         </div>
       </div>
     </div>
