@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import VetaCatalogo from './pages/VetaCatalogo';
 import ContratoMantenimiento from './pages/ContratoMantenimiento';
+import CarpetaContratos from './pages/CarpetaContratos';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/VetaCatalogo" element={<LayoutWrapper currentPageName="VetaCatalogo"><VetaCatalogo /></LayoutWrapper>} />
       <Route path="/ContratoMantenimiento" element={<LayoutWrapper currentPageName="ContratoMantenimiento"><ContratoMantenimiento /></LayoutWrapper>} />
+      <Route path="/CarpetaContratos" element={<LayoutWrapper currentPageName="CarpetaContratos"><CarpetaContratos /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

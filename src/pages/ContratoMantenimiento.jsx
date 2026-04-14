@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, HardHat, ClipboardList } from 'lucide-react';
+import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, HardHat, ClipboardList, FolderOpen } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { Link } from 'react-router-dom';
 import NavHeader from '../components/navigation/NavHeader';
 
 const STEPS = [
@@ -191,7 +192,7 @@ export default function ContratoMantenimiento() {
     return `${d}/${m}/${y}`;
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     const doc = new jsPDF({ format: 'a4', unit: 'mm' });
     const pageW = 210;
     const margin = 20;
@@ -372,6 +373,32 @@ export default function ContratoMantenimiento() {
     addText(form.cliente_nombre, col2 + 15, y + 21, { size: 8, color: [100, 100, 100] });
 
     doc.save(`Contrato_${form.numero_contrato}_${form.cliente_nombre || 'cliente'}.pdf`);
+
+    // Guardar en la carpeta de contratos
+    try {
+      const existing = await base44.entities.Contrato.filter({ numero_contrato: form.numero_contrato });
+      const fechaFin = form.fecha_fin || calcFechaFin(form.fecha_inicio, form.duracion_meses);
+      const contratoData = {
+        numero_contrato: form.numero_contrato,
+        tipo_contrato: tipoContrato,
+        estado: 'realizado',
+        cliente_nombre: form.cliente_nombre,
+        cliente_cif: form.cliente_cif,
+        cliente_id: selectedClientId || '',
+        fecha_inicio: form.fecha_inicio,
+        fecha_fin: fechaFin,
+        precio_anual: form.precio_anual ? Number(form.precio_anual) : null,
+        forma_pago: form.forma_pago,
+        form_data: { ...form, tipoContrato },
+      };
+      if (existing.length > 0) {
+        await base44.entities.Contrato.update(existing[0].id, contratoData);
+      } else {
+        await base44.entities.Contrato.create(contratoData);
+      }
+    } catch (e) {
+      console.error('Error guardando contrato:', e);
+    }
   };
 
   const renderStepIndicator = () => (
@@ -828,6 +855,13 @@ export default function ContratoMantenimiento() {
     <div className="min-h-screen bg-slate-800">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <NavHeader title="Contratos" homeUrl="HomeTecnico" />
+        <div className="flex justify-end mb-2">
+          <Link to="/CarpetaContratos">
+            <Button variant="outline" size="sm" className="gap-2 text-slate-600 bg-white/80 border-slate-300">
+              <FolderOpen className="w-4 h-4" /> Carpeta de contratos
+            </Button>
+          </Link>
+        </div>
         <div className="bg-slate-50 rounded-2xl p-6 min-h-screen">
         {/* Title */}
         <div className="flex items-center gap-3 mb-8">

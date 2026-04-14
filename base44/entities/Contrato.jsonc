@@ -1,0 +1,79 @@
+{
+  "name": "Contrato",
+  "type": "object",
+  "properties": {
+    "numero_contrato": {
+      "type": "string",
+      "description": "N\u00famero identificador del contrato"
+    },
+    "tipo_contrato": {
+      "type": "string",
+      "enum": [
+        "mantenimiento",
+        "instalaciones"
+      ],
+      "default": "mantenimiento",
+      "description": "Tipo de contrato"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "realizado",
+        "firmado"
+      ],
+      "default": "realizado",
+      "description": "Estado del contrato: realizado (generado) o firmado (con firma del cliente)"
+    },
+    "cliente_nombre": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "cliente_cif": {
+      "type": "string",
+      "description": "CIF/NIF del cliente"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID del cliente en el sistema (si es cliente existente)"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio del contrato"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin del contrato"
+    },
+    "precio_anual": {
+      "type": "number",
+      "description": "Precio anual o importe total"
+    },
+    "forma_pago": {
+      "type": "string",
+      "description": "Periodicidad de pago"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL del PDF del contrato generado"
+    },
+    "pdf_firmado_url": {
+      "type": "string",
+      "description": "URL del PDF firmado por el cliente"
+    },
+    "form_data": {
+      "type": "object",
+      "description": "Todos los datos del formulario para poder editar el contrato"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas internas sobre el contrato"
+    }
+  },
+  "required": [
+    "numero_contrato",
+    "tipo_contrato",
+    "cliente_nombre"
+  ]
+}
