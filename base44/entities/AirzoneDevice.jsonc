@@ -1,0 +1,44 @@
+{
+  "name": "AirzoneDevice",
+  "type": "object",
+  "properties": {
+    "nombre_referencia": {
+      "type": "string",
+      "description": "Nombre de referencia del dispositivo (ej: Oficina Principal)"
+    },
+    "airzone_email": {
+      "type": "string",
+      "description": "Email de la cuenta Airzone Cloud"
+    },
+    "airzone_password": {
+      "type": "string",
+      "description": "Contrase\u00f1a de la cuenta Airzone Cloud"
+    },
+    "mac": {
+      "type": "string",
+      "description": "MAC del dispositivo WebServer (ej: AA:BB:CC:DD:EE:FF)"
+    },
+    "installation_id": {
+      "type": "string",
+      "description": "ID de instalaci\u00f3n en Airzone Cloud (se rellena autom\u00e1ticamente)"
+    },
+    "location": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n f\u00edsica del dispositivo"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el dispositivo est\u00e1 activo"
+    }
+  },
+  "required": [
+    "nombre_referencia",
+    "airzone_email",
+    "airzone_password"
+  ]
+}

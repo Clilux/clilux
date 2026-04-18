@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import VetaCatalogo from './pages/VetaCatalogo';
 import ContratoMantenimiento from './pages/ContratoMantenimiento';
 import CarpetaContratos from './pages/CarpetaContratos';
+import ControlClimatizacion from './pages/ControlClimatizacion';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
       <Route path="/VetaCatalogo" element={<LayoutWrapper currentPageName="VetaCatalogo"><VetaCatalogo /></LayoutWrapper>} />
       <Route path="/ContratoMantenimiento" element={<LayoutWrapper currentPageName="ContratoMantenimiento"><ContratoMantenimiento /></LayoutWrapper>} />
       <Route path="/CarpetaContratos" element={<LayoutWrapper currentPageName="CarpetaContratos"><CarpetaContratos /></LayoutWrapper>} />
+      <Route path="/ControlClimatizacion" element={<LayoutWrapper currentPageName="ControlClimatizacion"><ControlClimatizacion /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
