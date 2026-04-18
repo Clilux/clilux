@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Wind } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -114,18 +114,20 @@ export default function MenuInicio() {
             <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
             <Button
             onClick={() => setMode('client')} className="bg-[#16bba4] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow w-full h-12 hover:bg-blue-700 flex items-center justify-center gap-3">
-
-
               <Users className="h-5 w-5" />
               Acceso Cliente
             </Button>
             <Button
             onClick={handleTechnicianLogin} className="bg-[#525b57] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3"
-
             variant="ghost">
-
               <Wrench className="h-5 w-5" />
               Acceso Técnico
+            </Button>
+            <Button
+            onClick={() => navigate(createPageUrl('ControlClimatizacion'))}
+            className="bg-blue-600 text-white w-full h-12 flex items-center justify-center gap-3 hover:bg-blue-700 text-base font-medium rounded-md">
+              <Wind className="h-5 w-5" />
+              Control Climatización
             </Button>
           </div>
         }
