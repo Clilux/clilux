@@ -18,8 +18,32 @@ async function az(method, path, token, body) {
 
 async function loginAirzone(email, password) {
   const res = await az('POST', '/auth/login', null, { email, password });
-  if (!res.ok) throw new Error(res.data?.msg || 'Login failed');
+  if (!res.ok) throw new Error(res.data?.msg || 'Login fallido');
   return res.data.token;
+}
+
+// Find installation by MAC (mandatory)
+async function findInstallationByMac(token, mac) {
+  // Try direct filter first
+  const macLower = mac.toLowerCase();
+  const byMacRes = await az('GET', `/installations?filterParam=mac&filterValue=${encodeURIComponent(mac)}&items=10&page=1`, token);
+  const byMacList = byMacRes.data?.installations || [];
+  if (byMacList.length > 0) return byMacList[0];
+
+  // Fallback: iterate pages (account can have many installations)
+  let page = 1;
+  let total = null;
+  while (true) {
+    const res = await az('GET', `/installations?items=10&page=${page}`, token);
+    const data = res.data || {};
+    if (total === null) total = data.total || 0;
+    const list = data.installations || [];
+    const found = list.find(i => i.ws_ids?.some(w => w.toLowerCase() === macLower));
+    if (found) return found;
+    if (list.length < 10 || page * 10 >= total) break;
+    page++;
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -35,100 +59,132 @@ Deno.serve(async (req) => {
     const device = allDevices.find(d => d.id === device_id);
     if (!device) return Response.json({ error: 'Dispositivo no encontrado' }, { status: 404 });
 
-    const token = await loginAirzone(device.airzone_email, device.airzone_password);
-
-    if (action === 'explore_endpoints') {
-      const wsId = device.mac || params?.ws_id;
-      const encodedWs = encodeURIComponent(wsId);
-      const results = {};
-
-      // Try all known endpoints for Aidoo climate data
-      const paths = [
-        `/devices/ws/${encodedWs}/config`,
-        `/devices/ws/${encodedWs}/device`,
-        `/devices/ws/${encodedWs}/devices`,
-        `/devices/ws/${encodedWs}/zones`,
-        `/devices/ws/${encodedWs}/climate`,
-        `/devices/ws/${encodedWs}/state`,
-        `/devices/ws/${encodedWs}/airquality`,
-      ];
-
-      for (const p of paths) {
-        const r = await az('GET', p, token);
-        results[p] = { status: r.status, data: r.data };
-      }
-
-      return Response.json({ results });
+    // MAC is REQUIRED — identifies the specific WebServer in the account
+    if (!device.mac) {
+      return Response.json({
+        error: 'La MAC del WebServer es obligatoria. Edita el dispositivo y añade la MAC (formato AA:BB:CC:DD:EE:FF).'
+      }, { status: 400 });
     }
 
-    if (action === 'get_status') {
-      // 1. Get installations
-      const instRes = await az('GET', '/installations?items=10&page=1', token);
-      const installations = instRes.data?.installations || [];
-      if (installations.length === 0) return Response.json({ error: 'No installations found' }, { status: 404 });
+    const token = await loginAirzone(device.airzone_email, device.airzone_password);
+    const mac = device.mac.trim();
 
-      let installation = installations[0];
-      if (device.mac) {
-        const byMac = installations.find(i =>
-          i.ws_ids?.some(mac => mac.toLowerCase() === device.mac.toLowerCase())
-        );
-        if (byMac) installation = byMac;
+    // -------- GET STATUS --------
+    if (action === 'get_status') {
+      // Step 1: Find installation by MAC
+      const installation = await findInstallationByMac(token, mac);
+      if (!installation) {
+        return Response.json({
+          error: `No se encontró instalación con MAC ${mac}. Verifica que la MAC del WebServer sea correcta.`
+        }, { status: 404 });
+      }
+      const instId = installation.installation_id;
+      const encodedMac = encodeURIComponent(mac);
+      const encodedInstId = encodeURIComponent(instId);
+
+      // Step 2: Get WebServer status WITH devices (devices=1 returns the Aidoo device list)
+      const wsRes = await az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}&devices=1`, token);
+      if (!wsRes.ok) {
+        return Response.json({
+          error: `No se pudo obtener el estado del WS. HTTP ${wsRes.status}`
+        }, { status: 400 });
       }
 
-      const instId = installation.installation_id;
-      const wsIds = installation.ws_ids || [];
+      const wsData = wsRes.data || {};
+      const isConnected = wsData.status?.isConnected ?? false;
+      const wsType = wsData.ws_type;
+      // Devices are in wsData.devices array when devices=1
+      const devicesInWs = wsData.devices || [];
+      console.log(`[AZ] WS devices count: ${devicesInWs.length}, raw: ${JSON.stringify(devicesInWs).substring(0, 400)}`);
 
-      const allZones = [];
-      for (const wsId of wsIds) {
-        const encodedWs = encodeURIComponent(wsId);
+      const zones = [];
 
-        // Get WebServer status (connectivity + basic info)
-        const statusRes = await az('GET', `/devices/ws/${encodedWs}/status`, token);
-        const wsStatus = statusRes.data || {};
+      if (devicesInWs.length > 0) {
+        // Step 3: Get status for each device (Aidoo climate data)
+        for (const dev of devicesInWs) {
+          const devId = dev.device_id || dev.id || dev._id;
+          if (!devId) continue;
+          const encodedDevId = encodeURIComponent(devId);
 
-        // Get device config (climate state for Aidoo)
-        const configRes = await az('GET', `/devices/ws/${encodedWs}/config`, token);
-        const wsConfig = configRes.data || {};
+          const devStatusRes = await az('GET', `/devices/${encodedDevId}/status?installation_id=${encodedInstId}`, token);
+          const devStatus = devStatusRes.data || {};
 
-        // For Aidoo: climate data is in config response under various fields
-        // Build zone object combining status + config data
-        const zone = {
-          ws_id: wsId,
+          // Extract celsius values from objects like { celsius: 25.8, fah: 78 }
+          const getCelsius = (v) => (v && typeof v === 'object') ? v.celsius : v;
+
+          // Setpoint: use the current mode-specific setpoint
+          let setpoint = null;
+          const modeSetpointMap = {
+            1: devStatus.setpoint_air_cool,
+            2: devStatus.setpoint_air_heat,
+            3: devStatus.setpoint_air_vent,
+            4: devStatus.setpoint_air_dry,
+            5: devStatus.setpoint_air_auto,
+          };
+          if (devStatus.mode != null && modeSetpointMap[devStatus.mode]) {
+            setpoint = getCelsius(modeSetpointMap[devStatus.mode]);
+          }
+          if (setpoint == null) setpoint = getCelsius(devStatus.setpoint_air ?? devStatus.setpoint);
+
+          zones.push({
+            device_id: devId,
+            az_device_id: devId,
+            installation_id: instId,
+            name: dev.name || installation.name,
+            ws_type: wsType,
+            isConnected,
+            on: devStatus.power ?? devStatus.on ?? null,
+            mode: devStatus.mode ?? null,
+            local_temp: getCelsius(devStatus.local_temp),
+            setpoint_air: setpoint,
+            speed: devStatus.speed_conf ?? devStatus.speed ?? null,
+            humidity: getCelsius(devStatus.humidity),
+            mode_available: devStatus.mode_available || [],
+            speed_values: devStatus.speed_values || [],
+            _raw: devStatus
+          });
+        }
+      } else {
+        // Aidoo with no sub-devices: the WS itself is the climate device
+        // Try getting device status directly via the ws_id as device_id
+        const devStatusRes = await az('GET', `/devices/${encodedMac}/status?installation_id=${encodedInstId}`, token);
+
+        zones.push({
+          ws_id: mac,
+          az_device_id: mac,
           installation_id: instId,
           name: installation.name,
-          isConnected: wsStatus.status?.isConnected ?? false,
-          ws_type: wsStatus.ws_type,
-          // Climate data from config
-          local_temp: wsConfig.local_temp ?? wsConfig.roomTemp ?? wsConfig.temp,
-          setpoint: wsConfig.setpoint ?? wsConfig.setpoint_air,
-          mode: wsConfig.mode,
-          power: wsConfig.power ?? wsConfig.on,
-          speed: wsConfig.speed,
-          humidity: wsConfig.humidity,
-          // Pass raw config for debugging
-          _config: wsConfig
-        };
-
-        allZones.push(zone);
+          ws_type: wsType,
+          isConnected,
+          on: null,
+          mode: null,
+          local_temp: null,
+          setpoint_air: null,
+          speed: null,
+          humidity: null,
+          _ws_raw: wsData,
+          _dev_raw: devStatusRes.data,
+          _no_devices: true
+        });
       }
 
       return Response.json({
         installation: { id: instId, name: installation.name },
-        zones: allZones
+        mac,
+        isConnected,
+        zones
       });
     }
 
-    if (action === 'get_installations') {
-      const instRes = await az('GET', '/installations?items=10&page=1', token);
-      return Response.json({ installations: instRes.data?.installations || [] });
-    }
-
+    // -------- SEND COMMAND --------
     if (action === 'send_command') {
-      // PUT /devices/ws/{wsId}/config for Aidoo
-      const { ws_id, command } = params;
-      const encodedWs = encodeURIComponent(ws_id);
-      const result = await az('PUT', `/devices/ws/${encodedWs}/config`, token, command);
-      if (!result.ok) return Response.json({ error: result.data?.msg || 'Command failed' }, { status: 400 });
+      const { az_device_id, installation_id, command } = params;
+      const encodedDevId = encodeURIComponent(az_device_id);
+      const result = await az('PATCH', `/devices/${encodedDevId}`, token, {
+        installation_id,
+        ...command
+      });
+      if (!result.ok) return Response.json({ error: result.data?.msg || 'Comando fallido' }, { status: 400 });
       return Response.json({ result: result.data });
     }
 

@@ -86,7 +86,7 @@ export default function ControlClimatizacion() {
   };
 
   const saveDevice = async () => {
-    if (!formData.nombre_referencia || !formData.airzone_email || !formData.airzone_password) return;
+    if (!formData.nombre_referencia || !formData.airzone_email || !formData.airzone_password || !formData.mac) return;
     setSaving(true);
     if (editingDevice) {
       await base44.entities.AirzoneDevice.update(editingDevice.id, formData);
@@ -291,12 +291,12 @@ export default function ControlClimatizacion() {
               </div>
             </div>
             <div>
-              <Label className="text-slate-300 text-sm">MAC del WebServer <span className="text-slate-500">(opcional)</span></Label>
+              <Label className="text-slate-300 text-sm">MAC del WebServer <span className="text-red-400">*</span></Label>
               <Input className="bg-slate-900 border-slate-600 text-white mt-1 font-mono"
                 placeholder="AA:BB:CC:DD:EE:FF"
                 value={formData.mac}
                 onChange={e => setFormData({ ...formData, mac: e.target.value })} />
-              <p className="text-xs text-slate-500 mt-1">Si no se indica, se usará la primera instalación encontrada</p>
+              <p className="text-xs text-slate-500 mt-1">MAC del WebServer Aidoo en Airzone Cloud (obligatoria para identificar el dispositivo)</p>
             </div>
             <div>
               <Label className="text-slate-300 text-sm">Ubicación</Label>
@@ -317,7 +317,7 @@ export default function ControlClimatizacion() {
             <Button variant="outline" className="border-slate-600 text-slate-300" onClick={() => setShowForm(false)}>
               Cancelar
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={saveDevice} disabled={saving || !formData.nombre_referencia || !formData.airzone_email || !formData.airzone_password}>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={saveDevice} disabled={saving || !formData.nombre_referencia || !formData.airzone_email || !formData.airzone_password || !formData.mac}>
               {saving ? 'Guardando...' : 'Guardar'}
             </Button>
           </DialogFooter>
