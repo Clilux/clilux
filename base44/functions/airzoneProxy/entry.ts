@@ -22,25 +22,19 @@ async function loginAirzone(email, password) {
   return res.data.token;
 }
 
-// Find installation by MAC (mandatory)
+// Find installation by MAC — iterate all pages checking ws_ids array
 async function findInstallationByMac(token, mac) {
-  // Try direct filter first
-  const macLower = mac.toLowerCase();
-  const byMacRes = await az('GET', `/installations?filterParam=mac&filterValue=${encodeURIComponent(mac)}&items=10&page=1`, token);
-  const byMacList = byMacRes.data?.installations || [];
-  if (byMacList.length > 0) return byMacList[0];
-
-  // Fallback: iterate pages (account can have many installations)
+  const macLower = mac.toLowerCase().trim();
   let page = 1;
-  let total = null;
   while (true) {
     const res = await az('GET', `/installations?items=10&page=${page}`, token);
     const data = res.data || {};
-    if (total === null) total = data.total || 0;
     const list = data.installations || [];
-    const found = list.find(i => i.ws_ids?.some(w => w.toLowerCase() === macLower));
+    const found = list.find(i => i.ws_ids?.some(w => w.toLowerCase().trim() === macLower));
     if (found) return found;
-    if (list.length < 10 || page * 10 >= total) break;
+    if (list.length < 10) break;
+    const total = data.total || 0;
+    if (page * 10 >= total) break;
     page++;
   }
   return null;

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Wind } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -123,12 +123,7 @@ export default function MenuInicio() {
               <Wrench className="h-5 w-5" />
               Acceso Técnico
             </Button>
-            <Button
-            onClick={() => navigate(createPageUrl('ControlClimatizacion'))}
-            className="bg-blue-600 text-white w-full h-12 flex items-center justify-center gap-3 hover:bg-blue-700 text-base font-medium rounded-md">
-              <Wind className="h-5 w-5" />
-              Control Climatización
-            </Button>
+
           </div>
         }
 
