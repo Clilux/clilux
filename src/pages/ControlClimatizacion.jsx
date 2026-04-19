@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Thermometer, Wind, Power, Plus, Pencil, Trash2, RefreshCw, Wifi, WifiOff, ChevronRight, Home, ArrowLeft } from 'lucide-react';
+import { Thermometer, Wind, Power, Plus, Pencil, Trash2, RefreshCw, Wifi, WifiOff, ChevronRight, Home, ArrowLeft, Search, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -38,6 +38,12 @@ export default function ControlClimatizacion() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Selector de instalaciones
+  const [showInstallationPicker, setShowInstallationPicker] = useState(false);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerInstallations, setPickerInstallations] = useState([]);
+  const [pickerError, setPickerError] = useState('');
+  const [pickerDeviceId, setPickerDeviceId] = useState(null);
 
   useEffect(() => {
     loadDevices();
@@ -101,6 +107,39 @@ export default function ControlClimatizacion() {
     loadDevices();
   };
 
+  const openInstallationPicker = async (device) => {
+    setPickerDeviceId(device.id);
+    setPickerInstallations([]);
+    setPickerError('');
+    setPickerLoading(true);
+    setShowInstallationPicker(true);
+    try {
+      const res = await base44.functions.invoke('airzoneProxy', {
+        action: 'list_installations',
+        device_id: device.id
+      });
+      setPickerInstallations(res.data.installations || []);
+    } catch (e) {
+      setPickerError(e.message || 'Error al cargar instalaciones');
+    }
+    setPickerLoading(false);
+  };
+
+  const selectInstallation = async (installation) => {
+    const mac = installation.ws_ids?.[0] || '';
+    await base44.entities.AirzoneDevice.update(pickerDeviceId, {
+      mac,
+      installation_id: installation.installation_id,
+      nombre_referencia: installation.name
+    });
+    setShowInstallationPicker(false);
+    await loadDevices();
+    // Recargar zonas si es el dispositivo seleccionado
+    const updatedDevices = await base44.entities.AirzoneDevice.list('-created_date', 50);
+    const updated = updatedDevices.find(d => d.id === pickerDeviceId);
+    if (updated && selectedDevice?.id === pickerDeviceId) loadZones(updated);
+  };
+
   const deleteDevice = async (device) => {
     if (!confirm(`¿Eliminar "${device.nombre_referencia}"?`)) return;
     await base44.entities.AirzoneDevice.delete(device.id);
@@ -160,6 +199,11 @@ export default function ControlClimatizacion() {
                         {device.mac && <p className="text-xs text-slate-400 font-mono mt-1">{device.mac}</p>}
                       </div>
                       <div className="flex items-center gap-1 ml-2">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-blue-600"
+                          title="Buscar instalaciones en Airzone Cloud"
+                          onClick={(e) => { e.stopPropagation(); openInstallationPicker(device); }}>
+                          <Search className="w-3 h-3" />
+                        </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-slate-700"
                           onClick={(e) => { e.stopPropagation(); openEdit(device); }}>
                           <Pencil className="w-3 h-3" />
@@ -268,6 +312,48 @@ export default function ControlClimatizacion() {
           </div>
         </div>
       </div>
+
+      {/* Installation Picker Dialog */}
+      <Dialog open={showInstallationPicker} onOpenChange={setShowInstallationPicker}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Seleccionar instalación Airzone Cloud</DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">Elige la instalación que quieres controlar. Se guardará automáticamente.</p>
+          </DialogHeader>
+          <div className="py-2">
+            {pickerLoading ? (
+              <div className="space-y-2">
+                {[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-100 rounded-lg animate-pulse" />)}
+              </div>
+            ) : pickerError ? (
+              <div className="text-red-600 text-sm p-3 bg-red-50 rounded-lg">{pickerError}</div>
+            ) : pickerInstallations.length === 0 ? (
+              <div className="text-slate-400 text-sm text-center py-6">No se encontraron instalaciones</div>
+            ) : (
+              <div className="space-y-2">
+                {pickerInstallations.map((inst) => (
+                  <button
+                    key={inst.installation_id}
+                    onClick={() => selectInstallation(inst)}
+                    className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-800 group-hover:text-blue-700">{inst.name}</p>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">{inst.ws_ids?.join(', ')}</p>
+                      </div>
+                      <Check className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInstallationPicker(false)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>

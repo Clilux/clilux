@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
       return Response.json({ result: result.data });
     }
 
-    // -------- LIST ALL INSTALLATIONS (diagnóstico) --------
+    // -------- LIST ALL INSTALLATIONS --------
     if (action === 'list_installations') {
       const all = [];
       let page = 1;
