@@ -93,18 +93,36 @@ Deno.serve(async (req) => {
 
       const zones = [];
 
-      if (devicesInWs.length > 0) {
-        // Step 3: Get status for each device (Aidoo climate data)
-        for (const dev of devicesInWs) {
+      // Filter out non-climate devices (az_outputs only returns isConnected, no climate data)
+      const SKIP_TYPES = ['az_outputs'];
+      const climateDevices = devicesInWs.filter(d => !SKIP_TYPES.includes(d.device_type));
+      console.log(`[AZ] Climate devices: ${climateDevices.length} (filtered from ${devicesInWs.length})`);
+
+      if (climateDevices.length > 0) {
+        // Step 3: Get status for each device sequentially to avoid rate limiting
+        for (const dev of climateDevices) {
           const devId = dev.device_id || dev.id || dev._id;
           if (!devId) continue;
           const encodedDevId = encodeURIComponent(devId);
+          // Small delay between requests to avoid 429
+          await new Promise(r => setTimeout(r, 150));
 
           const devStatusRes = await az('GET', `/devices/${encodedDevId}/status?installation_id=${encodedInstId}`, token);
           const devStatus = devStatusRes.data || {};
 
           // Extract celsius values from objects like { celsius: 25.8, fah: 78 }
-          const getCelsius = (v) => (v && typeof v === 'object') ? v.celsius : v;
+          const getCelsius = (v) => {
+            if (v == null) return null;
+            if (typeof v === 'object') return v.celsius ?? null;
+            return v;
+          };
+
+          // Skip devices with no useful climate data (e.g. only isConnected)
+          const hasClimateData = devStatus.local_temp != null || devStatus.mode != null || devStatus.power != null;
+          if (!hasClimateData) {
+            console.log(`[AZ] Skipping device ${devId} - no climate data`);
+            continue;
+          }
 
           // Airzone Web API modes: 0=Stop, 1=Frío, 2=Seco, 3=Calor, 4=Ventilación, 5=Auto
           const modeSetpointMap = {
@@ -190,11 +208,22 @@ Deno.serve(async (req) => {
     if (action === 'send_command') {
       const { az_device_id, installation_id, command } = params;
       const encodedDevId = encodeURIComponent(az_device_id);
-      const result = await az('PATCH', `/devices/${encodedDevId}`, token, {
-        installation_id,
-        ...command
-      });
-      if (!result.ok) return Response.json({ error: result.data?.msg || 'Comando fallido' }, { status: 400 });
+
+      // Airzone API requires setpoint values as {celsius: X} objects, not plain numbers
+      // Also wraps everything in a "param" key for zone devices
+      const wrappedCommand = {};
+      for (const [k, v] of Object.entries(command)) {
+        if (k.startsWith('setpoint_') && typeof v === 'number') {
+          wrappedCommand[k] = { celsius: v };
+        } else {
+          wrappedCommand[k] = v;
+        }
+      }
+
+      const body = { installation_id, param: wrappedCommand };
+      console.log(`[AZ] PATCH body: ${JSON.stringify(body)}`);
+      const result = await az('PATCH', `/devices/${encodedDevId}`, token, body);
+      if (!result.ok) return Response.json({ error: result.data?.msg || `Comando fallido (${result.status})` }, { status: 400 });
       return Response.json({ result: result.data });
     }
 
