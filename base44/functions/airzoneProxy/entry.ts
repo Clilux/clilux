@@ -10,7 +10,7 @@ async function az(method, path, token, body) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
   const text = await res.text();
-  console.log(`[AZ] ${method} ${path} -> ${res.status}: ${text.substring(0, 1200)}`);
+  console.log(`[AZ] ${method} ${path} -> ${res.status}: ${text.substring(0, 500)}`);
   let parsed = null;
   try { parsed = JSON.parse(text); } catch {}
   return { status: res.status, ok: res.ok, data: parsed };
@@ -22,7 +22,7 @@ async function loginAirzone(email, password) {
   return res.data.token;
 }
 
-// Find installation by MAC — iterate all pages checking ws_ids array
+// Find installation by MAC — iterate all pages
 async function findInstallationByMac(token, mac) {
   const macLower = mac.toLowerCase().trim();
   let page = 1;
@@ -42,7 +42,6 @@ async function findInstallationByMac(token, mac) {
   return null;
 }
 
-// Extract celsius from Airzone value object or plain number
 const getCelsius = (v) => {
   if (v == null) return null;
   if (typeof v === 'object') return v.celsius ?? null;
@@ -64,28 +63,25 @@ Deno.serve(async (req) => {
 
     if (!device.mac) {
       return Response.json({
-        error: 'La MAC del WebServer es obligatoria. Edita el dispositivo y añade la MAC (formato AA:BB:CC:DD:EE:FF).'
+        error: 'La MAC del WebServer es obligatoria.'
       }, { status: 400 });
     }
 
     const token = await loginAirzone(device.airzone_email, device.airzone_password);
     const mac = device.mac.trim();
 
-    // -------- RAW DEBUG — dumps everything for a given installation --------
+    // -------- RAW DEBUG --------
     if (action === 'raw_debug') {
       const installation = await findInstallationByMac(token, mac);
       if (!installation) return Response.json({ error: `No se encontró instalación con MAC ${mac}` }, { status: 404 });
       const instId = installation.installation_id;
       const encodedInstId = encodeURIComponent(instId);
       const encodedMac = encodeURIComponent(mac);
-
-      // Try all known device-listing endpoints
       const [wsStatus, devList, wsDevices] = await Promise.all([
         az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}`, token),
         az('GET', `/devices?installation_id=${encodedInstId}`, token),
         az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}&devices=1`, token),
       ]);
-
       return Response.json({
         installation: { id: instId, name: installation.name, ws_ids: installation.ws_ids },
         ws_status: wsStatus.data,
@@ -104,7 +100,6 @@ Deno.serve(async (req) => {
       }
       const instId = installation.installation_id;
       const encodedInstId = encodeURIComponent(instId);
-      // The installation may have multiple WebServers (ws_ids). Query ALL of them for sub-devices.
       const allWsIds = installation.ws_ids || [mac];
 
       let deviceList = [];
@@ -117,7 +112,6 @@ Deno.serve(async (req) => {
         const wsRes = await az('GET', `/devices/ws/${encodedWsId}/status?installation_id=${encodedInstId}&devices=1`, token);
         if (!wsRes.ok) continue;
         const wsData = wsRes.data || {};
-        // Use the primary WS (the one matching our configured MAC) for connectivity status
         if (wsId.toLowerCase() === mac.toLowerCase()) {
           isConnected = wsData.status?.isConnected ?? wsData.isConnected ?? false;
           wsType = wsData.ws_type;
@@ -130,8 +124,6 @@ Deno.serve(async (req) => {
         deviceList.push(...wsDev);
       }
 
-      console.log(`[AZ] Total candidate devices from all WS: ${deviceList.length}`);
-
       console.log(`[AZ] Total candidate devices: ${deviceList.length}`);
 
       const zones = [];
@@ -140,30 +132,17 @@ Deno.serve(async (req) => {
       for (const dev of deviceList) {
         const devId = dev.device_id || dev._id || dev.id;
         const devType = dev.device_type || dev.type;
-
         if (!devId) continue;
-        if (SKIP_TYPES.includes(devType)) {
-          console.log(`[AZ] Skipping ${devId} type=${devType}`);
-          continue;
-        }
+        if (SKIP_TYPES.includes(devType)) continue;
 
-        // Small delay to avoid 429
         await new Promise(r => setTimeout(r, 150));
 
         const devStatusRes = await az('GET', `/devices/${encodeURIComponent(devId)}/status?installation_id=${encodedInstId}`, token);
-        if (!devStatusRes.ok) {
-          console.log(`[AZ] status failed for ${devId}: ${devStatusRes.status}`);
-          continue;
-        }
+        if (!devStatusRes.ok) continue;
         const s = devStatusRes.data || {};
 
-        // Skip if no climate data
-        if (s.local_temp == null && s.mode == null && s.power == null) {
-          console.log(`[AZ] No climate data for ${devId}`);
-          continue;
-        }
+        if (s.local_temp == null && s.mode == null && s.power == null) continue;
 
-        // Resolve current setpoint based on mode
         const modeSetpointMap = {
           0: s.setpoint_air_stop,
           1: s.setpoint_air_cool,
@@ -178,7 +157,6 @@ Deno.serve(async (req) => {
         }
         if (setpoint == null) setpoint = getCelsius(s.setpoint_air ?? s.setpoint);
 
-        // Resolve temp range for current mode
         const modeRangeMap = {
           0: { min: s.range_sp_stop_air_min, max: s.range_sp_stop_air_max },
           1: { min: s.range_sp_cool_air_min, max: s.range_sp_cool_air_max },
@@ -225,10 +203,15 @@ Deno.serve(async (req) => {
       const { az_device_id, installation_id, command } = params;
       const encodedDevId = encodeURIComponent(az_device_id);
 
-      // Airzone ws_az (Flexa/Aidoo centralizado) accepts commands directly without "param" wrapper
-      // Setpoint values sent as plain numbers (celsius)
-      const reqBody = { installation_id, ...command };
-      console.log(`[AZ] PATCH body: ${JSON.stringify(reqBody)}`);
+      // Airzone Cloud API v1: commands go flat in the body (no "param" wrapper)
+      // Setpoints must be plain numbers, not {celsius: X} objects
+      const flatCmd = {};
+      for (const [k, v] of Object.entries(command)) {
+        flatCmd[k] = (typeof v === 'object' && v !== null && v.celsius !== undefined) ? v.celsius : v;
+      }
+
+      const reqBody = { installation_id, ...flatCmd };
+      console.log(`[AZ] PATCH /devices/${encodedDevId} body: ${JSON.stringify(reqBody)}`);
       const result = await az('PATCH', `/devices/${encodedDevId}`, token, reqBody);
       if (!result.ok) return Response.json({ error: result.data?.msg || `Comando fallido (${result.status})` }, { status: 400 });
       return Response.json({ result: result.data });
