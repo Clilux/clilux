@@ -10,7 +10,7 @@ async function az(method, path, token, body) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
   const text = await res.text();
-  console.log(`[AZ] ${method} ${path} -> ${res.status}: ${text.substring(0, 800)}`);
+  console.log(`[AZ] ${method} ${path} -> ${res.status}: ${text.substring(0, 1200)}`);
   let parsed = null;
   try { parsed = JSON.parse(text); } catch {}
   return { status: res.status, ok: res.ok, data: parsed };
@@ -40,6 +40,13 @@ async function findInstallationByMac(token, mac) {
   return null;
 }
 
+// Extract celsius from Airzone value object or plain number
+const getCelsius = (v) => {
+  if (v == null) return null;
+  if (typeof v === 'object') return v.celsius ?? null;
+  return v;
+};
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -53,7 +60,6 @@ Deno.serve(async (req) => {
     const device = allDevices.find(d => d.id === device_id);
     if (!device) return Response.json({ error: 'Dispositivo no encontrado' }, { status: 404 });
 
-    // MAC is REQUIRED — identifies the specific WebServer in the account
     if (!device.mac) {
       return Response.json({
         error: 'La MAC del WebServer es obligatoria. Edita el dispositivo y añade la MAC (formato AA:BB:CC:DD:EE:FF).'
@@ -63,9 +69,31 @@ Deno.serve(async (req) => {
     const token = await loginAirzone(device.airzone_email, device.airzone_password);
     const mac = device.mac.trim();
 
+    // -------- RAW DEBUG — dumps everything for a given installation --------
+    if (action === 'raw_debug') {
+      const installation = await findInstallationByMac(token, mac);
+      if (!installation) return Response.json({ error: `No se encontró instalación con MAC ${mac}` }, { status: 404 });
+      const instId = installation.installation_id;
+      const encodedInstId = encodeURIComponent(instId);
+      const encodedMac = encodeURIComponent(mac);
+
+      // Try all known device-listing endpoints
+      const [wsStatus, devList, wsDevices] = await Promise.all([
+        az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}`, token),
+        az('GET', `/devices?installation_id=${encodedInstId}`, token),
+        az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}&devices=1`, token),
+      ]);
+
+      return Response.json({
+        installation: { id: instId, name: installation.name, ws_ids: installation.ws_ids },
+        ws_status: wsStatus.data,
+        device_list: devList.data,
+        ws_with_devices: wsDevices.data,
+      });
+    }
+
     // -------- GET STATUS --------
     if (action === 'get_status') {
-      // Step 1: Find installation by MAC
       const installation = await findInstallationByMac(token, mac);
       if (!installation) {
         return Response.json({
@@ -73,126 +101,112 @@ Deno.serve(async (req) => {
         }, { status: 404 });
       }
       const instId = installation.installation_id;
-      const encodedMac = encodeURIComponent(mac);
       const encodedInstId = encodeURIComponent(instId);
+      // The installation may have multiple WebServers (ws_ids). Query ALL of them for sub-devices.
+      const allWsIds = installation.ws_ids || [mac];
 
-      // Step 2: Get WebServer status WITH devices (devices=1 returns the Aidoo device list)
-      const wsRes = await az('GET', `/devices/ws/${encodedMac}/status?installation_id=${encodedInstId}&devices=1`, token);
-      if (!wsRes.ok) {
-        return Response.json({
-          error: `No se pudo obtener el estado del WS. HTTP ${wsRes.status}`
-        }, { status: 400 });
+      let deviceList = [];
+      let isConnected = false;
+      let wsType = null;
+
+      for (const wsId of allWsIds) {
+        await new Promise(r => setTimeout(r, 100));
+        const encodedWsId = encodeURIComponent(wsId);
+        const wsRes = await az('GET', `/devices/ws/${encodedWsId}/status?installation_id=${encodedInstId}&devices=1`, token);
+        if (!wsRes.ok) continue;
+        const wsData = wsRes.data || {};
+        // Use the primary WS (the one matching our configured MAC) for connectivity status
+        if (wsId.toLowerCase() === mac.toLowerCase()) {
+          isConnected = wsData.status?.isConnected ?? wsData.isConnected ?? false;
+          wsType = wsData.ws_type;
+        } else if (!isConnected) {
+          isConnected = wsData.status?.isConnected ?? wsData.isConnected ?? false;
+        }
+        if (!wsType) wsType = wsData.ws_type;
+        const wsDev = wsData.devices || [];
+        console.log(`[AZ] WS ${wsId} sub-devices: ${wsDev.length}`);
+        deviceList.push(...wsDev);
       }
 
-      const wsData = wsRes.data || {};
-      const isConnected = wsData.status?.isConnected ?? false;
-      const wsType = wsData.ws_type;
-      // Devices are in wsData.devices array when devices=1
-      const devicesInWs = wsData.devices || [];
-      console.log(`[AZ] WS devices count: ${devicesInWs.length}, raw: ${JSON.stringify(devicesInWs).substring(0, 400)}`);
+      console.log(`[AZ] Total candidate devices from all WS: ${deviceList.length}`);
+
+      console.log(`[AZ] Total candidate devices: ${deviceList.length}`);
 
       const zones = [];
+      const SKIP_TYPES = ['az_outputs', 'az_system'];
 
-      // Filter out non-climate devices (az_outputs only returns isConnected, no climate data)
-      const SKIP_TYPES = ['az_outputs'];
-      const climateDevices = devicesInWs.filter(d => !SKIP_TYPES.includes(d.device_type));
-      console.log(`[AZ] Climate devices: ${climateDevices.length} (filtered from ${devicesInWs.length})`);
+      for (const dev of deviceList) {
+        const devId = dev.device_id || dev._id || dev.id;
+        const devType = dev.device_type || dev.type;
 
-      if (climateDevices.length > 0) {
-        // Step 3: Get status for each device sequentially to avoid rate limiting
-        for (const dev of climateDevices) {
-          const devId = dev.device_id || dev.id || dev._id;
-          if (!devId) continue;
-          const encodedDevId = encodeURIComponent(devId);
-          // Small delay between requests to avoid 429
-          await new Promise(r => setTimeout(r, 150));
-
-          const devStatusRes = await az('GET', `/devices/${encodedDevId}/status?installation_id=${encodedInstId}`, token);
-          const devStatus = devStatusRes.data || {};
-
-          // Extract celsius values from objects like { celsius: 25.8, fah: 78 }
-          const getCelsius = (v) => {
-            if (v == null) return null;
-            if (typeof v === 'object') return v.celsius ?? null;
-            return v;
-          };
-
-          // Skip devices with no useful climate data (e.g. only isConnected)
-          const hasClimateData = devStatus.local_temp != null || devStatus.mode != null || devStatus.power != null;
-          if (!hasClimateData) {
-            console.log(`[AZ] Skipping device ${devId} - no climate data`);
-            continue;
-          }
-
-          // Airzone Web API modes: 0=Stop, 1=Frío, 2=Seco, 3=Calor, 4=Ventilación, 5=Auto
-          const modeSetpointMap = {
-            0: devStatus.setpoint_air_stop,
-            1: devStatus.setpoint_air_cool,
-            2: devStatus.setpoint_air_dry,
-            3: devStatus.setpoint_air_heat,
-            4: devStatus.setpoint_air_vent,
-            5: devStatus.setpoint_air_auto,
-          };
-          let setpoint = null;
-          if (devStatus.mode != null && modeSetpointMap[devStatus.mode] != null) {
-            setpoint = getCelsius(modeSetpointMap[devStatus.mode]);
-          }
-          if (setpoint == null) setpoint = getCelsius(devStatus.setpoint_air ?? devStatus.setpoint);
-
-          // Range for current mode
-          const modeRangeMap = {
-            0: { min: devStatus.range_sp_stop_air_min, max: devStatus.range_sp_stop_air_max },
-            1: { min: devStatus.range_sp_cool_air_min, max: devStatus.range_sp_cool_air_max },
-            2: { min: devStatus.range_sp_dry_air_min, max: devStatus.range_sp_dry_air_max },
-            3: { min: devStatus.range_sp_hot_air_min, max: devStatus.range_sp_hot_air_max },
-            4: { min: devStatus.range_sp_vent_air_min, max: devStatus.range_sp_vent_air_max },
-            5: { min: devStatus.range_air_min, max: devStatus.range_air_max },
-          };
-          const modeRange = modeRangeMap[devStatus.mode] || {};
-          const tempMin = getCelsius(modeRange.min) ?? 15;
-          const tempMax = getCelsius(modeRange.max) ?? 30;
-
-          zones.push({
-            device_id: devId,
-            az_device_id: devId,
-            installation_id: instId,
-            name: dev.name || devStatus.name || installation.name,
-            ws_type: wsType,
-            isConnected,
-            on: devStatus.power ?? devStatus.on ?? null,
-            mode: devStatus.mode ?? null,
-            local_temp: getCelsius(devStatus.local_temp),
-            setpoint_air: setpoint,
-            temp_min: tempMin,
-            temp_max: tempMax,
-            step: getCelsius(devStatus.step) ?? 0.5,
-            speed: devStatus.speed_conf ?? devStatus.speed ?? null,
-            humidity: typeof devStatus.humidity === 'number' ? devStatus.humidity : null,
-            mode_available: devStatus.mode_available || [],
-            speed_values: devStatus.speed_values || [],
-          });
+        if (!devId) continue;
+        if (SKIP_TYPES.includes(devType)) {
+          console.log(`[AZ] Skipping ${devId} type=${devType}`);
+          continue;
         }
-      } else {
-        // Aidoo with no sub-devices: the WS itself is the climate device
-        // Try getting device status directly via the ws_id as device_id
-        const devStatusRes = await az('GET', `/devices/${encodedMac}/status?installation_id=${encodedInstId}`, token);
+
+        // Small delay to avoid 429
+        await new Promise(r => setTimeout(r, 150));
+
+        const devStatusRes = await az('GET', `/devices/${encodeURIComponent(devId)}/status?installation_id=${encodedInstId}`, token);
+        if (!devStatusRes.ok) {
+          console.log(`[AZ] status failed for ${devId}: ${devStatusRes.status}`);
+          continue;
+        }
+        const s = devStatusRes.data || {};
+
+        // Skip if no climate data
+        if (s.local_temp == null && s.mode == null && s.power == null) {
+          console.log(`[AZ] No climate data for ${devId}`);
+          continue;
+        }
+
+        // Resolve current setpoint based on mode
+        const modeSetpointMap = {
+          0: s.setpoint_air_stop,
+          1: s.setpoint_air_cool,
+          2: s.setpoint_air_dry,
+          3: s.setpoint_air_heat,
+          4: s.setpoint_air_vent,
+          5: s.setpoint_air_auto,
+        };
+        let setpoint = null;
+        if (s.mode != null && modeSetpointMap[s.mode] != null) {
+          setpoint = getCelsius(modeSetpointMap[s.mode]);
+        }
+        if (setpoint == null) setpoint = getCelsius(s.setpoint_air ?? s.setpoint);
+
+        // Resolve temp range for current mode
+        const modeRangeMap = {
+          0: { min: s.range_sp_stop_air_min, max: s.range_sp_stop_air_max },
+          1: { min: s.range_sp_cool_air_min, max: s.range_sp_cool_air_max },
+          2: { min: s.range_sp_dry_air_min, max: s.range_sp_dry_air_max },
+          3: { min: s.range_sp_hot_air_min, max: s.range_sp_hot_air_max },
+          4: { min: s.range_sp_vent_air_min, max: s.range_sp_vent_air_max },
+          5: { min: s.range_air_min, max: s.range_air_max },
+        };
+        const modeRange = modeRangeMap[s.mode] || {};
+        const tempMin = getCelsius(modeRange.min) ?? 15;
+        const tempMax = getCelsius(modeRange.max) ?? 30;
 
         zones.push({
-          ws_id: mac,
-          az_device_id: mac,
+          device_id: devId,
+          az_device_id: devId,
           installation_id: instId,
-          name: installation.name,
+          name: dev.name || s.name || installation.name,
           ws_type: wsType,
           isConnected,
-          on: null,
-          mode: null,
-          local_temp: null,
-          setpoint_air: null,
-          speed: null,
-          humidity: null,
-          _ws_raw: wsData,
-          _dev_raw: devStatusRes.data,
-          _no_devices: true
+          on: s.power ?? s.on ?? null,
+          mode: s.mode ?? null,
+          local_temp: getCelsius(s.local_temp),
+          setpoint_air: setpoint,
+          temp_min: tempMin,
+          temp_max: tempMax,
+          step: getCelsius(s.step) ?? 0.5,
+          speed: s.speed_conf ?? s.speed ?? null,
+          humidity: typeof s.humidity === 'number' ? s.humidity : null,
+          mode_available: s.mode_available || [],
+          speed_values: s.speed_values || [],
         });
       }
 
@@ -210,7 +224,7 @@ Deno.serve(async (req) => {
       const encodedDevId = encodeURIComponent(az_device_id);
 
       // Airzone API requires setpoint values as {celsius: X} objects, not plain numbers
-      // Also wraps everything in a "param" key for zone devices
+      // Wrap everything in a "param" key
       const wrappedCommand = {};
       for (const [k, v] of Object.entries(command)) {
         if (k.startsWith('setpoint_') && typeof v === 'number') {
@@ -220,9 +234,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      const body = { installation_id, param: wrappedCommand };
-      console.log(`[AZ] PATCH body: ${JSON.stringify(body)}`);
-      const result = await az('PATCH', `/devices/${encodedDevId}`, token, body);
+      const reqBody = { installation_id, param: wrappedCommand };
+      console.log(`[AZ] PATCH body: ${JSON.stringify(reqBody)}`);
+      const result = await az('PATCH', `/devices/${encodedDevId}`, token, reqBody);
       if (!result.ok) return Response.json({ error: result.data?.msg || `Comando fallido (${result.status})` }, { status: 400 });
       return Response.json({ result: result.data });
     }
