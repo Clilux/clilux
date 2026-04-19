@@ -26,15 +26,17 @@ async function loginAirzone(email, password) {
 async function findInstallationByMac(token, mac) {
   const macLower = mac.toLowerCase().trim();
   let page = 1;
+  let total = null;
+  let fetched = 0;
   while (true) {
     const res = await az('GET', `/installations?items=10&page=${page}`, token);
     const data = res.data || {};
+    if (total === null) total = data.total || 0;
     const list = data.installations || [];
     const found = list.find(i => i.ws_ids?.some(w => w.toLowerCase().trim() === macLower));
     if (found) return found;
-    if (list.length < 10) break;
-    const total = data.total || 0;
-    if (page * 10 >= total) break;
+    fetched += list.length;
+    if (list.length === 0 || fetched >= total) break;
     page++;
   }
   return null;
@@ -223,18 +225,9 @@ Deno.serve(async (req) => {
       const { az_device_id, installation_id, command } = params;
       const encodedDevId = encodeURIComponent(az_device_id);
 
-      // Airzone API requires setpoint values as {celsius: X} objects, not plain numbers
-      // Wrap everything in a "param" key
-      const wrappedCommand = {};
-      for (const [k, v] of Object.entries(command)) {
-        if (k.startsWith('setpoint_') && typeof v === 'number') {
-          wrappedCommand[k] = { celsius: v };
-        } else {
-          wrappedCommand[k] = v;
-        }
-      }
-
-      const reqBody = { installation_id, param: wrappedCommand };
+      // Airzone ws_az (Flexa/Aidoo centralizado) accepts commands directly without "param" wrapper
+      // Setpoint values sent as plain numbers (celsius)
+      const reqBody = { installation_id, ...command };
       console.log(`[AZ] PATCH body: ${JSON.stringify(reqBody)}`);
       const result = await az('PATCH', `/devices/${encodedDevId}`, token, reqBody);
       if (!result.ok) return Response.json({ error: result.data?.msg || `Comando fallido (${result.status})` }, { status: 400 });
@@ -245,12 +238,14 @@ Deno.serve(async (req) => {
     if (action === 'list_installations') {
       const all = [];
       let page = 1;
+      let total = null;
       while (true) {
         const res = await az('GET', `/installations?items=10&page=${page}`, token);
         const data = res.data || {};
+        if (total === null) total = data.total || 0;
         const list = data.installations || [];
         all.push(...list.map(i => ({ name: i.name, installation_id: i.installation_id, ws_ids: i.ws_ids })));
-        if (list.length < 10 || all.length >= (data.total || 0)) break;
+        if (all.length >= total || list.length === 0) break;
         page++;
       }
       return Response.json({ total: all.length, installations: all });
