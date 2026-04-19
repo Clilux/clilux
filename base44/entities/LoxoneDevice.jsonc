@@ -1,0 +1,46 @@
+{
+  "name": "LoxoneDevice",
+  "type": "object",
+  "properties": {
+    "nombre_referencia": {
+      "type": "string",
+      "description": "Nombre de referencia del dispositivo"
+    },
+    "miniserver_ip": {
+      "type": "string",
+      "description": "IP o URL del Miniserver (ej: 192.168.1.100)"
+    },
+    "puerto": {
+      "type": "string",
+      "default": "80",
+      "description": "Puerto del Miniserver (por defecto 80)"
+    },
+    "usuario": {
+      "type": "string",
+      "description": "Usuario de acceso al Miniserver"
+    },
+    "password": {
+      "type": "string",
+      "description": "Contrase\u00f1a de acceso al Miniserver"
+    },
+    "location": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n f\u00edsica del dispositivo"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el dispositivo est\u00e1 activo"
+    }
+  },
+  "required": [
+    "nombre_referencia",
+    "miniserver_ip",
+    "usuario",
+    "password"
+  ]
+}

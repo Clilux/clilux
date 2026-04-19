@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, Building2, Thermometer, ClipboardCheck,
   Plus, Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database, Bot, FileCheck, Tag } from
+  Calendar, LogOut, AlertCircle, UserCog, Clock, FileText, ScanLine, GripVertical, Sparkles, Database, Bot, FileCheck, Tag, Zap } from
 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -28,7 +28,8 @@ const defaultQuickActions = [
 { id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: 'Bot', bgColor: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-300', borderColor: 'border-purple-400/40', order: 7 },
 { id: '11', label: 'Búsquedas PVP', page: 'VetaCatalogo', icon: 'Tag', bgColor: 'from-amber-500/20 to-orange-500/20', iconColor: 'text-amber-300', borderColor: 'border-amber-400/40', order: 8 },
 { id: '12', label: 'Contrato', page: 'ContratoMantenimiento', icon: 'FileText', bgColor: 'from-green-500/20 to-teal-500/20', iconColor: 'text-green-300', borderColor: 'border-green-400/40', order: 9 },
-{ id: '13', label: 'Climatización', page: 'ControlClimatizacion', icon: 'Thermometer', bgColor: 'from-cyan-500/20 to-blue-500/20', iconColor: 'text-cyan-300', borderColor: 'border-cyan-400/40', order: 10 }];
+{ id: '13', label: 'Climatización', page: 'ControlClimatizacion', icon: 'Thermometer', bgColor: 'from-cyan-500/20 to-blue-500/20', iconColor: 'text-cyan-300', borderColor: 'border-cyan-400/40', order: 10 },
+{ id: '14', label: 'Loxone', page: 'ControlLoxone', icon: 'Zap', bgColor: 'from-green-500/20 to-emerald-500/20', iconColor: 'text-green-300', borderColor: 'border-green-400/40', order: 11 }];
 
 
 export default function HomeTecnico() {
@@ -244,7 +245,7 @@ export default function HomeTecnico() {
                   className="flex gap-3 overflow-x-auto pb-2">
                   
                     {quickActions.map((action, index) => {
-                    const iconMap = { ScanLine, Plus, FileCheck, AlertCircle, Calendar, FileText, Database, Bot, Tag, UserCog };
+                    const iconMap = { ScanLine, Plus, FileCheck, AlertCircle, Calendar, FileText, Database, Bot, Tag, UserCog, Zap, Thermometer };
                     const IconComp = iconMap[action.icon] || Plus;
                     return (
                       <Draggable key={action.id} draggableId={action.id} index={index}>
