@@ -10,12 +10,25 @@ import { Thermometer, Wind, Power, Plus, Pencil, Trash2, RefreshCw, Wifi, WifiOf
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
+// Airzone Cloud Web API mode values:
+// 0=Stop, 1=Frío, 2=Seco, 3=Calor, 4=Ventilación, 5=Auto
 const MODES = {
+  0: { label: 'Stop', color: 'bg-slate-100 text-slate-600' },
   1: { label: 'Frío', color: 'bg-blue-100 text-blue-700' },
-  2: { label: 'Calor', color: 'bg-orange-100 text-orange-700' },
-  3: { label: 'Ventilación', color: 'bg-gray-100 text-gray-700' },
-  4: { label: 'Seco', color: 'bg-yellow-100 text-yellow-700' },
+  2: { label: 'Seco', color: 'bg-yellow-100 text-yellow-700' },
+  3: { label: 'Calor', color: 'bg-orange-100 text-orange-700' },
+  4: { label: 'Ventilación', color: 'bg-gray-100 text-gray-700' },
   5: { label: 'Auto', color: 'bg-green-100 text-green-700' },
+};
+
+// Setpoint field per mode
+const MODE_SETPOINT_KEY = {
+  0: 'setpoint_air_stop',
+  1: 'setpoint_air_cool',
+  2: 'setpoint_air_dry',
+  3: 'setpoint_air_heat',
+  4: 'setpoint_air_vent',
+  5: 'setpoint_air_auto',
 };
 
 export default function ControlClimatizacion() {
@@ -38,6 +51,7 @@ export default function ControlClimatizacion() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [sendingCommand, setSendingCommand] = useState({});
   // Selector de instalaciones
   const [showInstallationPicker, setShowInstallationPicker] = useState(false);
   const [pickerLoading, setPickerLoading] = useState(false);
@@ -105,6 +119,27 @@ export default function ControlClimatizacion() {
     setSaving(false);
     setShowForm(false);
     loadDevices();
+  };
+
+  const sendCommand = async (zone, command) => {
+    const key = zone.az_device_id;
+    setSendingCommand(prev => ({ ...prev, [key]: true }));
+    try {
+      await base44.functions.invoke('airzoneProxy', {
+        action: 'send_command',
+        device_id: selectedDevice.id,
+        params: {
+          az_device_id: zone.az_device_id,
+          installation_id: zone.installation_id,
+          command
+        }
+      });
+      // Refrescar zonas tras comando
+      await loadZones(selectedDevice);
+    } catch (e) {
+      alert(e.message || 'Error al enviar comando');
+    }
+    setSendingCommand(prev => ({ ...prev, [key]: false }));
   };
 
   const openInstallationPicker = async (device) => {
@@ -269,8 +304,10 @@ export default function ControlClimatizacion() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {zones.map((zone, idx) => {
-                      const mode = MODES[zone.mode] || { label: `Modo ${zone.mode}`, color: 'bg-slate-100 text-slate-600' };
+                      const mode = MODES[zone.mode] ?? { label: `Modo ${zone.mode}`, color: 'bg-slate-100 text-slate-600' };
                       const isOn = zone.on === true || zone.on === 1;
+                      const isBusy = sendingCommand[zone.az_device_id];
+                      const canSetTemp = zone.setpoint_air != null && zone.mode !== 4; // Ventilación no tiene consigna
                       return (
                         <Card key={idx} className={`transition-all border ${isOn ? 'border-blue-200 shadow-sm' : 'border-slate-200 opacity-70'}`}>
                           <CardHeader className="pb-2 pt-4 px-4">
@@ -278,22 +315,49 @@ export default function ControlClimatizacion() {
                               <CardTitle className="text-base text-slate-800 font-semibold truncate">
                                 {zone.name || `Zona ${idx + 1}`}
                               </CardTitle>
-                              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${isOn ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                <Power className="w-3 h-3" />
-                                {isOn ? 'ON' : 'OFF'}
+                              <div className="flex items-center gap-2">
+                                <Badge className={`${mode.color} border-0 text-xs`}>{mode.label}</Badge>
+                                <button
+                                  disabled={isBusy}
+                                  onClick={() => sendCommand(zone, { power: !isOn })}
+                                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${isOn ? 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-green-100 hover:text-green-600'} ${isBusy ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                                >
+                                  <Power className="w-3 h-3" />
+                                  {isOn ? 'ON' : 'OFF'}
+                                </button>
                               </div>
                             </div>
                           </CardHeader>
                           <CardContent className="px-4 pb-4">
-                            <div className="flex items-end gap-4">
+                            <div className="flex items-center gap-4">
                               <div className="flex items-center gap-1.5">
                                 <Thermometer className="w-5 h-5 text-blue-500" />
                                 <span className="text-2xl font-bold text-slate-800">{zone.local_temp != null ? `${zone.local_temp}°` : '--'}</span>
-                                {zone.setpoint_air != null && (
-                                  <span className="text-sm text-slate-400 ml-1">→ {zone.setpoint_air}°</span>
-                                )}
                               </div>
-                              <Badge className={`${mode.color} border-0 text-xs`}>{mode.label}</Badge>
+                              {canSetTemp && (
+                                <div className="flex items-center gap-1.5 ml-auto">
+                                  <span className="text-xs text-slate-400">Consigna:</span>
+                                  <button
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                      const newVal = Math.max(zone.temp_min ?? 15, (zone.setpoint_air ?? 20) - (zone.step ?? 0.5));
+                                      const key = MODE_SETPOINT_KEY[zone.mode];
+                                      if (key) sendCommand(zone, { [key]: newVal });
+                                    }}
+                                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm disabled:opacity-40"
+                                  >−</button>
+                                  <span className="text-lg font-bold text-slate-800 min-w-[3rem] text-center">{zone.setpoint_air}°</span>
+                                  <button
+                                    disabled={isBusy}
+                                    onClick={() => {
+                                      const newVal = Math.min(zone.temp_max ?? 30, (zone.setpoint_air ?? 20) + (zone.step ?? 0.5));
+                                      const key = MODE_SETPOINT_KEY[zone.mode];
+                                      if (key) sendCommand(zone, { [key]: newVal });
+                                    }}
+                                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm disabled:opacity-40"
+                                  >+</button>
+                                </div>
+                              )}
                             </div>
                             {zone.humidity != null && (
                               <div className="flex items-center gap-1 mt-2 text-slate-500 text-xs">
@@ -301,6 +365,7 @@ export default function ControlClimatizacion() {
                                 <span>Humedad: {zone.humidity}%</span>
                               </div>
                             )}
+                            {isBusy && <p className="text-xs text-blue-500 mt-1 animate-pulse">Enviando...</p>}
                           </CardContent>
                         </Card>
                       );

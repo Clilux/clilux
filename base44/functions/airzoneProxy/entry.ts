@@ -106,36 +106,52 @@ Deno.serve(async (req) => {
           // Extract celsius values from objects like { celsius: 25.8, fah: 78 }
           const getCelsius = (v) => (v && typeof v === 'object') ? v.celsius : v;
 
-          // Setpoint: use the current mode-specific setpoint
-          let setpoint = null;
+          // Airzone Web API modes: 0=Stop, 1=Frío, 2=Seco, 3=Calor, 4=Ventilación, 5=Auto
           const modeSetpointMap = {
+            0: devStatus.setpoint_air_stop,
             1: devStatus.setpoint_air_cool,
-            2: devStatus.setpoint_air_heat,
-            3: devStatus.setpoint_air_vent,
-            4: devStatus.setpoint_air_dry,
+            2: devStatus.setpoint_air_dry,
+            3: devStatus.setpoint_air_heat,
+            4: devStatus.setpoint_air_vent,
             5: devStatus.setpoint_air_auto,
           };
-          if (devStatus.mode != null && modeSetpointMap[devStatus.mode]) {
+          let setpoint = null;
+          if (devStatus.mode != null && modeSetpointMap[devStatus.mode] != null) {
             setpoint = getCelsius(modeSetpointMap[devStatus.mode]);
           }
           if (setpoint == null) setpoint = getCelsius(devStatus.setpoint_air ?? devStatus.setpoint);
+
+          // Range for current mode
+          const modeRangeMap = {
+            0: { min: devStatus.range_sp_stop_air_min, max: devStatus.range_sp_stop_air_max },
+            1: { min: devStatus.range_sp_cool_air_min, max: devStatus.range_sp_cool_air_max },
+            2: { min: devStatus.range_sp_dry_air_min, max: devStatus.range_sp_dry_air_max },
+            3: { min: devStatus.range_sp_hot_air_min, max: devStatus.range_sp_hot_air_max },
+            4: { min: devStatus.range_sp_vent_air_min, max: devStatus.range_sp_vent_air_max },
+            5: { min: devStatus.range_air_min, max: devStatus.range_air_max },
+          };
+          const modeRange = modeRangeMap[devStatus.mode] || {};
+          const tempMin = getCelsius(modeRange.min) ?? 15;
+          const tempMax = getCelsius(modeRange.max) ?? 30;
 
           zones.push({
             device_id: devId,
             az_device_id: devId,
             installation_id: instId,
-            name: dev.name || installation.name,
+            name: dev.name || devStatus.name || installation.name,
             ws_type: wsType,
             isConnected,
             on: devStatus.power ?? devStatus.on ?? null,
             mode: devStatus.mode ?? null,
             local_temp: getCelsius(devStatus.local_temp),
             setpoint_air: setpoint,
+            temp_min: tempMin,
+            temp_max: tempMax,
+            step: getCelsius(devStatus.step) ?? 0.5,
             speed: devStatus.speed_conf ?? devStatus.speed ?? null,
-            humidity: getCelsius(devStatus.humidity),
+            humidity: typeof devStatus.humidity === 'number' ? devStatus.humidity : null,
             mode_available: devStatus.mode_available || [],
             speed_values: devStatus.speed_values || [],
-            _raw: devStatus
           });
         }
       } else {
