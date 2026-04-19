@@ -182,6 +182,21 @@ Deno.serve(async (req) => {
       return Response.json({ result: result.data });
     }
 
+    // -------- LIST ALL INSTALLATIONS (diagnóstico) --------
+    if (action === 'list_installations') {
+      const all = [];
+      let page = 1;
+      while (true) {
+        const res = await az('GET', `/installations?items=10&page=${page}`, token);
+        const data = res.data || {};
+        const list = data.installations || [];
+        all.push(...list.map(i => ({ name: i.name, installation_id: i.installation_id, ws_ids: i.ws_ids })));
+        if (list.length < 10 || all.length >= (data.total || 0)) break;
+        page++;
+      }
+      return Response.json({ total: all.length, installations: all });
+    }
+
     return Response.json({ error: 'Acción no reconocida' }, { status: 400 });
 
   } catch (error) {
