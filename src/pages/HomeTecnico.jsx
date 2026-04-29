@@ -66,17 +66,17 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
   const monthName = new Date(year, month, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="bg-slate-800/50 rounded-2xl border border-white/10 p-4 h-full flex flex-col">
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 h-full flex flex-col shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">‹</button>
-        <span className="text-white font-semibold capitalize">{monthName}</span>
-        <button onClick={nextMonth} className="text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">›</button>
+        <button onClick={prevMonth} className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">‹</button>
+        <span className="text-slate-800 font-semibold capitalize">{monthName}</span>
+        <button onClick={nextMonth} className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">›</button>
       </div>
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-2">
         {['L','M','X','J','V','S','D'].map(d => (
-          <div key={d} className="text-center text-xs text-slate-500 font-medium py-1">{d}</div>
+          <div key={d} className="text-center text-xs text-slate-400 font-medium py-1">{d}</div>
         ))}
       </div>
       {/* Days */}
@@ -91,7 +91,7 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
           return (
             <Link key={day} to={createPageUrl('Calendar')} className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                ${isToday ? 'bg-blue-500 text-white' : 'text-slate-300 hover:bg-white/10'}`}>
+                ${isToday ? 'bg-blue-500 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
                 {day}
               </div>
               {dayRevs.length > 0 && (
@@ -106,8 +106,8 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
       </div>
 
       {/* Upcoming list */}
-      <div className="mt-4 border-t border-white/10 pt-3 space-y-2 max-h-48 overflow-y-auto">
-        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Próximas revisiones</p>
+      <div className="mt-4 border-t border-slate-200 pt-3 space-y-2 max-h-48 overflow-y-auto">
+        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-2">Próximas revisiones</p>
         {revisions
           .filter(r => r.status === 'pending' && isAfter(parseISO(r.scheduled_date), new Date()))
           .sort((a,b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
@@ -117,16 +117,16 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
             const equip  = equipment.find(e => e.id === rev.equipment_id);
             return (
               <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0 text-center">
-                  <p className="text-blue-300 text-xs font-bold leading-none">
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 text-center">
+                  <p className="text-blue-600 text-xs font-bold leading-none">
                     {format(parseISO(rev.scheduled_date), 'dd')}<br/>
                     <span className="uppercase">{format(parseISO(rev.scheduled_date), 'MMM', { locale: es })}</span>
                   </p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-white text-xs font-medium truncate">{equip?.reference_name || 'Equipo'}</p>
-                  <p className="text-slate-400 text-xs truncate">{client?.name}</p>
+                  <p className="text-slate-800 text-xs font-medium truncate">{equip?.reference_name || 'Equipo'}</p>
+                  <p className="text-slate-500 text-xs truncate">{client?.name}</p>
                 </div>
               </Link>
             );
@@ -178,28 +178,25 @@ export default function HomeTecnico() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1117] relative overflow-x-hidden">
-      {/* Decorative bg */}
-      <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-white relative overflow-x-hidden">
 
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Top bar */}
-        <div className="bg-[#141415] px-4 py-3 border-b border-white/10">
+        <div className="bg-white px-4 py-3 border-b border-slate-200">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Thermometer className="h-5 w-5 text-white" />
               </div>
-              <span className="text-white font-semibold text-lg">Clilux</span>
+              <span className="text-slate-800 font-semibold text-lg">Clilux</span>
             </div>
             <div className="flex items-center gap-1">
               <Link to={createPageUrl('Settings')}>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white h-9 w-9">
+                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
                   <Settings className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-400 hover:text-white h-9 w-9">
+              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
@@ -207,7 +204,7 @@ export default function HomeTecnico() {
         </div>
 
         {/* Tab bar */}
-        <div className="bg-[#1a1b23] border-b border-white/10 sticky top-0 z-20">
+        <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
           <div className="max-w-7xl mx-auto flex">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -215,7 +212,7 @@ export default function HomeTecnico() {
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all
-                    ${active ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                    ${active ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>
@@ -225,7 +222,7 @@ export default function HomeTecnico() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 max-w-7xl mx-auto w-full p-4 pb-10">
+        <div className="flex-1 max-w-7xl mx-auto w-full p-4 pb-10 bg-slate-50">
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
@@ -239,14 +236,14 @@ export default function HomeTecnico() {
                   { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/20' : 'bg-slate-500/20', iconCls: pendingIncidents.length > 0 ? 'text-red-400' : 'text-slate-400', page: 'Incidents' },
                 ].map(({ label, value, icon: Icon, color, iconCls, page, loading }) => (
                   <Link key={label} to={createPageUrl(page)} onClick={playFuturisticSound}>
-                    <Card className="bg-slate-800/50 border-white/10 p-4 hover:bg-slate-700/50 transition-colors cursor-pointer">
+                    <Card className="bg-white border-slate-200 p-4 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center shrink-0`}>
                           <Icon className={`h-6 w-6 ${iconCls}`} />
                         </div>
                         <div>
-                          {loading ? <Skeleton className="h-7 w-10 bg-white/10 mb-1" /> : <p className="text-2xl font-bold text-white">{value}</p>}
-                          <p className="text-xs text-slate-400">{label}</p>
+                          {loading ? <Skeleton className="h-7 w-10 mb-1" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
+                          <p className="text-xs text-slate-500">{label}</p>
                         </div>
                       </div>
                     </Card>
@@ -257,18 +254,18 @@ export default function HomeTecnico() {
               {/* Próximas revisiones */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-white font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-400" />
+                  <h2 className="text-slate-800 font-semibold flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-500" />
                     Próximas revisiones (30 días)
                   </h2>
                   <Link to={createPageUrl('Calendar')}>
-                    <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white text-xs">
+                    <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
                       Ver todas <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   </Link>
                 </div>
                 {upcomingRevisions.length === 0 ? (
-                  <Card className="bg-slate-800/30 border-white/10 p-4 text-center">
+                  <Card className="bg-slate-50 border-slate-200 p-4 text-center">
                     <p className="text-slate-400 text-sm">No hay revisiones próximas</p>
                   </Card>
                 ) : (
@@ -279,19 +276,19 @@ export default function HomeTecnico() {
                       const equip = equipment.find(e => e.id === rev.equipment_id);
                       return (
                         <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
-                          <Card className="bg-slate-800/40 border-white/10 p-3 hover:bg-slate-700/40 transition-colors cursor-pointer">
+                          <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                                  <ClipboardCheck className="h-4 w-4 text-blue-400" />
+                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                  <ClipboardCheck className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div>
-                                  <p className="text-white text-sm font-medium">{equip?.reference_name || equip?.brand || 'Equipo'}</p>
-                                  <p className="text-slate-400 text-xs">{client?.name} · {building?.name}</p>
+                                  <p className="text-slate-800 text-sm font-medium">{equip?.reference_name || equip?.brand || 'Equipo'}</p>
+                                  <p className="text-slate-500 text-xs">{client?.name} · {building?.name}</p>
                                 </div>
                               </div>
                               <div className="text-right shrink-0 ml-2">
-                                <p className="text-blue-300 text-sm font-medium">{format(parseISO(rev.scheduled_date), 'dd MMM', { locale: es })}</p>
+                                <p className="text-blue-600 text-sm font-medium">{format(parseISO(rev.scheduled_date), 'dd MMM', { locale: es })}</p>
                                 <p className="text-slate-400 text-xs capitalize">{rev.revision_type}</p>
                               </div>
                             </div>
@@ -307,12 +304,12 @@ export default function HomeTecnico() {
               {pendingIncidents.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-white font-semibold flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
+                    <h2 className="text-slate-800 font-semibold flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
                       Incidencias pendientes
                     </h2>
                     <Link to={createPageUrl('Incidents')}>
-                      <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white text-xs">
+                      <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
                         Ver todas <ChevronRight className="h-3 w-3 ml-1" />
                       </Button>
                     </Link>
@@ -322,13 +319,13 @@ export default function HomeTecnico() {
                       const client = clients.find(c => c.id === inc.client_id);
                       return (
                         <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
-                          <Card className="bg-red-900/20 border-red-500/20 p-3 hover:bg-red-900/30 transition-colors cursor-pointer">
+                          <Card className="bg-red-50 border-red-200 p-3 hover:bg-red-100 transition-colors cursor-pointer shadow-sm">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
                                 <div>
-                                  <p className="text-white text-sm font-medium">{inc.title}</p>
-                                  <p className="text-slate-400 text-xs">{client?.name}</p>
+                                  <p className="text-slate-800 text-sm font-medium">{inc.title}</p>
+                                  <p className="text-slate-500 text-xs">{client?.name}</p>
                                 </div>
                               </div>
                               <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${inc.priority === 'urgent' ? 'bg-red-500/20 text-red-300' : inc.priority === 'high' ? 'bg-orange-500/20 text-orange-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
@@ -346,36 +343,36 @@ export default function HomeTecnico() {
               {/* Clientes recientes */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-white font-semibold flex items-center gap-2">
-                    <Users className="h-4 w-4 text-emerald-400" />
+                  <h2 className="text-slate-800 font-semibold flex items-center gap-2">
+                    <Users className="h-4 w-4 text-emerald-600" />
                     Clientes recientes
                   </h2>
                   <Link to={createPageUrl('Clients')}>
-                    <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white text-xs">
+                    <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
                       Ver todos <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   </Link>
                 </div>
                 {loadingClients ? (
-                  <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 bg-white/10 rounded-lg" />)}</div>
+                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
                 ) : (
-                  <div className="space-y-2">
-                    {clients.slice(0, 5).map(client => (
-                      <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`} onClick={playFuturisticSound}>
-                        <Card className="bg-slate-800/40 border-white/10 p-3 hover:bg-slate-700/40 transition-colors cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                {client.photo_url
-                                  ? <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" />
-                                  : <Users className="h-4 w-4 text-emerald-400" />}
-                              </div>
-                              <div>
-                                <p className="text-white text-sm font-medium">{client.name}</p>
-                                <p className="text-slate-400 text-xs">{client.city || client.email || ''}</p>
-                              </div>
+                <div className="space-y-2">
+                  {clients.slice(0, 5).map(client => (
+                    <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`} onClick={playFuturisticSound}>
+                      <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 overflow-hidden">
+                              {client.photo_url
+                                ? <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" />
+                                : <Users className="h-4 w-4 text-emerald-600" />}
                             </div>
-                            <ChevronRight className="h-4 w-4 text-slate-500" />
+                            <div>
+                              <p className="text-slate-800 text-sm font-medium">{client.name}</p>
+                              <p className="text-slate-500 text-xs">{client.city || client.email || ''}</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
                           </div>
                         </Card>
                       </Link>
@@ -390,8 +387,8 @@ export default function HomeTecnico() {
           {activeTab === 'calendario' && (
             <div className="h-full">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-semibold text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-400" />
+                <h2 className="text-slate-800 font-semibold text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
                   Calendario de revisiones
                 </h2>
                 <Link to={createPageUrl('Calendar')}>
@@ -412,18 +409,18 @@ export default function HomeTecnico() {
           {/* ── FUNCIONES ── */}
           {activeTab === 'funciones' && (
             <div>
-              <h2 className="text-white font-semibold text-lg mb-5 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-yellow-400" />
+              <h2 className="text-slate-800 font-semibold text-lg mb-5 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-yellow-500" />
                 Funciones
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {FUNCIONES.map(({ id, label, page, icon: Icon, color, iconCls }) => (
                   <Link key={id} to={createPageUrl(page)} onClick={playFuturisticSound}>
-                    <Card className={`bg-gradient-to-br ${color} border border-white/10 p-5 hover:scale-105 transition-transform cursor-pointer h-36 flex flex-col items-center justify-center gap-3`}>
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-105 transition-transform cursor-pointer h-36 flex flex-col items-center justify-center gap-3 shadow-sm`}>
+                      <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center">
                         <Icon className={`h-7 w-7 ${iconCls}`} />
                       </div>
-                      <p className="text-white text-sm text-center font-medium leading-tight">{label}</p>
+                      <p className="text-slate-800 text-sm text-center font-medium leading-tight">{label}</p>
                     </Card>
                   </Link>
                 ))}
@@ -434,22 +431,22 @@ export default function HomeTecnico() {
           {/* ── AUTOMATIZACIÓN ── */}
           {activeTab === 'automatizacion' && (
             <div>
-              <h2 className="text-white font-semibold text-lg mb-5 flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-400" />
+              <h2 className="text-slate-800 font-semibold text-lg mb-5 flex items-center gap-2">
+                <Zap className="h-5 w-5 text-green-600" />
                 Automatización
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {AUTOMATIZACION.map(({ id, label, page, icon: Icon, color, iconCls, desc }) => (
                   <Link key={id} to={createPageUrl(page)} onClick={playFuturisticSound}>
-                    <Card className={`bg-gradient-to-br ${color} border border-white/10 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5`}>
-                      <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
+                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm`}>
+                      <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
                         <Icon className={`h-9 w-9 ${iconCls}`} />
                       </div>
                       <div>
-                        <p className="text-white text-lg font-semibold">{label}</p>
-                        <p className="text-slate-300 text-sm mt-0.5">{desc}</p>
+                        <p className="text-slate-800 text-lg font-semibold">{label}</p>
+                        <p className="text-slate-600 text-sm mt-0.5">{desc}</p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-white/40 ml-auto shrink-0" />
+                      <ChevronRight className="h-5 w-5 text-slate-400 ml-auto shrink-0" />
                     </Card>
                   </Link>
                 ))}
