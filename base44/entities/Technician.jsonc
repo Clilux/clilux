@@ -11,12 +11,10 @@
       "description": "Email del t\u00e9cnico"
     },
     "phone": {
-      "type": "string",
-      "description": "Tel\u00e9fono"
+      "type": "string"
     },
     "specialty": {
-      "type": "string",
-      "description": "Especialidad"
+      "type": "string"
     },
     "status": {
       "type": "string",
@@ -28,32 +26,45 @@
     },
     "user_email": {
       "type": "string",
-      "description": "Email de la cuenta base44 vinculada al t\u00e9cnico (para login real)"
+      "description": "Email de cuenta base44 vinculada"
     },
     "company_id": {
-      "type": "string",
-      "description": "ID de empresa/grupo al que pertenece el t\u00e9cnico (usamos el CIF en min\u00fasculas)"
+      "type": "string"
     },
     "company_name": {
-      "type": "string",
-      "description": "Nombre de la empresa del t\u00e9cnico"
+      "type": "string"
     },
     "is_admin": {
       "type": "boolean",
-      "default": false,
-      "description": "Si este t\u00e9cnico es tambi\u00e9n administrador de la empresa"
+      "default": false
     },
     "portal_email": {
-      "type": "string",
-      "description": "Email de acceso al portal t\u00e9cnico (legacy)"
+      "type": "string"
     },
     "portal_password": {
-      "type": "string",
-      "description": "Contrase\u00f1a de acceso al portal t\u00e9cnico (legacy)"
+      "type": "string"
     },
     "invited_at": {
-      "type": "string",
-      "description": "Fecha de env\u00edo de invitaci\u00f3n"
+      "type": "string"
+    },
+    "horas_jornada_diaria": {
+      "type": "number",
+      "default": 8,
+      "description": "Horas de jornada laboral diaria pactada (para calcular horas extra)"
+    },
+    "dias_laborables": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "description": "D\u00edas laborables: 0=Dom, 1=Lun, ..., 6=S\u00e1b"
     }
   },
   "required": [

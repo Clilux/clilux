@@ -5,22 +5,25 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import NavHeader from '../components/navigation/NavHeader';
+import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Calendar, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, differenceInMinutes } from 'date-fns';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Plus, Calendar, BarChart3 } from 'lucide-react';
+import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
+import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
+import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
+import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
   const [viewMonth, setViewMonth] = useState(new Date());
-  const [selectedTech, setSelectedTech] = useState('all');
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [showAusencia, setShowAusencia] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [pausaActiva, setPausaActiva] = useState(null); // { inicio: 'HH:MM' }
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
-
+  const { data: currentUser } = useQuery({ queryKey: ['current-user'], queryFn: () => base44.auth.me() });
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
@@ -28,46 +31,33 @@ export default function ControlHorario() {
   });
 
   const isAdmin = currentUser?.role === 'admin';
+  const myTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
+  const jornadaDiaria = myTechRecord?.horas_jornada_diaria || 8;
 
-  // Find current technician record
-  const myTechRecord = technicians.find(t =>
-    t.user_email === currentUser?.email || t.email === currentUser?.email
-  );
-
+  const monthStr = format(viewMonth, 'yyyy-MM');
   const { data: registros = [], isLoading } = useQuery({
-    queryKey: ['registros-horario', format(viewMonth, 'yyyy-MM'), selectedTech, currentUser?.email],
+    queryKey: ['registros-horario', monthStr, currentUser?.email],
     queryFn: async () => {
-      const monthStr = format(viewMonth, 'yyyy-MM');
       const all = await base44.entities.RegistroHorario.list('-fecha', 500);
-      return all.filter(r => {
-        const inMonth = r.fecha?.startsWith(monthStr);
-        if (!inMonth) return false;
-        if (!isAdmin) return r.technician_email === currentUser?.email;
-        if (selectedTech !== 'all') return r.technician_email === selectedTech;
-        // Admin: filter by company
-        if (myTechRecord?.company_id) {
-          const techInCompany = technicians.find(t => t.user_email === r.technician_email || t.email === r.technician_email);
-          return techInCompany?.company_id === myTechRecord.company_id;
-        }
-        return true;
-      });
+      if (isAdmin) return all;
+      return all.filter(r => r.technician_email === currentUser?.email && r.fecha?.startsWith(monthStr));
     },
     enabled: !!currentUser,
   });
 
-  // Today's record for current user
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todayRecord = registros.find(r =>
-    r.fecha === todayStr && r.technician_email === currentUser?.email
-  );
+  const myRegistros = isAdmin ? [] : registros.filter(r => r.fecha?.startsWith(monthStr));
 
-  const fichaEntradaMutation = useMutation({
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayRecord = myRegistros.find(r => r.fecha === todayStr);
+
+  // --- Fichaje mutations ---
+  const fichaEntrada = useMutation({
     mutationFn: async () => {
+      setGeoLoading(true);
+      const geo = await getGeoLocation();
+      setGeoLoading(false);
       const now = format(new Date(), 'HH:mm');
-      if (todayRecord) {
-        return base44.entities.RegistroHorario.update(todayRecord.id, { hora_entrada: now });
-      }
-      return base44.entities.RegistroHorario.create({
+      const base = {
         technician_email: currentUser.email,
         technician_name: myTechRecord?.name || currentUser.full_name || currentUser.email,
         technician_id: myTechRecord?.id || '',
@@ -75,142 +65,244 @@ export default function ControlHorario() {
         fecha: todayStr,
         hora_entrada: now,
         tipo_jornada: 'normal',
-      });
+        pausas: [],
+        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints: [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] }),
+      };
+      if (todayRecord) return base44.entities.RegistroHorario.update(todayRecord.id, { hora_entrada: now });
+      return base44.entities.RegistroHorario.create(base);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['registros-horario'] });
-      toast.success('Entrada registrada');
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Entrada registrada'); },
+    onError: () => setGeoLoading(false),
   });
 
-  const fichaSalidaMutation = useMutation({
+  const fichaSalida = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      setGeoLoading(true);
+      const geo = await getGeoLocation();
+      setGeoLoading(false);
+      const now = format(new Date(), 'HH:mm');
+      const calcs = calcularHoras({ ...todayRecord, hora_salida: now }, jornadaDiaria);
+      const geopoints = [...(todayRecord.geopoints || [])];
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
+      return base44.entities.RegistroHorario.update(todayRecord.id, {
+        hora_salida: now,
+        ...calcs,
+        ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Salida registrada'); },
+    onError: () => setGeoLoading(false),
+  });
+
+  const iniciarPausa = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord || todayRecord.hora_salida) return;
+      const now = format(new Date(), 'HH:mm');
+      const pausa = { inicio: now, fin: null, motivo: '' };
+      const pausas = [...(todayRecord.pausas || []), pausa];
+      setPausaActiva({ inicio: now });
+      return base44.entities.RegistroHorario.update(todayRecord.id, { pausas });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Pausa iniciada'); },
+  });
+
+  const finalizarPausa = useMutation({
     mutationFn: async () => {
       if (!todayRecord) return;
       const now = format(new Date(), 'HH:mm');
-      const entradaMins = todayRecord.hora_entrada ? timeToMinutes(todayRecord.hora_entrada) : 0;
-      const salidaMins = timeToMinutes(now);
-      const horas = Math.max(0, (salidaMins - entradaMins) / 60);
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
-        hora_salida: now,
-        horas_totales: Math.round(horas * 100) / 100,
-      });
+      const pausas = (todayRecord.pausas || []).map((p, i) =>
+        i === (todayRecord.pausas.length - 1) && !p.fin ? { ...p, fin: now } : p
+      );
+      setPausaActiva(null);
+      const calcs = calcularHoras({ ...todayRecord, pausas }, jornadaDiaria);
+      return base44.entities.RegistroHorario.update(todayRecord.id, { pausas, ...calcs });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['registros-horario'] });
-      toast.success('Salida registrada');
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Pausa finalizada'); },
   });
 
-  function timeToMinutes(t) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  }
+  // --- Stats ---
+  const totalNormal = myRegistros.reduce((a, r) => a + (r.horas_normales || 0), 0);
+  const totalExtra = myRegistros.reduce((a, r) => a + (r.horas_extra || 0), 0);
+  const diasTrabajados = new Set(myRegistros.map(r => r.fecha)).size;
 
-  // Stats
-  const totalHoras = registros.reduce((acc, r) => acc + (r.horas_totales || 0), 0);
-  const diasTrabajados = new Set(registros.map(r => r.fecha)).size;
-
-  // Days in current month
-  const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(viewMonth),
-    end: endOfMonth(viewMonth),
-  });
-
-  // Technicians in same company (for admin filter)
-  const companyTechs = isAdmin
-    ? technicians.filter(t => !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id)
-    : [];
+  const pausaEnCurso = todayRecord?.pausas?.some(p => !p.fin);
+  const fichadoEntrada = !!todayRecord?.hora_entrada;
+  const fichadoSalida = !!todayRecord?.hora_salida;
 
   const exportCSV = () => {
-    const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Tipo', 'Notas']];
-    registros.forEach(r => {
-      rows.push([r.technician_name || r.technician_email, r.fecha, r.hora_entrada || '', r.hora_salida || '', r.horas_totales || '', r.tipo_jornada || 'normal', r.notas || '']);
+    const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
+    myRegistros.forEach(r => {
+      rows.push([
+        r.technician_name || r.technician_email, r.fecha,
+        r.hora_entrada || '', r.hora_salida || '',
+        r.horas_normales || 0, r.horas_extra || 0,
+        r.minutos_pausa ? `${r.minutos_pausa}min` : '0',
+        r.tipo_jornada || 'normal', r.notas || ''
+      ]);
     });
     const csv = rows.map(r => r.join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `control_horario_${format(viewMonth, 'yyyy-MM')}.csv`;
+    a.href = URL.createObjectURL(blob);
+    a.download = `horario_${monthStr}.csv`;
     a.click();
   };
 
   if (!currentUser) return null;
 
+  // Admin sees a different dashboard
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+        <div className="max-w-6xl mx-auto">
+          <NavHeader title="Control Horario" />
+          <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
-        <NavHeader title="Control Horario" />
+      <div className="max-w-3xl mx-auto">
+        <NavHeader title="Mi Control Horario" />
 
-        {/* Fichar - solo para técnicos */}
-        {!isAdmin && (
-          <Card className="p-5 bg-white border-0 shadow-sm mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h2 className="font-semibold text-slate-800 text-lg">Fichaje de hoy</h2>
-                <p className="text-slate-500 text-sm">{format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })}</p>
-                {todayRecord && (
-                  <div className="flex gap-4 mt-2 text-sm">
-                    {todayRecord.hora_entrada && (
-                      <span className="text-emerald-600 font-medium flex items-center gap-1">
-                        <LogIn className="h-3.5 w-3.5" /> Entrada: {todayRecord.hora_entrada}
-                      </span>
-                    )}
-                    {todayRecord.hora_salida && (
-                      <span className="text-red-500 font-medium flex items-center gap-1">
-                        <LogOut className="h-3.5 w-3.5" /> Salida: {todayRecord.hora_salida}
-                      </span>
-                    )}
-                    {todayRecord.horas_totales && (
-                      <span className="text-slate-600 font-medium flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" /> {todayRecord.horas_totales}h
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => fichaEntradaMutation.mutate()}
-                  disabled={fichaEntradaMutation.isPending || !!todayRecord?.hora_entrada}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  {todayRecord?.hora_entrada ? `Entrada: ${todayRecord.hora_entrada}` : 'Fichar Entrada'}
-                </Button>
-                <Button
-                  onClick={() => fichaSalidaMutation.mutate()}
-                  disabled={fichaSalidaMutation.isPending || !todayRecord?.hora_entrada || !!todayRecord?.hora_salida}
-                  variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  {todayRecord?.hora_salida ? `Salida: ${todayRecord.hora_salida}` : 'Fichar Salida'}
-                </Button>
-              </div>
+        {/* Fichaje card */}
+        <Card className="bg-white border-0 shadow-sm mb-5 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-white/80" />
+              <span className="text-white font-semibold">Jornada de hoy</span>
             </div>
-          </Card>
-        )}
+            <span className="text-blue-100 text-xs capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</span>
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          <Card className="p-4 bg-white border-0 shadow-sm">
-            <p className="text-2xl font-bold text-slate-800">{Math.round(totalHoras * 10) / 10}h</p>
-            <p className="text-xs text-slate-500 mt-0.5">Horas este mes</p>
+          <div className="p-5">
+            {/* Status row */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${pausaEnCurso ? 'bg-amber-400 animate-pulse' : fichadoEntrada && !fichadoSalida ? 'bg-emerald-500 animate-pulse' : fichadoSalida ? 'bg-slate-300' : 'bg-red-400'}`} />
+              <span className="text-sm font-medium text-slate-700">
+                {pausaEnCurso ? 'En pausa' :
+                 fichadoSalida ? `Jornada completada · ${todayRecord?.horas_efectivas || 0}h efectivas` :
+                 fichadoEntrada ? `En jornada desde ${todayRecord.hora_entrada}` :
+                 'Sin fichar hoy'}
+              </span>
+              {fichadoEntrada && !fichadoSalida && !pausaEnCurso && (
+                <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs ml-auto">Activo</Badge>
+              )}
+              {pausaEnCurso && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs ml-auto">Pausa</Badge>}
+            </div>
+
+            {/* Horas resumen */}
+            {fichadoEntrada && (
+              <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Entrada</p>
+                  <p className="font-semibold text-emerald-600 text-sm">{todayRecord.hora_entrada}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Salida</p>
+                  <p className="font-semibold text-red-500 text-sm">{todayRecord.hora_salida || '—'}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Normales</p>
+                  <p className="font-semibold text-blue-600 text-sm">{todayRecord.horas_normales || '—'}h</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Extra</p>
+                  <p className={`font-semibold text-sm ${(todayRecord.horas_extra || 0) > 0 ? 'text-orange-500' : 'text-slate-300'}`}>
+                    {(todayRecord.horas_extra || 0) > 0 ? `${todayRecord.horas_extra}h` : '0h'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Pausas */}
+            {todayRecord?.pausas?.length > 0 && (
+              <div className="mb-4 text-xs text-slate-500 bg-amber-50 rounded-lg p-2">
+                {todayRecord.pausas.map((p, i) => (
+                  <span key={i} className="mr-3">
+                    ☕ {p.inicio}{p.fin ? ` → ${p.fin}` : ' (activa)'}
+                    {p.fin && ` (${Math.round((p.fin.split(':').reduce((a, v, i) => a + (i === 0 ? v * 60 : +v), 0) - p.inicio.split(':').reduce((a, v, i) => a + (i === 0 ? v * 60 : +v), 0)))}min)`}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <Button
+                onClick={() => fichaEntrada.mutate()}
+                disabled={fichaEntrada.isPending || geoLoading || fichadoEntrada}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+              >
+                <LogIn className="h-4 w-4 mr-1.5" />
+                {fichadoEntrada ? `Entrada: ${todayRecord.hora_entrada}` : 'Fichar entrada'}
+              </Button>
+              <Button
+                onClick={() => fichaSalida.mutate()}
+                disabled={fichaSalida.isPending || geoLoading || !fichadoEntrada || fichadoSalida || pausaEnCurso}
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50 h-10"
+              >
+                <LogOut className="h-4 w-4 mr-1.5" />
+                {fichadoSalida ? `Salida: ${todayRecord.hora_salida}` : 'Fichar salida'}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => iniciarPausa.mutate()}
+                disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso}
+                className="border-amber-200 text-amber-600 hover:bg-amber-50 h-9 text-sm"
+              >
+                <Coffee className="h-3.5 w-3.5 mr-1.5" />
+                Iniciar pausa
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => finalizarPausa.mutate()}
+                disabled={!pausaEnCurso}
+                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-9 text-sm"
+              >
+                <Coffee className="h-3.5 w-3.5 mr-1.5" />
+                Fin pausa
+              </Button>
+            </div>
+            {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
+
+            {/* Edit today + Solicitar ausencia */}
+            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+              {todayRecord && (
+                <Button variant="ghost" size="sm" className="text-xs text-slate-500 gap-1.5" onClick={() => setEditingRecord(todayRecord)}>
+                  <Pencil className="h-3.5 w-3.5" />Corregir fichaje
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="text-xs text-purple-600 gap-1.5 ml-auto" onClick={() => setShowAusencia(true)}>
+                <Calendar className="h-3.5 w-3.5" />Solicitar ausencia
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Monthly stats */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+            <p className="text-2xl font-bold text-blue-600">{Math.round(totalNormal * 10) / 10}h</p>
+            <p className="text-xs text-slate-500 mt-0.5">Horas normales</p>
           </Card>
-          <Card className="p-4 bg-white border-0 shadow-sm">
-            <p className="text-2xl font-bold text-slate-800">{diasTrabajados}</p>
+          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+            <p className={`text-2xl font-bold ${totalExtra > 0 ? 'text-orange-500' : 'text-slate-300'}`}>{Math.round(totalExtra * 10) / 10}h</p>
+            <p className="text-xs text-slate-500 mt-0.5">Horas extra</p>
+          </Card>
+          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+            <p className="text-2xl font-bold text-slate-700">{diasTrabajados}</p>
             <p className="text-xs text-slate-500 mt-0.5">Días trabajados</p>
           </Card>
-          {isAdmin && (
-            <Card className="p-4 bg-white border-0 shadow-sm">
-              <p className="text-2xl font-bold text-slate-800">{companyTechs.length}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Técnicos en empresa</p>
-            </Card>
-          )}
         </div>
 
-        {/* Controls */}
+        {/* Month navigator + export */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}>
@@ -223,70 +315,57 @@ export default function ControlHorario() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {isAdmin && (
-              <Select value={selectedTech} onValueChange={setSelectedTech}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Todos los técnicos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los técnicos</SelectItem>
-                  {companyTechs.map(t => (
-                    <SelectItem key={t.id} value={t.user_email || t.email}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button variant="outline" size="sm" onClick={exportCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download className="h-4 w-4 mr-2" />Exportar CSV
+          </Button>
         </div>
 
-        {/* Table */}
+        {/* Records table */}
         <Card className="bg-white border-0 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  {isAdmin && <th className="text-left p-3 text-slate-500 font-medium">Técnico</th>}
                   <th className="text-left p-3 text-slate-500 font-medium">Fecha</th>
                   <th className="text-left p-3 text-slate-500 font-medium">Entrada</th>
                   <th className="text-left p-3 text-slate-500 font-medium">Salida</th>
-                  <th className="text-left p-3 text-slate-500 font-medium">Horas</th>
-                  <th className="text-left p-3 text-slate-500 font-medium">Tipo</th>
+                  <th className="text-left p-3 text-slate-500 font-medium">Normal</th>
+                  <th className="text-left p-3 text-slate-500 font-medium">Extra</th>
+                  <th className="text-left p-3 text-slate-500 font-medium">Pausa</th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-slate-400">Cargando...</td></tr>
-                ) : registros.length === 0 ? (
-                  <tr><td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-slate-400">No hay registros este mes</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400">Cargando...</td></tr>
+                ) : myRegistros.length === 0 ? (
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400">Sin registros este mes</td></tr>
                 ) : (
-                  registros.sort((a, b) => b.fecha.localeCompare(a.fecha)).map(r => (
+                  myRegistros.sort((a, b) => b.fecha.localeCompare(a.fecha)).map(r => (
                     <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50">
-                      {isAdmin && (
-                        <td className="p-3 text-slate-700 font-medium">{r.technician_name || r.technician_email}</td>
-                      )}
-                      <td className="p-3 text-slate-600">
+                      <td className="p-3 text-slate-600 whitespace-nowrap">
                         {r.fecha ? format(parseISO(r.fecha), "EEE d MMM", { locale: es }) : '-'}
                       </td>
                       <td className="p-3">
-                        {r.hora_entrada ? (
-                          <span className="text-emerald-600 font-medium">{r.hora_entrada}</span>
-                        ) : <span className="text-slate-300">—</span>}
+                        <span className="text-emerald-600 font-medium">{r.hora_entrada || '—'}</span>
+                        {r.ubicacion_entrada && <MapPin className="h-3 w-3 text-emerald-300 inline ml-1" />}
                       </td>
                       <td className="p-3">
-                        {r.hora_salida ? (
-                          <span className="text-red-500 font-medium">{r.hora_salida}</span>
-                        ) : <span className="text-slate-300">—</span>}
+                        <span className="text-red-500 font-medium">{r.hora_salida || '—'}</span>
+                        {r.ubicacion_salida && <MapPin className="h-3 w-3 text-red-300 inline ml-1" />}
                       </td>
-                      <td className="p-3 font-semibold text-slate-800">
-                        {r.horas_totales ? `${r.horas_totales}h` : '—'}
-                      </td>
+                      <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? `${r.horas_normales}h` : '—'}</td>
+                      <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? `${r.horas_extra}h` : '—'}</td>
+                      <td className="p-3 text-slate-400 text-xs">{r.minutos_pausa > 0 ? `${r.minutos_pausa}m` : '—'}</td>
                       <td className="p-3">
-                        <Badge variant="secondary" className="text-xs capitalize">{r.tipo_jornada || 'normal'}</Badge>
+                        <div className="flex items-center gap-1">
+                          {r.historial_modificaciones?.length > 0 && (
+                            <History className="h-3.5 w-3.5 text-amber-400" title="Modificado" />
+                          )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={() => setEditingRecord(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -296,9 +375,24 @@ export default function ControlHorario() {
           </div>
         </Card>
 
-        <p className="text-xs text-slate-400 mt-3 text-center">
-          Registros conservados conforme al RD-ley 8/2019 (mín. 4 años)
-        </p>
+        <p className="text-xs text-slate-400 mt-3 text-center">RD-ley 8/2019 — Jornada pactada: {jornadaDiaria}h/día</p>
+
+        {/* Modals */}
+        {editingRecord && (
+          <EditarRegistroModal
+            registro={editingRecord}
+            currentUser={currentUser}
+            jornadaDiaria={jornadaDiaria}
+            onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }}
+          />
+        )}
+        {showAusencia && (
+          <SolicitudAusenciaModal
+            currentUser={currentUser}
+            techRecord={myTechRecord}
+            onClose={() => setShowAusencia(false)}
+          />
+        )}
       </div>
     </div>
   );

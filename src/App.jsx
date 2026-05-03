@@ -11,7 +11,7 @@ import CarpetaContratos from './pages/CarpetaContratos';
 import ControlClimatizacion from './pages/ControlClimatizacion';
 import ControlLoxone from './pages/ControlLoxone';
 import AdminPanel from './pages/AdminPanel';
-import ControlHorario from './pages/ControlHorario';
+import ControlHorario from './pages/ControlHorario.jsx';
 import GestionAusencias from './pages/GestionAusencias';
 import TechnicianProfile from './pages/TechnicianProfile';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';

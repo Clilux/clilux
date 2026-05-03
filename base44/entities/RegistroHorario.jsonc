@@ -3,37 +3,49 @@
   "type": "object",
   "properties": {
     "technician_id": {
-      "type": "string",
-      "description": "ID del t\u00e9cnico"
+      "type": "string"
     },
     "technician_email": {
-      "type": "string",
-      "description": "Email del t\u00e9cnico"
+      "type": "string"
     },
     "technician_name": {
-      "type": "string",
-      "description": "Nombre del t\u00e9cnico"
+      "type": "string"
     },
     "company_id": {
-      "type": "string",
-      "description": "ID de la empresa"
+      "type": "string"
     },
     "fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del registro"
+      "format": "date"
     },
     "hora_entrada": {
       "type": "string",
-      "description": "Hora de entrada (HH:MM)"
+      "description": "HH:MM"
     },
     "hora_salida": {
       "type": "string",
-      "description": "Hora de salida (HH:MM)"
+      "description": "HH:MM"
     },
-    "horas_totales": {
+    "horas_trabajadas": {
       "type": "number",
-      "description": "Total de horas trabajadas"
+      "description": "Horas brutas (sin descontar pausas)"
+    },
+    "horas_efectivas": {
+      "type": "number",
+      "description": "Horas efectivas (descontando pausas)"
+    },
+    "horas_normales": {
+      "type": "number",
+      "description": "Horas dentro de jornada pactada"
+    },
+    "horas_extra": {
+      "type": "number",
+      "description": "Horas sobre la jornada pactada"
+    },
+    "minutos_pausa": {
+      "type": "number",
+      "default": 0,
+      "description": "Total minutos de pausa"
     },
     "tipo_jornada": {
       "type": "string",
@@ -42,20 +54,84 @@
         "extra",
         "guardia"
       ],
-      "default": "normal",
-      "description": "Tipo de jornada"
+      "default": "normal"
     },
     "notas": {
-      "type": "string",
-      "description": "Observaciones del d\u00eda"
+      "type": "string"
+    },
+    "pausas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "inicio": {
+            "type": "string",
+            "description": "HH:MM"
+          },
+          "fin": {
+            "type": "string",
+            "description": "HH:MM"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Pausas durante la jornada"
     },
     "ubicacion_entrada": {
       "type": "string",
-      "description": "Ubicaci\u00f3n GPS al fichar entrada"
+      "description": "lat,lng"
     },
     "ubicacion_salida": {
       "type": "string",
-      "description": "Ubicaci\u00f3n GPS al fichar salida"
+      "description": "lat,lng"
+    },
+    "geopoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "hora": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "historial_modificaciones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha_mod": {
+            "type": "string"
+          },
+          "usuario": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string"
+          },
+          "valor_anterior": {
+            "type": "string"
+          },
+          "valor_nuevo": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
