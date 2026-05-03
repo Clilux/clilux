@@ -10,16 +10,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Users, UserCheck, UserPlus, Send, Building2,
-  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock
+  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings
 } from 'lucide-react';
 
 export default function AdminPanel() {
   const queryClient = useQueryClient();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
-  const [inviteData, setInviteData] = useState({ email: '', role: 'user', techName: '', companyName: '' });
+  const [showManageDialog, setShowManageDialog] = useState(false);
+  const [manageTech, setManageTech] = useState(null);
+  const [manageData, setManageData] = useState({ companyName: '', companyId: '', isAdmin: false });
+  const [inviteData, setInviteData] = useState({ email: '', role: 'user', techName: '', companyName: '', companyId: '' });
   const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
 
@@ -51,7 +55,10 @@ export default function AdminPanel() {
     },
   });
 
-  if (currentUser && currentUser.role !== 'admin') {
+  // Mientras carga, no mostrar nada (evitar flash de acceso restringido)
+  if (!currentUser) return null;
+
+  if (currentUser.role !== 'admin') {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
         <div className="w-full max-w-sm">
@@ -197,6 +204,41 @@ export default function AdminPanel() {
     await base44.entities.AdminRequest.update(req.id, { status: 'rejected' });
     queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
     toast.success('Solicitud rechazada');
+  };
+
+  const handleOpenManage = (tech) => {
+    setManageTech(tech);
+    setManageData({
+      companyName: tech.company_name || '',
+      companyId: tech.company_id || '',
+      isAdmin: tech.is_admin || false,
+    });
+    setShowManageDialog(true);
+  };
+
+  const handleSaveManage = async () => {
+    if (!manageTech) return;
+    setSending(true);
+    try {
+      const companyId = manageData.companyId || manageData.companyName?.toLowerCase().replace(/\s+/g, '_');
+      await base44.entities.Technician.update(manageTech.id, {
+        company_name: manageData.companyName,
+        company_id: companyId,
+        is_admin: manageData.isAdmin,
+      });
+      // Si se marca como admin, promover también en base44
+      if (manageData.isAdmin) {
+        const email = manageTech.user_email || manageTech.email;
+        await base44.users.inviteUser(email, 'admin');
+      }
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('Técnico actualizado correctamente');
+      setShowManageDialog(false);
+    } catch (err) {
+      toast.error('Error: ' + (err.message || ''));
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleReinvite = async (tech) => {
@@ -387,23 +429,32 @@ export default function AdminPanel() {
                             </Badge>
                           )}
                           <div className="flex gap-1 mt-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-slate-400 hover:text-blue-600"
-                              title="Reenviar invitación"
-                              onClick={() => handleReinvite(tech)}
-                            >
-                              <RefreshCw className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-slate-400 hover:text-red-500"
-                              onClick={() => { if (window.confirm('¿Eliminar técnico?')) deleteMutation.mutate(tech.id); }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                             title="Gestionar técnico"
+                             onClick={() => handleOpenManage(tech)}
+                           >
+                             <Settings className="h-3.5 w-3.5" />
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-7 w-7 text-slate-400 hover:text-blue-600"
+                             title="Reenviar invitación"
+                             onClick={() => handleReinvite(tech)}
+                           >
+                             <RefreshCw className="h-3.5 w-3.5" />
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-7 w-7 text-slate-400 hover:text-red-500"
+                             onClick={() => { if (window.confirm('¿Eliminar técnico?')) deleteMutation.mutate(tech.id); }}
+                           >
+                             <Trash2 className="h-3.5 w-3.5" />
+                           </Button>
                           </div>
                         </div>
                       </div>
@@ -492,6 +543,69 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
 
+      {/* Manage technician dialog */}
+      <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gestionar técnico: {manageTech?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Nombre de empresa</Label>
+              <Input
+                value={manageData.companyName}
+                onChange={(e) => setManageData(p => ({ ...p, companyName: e.target.value, companyId: '' }))}
+                placeholder="Nombre de la empresa"
+                className="mt-1"
+              />
+            </div>
+            {existingCompanies.length > 0 && (
+              <div>
+                <Label>O selecciona empresa existente</Label>
+                <Select
+                  value={manageData.companyId}
+                  onValueChange={(v) => {
+                    const found = existingCompanies.find(c => c.id === v);
+                    setManageData(p => ({ ...p, companyId: v, companyName: found?.name || p.companyName }));
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona empresa..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {existingCompanies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <Checkbox
+                id="isAdmin"
+                checked={manageData.isAdmin}
+                onCheckedChange={(v) => setManageData(p => ({ ...p, isAdmin: !!v }))}
+              />
+              <div>
+                <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Administrador de empresa</Label>
+                <p className="text-xs text-amber-600 mt-0.5">Si activas esto, se le enviará invitación con rol admin en la plataforma</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowManageDialog(false)}>Cancelar</Button>
+              <Button
+                onClick={handleSaveManage}
+                disabled={sending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Settings className="h-4 w-4 mr-2" />}
+                Guardar cambios
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Invite dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
@@ -521,12 +635,33 @@ export default function AdminPanel() {
             </div>
             <div>
               <Label>Empresa / Grupo</Label>
-              <Input
-                value={inviteData.companyName}
-                onChange={(e) => setInviteData(p => ({ ...p, companyName: e.target.value }))}
-                placeholder="Nombre de la empresa"
-                className="mt-1"
-              />
+              {existingCompanies.length > 0 ? (
+                <Select
+                  value={inviteData.companyId}
+                  onValueChange={(v) => {
+                    const found = existingCompanies.find(c => c.id === v);
+                    setInviteData(p => ({ ...p, companyId: v, companyName: found?.name || '' }));
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona empresa existente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {existingCompanies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__nueva__">+ Nueva empresa...</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {(inviteData.companyId === '__nueva__' || existingCompanies.length === 0) && (
+                <Input
+                  className="mt-2"
+                  placeholder="Nombre de la nueva empresa"
+                  value={inviteData.companyName}
+                  onChange={(e) => setInviteData(p => ({ ...p, companyName: e.target.value, companyId: '' }))}
+                />
+              )}
               <p className="text-xs text-slate-400 mt-1">Los técnicos de la misma empresa comparten clientes</p>
             </div>
             <div className="flex justify-end gap-3 pt-2">
