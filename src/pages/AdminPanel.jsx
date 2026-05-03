@@ -430,27 +430,29 @@ export default function AdminPanel() {
                           )}
                           <div className="flex gap-1 mt-1">
                            <Button
-                             variant="ghost"
-                             size="icon"
-                             className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                             variant="outline"
+                             size="sm"
+                             className="h-7 px-2 text-xs text-slate-600 hover:text-slate-900"
                              title="Gestionar técnico"
                              onClick={() => handleOpenManage(tech)}
                            >
-                             <Settings className="h-3.5 w-3.5" />
+                             <Settings className="h-3 w-3 mr-1" />
+                             Gestionar
                            </Button>
                            <Button
-                             variant="ghost"
-                             size="icon"
-                             className="h-7 w-7 text-slate-400 hover:text-blue-600"
+                             variant="outline"
+                             size="sm"
+                             className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
                              title="Reenviar invitación"
                              onClick={() => handleReinvite(tech)}
                            >
-                             <RefreshCw className="h-3.5 w-3.5" />
+                             <RefreshCw className="h-3 w-3 mr-1" />
+                             Invitar
                            </Button>
                            <Button
                              variant="ghost"
                              size="icon"
-                             className="h-7 w-7 text-slate-400 hover:text-red-500"
+                             className="h-7 w-7 text-slate-300 hover:text-red-500"
                              onClick={() => { if (window.confirm('¿Eliminar técnico?')) deleteMutation.mutate(tech.id); }}
                            >
                              <Trash2 className="h-3.5 w-3.5" />
@@ -590,6 +592,30 @@ export default function AdminPanel() {
                 <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Administrador de empresa</Label>
                 <p className="text-xs text-amber-600 mt-0.5">Si activas esto, se le enviará invitación con rol admin en la plataforma</p>
               </div>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
+              <p className="text-slate-500">Email de acceso: <span className="font-medium text-slate-700">{manageTech?.user_email || manageTech?.email}</span></p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 text-blue-600 border-blue-200 hover:bg-blue-50 w-full"
+                onClick={async () => {
+                  const email = manageTech?.user_email || manageTech?.email;
+                  if (!email) return;
+                  try {
+                    await base44.users.inviteUser(email, 'user');
+                    await base44.entities.Technician.update(manageTech.id, { invited_at: new Date().toISOString() });
+                    queryClient.invalidateQueries({ queryKey: ['technicians'] });
+                    toast.success(`Invitación enviada a ${email}`);
+                  } catch {
+                    toast.error('Error al enviar la invitación');
+                  }
+                }}
+                disabled={sending}
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                Enviar/reenviar invitación de acceso
+              </Button>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowManageDialog(false)}>Cancelar</Button>
