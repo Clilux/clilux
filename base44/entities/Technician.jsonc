@@ -1,0 +1,58 @@
+{
+  "name": "Technician",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "specialty": {
+      "type": "string",
+      "description": "Especialidad"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email de la cuenta base44 vinculada al t\u00e9cnico (para login real)"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de empresa/grupo al que pertenece el t\u00e9cnico (para filtrar por empresa)"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Nombre de la empresa del t\u00e9cnico"
+    },
+    "portal_email": {
+      "type": "string",
+      "description": "Email de acceso al portal t\u00e9cnico (legacy)"
+    },
+    "portal_password": {
+      "type": "string",
+      "description": "Contrase\u00f1a de acceso al portal t\u00e9cnico (legacy)"
+    },
+    "invited_at": {
+      "type": "string",
+      "description": "Fecha de env\u00edo de invitaci\u00f3n"
+    }
+  },
+  "required": [
+    "name",
+    "email"
+  ]
+}

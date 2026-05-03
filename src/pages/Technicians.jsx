@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, User, Mail, Phone, Edit, Trash2, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Plus, User, Mail, Phone, Edit, Trash2, Eye, EyeOff, KeyRound, UserCheck, Send } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -24,9 +24,13 @@ export default function Technicians() {
     phone: '',
     specialty: '',
     status: 'active',
+    company_id: '',
+    company_name: '',
+    user_email: '',
     portal_email: '',
     portal_password: '',
   });
+  const [invitingId, setInvitingId] = useState(null);
 
   const { data: technicians = [], isLoading } = useQuery({
     queryKey: ['technicians'],
@@ -55,13 +59,15 @@ export default function Technicians() {
     },
   });
 
+  const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_id: '', company_name: '', user_email: '', portal_email: '', portal_password: '' };
+
   const handleOpenDialog = (tech = null) => {
     if (tech) {
       setEditingTech(tech);
       setFormData(tech);
     } else {
       setEditingTech(null);
-      setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active', portal_email: '', portal_password: '' });
+      setFormData(emptyForm);
     }
     setShowPortalPassword(false);
     setShowDialog(true);
@@ -70,8 +76,24 @@ export default function Technicians() {
   const handleCloseDialog = () => {
     setShowDialog(false);
     setEditingTech(null);
-    setFormData({ name: '', email: '', phone: '', specialty: '', status: 'active', portal_email: '', portal_password: '' });
+    setFormData(emptyForm);
     setShowPortalPassword(false);
+  };
+
+  const handleInviteToSystem = async (tech) => {
+    const emailToInvite = tech.user_email || tech.email;
+    if (!emailToInvite) { toast.error('El técnico no tiene email'); return; }
+    setInvitingId(tech.id);
+    try {
+      await base44.users.inviteUser(emailToInvite, 'user');
+      await base44.entities.Technician.update(tech.id, { user_email: emailToInvite, invited_at: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success(`Invitación enviada a ${emailToInvite}`);
+    } catch (err) {
+      toast.error('Error al enviar la invitación');
+    } finally {
+      setInvitingId(null);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -132,19 +154,30 @@ export default function Technicians() {
                 {tech.specialty && (
                   <p className="text-slate-500 italic">{tech.specialty}</p>
                 )}
-                {(tech.portal_email || tech.portal_password) && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <p className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
-                      <KeyRound className="h-3 w-3" /> Acceso Portal
-                    </p>
-                    {tech.portal_email && (
-                      <p className="text-xs text-slate-600">{tech.portal_email}</p>
-                    )}
-                    {tech.portal_password && (
-                      <p className="text-xs text-slate-400">{'•'.repeat(tech.portal_password.length)}</p>
-                    )}
-                  </div>
+                {tech.company_name && (
+                  <p className="text-xs text-blue-600 font-medium">🏢 {tech.company_name}</p>
                 )}
+
+                {/* Acceso al sistema */}
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  {tech.invited_at ? (
+                    <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-medium">
+                      <UserCheck className="h-3.5 w-3.5" />
+                      Acceso activado · {tech.user_email || tech.email}
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 border-blue-200 text-blue-600 hover:bg-blue-50 w-full"
+                      disabled={invitingId === tech.id}
+                      onClick={() => handleInviteToSystem(tech)}
+                    >
+                      <Send className="h-3 w-3 mr-1" />
+                      {invitingId === tech.id ? 'Enviando...' : 'Invitar al sistema'}
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           ))}
@@ -197,6 +230,27 @@ export default function Technicians() {
                   placeholder="Ej: Climatización, Refrigeración"
                   className="mt-1"
                 />
+              </div>
+              <div>
+                <Label>Empresa / Grupo</Label>
+                <Input
+                  value={formData.company_name || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value, company_id: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
+                  placeholder="Ej: Clilux, TechFrio..."
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-400 mt-1">Técnicos de la misma empresa verán los mismos clientes</p>
+              </div>
+              <div>
+                <Label>Email de acceso al sistema</Label>
+                <Input
+                  type="email"
+                  value={formData.user_email || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, user_email: e.target.value }))}
+                  placeholder="email@dominio.com"
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-400 mt-1">Email con el que iniciará sesión en la app</p>
               </div>
               <div>
                 <Label>Estado</Label>

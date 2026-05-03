@@ -12,9 +12,12 @@ import ClientCard from '../components/cards/ClientCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
 import StatusBadge from '../components/ui/StatusBadge';
 import { Card } from "@/components/ui/card";
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
+
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
+  const { technician, user } = useCurrentTechnician();
 
   const handleViewChange = (mode) => {
     setViewMode(mode);
@@ -31,7 +34,15 @@ export default function Clients() {
     queryFn: () => base44.entities.Building.list(),
   });
 
-  const filteredClients = clients.filter(client =>
+  // Admins ven todo. Técnicos ven clientes de su empresa o asignados a ellos.
+  const isAdmin = user?.role === 'admin';
+  const visibleClients = isAdmin ? clients : clients.filter(c => {
+    if (technician?.company_id && c.company_id === technician.company_id) return true;
+    if (c.assigned_technician === user?.email) return true;
+    return false;
+  });
+
+  const filteredClients = visibleClients.filter(client =>
     client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.cif?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.city?.toLowerCase().includes(searchTerm.toLowerCase())

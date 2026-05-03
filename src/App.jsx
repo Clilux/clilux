@@ -10,6 +10,7 @@ import ContratoMantenimiento from './pages/ContratoMantenimiento';
 import CarpetaContratos from './pages/CarpetaContratos';
 import ControlClimatizacion from './pages/ControlClimatizacion';
 import ControlLoxone from './pages/ControlLoxone';
+import AdminPanel from './pages/AdminPanel';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -68,6 +69,7 @@ const AuthenticatedApp = () => {
       <Route path="/CarpetaContratos" element={<LayoutWrapper currentPageName="CarpetaContratos"><CarpetaContratos /></LayoutWrapper>} />
       <Route path="/ControlClimatizacion" element={<LayoutWrapper currentPageName="ControlClimatizacion"><ControlClimatizacion /></LayoutWrapper>} />
       <Route path="/ControlLoxone" element={<LayoutWrapper currentPageName="ControlLoxone"><ControlLoxone /></LayoutWrapper>} />
+      <Route path="/AdminPanel" element={<LayoutWrapper currentPageName="AdminPanel"><AdminPanel /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

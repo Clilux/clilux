@@ -1,0 +1,82 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social del cliente"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF/NIF del cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "province": {
+      "type": "string",
+      "description": "Provincia"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contacto"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "assigned_technician": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico asignado"
+    },
+    "assigned_technician_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico asignado"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Nombre del usuario que cre\u00f3 el cliente"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de empresa del t\u00e9cnico que lo gestiona"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario cliente vinculado"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Foto o logo del cliente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name",
+    "cif"
+  ]
+}

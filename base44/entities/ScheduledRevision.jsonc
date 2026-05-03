@@ -48,6 +48,14 @@
       "type": "string",
       "description": "Nombre del t\u00e9cnico que realiz\u00f3 la revisi\u00f3n"
     },
+    "technician_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico en el sistema"
+    },
+    "technician_email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico que realiz\u00f3 la revisi\u00f3n"
+    },
     "revision_data": {
       "type": "object",
       "description": "Datos recogidos en la revisi\u00f3n"
@@ -77,7 +85,7 @@
           }
         }
       },
-      "description": "Lista de equipos con sus tipos de revisi\u00f3n originales agrupados en esta revisi\u00f3n unificada"
+      "description": "Lista de equipos agrupados en esta revisi\u00f3n unificada"
     }
   },
   "required": [

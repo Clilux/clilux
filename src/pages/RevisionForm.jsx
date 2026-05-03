@@ -13,6 +13,7 @@ import { Loader2, Save, AlertCircle, AlertTriangle, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -28,6 +29,7 @@ export default function RevisionForm() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const scheduledRevisionId = urlParams.get('id');
+  const { technician, user } = useCurrentTechnician();
 
   // ALL hooks at the top - no conditional hooks
   const [formData, setFormData] = useState({});
@@ -88,6 +90,13 @@ export default function RevisionForm() {
     enabled: !!scheduledRevision?.equipment_id && !!scheduledRevision?.scheduled_date && scheduledRevision?.status === 'pending',
   });
 
+  // Auto-fill technician name from current user
+  useEffect(() => {
+    if (!technicianName && (technician?.name || user?.full_name)) {
+      setTechnicianName(technician?.name || user?.full_name || '');
+    }
+  }, [technician, user]);
+
   useEffect(() => {
     if (!scheduledRevision || scheduledRevision.status === 'completed') return;
     if (previousPendingRevisions.length > 0) {
@@ -111,7 +120,9 @@ export default function RevisionForm() {
         completed_date: new Date().toISOString().split('T')[0],
         revision_data: formData,
         notes: notes,
-        technician_name: technicianName,
+        technician_name: technicianName || technician?.name || user?.full_name || '',
+        technician_id: technician?.id || '',
+        technician_email: user?.email || '',
       });
     },
     onSuccess: () => {

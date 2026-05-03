@@ -14,6 +14,7 @@ import { Loader2, Save, UserPlus } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ImageUploader from '../components/ui/ImageUploader';
 import { toast } from 'sonner';
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
 export default function ClientForm() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function ClientForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('id');
   const isEditing = !!clientId;
+  const { technician, user } = useCurrentTechnician();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -65,9 +67,19 @@ export default function ClientForm() {
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       if (isEditing) {
-        return base44.entities.Client.update(clientId, data);
+        return base44.entities.Client.update(clientId, {
+          ...data,
+          assigned_technician: data.assigned_technician || user?.email,
+          assigned_technician_name: data.assigned_technician_name || technician?.name || user?.full_name,
+        });
       }
-      return base44.entities.Client.create(data);
+      return base44.entities.Client.create({
+        ...data,
+        created_by_name: technician?.name || user?.full_name || user?.email,
+        assigned_technician: data.assigned_technician || user?.email,
+        assigned_technician_name: data.assigned_technician_name || technician?.name || user?.full_name,
+        company_id: data.company_id || technician?.company_id || '',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });

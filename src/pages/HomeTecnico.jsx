@@ -10,8 +10,9 @@ import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine,
-  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind
+  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield
 } from 'lucide-react';
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { playFuturisticSound } from '@/lib/futuristicSound';
@@ -139,6 +140,8 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
 // ── Main component ───────────────────────────────────────────
 export default function HomeTecnico() {
   const [activeTab, setActiveTab] = useState('inicio');
+  const { user } = useCurrentTechnician();
+  const isAdmin = user?.role === 'admin';
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
@@ -191,6 +194,13 @@ export default function HomeTecnico() {
               <span className="text-slate-800 font-semibold text-lg">Clilux</span>
             </div>
             <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Link to={createPageUrl('AdminPanel')}>
+                  <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700 h-9 w-9" title="Panel Admin">
+                    <Shield className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Link to={createPageUrl('Settings')}>
                 <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
                   <Settings className="h-5 w-5" />
