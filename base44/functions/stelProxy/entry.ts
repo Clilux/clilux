@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const STEL_BASE = 'https://stelorder.com/v1';
+const STEL_BASE = 'https://stelorder.com/api/v1';
 
 async function getApiKey(base44Client) {
   // Priority 1: environment secret
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       const { limit = 50, offset = 0, search = '' } = payload;
       const params = { limit, offset };
       if (search) params['legal-name'] = search;
-      const data = await stelGet('/clients', params, apiKey);
+      const data = await stelGet('/customers', params, apiKey);
       const list = Array.isArray(data) ? data : [];
       return Response.json({ clients: list.map(mapClient) });
     }
