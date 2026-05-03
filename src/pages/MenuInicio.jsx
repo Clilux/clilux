@@ -20,10 +20,15 @@ export default function MenuInicio() {
   const [registerData, setRegisterData] = useState({
     fullName: '',
     contactEmail: '',
+    password: '',
+    passwordConfirm: '',
     companyName: '',
     companyCif: '',
     companyAddress: '',
   });
+  const [registerError, setRegisterError] = useState('');
+  const [registerSending, setRegisterSending] = useState(false);
+  const [registerDone, setRegisterDone] = useState(false);
 
   const { data: settings } = useQuery({
     queryKey: ['app-settings'],
@@ -177,9 +182,9 @@ export default function MenuInicio() {
         }
 
         {/* Registro nuevo administrador */}
-        {mode === 'admin_register' &&
-        <div className="space-y-4">
-          <p className="text-center text-slate-300 text-sm mb-1">Registro de administrador</p>
+        {mode === 'admin_register' && !registerDone &&
+        <div className="space-y-3">
+          <p className="text-center text-slate-300 text-sm mb-1">Solicitud de acceso administrador</p>
 
           <div>
             <Label className="text-white text-sm">Nombre completo *</Label>
@@ -191,7 +196,7 @@ export default function MenuInicio() {
             />
           </div>
           <div>
-            <Label className="text-white text-sm">Email de contacto / recuperación *</Label>
+            <Label className="text-white text-sm">Email de acceso / recuperación *</Label>
             <Input
               type="email"
               value={registerData.contactEmail}
@@ -199,7 +204,29 @@ export default function MenuInicio() {
               placeholder="admin@tuempresa.com"
               className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
             />
-            <p className="text-xs text-slate-400 mt-1">Se usará para notificaciones y recuperación de contraseña</p>
+          </div>
+          <div>
+            <Label className="text-white text-sm">Contraseña *</Label>
+            <Input
+              type="password"
+              value={registerData.password}
+              onChange={(e) => setRegisterData(p => ({ ...p, password: e.target.value }))}
+              placeholder="••••••••"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <Label className="text-white text-sm">Confirmar contraseña *</Label>
+            <Input
+              type="password"
+              value={registerData.passwordConfirm}
+              onChange={(e) => setRegisterData(p => ({ ...p, passwordConfirm: e.target.value }))}
+              placeholder="••••••••"
+              className={`mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 ${registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm ? 'border-red-400' : ''}`}
+            />
+            {registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm && (
+              <p className="text-xs text-red-400 mt-1">Las contraseñas no coinciden</p>
+            )}
           </div>
 
           <div className="pt-1 border-t border-white/10">
@@ -216,10 +243,10 @@ export default function MenuInicio() {
             />
           </div>
           <div>
-            <Label className="text-white text-sm">CIF / NIF</Label>
+            <Label className="text-white text-sm">CIF / NIF * (identificador único de empresa)</Label>
             <Input
               value={registerData.companyCif}
-              onChange={(e) => setRegisterData(p => ({ ...p, companyCif: e.target.value }))}
+              onChange={(e) => setRegisterData(p => ({ ...p, companyCif: e.target.value.toUpperCase() }))}
               placeholder="B12345678"
               className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
             />
@@ -234,31 +261,86 @@ export default function MenuInicio() {
             />
           </div>
 
+          {registerError && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+              <p className="text-red-400 text-sm">{registerError}</p>
+            </div>
+          )}
+
           <Button
-            onClick={() => {
-              if (!registerData.fullName || !registerData.contactEmail || !registerData.companyName) {
-                toast.error('Rellena los campos obligatorios (*)');
+            onClick={async () => {
+              setRegisterError('');
+              const { fullName, contactEmail, password, passwordConfirm, companyName, companyCif } = registerData;
+              if (!fullName || !contactEmail || !password || !companyName || !companyCif) {
+                setRegisterError('Rellena todos los campos obligatorios (*)');
                 return;
               }
-              // Guardar datos temporalmente y redirigir al login/registro de la plataforma
-              sessionStorage.setItem('admin_register_data', JSON.stringify(registerData));
-              base44.auth.redirectToLogin('/AdminPanel');
+              if (password !== passwordConfirm) {
+                setRegisterError('Las contraseñas no coinciden');
+                return;
+              }
+              if (password.length < 6) {
+                setRegisterError('La contraseña debe tener al menos 6 caracteres');
+                return;
+              }
+              setRegisterSending(true);
+              try {
+                // Verificar que no exista ya un admin con ese CIF
+                const existing = await base44.entities.AdminRequest.filter({ company_cif: companyCif.toUpperCase() });
+                if (existing.length > 0) {
+                  setRegisterError('Ya existe una solicitud o empresa registrada con ese CIF. Solo puede haber un administrador por empresa.');
+                  setRegisterSending(false);
+                  return;
+                }
+                // Guardar la solicitud
+                await base44.entities.AdminRequest.create({
+                  full_name: fullName,
+                  contact_email: contactEmail,
+                  company_name: companyName,
+                  company_cif: companyCif.toUpperCase(),
+                  company_address: registerData.companyAddress,
+                  status: 'pending',
+                });
+                setRegisterDone(true);
+              } catch (err) {
+                setRegisterError('Error al enviar la solicitud: ' + (err.message || ''));
+              } finally {
+                setRegisterSending(false);
+              }
             }}
+            disabled={registerSending || (registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm)}
             className="bg-amber-600 text-white w-full h-12 hover:bg-amber-700 flex items-center justify-center gap-3 text-base font-medium rounded-md"
           >
-            <UserPlus className="h-5 w-5" />
-            Continuar con el registro
+            {registerSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-5 w-5" />}
+            Enviar solicitud de registro
           </Button>
-          <p className="text-xs text-slate-400 text-center px-2">
-            Se te enviará un enlace para crear tu cuenta de acceso.
-          </p>
           <Button
             type="button"
-            onClick={() => setMode('admin')}
+            onClick={() => { setMode('admin'); setRegisterError(''); }}
             className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
             variant="ghost"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
+        </div>
+        }
+
+        {/* Registro completado */}
+        {mode === 'admin_register' && registerDone &&
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+            <Shield className="h-8 w-8 text-emerald-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
+          <p className="text-slate-300 text-sm">
+            Tu solicitud de acceso como administrador ha sido registrada. Un administrador del sistema revisará tus datos y te enviará un email de acceso a <strong className="text-white">{registerData.contactEmail}</strong>.
+          </p>
+          <Button
+            onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '' }); }}
+            className="w-full h-11 bg-white/10 border border-white/20 text-white hover:bg-white/20"
+            variant="ghost"
+          >
+            Volver al inicio
           </Button>
         </div>
         }

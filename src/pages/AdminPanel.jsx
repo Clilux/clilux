@@ -12,7 +12,7 @@ import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import {
   Users, UserCheck, UserPlus, Send, Building2,
-  Shield, Loader2, Trash2, RefreshCw, Link2
+  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -31,6 +31,11 @@ export default function AdminPanel() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date'),
+  });
+
+  const { data: adminRequests = [] } = useQuery({
+    queryKey: ['admin-requests'],
+    queryFn: () => base44.entities.AdminRequest.filter({ status: 'pending' }),
   });
 
   const { data: currentUser } = useQuery({
@@ -126,6 +131,49 @@ export default function AdminPanel() {
     }
   };
 
+  const handleApproveAdmin = async (req) => {
+    setSending(true);
+    try {
+      // Comprobar duplicado por CIF
+      const existingTechs = technicians.filter(t => t.company_id === req.company_cif?.toLowerCase());
+      const isAdminAlready = existingTechs.some(t => t.is_admin);
+      if (isAdminAlready) {
+        toast.error('Ya existe un administrador para esa empresa (CIF duplicado)');
+        setSending(false);
+        return;
+      }
+      // Invitar como admin
+      await base44.users.inviteUser(req.contact_email, 'admin');
+      // Crear técnico vinculado como admin de empresa
+      await base44.entities.Technician.create({
+        name: req.full_name,
+        email: req.contact_email,
+        user_email: req.contact_email,
+        company_name: req.company_name,
+        company_id: req.company_cif?.toLowerCase(),
+        is_admin: true,
+        status: 'active',
+        invited_at: new Date().toISOString(),
+      });
+      // Marcar solicitud como aprobada
+      await base44.entities.AdminRequest.update(req.id, { status: 'approved' });
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success(`Administrador aprobado: ${req.contact_email}`);
+    } catch (err) {
+      toast.error('Error al aprobar: ' + (err.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleRejectAdmin = async (req) => {
+    if (!window.confirm('¿Rechazar esta solicitud?')) return;
+    await base44.entities.AdminRequest.update(req.id, { status: 'rejected' });
+    queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
+    toast.success('Solicitud rechazada');
+  };
+
   const handleReinvite = async (tech) => {
     const email = tech.user_email || tech.email;
     if (!email) return;
@@ -202,6 +250,54 @@ export default function AdminPanel() {
           </Card>
         </div>
 
+        {/* Pending admin requests */}
+        {adminRequests.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-amber-500" />
+              <h3 className="font-semibold text-slate-700">Solicitudes de administrador pendientes</h3>
+              <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{adminRequests.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {adminRequests.map(req => (
+                <Card key={req.id} className="p-4 bg-amber-50 border border-amber-200 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800">{req.full_name}</p>
+                      <p className="text-sm text-slate-500">{req.contact_email}</p>
+                      <div className="flex gap-3 mt-1 flex-wrap">
+                        <span className="text-xs text-slate-600"><span className="font-medium">Empresa:</span> {req.company_name}</span>
+                        <span className="text-xs text-slate-600"><span className="font-medium">CIF:</span> {req.company_cif}</span>
+                        {req.company_address && <span className="text-xs text-slate-500">{req.company_address}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveAdmin(req)}
+                        disabled={sending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Aprobar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRejectAdmin(req)}
+                        className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3"
+                      >
+                        <XCircle className="h-3.5 w-3.5 mr-1" />
+                        Rechazar
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex justify-end gap-3 mb-5">
           {techsWithoutCompany.length > 0 && (
@@ -245,7 +341,10 @@ export default function AdminPanel() {
                             {tech.name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 text-sm">{tech.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-slate-800 text-sm">{tech.name}</p>
+                              {tech.is_admin && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-1.5 py-0"><Shield className="h-2.5 w-2.5 mr-0.5" />Admin</Badge>}
+                            </div>
                             <p className="text-xs text-slate-500">{accessEmail}</p>
                             <p className="text-xs text-slate-400 mt-0.5">{clientsByTech(tech.email)} cliente{clientsByTech(tech.email) !== 1 ? 's' : ''}</p>
                           </div>

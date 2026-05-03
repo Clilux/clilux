@@ -1,0 +1,46 @@
+{
+  "name": "AdminRequest",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo del solicitante"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Email de contacto y recuperaci\u00f3n"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Nombre de la empresa"
+    },
+    "company_cif": {
+      "type": "string",
+      "description": "CIF de la empresa (clave \u00fanica por empresa)"
+    },
+    "company_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la empresa"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Estado de la solicitud"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas del administrador sobre la solicitud"
+    }
+  },
+  "required": [
+    "full_name",
+    "contact_email",
+    "company_name",
+    "company_cif"
+  ]
+}

@@ -32,11 +32,16 @@
     },
     "company_id": {
       "type": "string",
-      "description": "ID de empresa/grupo al que pertenece el t\u00e9cnico (para filtrar por empresa)"
+      "description": "ID de empresa/grupo al que pertenece el t\u00e9cnico (usamos el CIF en min\u00fasculas)"
     },
     "company_name": {
       "type": "string",
       "description": "Nombre de la empresa del t\u00e9cnico"
+    },
+    "is_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si este t\u00e9cnico es tambi\u00e9n administrador de la empresa"
     },
     "portal_email": {
       "type": "string",
