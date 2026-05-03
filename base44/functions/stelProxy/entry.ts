@@ -12,34 +12,44 @@ async function getApiKey(base44Client) {
     const key = settings?.[0]?.integrations?.stel_order?.api_key;
     if (key) return key;
   } catch (_) { /* ignore */ }
-  throw new Error('STEL API Key not configured. Please set it in Settings → Integraciones.');
+  throw new Error('STEL API Key not configured.');
 }
 
 async function stelGet(path, params = {}, apiKey) {
-  const qs = new URLSearchParams({ APIKEY: apiKey, ...params }).toString();
-  const res = await fetch(`${STEL_BASE}${path}?${qs}`);
-  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${await res.text()}`);
-  return res.json();
+  const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
+  const url = `${STEL_BASE}${path}${qs}`;
+  console.log('[stelProxy] GET', url);
+  const res = await fetch(url, { headers: { 'APIKEY': apiKey } });
+  const text = await res.text();
+  console.log('[stelProxy] Response status:', res.status, '| body preview:', text.substring(0, 200));
+  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${text}`);
+  return JSON.parse(text);
 }
 
 async function stelPost(path, body, apiKey) {
-  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${apiKey}`, {
+  const url = `${STEL_BASE}${path}`;
+  console.log('[stelProxy] POST', url);
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${await res.text()}`);
-  return res.json();
+  const text = await res.text();
+  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${text}`);
+  return JSON.parse(text);
 }
 
 async function stelPut(path, body, apiKey) {
-  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${apiKey}`, {
+  const url = `${STEL_BASE}${path}`;
+  console.log('[stelProxy] PUT', url);
+  const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${await res.text()}`);
-  return res.json();
+  const text = await res.text();
+  if (!res.ok) throw new Error(`STEL API error ${res.status}: ${text}`);
+  return JSON.parse(text);
 }
 
 function mapClient(c) {
@@ -65,12 +75,25 @@ function mapClient(c) {
 
 Deno.serve(async (req) => {
   try {
+    console.log('[stelProxy] ===== REQUEST START =====');
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    console.log('[stelProxy] User:', user?.email, '| role:', user?.role);
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { action, payload = {} } = await req.json();
+    const bodyText = await req.text();
+    console.log('[stelProxy] Body:', bodyText.substring(0, 300));
+    const { action, payload = {} } = JSON.parse(bodyText);
+    console.log('[stelProxy] Action:', action);
+
     const apiKey = await getApiKey(base44);
+    console.log('[stelProxy] API key length:', apiKey?.length, '| starts with:', apiKey?.substring(0, 6));
+
+    // --- TEST CONNECTION ---
+    if (action === 'testConnection') {
+      const data = await stelGet('/clients', { limit: 1 }, apiKey);
+      return Response.json({ ok: true, message: 'Conexión correcta con STEL Order' });
+    }
 
     // --- CLIENTS ---
     if (action === 'searchClients') {
@@ -173,6 +196,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
+    console.error('[stelProxy] ERROR:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
