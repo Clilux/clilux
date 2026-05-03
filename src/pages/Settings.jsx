@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2, Users, Download, UploadCloud, Eye, EyeOff, Send, KeyRound } from 'lucide-react';
+import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2, Users, Download, UploadCloud, Eye, EyeOff, Send, KeyRound, Plug } from 'lucide-react';
+import IntegracionesTab from '@/components/settings/IntegracionesTab';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -372,6 +373,10 @@ export default function Settings() {
             <TabsTrigger value="backup" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Copias
+            </TabsTrigger>
+            <TabsTrigger value="integraciones" className="flex items-center gap-2">
+              <Plug className="h-4 w-4" />
+              Integraciones
             </TabsTrigger>
           </TabsList>
 
@@ -880,6 +885,10 @@ export default function Settings() {
                 </p>
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="integraciones">
+            <IntegracionesTab formData={formData} onChange={handleChange} />
           </TabsContent>
         </Tabs>
 

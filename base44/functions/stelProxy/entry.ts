@@ -2,17 +2,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const STEL_BASE = 'https://app.stelorder.com/app';
 
-async function stelGet(path, params = {}) {
-  const APIKEY = Deno.env.get('STEL_API_KEY');
-  const qs = new URLSearchParams({ APIKEY, ...params }).toString();
+async function getApiKey(base44Client) {
+  // Priority 1: environment secret
+  const envKey = Deno.env.get('STEL_API_KEY');
+  if (envKey) return envKey;
+  // Priority 2: stored in AppSettings
+  try {
+    const settings = await base44Client.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
+    const key = settings?.[0]?.integrations?.stel_order?.api_key;
+    if (key) return key;
+  } catch (_) { /* ignore */ }
+  throw new Error('STEL API Key not configured. Please set it in Settings → Integraciones.');
+}
+
+async function stelGet(path, params = {}, apiKey) {
+  const qs = new URLSearchParams({ APIKEY: apiKey, ...params }).toString();
   const res = await fetch(`${STEL_BASE}${path}?${qs}`);
   if (!res.ok) throw new Error(`STEL API error ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
-async function stelPost(path, body) {
-  const APIKEY = Deno.env.get('STEL_API_KEY');
-  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${APIKEY}`, {
+async function stelPost(path, body, apiKey) {
+  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -21,9 +32,8 @@ async function stelPost(path, body) {
   return res.json();
 }
 
-async function stelPut(path, body) {
-  const APIKEY = Deno.env.get('STEL_API_KEY');
-  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${APIKEY}`, {
+async function stelPut(path, body, apiKey) {
+  const res = await fetch(`${STEL_BASE}${path}?APIKEY=${apiKey}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -60,13 +70,14 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { action, payload = {} } = await req.json();
+    const apiKey = await getApiKey(base44);
 
     // --- CLIENTS ---
     if (action === 'searchClients') {
       const { query = '', limit = 20, offset = 0 } = payload;
       const params = { limit, offset };
       if (query) params['legal-name'] = query;
-      const data = await stelGet('/clients', params);
+      const data = await stelGet('/clients', params, apiKey);
       const list = Array.isArray(data) ? data : (data.clients || []);
       return Response.json({ clients: list.map(mapClient) });
     }
@@ -75,14 +86,14 @@ Deno.serve(async (req) => {
       const { limit = 50, offset = 0, search = '' } = payload;
       const params = { limit, offset };
       if (search) params['legal-name'] = search;
-      const data = await stelGet('/clients', params);
+      const data = await stelGet('/clients', params, apiKey);
       const list = Array.isArray(data) ? data : [];
       return Response.json({ clients: list.map(mapClient) });
     }
 
     if (action === 'getClient') {
       const { clientId } = payload;
-      const c = await stelGet(`/clients/${clientId}`);
+      const c = await stelGet(`/clients/${clientId}`, {}, apiKey);
       return Response.json({ client: mapClient(c) });
     }
 
@@ -102,7 +113,7 @@ Deno.serve(async (req) => {
         notes: client.notes || '',
         web: client.web || '',
       };
-      const created = await stelPost('/clients', body);
+      const created = await stelPost('/clients', body, apiKey);
       return Response.json({ client: mapClient(created) });
     }
 
@@ -122,13 +133,13 @@ Deno.serve(async (req) => {
         notes: client.notes || '',
         web: client.web || '',
       };
-      const updated = await stelPut(`/clients/${clientId}`, body);
+      const updated = await stelPut(`/clients/${clientId}`, body, apiKey);
       return Response.json({ client: mapClient(updated) });
     }
 
     // --- TAXES ---
     if (action === 'getTaxes') {
-      const data = await stelGet('/taxes', { limit: 100 });
+      const data = await stelGet('/taxes', { limit: 100 }, apiKey);
       const list = Array.isArray(data) ? data : [];
       return Response.json({
         taxes: list.map(t => ({ id: t.id, name: t.name, percentage: t.percentage })),
@@ -137,8 +148,8 @@ Deno.serve(async (req) => {
 
     // --- ALBARANES ---
     if (action === 'createAlbaran') {
-      const { clientId, fecha, lineas, notas, technicianName } = payload;
-      const taxes = await stelGet('/taxes', { limit: 100 });
+      const { clientId, fecha, lineas, notas } = payload;
+      const taxes = await stelGet('/taxes', { limit: 100 }, apiKey);
       const taxList = Array.isArray(taxes) ? taxes : [];
       const defaultTax = taxList.find(t => t.percentage === 21) || taxList[0];
 
@@ -156,7 +167,7 @@ Deno.serve(async (req) => {
         lines,
       };
 
-      const albaran = await stelPost('/deliveryNotes', body);
+      const albaran = await stelPost('/deliveryNotes', body, apiKey);
       return Response.json({ albaran });
     }
 

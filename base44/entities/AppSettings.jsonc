@@ -1,0 +1,172 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "setting_key": {
+      "type": "string",
+      "description": "Clave \u00fanica del ajuste"
+    },
+    "primary_color": {
+      "type": "string",
+      "description": "Color primario de la app"
+    },
+    "secondary_color": {
+      "type": "string",
+      "description": "Color secundario"
+    },
+    "accent_color": {
+      "type": "string",
+      "description": "Color de acento"
+    },
+    "background_color": {
+      "type": "string",
+      "description": "Color de fondo"
+    },
+    "button_color": {
+      "type": "string",
+      "description": "Color de botones"
+    },
+    "text_color": {
+      "type": "string",
+      "description": "Color de texto"
+    },
+    "icon_color": {
+      "type": "string",
+      "description": "Color de iconos"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL del logo"
+    },
+    "watermark_url": {
+      "type": "string",
+      "description": "URL de la imagen de marca de agua para documentos PDF"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Nombre de la empresa"
+    },
+    "company_cif": {
+      "type": "string",
+      "description": "CIF/NIF de la empresa"
+    },
+    "company_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal de la empresa"
+    },
+    "company_city": {
+      "type": "string",
+      "description": "Ciudad de la empresa"
+    },
+    "company_postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal de la empresa"
+    },
+    "company_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de la empresa"
+    },
+    "company_email": {
+      "type": "string",
+      "description": "Email de la empresa"
+    },
+    "company_web": {
+      "type": "string",
+      "description": "Web de la empresa"
+    },
+    "equipment_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipos de equipos personalizados"
+    },
+    "revision_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_name": {
+            "type": "string"
+          },
+          "field_label": {
+            "type": "string"
+          },
+          "field_type": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Campos personalizados para revisiones"
+    },
+    "client_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_name": {
+            "type": "string"
+          },
+          "field_label": {
+            "type": "string"
+          },
+          "field_type": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Campos personalizados para clientes"
+    },
+    "client_users": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "can_edit": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "description": "Usuarios del portal cliente"
+    },
+    "integrations": {
+      "type": "object",
+      "description": "Configuraci\u00f3n de integraciones externas",
+      "properties": {
+        "stel_order": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Si STEL Order est\u00e1 habilitado"
+            },
+            "api_key": {
+              "type": "string",
+              "description": "API Key de STEL Order"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "setting_key"
+  ]
+}
