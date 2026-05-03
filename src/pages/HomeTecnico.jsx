@@ -33,6 +33,8 @@ const FUNCIONES = [
   { id: '10', label: 'Asistencia Virtual',page: 'AIConsulta',           icon: Bot,       color: 'from-purple-500/30 to-pink-500/30',  iconCls: 'text-purple-300' },
   { id: '11', label: 'Búsquedas PVP',    page: 'VetaCatalogo',          icon: Tag,       color: 'from-amber-500/30 to-orange-500/30', iconCls: 'text-amber-300' },
   { id: '12', label: 'Contrato',         page: 'ContratoMantenimiento', icon: FileText,  color: 'from-green-500/30 to-teal-500/30',   iconCls: 'text-green-300' },
+  { id: '13', label: 'Control Horario',  page: 'ControlHorario',        icon: Clock,     color: 'from-blue-500/30 to-cyan-500/30',    iconCls: 'text-blue-300' },
+  { id: '14', label: 'Mis Ausencias',    page: 'GestionAusencias',      icon: Calendar,  color: 'from-purple-500/30 to-violet-500/30',iconCls: 'text-purple-300' },
 ];
 
 const AUTOMATIZACION = [

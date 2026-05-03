@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from 'react-router-dom';
 import {
   Users, UserCheck, UserPlus, Send, Building2,
-  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings
+  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Eye
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -429,6 +430,17 @@ export default function AdminPanel() {
                             </Badge>
                           )}
                           <div className="flex gap-1 mt-1">
+                           <Link to={`/TechnicianProfile?email=${encodeURIComponent(tech.user_email || tech.email)}`}>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               className="h-7 px-2 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                               title="Ver perfil completo"
+                             >
+                               <Eye className="h-3 w-3 mr-1" />
+                               Ver
+                             </Button>
+                           </Link>
                            <Button
                              variant="outline"
                              size="sm"

@@ -11,6 +11,9 @@ import CarpetaContratos from './pages/CarpetaContratos';
 import ControlClimatizacion from './pages/ControlClimatizacion';
 import ControlLoxone from './pages/ControlLoxone';
 import AdminPanel from './pages/AdminPanel';
+import ControlHorario from './pages/ControlHorario';
+import GestionAusencias from './pages/GestionAusencias';
+import TechnicianProfile from './pages/TechnicianProfile';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -70,6 +73,9 @@ const AuthenticatedApp = () => {
       <Route path="/ControlClimatizacion" element={<LayoutWrapper currentPageName="ControlClimatizacion"><ControlClimatizacion /></LayoutWrapper>} />
       <Route path="/ControlLoxone" element={<LayoutWrapper currentPageName="ControlLoxone"><ControlLoxone /></LayoutWrapper>} />
       <Route path="/AdminPanel" element={<LayoutWrapper currentPageName="AdminPanel"><AdminPanel /></LayoutWrapper>} />
+      <Route path="/ControlHorario" element={<LayoutWrapper currentPageName="ControlHorario"><ControlHorario /></LayoutWrapper>} />
+      <Route path="/GestionAusencias" element={<LayoutWrapper currentPageName="GestionAusencias"><GestionAusencias /></LayoutWrapper>} />
+      <Route path="/TechnicianProfile" element={<LayoutWrapper currentPageName="TechnicianProfile"><TechnicianProfile /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

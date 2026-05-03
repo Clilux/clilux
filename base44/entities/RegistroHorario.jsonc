@@ -1,0 +1,66 @@
+{
+  "name": "RegistroHorario",
+  "type": "object",
+  "properties": {
+    "technician_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico"
+    },
+    "technician_email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del registro"
+    },
+    "hora_entrada": {
+      "type": "string",
+      "description": "Hora de entrada (HH:MM)"
+    },
+    "hora_salida": {
+      "type": "string",
+      "description": "Hora de salida (HH:MM)"
+    },
+    "horas_totales": {
+      "type": "number",
+      "description": "Total de horas trabajadas"
+    },
+    "tipo_jornada": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "extra",
+        "guardia"
+      ],
+      "default": "normal",
+      "description": "Tipo de jornada"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones del d\u00eda"
+    },
+    "ubicacion_entrada": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n GPS al fichar entrada"
+    },
+    "ubicacion_salida": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n GPS al fichar salida"
+    }
+  },
+  "required": [
+    "technician_email",
+    "fecha",
+    "hora_entrada"
+  ]
+}

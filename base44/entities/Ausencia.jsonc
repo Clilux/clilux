@@ -1,0 +1,76 @@
+{
+  "name": "Ausencia",
+  "type": "object",
+  "properties": {
+    "technician_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico"
+    },
+    "technician_email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "vacaciones",
+        "baja_medica",
+        "permiso",
+        "asunto_propio",
+        "maternidad_paternidad",
+        "otro"
+      ],
+      "description": "Tipo de ausencia"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin"
+    },
+    "dias_totales": {
+      "type": "number",
+      "description": "N\u00famero de d\u00edas"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Descripci\u00f3n o motivo"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobada",
+        "rechazada"
+      ],
+      "default": "pendiente",
+      "description": "Estado de la solicitud"
+    },
+    "notas_admin": {
+      "type": "string",
+      "description": "Notas del administrador"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "Documento adjunto (parte m\u00e9dico, etc.)"
+    }
+  },
+  "required": [
+    "technician_email",
+    "tipo",
+    "fecha_inicio",
+    "fecha_fin"
+  ]
+}
