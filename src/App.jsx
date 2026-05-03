@@ -15,6 +15,7 @@ import ControlHorario from './pages/ControlHorario.jsx';
 import GestionAusencias from './pages/GestionAusencias';
 import TechnicianProfile from './pages/TechnicianProfile';
 import StelClientes from './pages/StelClientes';
+import StelClientosTab from './pages/StelClientosTab';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
       <Route path="/GestionAusencias" element={<LayoutWrapper currentPageName="GestionAusencias"><GestionAusencias /></LayoutWrapper>} />
       <Route path="/TechnicianProfile" element={<LayoutWrapper currentPageName="TechnicianProfile"><TechnicianProfile /></LayoutWrapper>} />
       <Route path="/StelClientes" element={<LayoutWrapper currentPageName="StelClientes"><StelClientes /></LayoutWrapper>} />
+      <Route path="/StelClientosTab" element={<LayoutWrapper currentPageName="StelClientosTab"><StelClientosTab /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

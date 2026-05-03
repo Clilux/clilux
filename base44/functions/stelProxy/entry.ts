@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const STEL_BASE = 'https://app.stelorder.com/app';
+const STEL_BASE = 'https://stelorder.com';
 
 async function getApiKey(base44Client) {
   // Priority 1: environment secret
