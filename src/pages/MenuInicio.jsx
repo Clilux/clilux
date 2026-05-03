@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -122,6 +122,13 @@ export default function MenuInicio() {
             variant="ghost">
               <Wrench className="h-5 w-5" />
               Acceso Técnico
+            </Button>
+            <Button
+            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
+            className="bg-amber-700/80 text-white w-full h-12 hover:bg-amber-700 border border-amber-600/40 flex items-center justify-center gap-3 text-base font-medium rounded-md"
+            variant="ghost">
+              <Shield className="h-5 w-5" />
+              Acceso Administrador
             </Button>
 
           </div>
