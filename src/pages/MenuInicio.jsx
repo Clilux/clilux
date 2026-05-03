@@ -6,17 +6,24 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
 
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null | 'client' | 'technician'
+  const [mode, setMode] = useState(null); // null | 'client' | 'admin' | 'admin_register'
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [registerData, setRegisterData] = useState({
+    fullName: '',
+    contactEmail: '',
+    companyName: '',
+    companyCif: '',
+    companyAddress: '',
+  });
 
   const { data: settings } = useQuery({
     queryKey: ['app-settings'],
@@ -134,7 +141,7 @@ export default function MenuInicio() {
           </div>
         }
 
-        {/* Modo administrador */}
+        {/* Modo administrador - elegir login o registro */}
         {mode === 'admin' &&
         <div className="space-y-4">
           <p className="text-center text-slate-300 text-sm mb-2">Panel de Administración</p>
@@ -151,23 +158,107 @@ export default function MenuInicio() {
             <div className="flex-1 h-px bg-white/20" />
           </div>
           <Button
-            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
+            onClick={() => setMode('admin_register')}
             className="bg-white/10 border border-white/20 text-white w-full h-12 hover:bg-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
             variant="ghost"
           >
             <UserPlus className="h-5 w-5" />
-            Registrarse como administrador
+            Registrarse como nuevo administrador
           </Button>
-          <p className="text-xs text-slate-400 text-center px-2">
-            Si es la primera vez, el sistema te enviará un enlace para crear tu cuenta. Necesitarás que alguien con acceso de administrador te lo habilite.
-          </p>
           <Button
             type="button"
             onClick={() => setMode(null)}
             className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
             variant="ghost"
           >
-            ← Volver
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
+        </div>
+        }
+
+        {/* Registro nuevo administrador */}
+        {mode === 'admin_register' &&
+        <div className="space-y-4">
+          <p className="text-center text-slate-300 text-sm mb-1">Registro de administrador</p>
+
+          <div>
+            <Label className="text-white text-sm">Nombre completo *</Label>
+            <Input
+              value={registerData.fullName}
+              onChange={(e) => setRegisterData(p => ({ ...p, fullName: e.target.value }))}
+              placeholder="Juan García López"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <Label className="text-white text-sm">Email de contacto / recuperación *</Label>
+            <Input
+              type="email"
+              value={registerData.contactEmail}
+              onChange={(e) => setRegisterData(p => ({ ...p, contactEmail: e.target.value }))}
+              placeholder="admin@tuempresa.com"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+            <p className="text-xs text-slate-400 mt-1">Se usará para notificaciones y recuperación de contraseña</p>
+          </div>
+
+          <div className="pt-1 border-t border-white/10">
+            <p className="text-xs text-amber-300 mb-2 font-medium">Datos de la empresa</p>
+          </div>
+
+          <div>
+            <Label className="text-white text-sm">Nombre de la empresa *</Label>
+            <Input
+              value={registerData.companyName}
+              onChange={(e) => setRegisterData(p => ({ ...p, companyName: e.target.value }))}
+              placeholder="Climatización S.L."
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <Label className="text-white text-sm">CIF / NIF</Label>
+            <Input
+              value={registerData.companyCif}
+              onChange={(e) => setRegisterData(p => ({ ...p, companyCif: e.target.value }))}
+              placeholder="B12345678"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <Label className="text-white text-sm">Dirección</Label>
+            <Input
+              value={registerData.companyAddress}
+              onChange={(e) => setRegisterData(p => ({ ...p, companyAddress: e.target.value }))}
+              placeholder="Calle Mayor 1, Madrid"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+
+          <Button
+            onClick={() => {
+              if (!registerData.fullName || !registerData.contactEmail || !registerData.companyName) {
+                toast.error('Rellena los campos obligatorios (*)');
+                return;
+              }
+              // Guardar datos temporalmente y redirigir al login/registro de la plataforma
+              sessionStorage.setItem('admin_register_data', JSON.stringify(registerData));
+              base44.auth.redirectToLogin('/AdminPanel');
+            }}
+            className="bg-amber-600 text-white w-full h-12 hover:bg-amber-700 flex items-center justify-center gap-3 text-base font-medium rounded-md"
+          >
+            <UserPlus className="h-5 w-5" />
+            Continuar con el registro
+          </Button>
+          <p className="text-xs text-slate-400 text-center px-2">
+            Se te enviará un enlace para crear tu cuenta de acceso.
+          </p>
+          <Button
+            type="button"
+            onClick={() => setMode('admin')}
+            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
+            variant="ghost"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
           </Button>
         </div>
         }
