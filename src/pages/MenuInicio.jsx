@@ -25,6 +25,7 @@ export default function MenuInicio() {
     companyName: '',
     companyCif: '',
     companyAddress: '',
+    technicianEmail: '',
   });
   const [registerError, setRegisterError] = useState('');
   const [registerSending, setRegisterSending] = useState(false);
@@ -261,6 +262,21 @@ export default function MenuInicio() {
             />
           </div>
 
+          <div className="pt-1 border-t border-white/10">
+            <p className="text-xs text-amber-300 mb-2 font-medium">Cuenta técnico (opcional)</p>
+            <p className="text-xs text-slate-400 mb-2">Si ya tienes una cuenta técnico en el sistema, indícalo para vincularla como administrador.</p>
+          </div>
+          <div>
+            <Label className="text-white text-sm">Email de tu cuenta técnico</Label>
+            <Input
+              type="email"
+              value={registerData.technicianEmail}
+              onChange={(e) => setRegisterData(p => ({ ...p, technicianEmail: e.target.value }))}
+              placeholder="tecnico@tuempresa.com (opcional)"
+              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            />
+          </div>
+
           {registerError && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
               <p className="text-red-400 text-sm">{registerError}</p>
@@ -299,6 +315,7 @@ export default function MenuInicio() {
                   company_name: companyName,
                   company_cif: companyCif.toUpperCase(),
                   company_address: registerData.companyAddress,
+                  technician_email: registerData.technicianEmail || null,
                   status: 'pending',
                 });
                 setRegisterDone(true);
@@ -336,7 +353,7 @@ export default function MenuInicio() {
             Tu solicitud de acceso como administrador ha sido registrada. Un administrador del sistema revisará tus datos y te enviará un email de acceso a <strong className="text-white">{registerData.contactEmail}</strong>.
           </p>
           <Button
-            onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '' }); }}
+            onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
             className="w-full h-11 bg-white/10 border border-white/20 text-white hover:bg-white/20"
             variant="ghost"
           >

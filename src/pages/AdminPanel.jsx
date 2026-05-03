@@ -144,17 +144,42 @@ export default function AdminPanel() {
       }
       // Invitar como admin
       await base44.users.inviteUser(req.contact_email, 'admin');
-      // Crear técnico vinculado como admin de empresa
-      await base44.entities.Technician.create({
-        name: req.full_name,
-        email: req.contact_email,
-        user_email: req.contact_email,
-        company_name: req.company_name,
-        company_id: req.company_cif?.toLowerCase(),
-        is_admin: true,
-        status: 'active',
-        invited_at: new Date().toISOString(),
-      });
+      // Vincular o crear técnico como admin de empresa
+      if (req.technician_email) {
+        // Buscar técnico existente por email y actualizarlo
+        const existingTechList = await base44.entities.Technician.filter({ user_email: req.technician_email });
+        const techByEmail = existingTechList[0] || (await base44.entities.Technician.filter({ email: req.technician_email }))[0];
+        if (techByEmail) {
+          await base44.entities.Technician.update(techByEmail.id, {
+            is_admin: true,
+            company_id: req.company_cif?.toLowerCase(),
+            company_name: req.company_name,
+          });
+        } else {
+          // No encontrado: crear nuevo técnico vinculado
+          await base44.entities.Technician.create({
+            name: req.full_name,
+            email: req.technician_email,
+            user_email: req.technician_email,
+            company_name: req.company_name,
+            company_id: req.company_cif?.toLowerCase(),
+            is_admin: true,
+            status: 'active',
+            invited_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        await base44.entities.Technician.create({
+          name: req.full_name,
+          email: req.contact_email,
+          user_email: req.contact_email,
+          company_name: req.company_name,
+          company_id: req.company_cif?.toLowerCase(),
+          is_admin: true,
+          status: 'active',
+          invited_at: new Date().toISOString(),
+        });
+      }
       // Marcar solicitud como aprobada
       await base44.entities.AdminRequest.update(req.id, { status: 'approved' });
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
@@ -269,6 +294,7 @@ export default function AdminPanel() {
                         <span className="text-xs text-slate-600"><span className="font-medium">Empresa:</span> {req.company_name}</span>
                         <span className="text-xs text-slate-600"><span className="font-medium">CIF:</span> {req.company_cif}</span>
                         {req.company_address && <span className="text-xs text-slate-500">{req.company_address}</span>}
+                        {req.technician_email && <span className="text-xs text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded"><span className="font-medium">Técnico vinculado:</span> {req.technician_email}</span>}
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
