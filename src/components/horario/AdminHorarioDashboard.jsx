@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText } from 'lucide-react';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
 import EditarRegistroModal from './EditarRegistroModal';
+import CrearAlbaranStelModal from './CrearAlbaranStelModal';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord }) {
@@ -21,6 +22,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
   const [selectedTech, setSelectedTech] = useState('all');
   const [expandedRow, setExpandedRow] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [albaranRecord, setAlbaranRecord] = useState(null);
 
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
@@ -226,6 +228,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                 <th className="text-left p-3 text-slate-500 font-medium">Normal</th>
                 <th className="text-left p-3 text-slate-500 font-medium">Extra</th>
                 <th className="text-left p-3 text-slate-500 font-medium">GPS/Ruta</th>
+                <th className="p-3 text-slate-500 font-medium">STEL</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
@@ -263,6 +266,18 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                           ) : (
                             <span className="text-slate-300 text-xs">Sin GPS</span>
                           )}
+                        </td>
+                        <td className="p-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-blue-600 hover:bg-blue-50 px-2"
+                            onClick={() => setAlbaranRecord(r)}
+                            title="Crear albarán en STEL Order"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Albarán
+                          </Button>
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1">
@@ -320,6 +335,14 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
           </table>
         </div>
       </Card>
+
+      {albaranRecord && (
+        <CrearAlbaranStelModal
+          registro={albaranRecord}
+          onClose={() => setAlbaranRecord(null)}
+          onCreated={() => { setAlbaranRecord(null); queryClient.invalidateQueries({ queryKey: ['admin-registros'] }); }}
+        />
+      )}
 
       {editingRecord && (
         <EditarRegistroModal
