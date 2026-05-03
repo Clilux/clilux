@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3 } from 'lucide-react';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import MapaRuta from './MapaRuta';
+import MapaRuta from '@/components/horario/MapaRuta';
 import EditarRegistroModal from './EditarRegistroModal';
 import { useQueryClient } from '@tanstack/react-query';
 
