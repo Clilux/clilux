@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -124,7 +124,7 @@ export default function MenuInicio() {
               Acceso Técnico
             </Button>
             <Button
-            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
+            onClick={() => setMode('admin')}
             className="bg-amber-700/80 text-white w-full h-12 hover:bg-amber-700 border border-amber-600/40 flex items-center justify-center gap-3 text-base font-medium rounded-md"
             variant="ghost">
               <Shield className="h-5 w-5" />
@@ -132,6 +132,44 @@ export default function MenuInicio() {
             </Button>
 
           </div>
+        }
+
+        {/* Modo administrador */}
+        {mode === 'admin' &&
+        <div className="space-y-4">
+          <p className="text-center text-slate-300 text-sm mb-2">Panel de Administración</p>
+          <Button
+            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
+            className="bg-amber-600 text-white w-full h-12 hover:bg-amber-700 flex items-center justify-center gap-3 text-base font-medium rounded-md"
+          >
+            <Shield className="h-5 w-5" />
+            Iniciar sesión como administrador
+          </Button>
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/20" />
+            <span className="text-slate-400 text-xs">¿Primera vez?</span>
+            <div className="flex-1 h-px bg-white/20" />
+          </div>
+          <Button
+            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
+            className="bg-white/10 border border-white/20 text-white w-full h-12 hover:bg-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
+            variant="ghost"
+          >
+            <UserPlus className="h-5 w-5" />
+            Registrarse como administrador
+          </Button>
+          <p className="text-xs text-slate-400 text-center px-2">
+            Si es la primera vez, el sistema te enviará un enlace para crear tu cuenta. Necesitarás que alguien con acceso de administrador te lo habilite.
+          </p>
+          <Button
+            type="button"
+            onClick={() => setMode(null)}
+            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
+            variant="ghost"
+          >
+            ← Volver
+          </Button>
+        </div>
         }
 
         {/* Formulario cliente */}

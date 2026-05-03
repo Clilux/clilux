@@ -7,17 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import {
-  Users, UserCheck, UserPlus, Mail, Send, Building2,
-  Shield, Loader2, Trash2, RefreshCw
+  Users, UserCheck, UserPlus, Send, Building2,
+  Shield, Loader2, Trash2, RefreshCw, Link2
 } from 'lucide-react';
 
 export default function AdminPanel() {
   const queryClient = useQueryClient();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [inviteData, setInviteData] = useState({ email: '', role: 'user', techName: '', companyName: '' });
+  const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
 
   const { data: technicians = [], isLoading: loadingTechs } = useQuery({
@@ -93,6 +96,26 @@ export default function AdminPanel() {
     }
   };
 
+  const handleLinkCompany = async () => {
+    if (!linkData.techId || !linkData.companyName) return;
+    setSending(true);
+    try {
+      const companyId = linkData.companyId || linkData.companyName.toLowerCase().replace(/\s+/g, '_');
+      await base44.entities.Technician.update(linkData.techId, {
+        company_name: linkData.companyName,
+        company_id: companyId,
+      });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('Empresa vinculada correctamente');
+      setShowLinkDialog(false);
+      setLinkData({ techId: '', companyName: '', companyId: '' });
+    } catch (err) {
+      toast.error('Error al vincular empresa: ' + (err.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
   const handleReinvite = async (tech) => {
     const email = tech.user_email || tech.email;
     if (!email) return;
@@ -117,6 +140,15 @@ export default function AdminPanel() {
 
   const clientsByTech = (techEmail) =>
     clients.filter(c => c.assigned_technician === techEmail || c.company_id === technicians.find(t => t.email === techEmail)?.company_id).length;
+
+  // Empresas únicas ya existentes en técnicos
+  const existingCompanies = [...new Map(
+    technicians.filter(t => t.company_id && t.company_name)
+      .map(t => [t.company_id, { id: t.company_id, name: t.company_name }])
+  ).values()];
+
+  // Técnicos sin empresa asignada
+  const techsWithoutCompany = technicians.filter(t => !t.company_id);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -161,7 +193,17 @@ export default function AdminPanel() {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end mb-5">
+        <div className="flex justify-end gap-3 mb-5">
+          {techsWithoutCompany.length > 0 && (
+            <Button
+              onClick={() => setShowLinkDialog(true)}
+              variant="outline"
+              className="border-amber-300 text-amber-700 hover:bg-amber-50"
+            >
+              <Link2 className="h-4 w-4 mr-2" />
+              Vincular empresa ({techsWithoutCompany.length})
+            </Button>
+          )}
           <Button
             onClick={() => setShowInviteDialog(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -249,6 +291,71 @@ export default function AdminPanel() {
           )}
         </div>
       </div>
+
+      {/* Link company dialog */}
+      <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vincular técnico a empresa existente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Técnico sin empresa</Label>
+              <Select value={linkData.techId} onValueChange={(v) => setLinkData(p => ({ ...p, techId: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona un técnico..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {techsWithoutCompany.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name} — {t.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Empresa</Label>
+              {existingCompanies.length > 0 ? (
+                <Select
+                  value={linkData.companyId}
+                  onValueChange={(v) => {
+                    const found = existingCompanies.find(c => c.id === v);
+                    setLinkData(p => ({ ...p, companyId: v, companyName: found?.name || '' }));
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona empresa existente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {existingCompanies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                    <SelectItem value="__nueva__">+ Nueva empresa...</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {(linkData.companyId === '__nueva__' || existingCompanies.length === 0) && (
+                <Input
+                  className="mt-2"
+                  placeholder="Nombre de la nueva empresa"
+                  value={linkData.companyName}
+                  onChange={(e) => setLinkData(p => ({ ...p, companyName: e.target.value, companyId: '' }))}
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowLinkDialog(false)}>Cancelar</Button>
+              <Button
+                onClick={handleLinkCompany}
+                disabled={!linkData.techId || !linkData.companyName || sending}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                Vincular empresa
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
