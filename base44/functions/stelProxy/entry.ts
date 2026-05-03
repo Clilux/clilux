@@ -19,7 +19,7 @@ async function stelGet(path, params = {}, apiKey) {
   const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
   const url = `${STEL_BASE}${path}${qs}`;
   console.log('[stelProxy] GET', url);
-  const res = await fetch(url, { headers: { 'APIKEY': apiKey } });
+  const res = await fetch(url, { headers: { 'API_KEY': apiKey } });
   const text = await res.text();
   console.log('[stelProxy] Response status:', res.status, '| body preview:', text.substring(0, 200));
   if (!res.ok) throw new Error(`STEL API error ${res.status}: ${text}`);
@@ -31,7 +31,7 @@ async function stelPost(path, body, apiKey) {
   console.log('[stelProxy] POST', url);
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
+    headers: { 'Content-Type': 'application/json', 'API_KEY': apiKey },
     body: JSON.stringify(body),
   });
   const text = await res.text();
@@ -44,7 +44,7 @@ async function stelPut(path, body, apiKey) {
   console.log('[stelProxy] PUT', url);
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
+    headers: { 'Content-Type': 'application/json', 'API_KEY': apiKey },
     body: JSON.stringify(body),
   });
   const text = await res.text();
