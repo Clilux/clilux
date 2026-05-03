@@ -16,6 +16,11 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const [showPassword, setShowPassword] = useState({});
   const [showTechPassword, setShowTechPassword] = useState({});
 
@@ -306,10 +311,37 @@ export default function Settings() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (currentUser.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <NavHeader title="Configuración" />
+          <Card className="p-8 bg-white border-0 shadow-sm">
+            <div className="text-center max-w-sm mx-auto">
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <Building className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-slate-800 text-lg mb-2">Datos de tu empresa</h3>
+              <p className="text-slate-500 text-sm mb-6">Solo lectura — el administrador gestiona la configuración.</p>
+              <div className="text-left space-y-3 bg-slate-50 rounded-lg p-4">
+                {settings?.company_name && <div><p className="text-xs text-slate-400">Empresa</p><p className="font-medium text-slate-700">{settings.company_name}</p></div>}
+                {settings?.company_cif && <div><p className="text-xs text-slate-400">CIF</p><p className="font-medium text-slate-700">{settings.company_cif}</p></div>}
+                {settings?.company_address && <div><p className="text-xs text-slate-400">Dirección</p><p className="font-medium text-slate-700">{settings.company_address}</p></div>}
+                {settings?.company_phone && <div><p className="text-xs text-slate-400">Teléfono</p><p className="font-medium text-slate-700">{settings.company_phone}</p></div>}
+                {settings?.company_email && <div><p className="text-xs text-slate-400">Email</p><p className="font-medium text-slate-700">{settings.company_email}</p></div>}
+                {settings?.logo_url && <div className="pt-2"><img src={settings.logo_url} alt="Logo" className="h-12 object-contain" /></div>}
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

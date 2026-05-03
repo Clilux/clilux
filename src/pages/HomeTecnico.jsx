@@ -16,6 +16,7 @@ import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { playFuturisticSound } from '@/lib/futuristicSound';
+import FichajeRapido from '@/components/horario/FichajeRapido';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -145,6 +146,21 @@ export default function HomeTecnico() {
   const { user } = useCurrentTechnician();
   const isAdmin = user?.role === 'admin';
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: allTechnicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list('-created_date'),
+    enabled: !!currentUser,
+  });
+
+  const myTechRecord = allTechnicians.find(t =>
+    t.user_email === currentUser?.email || t.email === currentUser?.email
+  );
+
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date')
@@ -239,6 +255,9 @@ export default function HomeTecnico() {
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
             <div className="space-y-5">
+              {/* Fichaje rápido */}
+              <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
+
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
