@@ -672,10 +672,6 @@ export default function ContratoMantenimiento() {
           <Input className={inputCls} type="number" value={form.precio_anual} onChange={e => set('precio_anual', e.target.value)} placeholder="1200" />
         </div>
         <div>
-          <Label className="text-slate-600">Cuota mensual (€ sin IVA)</Label>
-          <Input className={inputCls} type="number" value={form.precio_mensual} onChange={e => set('precio_mensual', e.target.value)} placeholder="100" />
-        </div>
-        <div>
           <Label className="text-slate-600">Periodicidad de facturación</Label>
           <Select value={form.forma_pago} onValueChange={v => set('forma_pago', v)}>
             <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
@@ -686,6 +682,12 @@ export default function ContratoMantenimiento() {
               <SelectItem value="anual">Anual</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div>
+          <Label className="text-slate-600">
+            Cuota {form.forma_pago === 'trimestral' ? 'trimestral' : form.forma_pago === 'semestral' ? 'semestral' : form.forma_pago === 'anual' ? 'anual' : 'mensual'} (€ sin IVA)
+          </Label>
+          <Input className={inputCls} type="number" value={form.precio_mensual} onChange={e => set('precio_mensual', e.target.value)} placeholder="100" />
         </div>
         <div>
           <Label className="text-slate-600">Método de pago</Label>
@@ -900,7 +902,7 @@ export default function ContratoMantenimiento() {
               { label: 'Inicio', value: formatDate(form.fecha_inicio) },
               { label: 'Fin', value: formatDate(fechaFin) },
               { label: tipoContrato === 'instalaciones' ? 'Importe total' : 'Precio anual', value: form.precio_anual ? `${form.precio_anual} €` : '—' },
-              { label: 'Cuota mensual', value: form.precio_mensual ? `${form.precio_mensual} €` : '—' },
+              { label: `Cuota ${formasPago[form.forma_pago] || 'mensual'}`, value: form.precio_mensual ? `${form.precio_mensual} €` : '—' },
               { label: 'Facturación', value: formasPago[form.forma_pago] },
               { label: 'Pago', value: metodosPago[form.metodo_pago] },
               ...(tipoContrato === 'mantenimiento' ? [
