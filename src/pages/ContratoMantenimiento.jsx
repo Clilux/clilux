@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, HardHat, ClipboardList, FolderOpen } from 'lucide-react';
+import { FileText, Building2, User, Calendar, CreditCard, Wrench, Plus, Trash2, Download, Eye, ChevronRight, ChevronLeft, HardHat, ClipboardList, FolderOpen, Save } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { Link } from 'react-router-dom';
 import NavHeader from '../components/navigation/NavHeader';
@@ -76,7 +76,10 @@ export default function ContratoMantenimiento() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [nuevoClienteMode, setNuevoClienteMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [tipoContrato, setTipoContrato] = useState('mantenimiento'); // 'mantenimiento' | 'instalaciones'
+  const [tipoContrato, setTipoContrato] = useState('mantenimiento');
+  const [savedContratoId, setSavedContratoId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
 
   const [form, setForm] = useState({
     // Cliente
@@ -115,8 +118,9 @@ export default function ContratoMantenimiento() {
     num_revisiones_anuales: '4',
     incluye_materiales: 'no',
     incluye_urgencias: 'no',
-    horas_administracion: '',
-    precio_hora_administracion: '',
+    lineas_tarifas_horas: [
+      { concepto: 'Horas de administración', horas_incluidas: '', precio_hora: '' },
+    ],
 
     // Instalaciones
     presupuesto_numero: '',
@@ -178,6 +182,60 @@ export default function ContratoMantenimiento() {
   };
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const updateLineaTarifa = (idx, key, value) => {
+    const newLineas = [...(form.lineas_tarifas_horas || [])];
+    newLineas[idx] = { ...newLineas[idx], [key]: value };
+    set('lineas_tarifas_horas', newLineas);
+  };
+
+  const addLineaTarifa = () => {
+    set('lineas_tarifas_horas', [...(form.lineas_tarifas_horas || []), { concepto: '', horas_incluidas: '', precio_hora: '' }]);
+  };
+
+  const removeLineaTarifa = (idx) => {
+    set('lineas_tarifas_horas', (form.lineas_tarifas_horas || []).filter((_, i) => i !== idx));
+  };
+
+  const saveDraft = async () => {
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      const fechaFin = form.fecha_fin || calcFechaFin(form.fecha_inicio, form.duracion_meses);
+      const contratoData = {
+        numero_contrato: form.numero_contrato,
+        tipo_contrato: tipoContrato,
+        estado: 'realizado',
+        cliente_nombre: form.cliente_nombre,
+        cliente_cif: form.cliente_cif,
+        cliente_id: selectedClientId || '',
+        fecha_inicio: form.fecha_inicio,
+        fecha_fin: fechaFin,
+        precio_anual: form.precio_anual ? Number(form.precio_anual) : null,
+        forma_pago: form.forma_pago,
+        form_data: { ...form, tipoContrato },
+      };
+      let id = savedContratoId;
+      if (id) {
+        await base44.entities.Contrato.update(id, contratoData);
+      } else {
+        const existing = await base44.entities.Contrato.filter({ numero_contrato: form.numero_contrato });
+        if (existing.length > 0) {
+          await base44.entities.Contrato.update(existing[0].id, contratoData);
+          id = existing[0].id;
+        } else {
+          const created = await base44.entities.Contrato.create(contratoData);
+          id = created.id;
+        }
+        setSavedContratoId(id);
+      }
+      setSaveMsg('✓ Guardado');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } catch (e) {
+      setSaveMsg('Error al guardar');
+    }
+    setSaving(false);
+  };
 
   const calcFechaFin = (inicio, meses) => {
     if (!inicio || !meses) return '';
@@ -298,12 +356,19 @@ export default function ContratoMantenimiento() {
       y += 12;
       field('Urgencias incluidas (24h)', form.incluye_urgencias === 'si' ? 'Sí' : 'No', col1, y, 70);
     }
-    if (form.horas_administracion) {
-      y += 12;
-      field('Horas de administración incluidas', `${form.horas_administracion} h`, col1, y, 90);
-      if (form.precio_hora_administracion) field('Precio/hora (fuera de contrato)', `${form.precio_hora_administracion} €/h + IVA`, col2, y, 90);
+    const lineas = (form.lineas_tarifas_horas || []).filter(l => l.concepto || l.horas_incluidas || l.precio_hora);
+    if (lineas.length > 0) {
+      y += 8;
+      addText('Tarifas de horas:', col1, y, { size: 8, bold: true, color: [80, 80, 80] });
+      y += 6;
+      for (const l of lineas) {
+        checkPage(6);
+        const txt = `• ${l.concepto || '—'}: ${l.horas_incluidas ? l.horas_incluidas + ' h incluidas' : ''}${l.precio_hora ? ' · ' + l.precio_hora + ' €/h extra' : ''}`;
+        addText(txt.trim(), col1 + 2, y, { size: 9 });
+        y += 6;
+      }
     }
-    y += 16;
+    y += 10;
 
     // Presupuesto adjunto (instalaciones)
     if (tipoContrato === 'instalaciones' && form.presupuesto_numero) {
@@ -698,24 +763,64 @@ export default function ContratoMantenimiento() {
         )}
       </div>
 
-      {/* Horas de administración — disponible en ambos tipos */}
+      {/* Tarifas de horas — líneas dinámicas */}
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <ClipboardList className="w-4 h-4 text-slate-500" />
-          <p className="text-sm font-medium text-slate-700">Horas de Administración</p>
-          <span className="text-xs text-slate-400">(operaciones fuera de contrato o modificaciones)</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <Label className="text-slate-600">Horas de administración incluidas</Label>
-            <Input className={inputCls} type="number" value={form.horas_administracion} onChange={e => set('horas_administracion', e.target.value)} placeholder="ej: 10 (dejar vacío si no aplica)" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-slate-500" />
+            <p className="text-sm font-medium text-slate-700">Tarifas de horas</p>
+            <span className="text-xs text-slate-400">(administración, urgencias, desplazamientos...)</span>
           </div>
-          <div>
-            <Label className="text-slate-600">Precio por hora adicional (€/h sin IVA)</Label>
-            <Input className={inputCls} type="number" value={form.precio_hora_administracion} onChange={e => set('precio_hora_administracion', e.target.value)} placeholder="ej: 55" />
-          </div>
+          <Button type="button" size="sm" variant="outline" onClick={addLineaTarifa} className="gap-1 text-blue-600 border-blue-300 hover:bg-blue-50">
+            <Plus className="w-3 h-3" /> Añadir línea
+          </Button>
         </div>
-        <p className="text-xs text-slate-400">Las horas de administración cubren desplazamientos, gestiones, modificaciones o trabajos fuera del alcance del contrato.</p>
+
+        <div className="space-y-2">
+          {/* Header */}
+          <div className="grid grid-cols-12 gap-2 text-xs text-slate-400 font-medium px-1">
+            <div className="col-span-5">Concepto</div>
+            <div className="col-span-3">Horas incluidas</div>
+            <div className="col-span-3">€/hora (extra)</div>
+            <div className="col-span-1"></div>
+          </div>
+          {(form.lineas_tarifas_horas || []).map((linea, idx) => (
+            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+              <div className="col-span-5">
+                <Input
+                  className={`${inputCls} text-sm`}
+                  value={linea.concepto}
+                  onChange={e => updateLineaTarifa(idx, 'concepto', e.target.value)}
+                  placeholder="Ej: Horas urgencias"
+                />
+              </div>
+              <div className="col-span-3">
+                <Input
+                  className={`${inputCls} text-sm`}
+                  type="number"
+                  value={linea.horas_incluidas}
+                  onChange={e => updateLineaTarifa(idx, 'horas_incluidas', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="col-span-3">
+                <Input
+                  className={`${inputCls} text-sm`}
+                  type="number"
+                  value={linea.precio_hora}
+                  onChange={e => updateLineaTarifa(idx, 'precio_hora', e.target.value)}
+                  placeholder="55"
+                />
+              </div>
+              <div className="col-span-1 flex justify-center">
+                <button type="button" onClick={() => removeLineaTarifa(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-slate-400">Añade tantas líneas como tipos de horas quieras reflejar en el contrato.</p>
       </div>
     </div>
   );
@@ -802,10 +907,10 @@ export default function ContratoMantenimiento() {
                 { label: 'Revisiones/año', value: form.num_revisiones_anuales },
                 { label: 'Urgencias', value: form.incluye_urgencias === 'si' ? 'Incluidas' : 'No incluidas' },
               ] : []),
-              ...(form.horas_administracion ? [
-                { label: 'H. Administración', value: `${form.horas_administracion} h` },
-                { label: 'Precio/hora extra', value: form.precio_hora_administracion ? `${form.precio_hora_administracion} €/h` : '—' },
-              ] : []),
+              ...((form.lineas_tarifas_horas || []).filter(l => l.concepto).map(l => ({
+                label: l.concepto,
+                value: `${l.horas_incluidas ? l.horas_incluidas + ' h incl.' : ''}${l.precio_hora ? ' · ' + l.precio_hora + ' €/h' : ''}`.trim() || '—',
+              }))),
             ].map(item => (
               <div key={item.label} className="bg-slate-50 rounded-lg p-3">
                 <p className="text-xs text-slate-400 uppercase">{item.label}</p>
@@ -893,15 +998,26 @@ export default function ContratoMantenimiento() {
           <Button variant="outline" onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="gap-2">
             <ChevronLeft className="w-4 h-4" /> Anterior
           </Button>
-          {step < STEPS.length ? (
-            <Button onClick={() => setStep(s => Math.min(STEPS.length, s + 1))} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-              Siguiente <ChevronRight className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={saveDraft}
+              disabled={saving}
+              className="gap-2 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+            >
+              <Save className="w-4 h-4" /> {saving ? 'Guardando...' : 'Guardar'}
             </Button>
-          ) : (
-            <Button onClick={generatePDF} className="bg-green-600 hover:bg-green-700 text-white gap-2">
-              <Download className="w-4 h-4" /> Descargar PDF
-            </Button>
-          )}
+            {saveMsg && <span className="text-sm text-emerald-600 font-medium">{saveMsg}</span>}
+            {step < STEPS.length ? (
+              <Button onClick={() => setStep(s => Math.min(STEPS.length, s + 1))} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button onClick={generatePDF} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                <Download className="w-4 h-4" /> Descargar PDF
+              </Button>
+            )}
+          </div>
         </div>
         </div>
       </div>
