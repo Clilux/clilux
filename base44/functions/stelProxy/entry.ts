@@ -160,6 +160,26 @@ Deno.serve(async (req) => {
       return Response.json({ client: mapClient(updated) });
     }
 
+    // --- PRODUCTS / SERVICES ---
+    if (action === 'searchProducts') {
+      const { query = '' } = payload;
+      const params = {};
+      if (query) params['name'] = query;
+      const data = await stelGet('/products', params, apiKey);
+      const list = Array.isArray(data) ? data : (data.products || data.data || []);
+      return Response.json({
+        products: list.map(p => ({
+          id: p.id,
+          name: p.name || p.description || '',
+          description: p.description || p.name || '',
+          price: p.price ?? p['sale-price'] ?? 0,
+          taxId: p['tax-id'] || null,
+          reference: p.reference || p.code || '',
+          type: p.type || 'product',
+        }))
+      });
+    }
+
     // --- TAXES ---
     if (action === 'getTaxes') {
       const data = await stelGet('/taxes', { limit: 100 }, apiKey);
@@ -171,7 +191,7 @@ Deno.serve(async (req) => {
 
     // --- ALBARANES ---
     if (action === 'createAlbaran') {
-      const { clientId, fecha, lineas, notas } = payload;
+      const { clientId, fecha, titulo, lineas, notas } = payload;
       const taxes = await stelGet('/taxes', { limit: 100 }, apiKey);
       const taxList = Array.isArray(taxes) ? taxes : [];
       const defaultTax = taxList.find(t => t.percentage === 21) || taxList[0];
@@ -186,6 +206,7 @@ Deno.serve(async (req) => {
       const body = {
         'account-id': clientId,
         date: fecha,
+        ...(titulo ? { subject: titulo } : {}),
         notes: notas || '',
         lines,
       };
