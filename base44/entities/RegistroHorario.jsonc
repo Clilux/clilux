@@ -26,6 +26,11 @@
       "type": "string",
       "description": "HH:MM"
     },
+    "finalizada": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que la jornada ha sido cerrada definitivamente"
+    },
     "horas_trabajadas": {
       "type": "number",
       "description": "Horas brutas (sin descontar pausas)"
@@ -58,6 +63,23 @@
     },
     "notas": {
       "type": "string"
+    },
+    "intervalos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entrada": {
+            "type": "string",
+            "description": "HH:MM"
+          },
+          "salida": {
+            "type": "string",
+            "description": "HH:MM"
+          }
+        }
+      },
+      "description": "Tramos de trabajo del d\u00eda"
     },
     "pausas": {
       "type": "array",

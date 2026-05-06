@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
@@ -151,46 +152,107 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
     return Object.values(map).map(t => ({ ...t, dias: t.dias.size })).sort((a, b) => b.normal - a.normal);
   }, [registros]);
 
-  const exportCSV = () => {
-    const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
-    registros.sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(r => {
-      rows.push([
-        r.technician_name || r.technician_email, r.fecha,
-        r.hora_entrada || '', r.hora_salida || '',
-        r.horas_normales || 0, r.horas_extra || 0,
-        r.minutos_pausa ? `${r.minutos_pausa}min` : '0',
-        r.tipo_jornada || 'normal', r.notas || ''
-      ]);
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Informe de Jornada Laboral', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Período: ${periodLabel}`, 14, 28);
+    doc.text(`H. normales: ${Math.round(totalNormal * 10) / 10}h  |  H. extra: ${Math.round(totalExtra * 10) / 10}h  |  Jornadas: ${totalDias}`, 14, 36);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 41, 196, 41);
+
+    // Resumen por técnico
+    let y = 50;
+    if (resumenPorTecnico.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text('Resumen por técnico', 14, y); y += 7;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      resumenPorTecnico.forEach(t => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(`${t.name}`, 14, y);
+        doc.text(`${t.dias} días`, 80, y);
+        doc.text(`${Math.round(t.normal * 10) / 10}h norm.`, 110, y);
+        doc.text(`${Math.round(t.extra * 10) / 10}h extra`, 145, y);
+        doc.text(`Total: ${Math.round((t.normal + t.extra) * 10) / 10}h`, 170, y);
+        y += 7;
+      });
+      y += 4;
+      doc.line(14, y, 196, y); y += 8;
+    }
+
+    // Detalle registros
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Registros detallados', 14, y); y += 7;
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'bold');
+    const cols = [14, 55, 85, 110, 130, 150, 170];
+    ['Técnico', 'Fecha', 'Entrada', 'Salida', 'Normal', 'Extra', 'Tipo'].forEach((h, i) => doc.text(h, cols[i], y));
+    y += 5;
+    doc.setFont(undefined, 'normal');
+    const sorted = [...registros].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    sorted.forEach(r => {
+      if (y > 278) { doc.addPage(); y = 20; }
+      const dateStr = r.fecha ? format(parseISO(r.fecha), "EEE d MMM", { locale: es }) : r.fecha;
+      const name = (r.technician_name || r.technician_email || '').substring(0, 18);
+      doc.text(name, cols[0], y);
+      doc.text(dateStr, cols[1], y);
+      doc.text(r.hora_entrada || '—', cols[2], y);
+      doc.text(r.hora_salida || '—', cols[3], y);
+      doc.text(r.horas_normales ? `${r.horas_normales}h` : '—', cols[4], y);
+      doc.text(r.horas_extra > 0 ? `${r.horas_extra}h` : '—', cols[5], y);
+      doc.text(r.tipo_jornada || 'normal', cols[6], y);
+      y += 6;
     });
-    const csv = rows.map(r => r.join(';')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `horario_${periodLabel.replace(/\s/g, '_')}.csv`;
-    a.click();
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+    doc.save(`informe_horario_${periodLabel.replace(/[\s·/]/g, '_')}.pdf`);
   };
 
-  const exportRowCSV = (r) => {
-    const intervalos = r.intervalos || [];
-    const tramosStr = intervalos.map((t, i) => `Tramo${i+1}: ${t.entrada}-${t.salida||'en curso'}`).join(' | ');
-    const rows = [
-      ['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'Min.Pausa', 'Tipo', 'Tramos', 'Notas'],
-      [
-        r.technician_name || r.technician_email, r.fecha,
-        r.hora_entrada || '', r.hora_salida || '',
-        r.horas_normales || 0, r.horas_extra || 0,
-        r.minutos_pausa || 0,
-        r.tipo_jornada || 'normal',
-        tramosStr,
-        r.notas || ''
-      ]
-    ];
-    const csv = rows.map(row => row.join(';')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `jornada_${r.technician_name?.split(' ')[0] || 'tecnico'}_${r.fecha}.csv`;
-    a.click();
+  const exportRowPDF = (r) => {
+    const doc = new jsPDF();
+    const techName = r.technician_name || r.technician_email || '';
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Parte de Jornada', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    const dateLabel = r.fecha ? format(parseISO(r.fecha), "EEEE d 'de' MMMM yyyy", { locale: es }) : r.fecha;
+    doc.text(`Técnico: ${techName}`, 14, 28);
+    doc.text(`Fecha: ${dateLabel}`, 14, 36);
+    doc.text(`Tipo jornada: ${r.tipo_jornada || 'normal'}`, 14, 44);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 49, 196, 49);
+    let y = 58;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Resumen', 14, y); y += 8;
+    doc.setFont(undefined, 'normal');
+    doc.text(`Hora de entrada: ${r.hora_entrada || '—'}`, 14, y); y += 7;
+    doc.text(`Hora de salida: ${r.hora_salida || '—'}`, 14, y); y += 7;
+    doc.text(`Horas normales: ${r.horas_normales || 0}h`, 14, y); y += 7;
+    doc.text(`Horas extra: ${r.horas_extra || 0}h`, 14, y); y += 7;
+    doc.text(`Minutos de pausa: ${r.minutos_pausa || 0} min`, 14, y); y += 7;
+    if (r.notas) { doc.text(`Notas: ${r.notas}`, 14, y); y += 7; }
+    const tramos = r.intervalos || [];
+    if (tramos.length > 0) {
+      y += 4; doc.line(14, y, 196, y); y += 8;
+      doc.setFont(undefined, 'bold');
+      doc.text('Tramos de trabajo', 14, y); y += 8;
+      doc.setFont(undefined, 'normal');
+      tramos.forEach((t, i) => { doc.text(`Tramo ${i + 1}:  ${t.entrada}  →  ${t.salida || 'en curso'}`, 14, y); y += 7; });
+    }
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+    doc.save(`jornada_${techName.split(' ')[0]}_${r.fecha}.pdf`);
   };
 
   return (
@@ -271,8 +333,8 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
         <Card className="bg-white border-0 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-50 flex items-center justify-between">
             <h3 className="font-semibold text-slate-700 text-sm">Resumen por técnico · {periodLabel}</h3>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={exportCSV}>
-              <Download className="h-3.5 w-3.5" />Exportar CSV
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={exportPDF}>
+              <Download className="h-3.5 w-3.5" />Exportar PDF
             </Button>
           </div>
           <div className="overflow-x-auto">
@@ -379,8 +441,8 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-slate-400 hover:text-emerald-600"
-                              onClick={() => exportRowCSV(r)}
-                              title="Descargar jornada CSV"
+                              onClick={() => exportRowPDF(r)}
+                              title="Descargar jornada PDF"
                             >
                               <Download className="h-3.5 w-3.5" />
                             </Button>

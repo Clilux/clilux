@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
@@ -117,6 +118,7 @@ export default function ControlHorario() {
       return base44.entities.RegistroHorario.update(todayRecord.id, {
         intervalos,
         hora_salida: now,
+        finalizada: true,
         ...calcs,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
       });
@@ -134,44 +136,119 @@ export default function ControlHorario() {
   const ultimoIntervalo = intervalos[intervalos.length - 1];
   // jornada en curso = hay un intervalo abierto (sin salida)
   const jornadaActiva = !!ultimoIntervalo && !ultimoIntervalo.salida;
-  // pausada = hay intervalos y el último está cerrado pero la jornada no ha finalizado
-  const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !todayRecord?.horas_efectivas;
-  // finalizada = tiene horas_efectivas calculadas
-  const jornadaFinalizada = !!(todayRecord?.horas_efectivas || todayRecord?.horas_normales);
+  // finalizada = todos los intervalos cerrados Y marcado explícitamente con hora_salida_final
+  const jornadaFinalizada = !!(todayRecord?.finalizada);
+  // pausada = hay intervalos, el último cerrado, y NO está finalizada
+  const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaActiva && !jornadaFinalizada;
   const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
-  const exportCSV = () => {
-    const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
-    myRegistros.forEach(r => {
-      rows.push([
-        r.technician_name || r.technician_email, r.fecha,
-        r.hora_entrada || '', r.hora_salida || '',
-        r.horas_normales || 0, r.horas_extra || 0,
-        r.minutos_pausa ? `${r.minutos_pausa}min` : '0',
-        r.tipo_jornada || 'normal', r.notas || ''
-      ]);
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const techName = myRegistros[0]?.technician_name || currentUser?.full_name || currentUser?.email || '';
+    const periodo = format(viewMonth, 'MMMM yyyy', { locale: es });
+
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Registro de Jornada Laboral', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Técnico: ${techName}`, 14, 28);
+    doc.text(`Período: ${periodo}`, 14, 35);
+    doc.text(`Horas normales: ${Math.round(totalNormal * 10) / 10}h  |  Horas extra: ${Math.round(totalExtra * 10) / 10}h  |  Días: ${diasTrabajados}`, 14, 42);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 47, 196, 47);
+
+    // Cabeceras tabla
+    let y = 54;
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    const cols = [14, 45, 72, 99, 120, 141, 162];
+    ['Fecha', 'Entrada', 'Salida', 'Normal', 'Extra', 'Pausa', 'Tipo'].forEach((h, i) => doc.text(h, cols[i], y));
+    y += 5;
+    doc.setDrawColor(180, 180, 180);
+    doc.line(14, y, 196, y);
+    y += 5;
+
+    doc.setFont(undefined, 'normal');
+    const sorted = [...myRegistros].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    sorted.forEach(r => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const dateStr = r.fecha ? format(parseISO(r.fecha), "EEE d MMM", { locale: es }) : r.fecha;
+      doc.text(dateStr, cols[0], y);
+      doc.text(r.hora_entrada || '—', cols[1], y);
+      doc.text(r.hora_salida || '—', cols[2], y);
+      doc.text(r.horas_normales ? `${r.horas_normales}h` : '—', cols[3], y);
+      doc.text(r.horas_extra > 0 ? `${r.horas_extra}h` : '—', cols[4], y);
+      doc.text(r.minutos_pausa > 0 ? `${r.minutos_pausa}m` : '—', cols[5], y);
+      doc.text(r.tipo_jornada || 'normal', cols[6], y);
+      y += 8;
+      // Tramos si los hay
+      if (r.intervalos?.length > 1) {
+        doc.setFontSize(7);
+        doc.setTextColor(120, 120, 120);
+        const tramosStr = r.intervalos.map((t, i) => `T${i+1}: ${t.entrada}→${t.salida||'?'}`).join('  ');
+        doc.text(tramosStr, cols[0] + 4, y);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        y += 6;
+      }
     });
-    const csv = rows.map(r => r.join(';')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `horario_${monthStr}.csv`;
-    a.click();
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+
+    doc.save(`horario_${techName.split(' ')[0]}_${monthStr}.pdf`);
   };
 
-  const exportRowCSV = (r) => {
-    const intervalos = r.intervalos || [];
-    const tramosStr = intervalos.map((t, i) => `Tramo${i+1}: ${t.entrada}-${t.salida||'en curso'}`).join(' | ');
-    const rows = [
-      ['Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'Min.Pausa', 'Tipo', 'Tramos', 'Notas'],
-      [r.fecha, r.hora_entrada||'', r.hora_salida||'', r.horas_normales||0, r.horas_extra||0, r.minutos_pausa||0, r.tipo_jornada||'normal', tramosStr, r.notas||'']
-    ];
-    const csv = rows.map(row => row.join(';')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `jornada_${r.fecha}.csv`;
-    a.click();
+  const exportRowPDF = (r) => {
+    const doc = new jsPDF();
+    const techName = r.technician_name || currentUser?.full_name || '';
+
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Parte de Jornada', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    const dateLabel = r.fecha ? format(parseISO(r.fecha), "EEEE d 'de' MMMM yyyy", { locale: es }) : r.fecha;
+    doc.text(`Técnico: ${techName}`, 14, 28);
+    doc.text(`Fecha: ${dateLabel}`, 14, 36);
+    doc.text(`Tipo jornada: ${r.tipo_jornada || 'normal'}`, 14, 44);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 49, 196, 49);
+
+    let y = 58;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Resumen', 14, y); y += 8;
+    doc.setFont(undefined, 'normal');
+    doc.text(`Hora de entrada: ${r.hora_entrada || '—'}`, 14, y); y += 7;
+    doc.text(`Hora de salida: ${r.hora_salida || '—'}`, 14, y); y += 7;
+    doc.text(`Horas normales: ${r.horas_normales || 0}h`, 14, y); y += 7;
+    doc.text(`Horas extra: ${r.horas_extra || 0}h`, 14, y); y += 7;
+    doc.text(`Minutos de pausa: ${r.minutos_pausa || 0} min`, 14, y); y += 7;
+    if (r.notas) { doc.text(`Notas: ${r.notas}`, 14, y); y += 7; }
+
+    y += 4;
+    const tramos = r.intervalos || [];
+    if (tramos.length > 0) {
+      doc.line(14, y, 196, y); y += 8;
+      doc.setFont(undefined, 'bold');
+      doc.text('Tramos de trabajo', 14, y); y += 8;
+      doc.setFont(undefined, 'normal');
+      tramos.forEach((t, i) => {
+        doc.text(`Tramo ${i + 1}:  ${t.entrada}  →  ${t.salida || 'en curso'}`, 14, y); y += 7;
+      });
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+
+    doc.save(`jornada_${techName.split(' ')[0]}_${r.fecha}.pdf`);
   };
 
   if (!currentUser) return null;
@@ -350,8 +427,8 @@ export default function ControlHorario() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="h-4 w-4 mr-2" />Exportar CSV
+          <Button variant="outline" size="sm" onClick={exportPDF}>
+            <Download className="h-4 w-4 mr-2" />Exportar PDF
           </Button>
         </div>
 
@@ -397,7 +474,7 @@ export default function ControlHorario() {
                           {r.historial_modificaciones?.length > 0 && (
                             <History className="h-3.5 w-3.5 text-amber-400" title="Modificado" />
                           )}
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => exportRowCSV(r)} title="Descargar jornada">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="Descargar jornada PDF">
                             <FileDown className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={() => setEditingRecord(r)}>
