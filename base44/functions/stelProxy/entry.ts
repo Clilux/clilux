@@ -160,48 +160,79 @@ Deno.serve(async (req) => {
       return Response.json({ client: mapClient(updated) });
     }
 
+    // --- DEBUG RAW ---
+    if (action === 'debugRaw') {
+      const { path, params = {} } = payload;
+      const data = await stelGet(path, params, apiKey);
+      return Response.json({ raw: Array.isArray(data) ? data.slice(0, 2) : data });
+    }
+
     // --- PRODUCTS / SERVICES ---
     if (action === 'searchProducts') {
       const { query = '' } = payload;
-      const params = {};
-      if (query) params['name'] = query;
-      const data = await stelGet('/products', params, apiKey);
-      const list = Array.isArray(data) ? data : (data.products || data.data || []);
+      // STEL doesn't support text search on /products — fetch all and filter locally
+      const data = await stelGet('/products', {}, apiKey);
+      let list = Array.isArray(data) ? data : (data.products || data.data || []);
+      // Filter locally by query (matches name or description, case-insensitive)
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        list = list.filter(p => {
+          const name = (p.name || p.description || '').toLowerCase();
+          const desc = (p.description || '').toLowerCase();
+          return name.includes(q) || desc.includes(q);
+        });
+      }
+      // Extract tax id from primary-tax-path e.g. "app.stelorder.com/app/taxLines/129850"
       return Response.json({
-        products: list.map(p => ({
-          id: p.id,
-          name: p.name || p.description || '',
-          description: p.description || p.name || '',
-          price: p.price ?? p['sale-price'] ?? 0,
-          taxId: p['tax-id'] || null,
-          reference: p.reference || p.code || '',
-          type: p.type || 'product',
-        }))
+        products: list.slice(0, 30).map(p => {
+          const taxPath = p['primary-tax-path'] || '';
+          const taxIdMatch = taxPath.match(/\/taxLines\/(\d+)/);
+          return {
+            id: p.id,
+            name: p.name || p.description || '',
+            description: p.description || '',
+            price: p['sales-price'] ?? 0,
+            taxId: taxIdMatch ? parseInt(taxIdMatch[1]) : null,
+            taxPercentage: p['primary-tax-percentage'] ?? null,
+            reference: p.reference || '',
+          };
+        })
       });
     }
 
     // --- TAXES ---
     if (action === 'getTaxes') {
-      const data = await stelGet('/taxes', { limit: 100 }, apiKey);
-      const list = Array.isArray(data) ? data : [];
-      return Response.json({
-        taxes: list.map(t => ({ id: t.id, name: t.name, percentage: t.percentage })),
-      });
+      // /taxes endpoint doesn't exist in STEL; return default 21% from products info
+      return Response.json({ taxes: [{ id: null, name: 'IVA 21%', percentage: 21 }] });
     }
 
     // --- ALBARANES ---
     if (action === 'createAlbaran') {
       const { clientId, fecha, titulo, lineas, notas } = payload;
-      const taxes = await stelGet('/taxes', { limit: 100 }, apiKey);
-      const taxList = Array.isArray(taxes) ? taxes : [];
-      const defaultTax = taxList.find(t => t.percentage === 21) || taxList[0];
 
-      const lines = lineas.map(l => ({
-        name: l.concepto,
-        quantity: l.cantidad,
-        price: l.precio,
-        'tax-id': l.taxId || defaultTax?.id || null,
-      }));
+      const lines = lineas.map(l => {
+        if (l.productId) {
+          // Linked product line
+          return {
+            'line-type': 'ITEM',
+            'item-id': l.productId,
+            name: l.concepto,
+            quantity: l.cantidad,
+            price: l.precio,
+            ...(l.taxId ? { 'tax-id': l.taxId } : {}),
+          };
+        } else {
+          // Free text line (no product) — STEL only allows ITEM/COMPONENT/SECTION
+          // SECTION is a text-only header but we try it for free text
+          return {
+            'line-type': 'SECTION',
+            name: l.concepto,
+            quantity: l.cantidad,
+            price: l.precio,
+            ...(l.taxId ? { 'tax-id': l.taxId } : {}),
+          };
+        }
+      });
 
       const body = {
         'account-id': clientId,
@@ -211,7 +242,8 @@ Deno.serve(async (req) => {
         lines,
       };
 
-      const albaran = await stelPost('/deliveryNotes', body, apiKey);
+      console.log('[stelProxy] createAlbaran body:', JSON.stringify(body));
+      const albaran = await stelPost('/workDeliveryNotes', body, apiKey);
       return Response.json({ albaran });
     }
 
