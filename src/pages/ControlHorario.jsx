@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Plus, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Plus, Calendar, BarChart3, RefreshCw } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
@@ -121,6 +121,84 @@ export default function ControlHorario() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Pausa finalizada'); },
   });
 
+  // --- Nuevo servicio / parar servicio (multi-tramo) ---
+  const pararServicio = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      const now = format(new Date(), 'HH:mm');
+      let intervalosActuales = [...(todayRecord.intervalos || [])];
+      if (intervalosActuales.length === 0) {
+        // Migrar desde el esquema simple si ya tenía entrada
+        intervalosActuales = [{ entrada: todayRecord.hora_entrada, salida: now }];
+      } else {
+        // Cerrar el tramo activo
+        intervalosActuales = intervalosActuales.map((t, i) =>
+          i === intervalosActuales.length - 1 && !t.salida ? { ...t, salida: now } : t
+        );
+      }
+      const calcs = calcularHoras({ ...todayRecord, intervalos: intervalosActuales, hora_salida: now }, jornadaDiaria);
+      return base44.entities.RegistroHorario.update(todayRecord.id, {
+        intervalos: intervalosActuales,
+        hora_salida: now,
+        ...calcs,
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Servicio parado'); },
+  });
+
+  const nuevoServicio = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      setGeoLoading(true);
+      const geo = await getGeoLocation();
+      setGeoLoading(false);
+      const now = format(new Date(), 'HH:mm');
+      let intervalosActuales = [...(todayRecord.intervalos || [])];
+      if (intervalosActuales.length === 0 && todayRecord.hora_salida) {
+        // Migrar: el primer tramo era entrada→salida anterior
+        intervalosActuales = [{ entrada: todayRecord.hora_entrada, salida: todayRecord.hora_salida }];
+      }
+      intervalosActuales.push({ entrada: now, salida: null });
+      const geopoints = [...(todayRecord.geopoints || [])];
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' });
+      return base44.entities.RegistroHorario.update(todayRecord.id, {
+        intervalos: intervalosActuales,
+        hora_salida: null, // reset salida (jornada no terminada)
+        ...(geo && { geopoints }),
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Nuevo servicio iniciado'); },
+    onError: () => setGeoLoading(false),
+  });
+
+  const finalizarJornada = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      setGeoLoading(true);
+      const geo = await getGeoLocation();
+      setGeoLoading(false);
+      const now = format(new Date(), 'HH:mm');
+      let intervalosActuales = [...(todayRecord.intervalos || [])];
+      if (intervalosActuales.length > 0) {
+        // Cerrar tramo activo si hay
+        intervalosActuales = intervalosActuales.map((t, i) =>
+          i === intervalosActuales.length - 1 && !t.salida ? { ...t, salida: now } : t
+        );
+      }
+      const calcs = calcularHoras({ ...todayRecord, intervalos: intervalosActuales, hora_salida: now }, jornadaDiaria);
+      const geopoints = [...(todayRecord.geopoints || [])];
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
+      return base44.entities.RegistroHorario.update(todayRecord.id, {
+        intervalos: intervalosActuales,
+        hora_salida: now,
+        ...calcs,
+        ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Jornada finalizada'); },
+    onError: () => setGeoLoading(false),
+  });
+
   // --- Stats ---
   const totalNormal = myRegistros.reduce((a, r) => a + (r.horas_normales || 0), 0);
   const totalExtra = myRegistros.reduce((a, r) => a + (r.horas_extra || 0), 0);
@@ -129,6 +207,13 @@ export default function ControlHorario() {
   const pausaEnCurso = todayRecord?.pausas?.some(p => !p.fin);
   const fichadoEntrada = !!todayRecord?.hora_entrada;
   const fichadoSalida = !!todayRecord?.hora_salida;
+
+  // Multi-tramo: hay intervalos y el último tiene salida (listo para nuevo servicio)
+  const intervalos = todayRecord?.intervalos || [];
+  const ultimoTramo = intervalos[intervalos.length - 1];
+  const tramoActivo = intervalos.length > 0 && ultimoTramo && !ultimoTramo.salida;
+  const tramoParado = intervalos.length > 0 && ultimoTramo && !!ultimoTramo.salida;
+  const usandoIntervalos = intervalos.length > 0;
 
   const exportCSV = () => {
     const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
@@ -218,58 +303,94 @@ export default function ControlHorario() {
               </div>
             )}
 
+            {/* Tramos del día */}
+            {intervalos.length > 0 && (
+              <div className="mb-3 text-xs bg-blue-50 rounded-lg p-2 space-y-1">
+                <p className="font-semibold text-blue-700 mb-1">Servicios del día ({intervalos.length})</p>
+                {intervalos.map((t, i) => (
+                  <div key={i} className="flex items-center gap-2 text-slate-600">
+                    <span className="bg-blue-200 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                    <span className="text-emerald-600 font-medium">{t.entrada}</span>
+                    <span className="text-slate-400">→</span>
+                    <span className={t.salida ? 'text-red-500 font-medium' : 'text-amber-500 animate-pulse'}>{t.salida || 'activo'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Pausas */}
             {todayRecord?.pausas?.length > 0 && (
-              <div className="mb-4 text-xs text-slate-500 bg-amber-50 rounded-lg p-2">
+              <div className="mb-3 text-xs text-slate-500 bg-amber-50 rounded-lg p-2">
                 {todayRecord.pausas.map((p, i) => (
                   <span key={i} className="mr-3">
                     ☕ {p.inicio}{p.fin ? ` → ${p.fin}` : ' (activa)'}
-                    {p.fin && ` (${Math.round((p.fin.split(':').reduce((a, v, i) => a + (i === 0 ? v * 60 : +v), 0) - p.inicio.split(':').reduce((a, v, i) => a + (i === 0 ? v * 60 : +v), 0)))}min)`}
                   </span>
                 ))}
               </div>
             )}
 
             {/* Action buttons */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <Button
-                onClick={() => fichaEntrada.mutate()}
-                disabled={fichaEntrada.isPending || geoLoading || fichadoEntrada}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-10"
-              >
-                <LogIn className="h-4 w-4 mr-1.5" />
-                {fichadoEntrada ? `Entrada: ${todayRecord.hora_entrada}` : 'Fichar entrada'}
-              </Button>
-              <Button
-                onClick={() => fichaSalida.mutate()}
-                disabled={fichaSalida.isPending || geoLoading || !fichadoEntrada || fichadoSalida || pausaEnCurso}
-                variant="outline"
-                className="border-red-200 text-red-600 hover:bg-red-50 h-10"
-              >
-                <LogOut className="h-4 w-4 mr-1.5" />
-                {fichadoSalida ? `Salida: ${todayRecord.hora_salida}` : 'Fichar salida'}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => iniciarPausa.mutate()}
-                disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso}
-                className="border-amber-200 text-amber-600 hover:bg-amber-50 h-9 text-sm"
-              >
-                <Coffee className="h-3.5 w-3.5 mr-1.5" />
-                Iniciar pausa
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => finalizarPausa.mutate()}
-                disabled={!pausaEnCurso}
-                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-9 text-sm"
-              >
-                <Coffee className="h-3.5 w-3.5 mr-1.5" />
-                Fin pausa
-              </Button>
-            </div>
+            {!usandoIntervalos ? (
+              <>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <Button
+                    onClick={() => fichaEntrada.mutate()}
+                    disabled={fichaEntrada.isPending || geoLoading || fichadoEntrada}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+                  >
+                    <LogIn className="h-4 w-4 mr-1.5" />
+                    {fichadoEntrada ? `Entrada: ${todayRecord.hora_entrada}` : 'Fichar entrada'}
+                  </Button>
+                  <Button
+                    onClick={() => fichaSalida.mutate()}
+                    disabled={fichaSalida.isPending || geoLoading || !fichadoEntrada || fichadoSalida || pausaEnCurso}
+                    variant="outline"
+                    className="border-red-200 text-red-600 hover:bg-red-50 h-10"
+                  >
+                    <LogOut className="h-4 w-4 mr-1.5" />
+                    {fichadoSalida ? `Salida: ${todayRecord.hora_salida}` : 'Fichar salida'}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <Button variant="outline" onClick={() => iniciarPausa.mutate()} disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso} className="border-amber-200 text-amber-600 hover:bg-amber-50 h-9 text-xs">
+                    <Coffee className="h-3.5 w-3.5 mr-1" />Pausa
+                  </Button>
+                  <Button variant="outline" onClick={() => finalizarPausa.mutate()} disabled={!pausaEnCurso} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-9 text-xs">
+                    <Coffee className="h-3.5 w-3.5 mr-1" />Fin pausa
+                  </Button>
+                  <Button variant="outline" onClick={() => pararServicio.mutate()} disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso} className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 text-xs">
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />Parar
+                  </Button>
+                </div>
+                {fichadoSalida && (
+                  <Button onClick={() => nuevoServicio.mutate()} disabled={geoLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm">
+                    <Plus className="h-4 w-4 mr-1.5" />Nuevo servicio
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <Button variant="outline" onClick={() => iniciarPausa.mutate()} disabled={!tramoActivo || pausaEnCurso} className="border-amber-200 text-amber-600 hover:bg-amber-50 h-10 text-xs">
+                    <Coffee className="h-3.5 w-3.5 mr-1" />Pausa
+                  </Button>
+                  <Button variant="outline" onClick={() => finalizarPausa.mutate()} disabled={!pausaEnCurso} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-10 text-xs">
+                    <Coffee className="h-3.5 w-3.5 mr-1" />Fin pausa
+                  </Button>
+                  <Button variant="outline" onClick={() => pararServicio.mutate()} disabled={!tramoActivo || pausaEnCurso} className="border-orange-200 text-orange-600 hover:bg-orange-50 h-10 text-xs">
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />Parar
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={() => nuevoServicio.mutate()} disabled={!tramoParado || geoLoading} className="bg-blue-600 hover:bg-blue-700 text-white h-10 text-sm">
+                    <Plus className="h-4 w-4 mr-1.5" />Nuevo servicio
+                  </Button>
+                  <Button onClick={() => finalizarJornada.mutate()} disabled={!tramoActivo || pausaEnCurso || geoLoading} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-10 text-sm">
+                    <LogOut className="h-4 w-4 mr-1.5" />Finalizar jornada
+                  </Button>
+                </div>
+              </>
+            )}
             {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
 
             {/* Edit today + Solicitar ausencia */}

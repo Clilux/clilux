@@ -220,43 +220,38 @@ Deno.serve(async (req) => {
     }
 
     // --- ALBARANES ---
+    if (action === 'getDocumentStates') {
+      const data = await stelGet('/documentStates', {}, apiKey);
+      const list = Array.isArray(data) ? data : (data.documentStates || data.data || []);
+      return Response.json({ states: list.map(s => ({ id: s.id, name: s.name || s.description || `Estado ${s.id}`, color: s.color || null })) });
+    }
+
     if (action === 'createAlbaran') {
-      const { clientId, fecha, titulo, lineas, notas } = payload;
+      const { clientId, fecha, titulo, lineas, notas, documentStateId } = payload;
 
       // STEL requires ISO 8601 with timezone: 2026-05-06T00:00:00+0000
       const fechaISO = fecha && fecha.includes('T') ? fecha : `${fecha}T00:00:00+0000`;
 
-      const lines = lineas.map(l => {
-        if (l.productId) {
-          // Linked product/service line — use ITEM type with item-id
-          return {
-            'line-type': 'ITEM',
-            'item-id': l.productId,
-            description: l.concepto,
-            quantity: l.cantidad,
-            price: l.precio,
-            ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
-          };
-        } else {
-          // Free text line — STEL requires ITEM lines; skip if no productId
-          // Fall back to a minimal ITEM without item-id (will be rejected, so we handle this in UI)
-          return {
-            'line-type': 'ITEM',
-            description: l.concepto,
-            quantity: l.cantidad,
-            price: l.precio,
-            ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
-          };
-        }
-      });
+      const lines = lineas.map(l => ({
+        'line-type': 'ITEM',
+        'item-id': l.productId,
+        description: l.concepto || undefined,
+        quantity: l.cantidad,
+        price: l.precio,
+        ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
+      }));
 
       const body = {
         'account-id': clientId,
         date: fechaISO,
-        ...(titulo ? { subject: titulo } : {}),
         notes: notas || '',
         lines,
       };
+
+      // Only include subject if non-empty (STEL rejects empty string subject)
+      if (titulo && titulo.trim()) body.subject = titulo.trim();
+      // Only include document-state-id if provided
+      if (documentStateId) body['document-state-id'] = documentStateId;
 
       console.log('[stelProxy] createAlbaran body:', JSON.stringify(body));
       const albaran = await stelPost('/workDeliveryNotes', body, apiKey);

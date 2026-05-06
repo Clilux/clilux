@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { Search, FileText, Loader2, Plus, Trash2, ExternalLink, Package, AlertCircle } from 'lucide-react';
+import { Search, FileText, Loader2, Plus, Trash2, ExternalLink, Package, AlertCircle, Tag } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -18,6 +19,8 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
   const [creating, setCreating] = useState(false);
   const [albaranCreado, setAlbaranCreado] = useState(null);
   const [titulo, setTitulo] = useState('');
+  const [documentStates, setDocumentStates] = useState([]);
+  const [documentStateId, setDocumentStateId] = useState(null);
 
   // Product search per line
   const [productSearch, setProductSearch] = useState({});
@@ -40,6 +43,12 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
   const [notas, setNotas] = useState(
     [registro.notas, registro.technician_name && `Técnico: ${registro.technician_name}`].filter(Boolean).join(' | ')
   );
+
+  useEffect(() => {
+    base44.functions.invoke('stelProxy', { action: 'getDocumentStates', payload: {} })
+      .then(r => setDocumentStates(r.data?.states || []))
+      .catch(() => {});
+  }, []);
 
   const updateLinea = (i, field, value) => {
     setLineas(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
@@ -110,6 +119,7 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
           titulo,
           lineas,
           notas,
+          documentStateId,
         }
       });
       const alb = Array.isArray(r.data?.albaran) ? r.data.albaran[0] : r.data?.albaran;
@@ -238,6 +248,26 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
               onChange={e => setTitulo(e.target.value)}
             />
           </div>
+
+          {/* Estado del albarán */}
+          {documentStates.length > 0 && (
+            <div>
+              <Label className="text-xs font-semibold text-slate-600 mb-1 block flex items-center gap-1">
+                <Tag className="h-3 w-3" />Estado del albarán
+              </Label>
+              <Select value={documentStateId ? String(documentStateId) : 'none'} onValueChange={v => setDocumentStateId(v === 'none' ? null : Number(v))}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Sin estado (por defecto)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin estado (por defecto)</SelectItem>
+                  {documentStates.map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Aviso líneas sin producto */}
           {lineasSinProducto > 0 && (
