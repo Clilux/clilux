@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Plus, Calendar, BarChart3, RefreshCw } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
@@ -21,7 +21,6 @@ export default function ControlHorario() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [showAusencia, setShowAusencia] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [pausaActiva, setPausaActiva] = useState(null); // { inicio: 'HH:MM' }
 
   const { data: currentUser } = useQuery({ queryKey: ['current-user'], queryFn: () => base44.auth.me() });
   const { data: technicians = [] } = useQuery({
@@ -50,14 +49,28 @@ export default function ControlHorario() {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todayRecord = myRegistros.find(r => r.fecha === todayStr);
 
-  // --- Fichaje mutations ---
-  const fichaEntrada = useMutation({
+  // --- Mutations ---
+
+  // INICIO JORNADA: crea el registro del día con el primer intervalo abierto
+  const inicioJornada = useMutation({
     mutationFn: async () => {
       setGeoLoading(true);
-      const geo = await getGeoLocation();
+      const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
       const now = format(new Date(), 'HH:mm');
-      const base = {
+      const nuevoIntervalo = { entrada: now, salida: null };
+      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
+      if (todayRecord) {
+        // Reanudar: añadir nuevo intervalo
+        const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
+        return base44.entities.RegistroHorario.update(todayRecord.id, {
+          intervalos,
+          hora_salida: null,
+          ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
+        });
+      }
+      // Nuevo día
+      return base44.entities.RegistroHorario.create({
         technician_email: currentUser.email,
         technician_name: myTechRecord?.name || currentUser.full_name || currentUser.email,
         technician_id: myTechRecord?.id || '',
@@ -66,130 +79,43 @@ export default function ControlHorario() {
         hora_entrada: now,
         tipo_jornada: 'normal',
         pausas: [],
-        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints: [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] }),
-      };
-      if (todayRecord) return base44.entities.RegistroHorario.update(todayRecord.id, { hora_entrada: now });
-      return base44.entities.RegistroHorario.create(base);
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Entrada registrada'); },
-    onError: () => setGeoLoading(false),
-  });
-
-  const fichaSalida = useMutation({
-    mutationFn: async () => {
-      if (!todayRecord) return;
-      setGeoLoading(true);
-      const geo = await getGeoLocation();
-      setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
-      const calcs = calcularHoras({ ...todayRecord, hora_salida: now }, jornadaDiaria);
-      const geopoints = [...(todayRecord.geopoints || [])];
-      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
-        hora_salida: now,
-        ...calcs,
-        ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
+        intervalos: [nuevoIntervalo],
+        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Salida registrada'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Jornada iniciada'); },
     onError: () => setGeoLoading(false),
   });
 
-  const iniciarPausa = useMutation({
-    mutationFn: async () => {
-      if (!todayRecord || todayRecord.hora_salida) return;
-      const now = format(new Date(), 'HH:mm');
-      const pausa = { inicio: now, fin: null, motivo: '' };
-      const pausas = [...(todayRecord.pausas || []), pausa];
-      setPausaActiva({ inicio: now });
-      return base44.entities.RegistroHorario.update(todayRecord.id, { pausas });
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Pausa iniciada'); },
-  });
-
-  const finalizarPausa = useMutation({
+  // PAUSA: cierra el intervalo activo sin cerrar la jornada
+  const pausaJornada = useMutation({
     mutationFn: async () => {
       if (!todayRecord) return;
       const now = format(new Date(), 'HH:mm');
-      const pausas = (todayRecord.pausas || []).map((p, i) =>
-        i === (todayRecord.pausas.length - 1) && !p.fin ? { ...p, fin: now } : p
+      const intervalos = (todayRecord.intervalos || []).map((t, i) =>
+        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
       );
-      setPausaActiva(null);
-      const calcs = calcularHoras({ ...todayRecord, pausas }, jornadaDiaria);
-      return base44.entities.RegistroHorario.update(todayRecord.id, { pausas, ...calcs });
+      return base44.entities.RegistroHorario.update(todayRecord.id, { intervalos, hora_salida: now });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Pausa finalizada'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Jornada pausada'); },
   });
 
-  // --- Nuevo servicio / parar servicio (multi-tramo) ---
-  const pararServicio = useMutation({
-    mutationFn: async () => {
-      if (!todayRecord) return;
-      const now = format(new Date(), 'HH:mm');
-      let intervalosActuales = [...(todayRecord.intervalos || [])];
-      if (intervalosActuales.length === 0) {
-        // Migrar desde el esquema simple si ya tenía entrada
-        intervalosActuales = [{ entrada: todayRecord.hora_entrada, salida: now }];
-      } else {
-        // Cerrar el tramo activo
-        intervalosActuales = intervalosActuales.map((t, i) =>
-          i === intervalosActuales.length - 1 && !t.salida ? { ...t, salida: now } : t
-        );
-      }
-      const calcs = calcularHoras({ ...todayRecord, intervalos: intervalosActuales, hora_salida: now }, jornadaDiaria);
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
-        intervalos: intervalosActuales,
-        hora_salida: now,
-        ...calcs,
-      });
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Servicio parado'); },
-  });
-
-  const nuevoServicio = useMutation({
+  // FIN JORNADA: cierra el intervalo activo, calcula totales y marca como finalizada
+  const finJornada = useMutation({
     mutationFn: async () => {
       if (!todayRecord) return;
       setGeoLoading(true);
-      const geo = await getGeoLocation();
+      const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
       const now = format(new Date(), 'HH:mm');
-      let intervalosActuales = [...(todayRecord.intervalos || [])];
-      if (intervalosActuales.length === 0 && todayRecord.hora_salida) {
-        // Migrar: el primer tramo era entrada→salida anterior
-        intervalosActuales = [{ entrada: todayRecord.hora_entrada, salida: todayRecord.hora_salida }];
-      }
-      intervalosActuales.push({ entrada: now, salida: null });
-      const geopoints = [...(todayRecord.geopoints || [])];
-      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' });
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
-        intervalos: intervalosActuales,
-        hora_salida: null, // reset salida (jornada no terminada)
-        ...(geo && { geopoints }),
-      });
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Nuevo servicio iniciado'); },
-    onError: () => setGeoLoading(false),
-  });
-
-  const finalizarJornada = useMutation({
-    mutationFn: async () => {
-      if (!todayRecord) return;
-      setGeoLoading(true);
-      const geo = await getGeoLocation();
-      setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
-      let intervalosActuales = [...(todayRecord.intervalos || [])];
-      if (intervalosActuales.length > 0) {
-        // Cerrar tramo activo si hay
-        intervalosActuales = intervalosActuales.map((t, i) =>
-          i === intervalosActuales.length - 1 && !t.salida ? { ...t, salida: now } : t
-        );
-      }
-      const calcs = calcularHoras({ ...todayRecord, intervalos: intervalosActuales, hora_salida: now }, jornadaDiaria);
+      const intervalos = (todayRecord.intervalos || []).map((t, i) =>
+        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
+      );
+      const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: now }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
       if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
       return base44.entities.RegistroHorario.update(todayRecord.id, {
-        intervalos: intervalosActuales,
+        intervalos,
         hora_salida: now,
         ...calcs,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
@@ -204,16 +130,15 @@ export default function ControlHorario() {
   const totalExtra = myRegistros.reduce((a, r) => a + (r.horas_extra || 0), 0);
   const diasTrabajados = new Set(myRegistros.map(r => r.fecha)).size;
 
-  const pausaEnCurso = todayRecord?.pausas?.some(p => !p.fin);
-  const fichadoEntrada = !!todayRecord?.hora_entrada;
-  const fichadoSalida = !!todayRecord?.hora_salida;
-
-  // Multi-tramo: hay intervalos y el último tiene salida (listo para nuevo servicio)
   const intervalos = todayRecord?.intervalos || [];
-  const ultimoTramo = intervalos[intervalos.length - 1];
-  const tramoActivo = intervalos.length > 0 && ultimoTramo && !ultimoTramo.salida;
-  const tramoParado = intervalos.length > 0 && ultimoTramo && !!ultimoTramo.salida;
-  const usandoIntervalos = intervalos.length > 0;
+  const ultimoIntervalo = intervalos[intervalos.length - 1];
+  // jornada en curso = hay un intervalo abierto (sin salida)
+  const jornadaActiva = !!ultimoIntervalo && !ultimoIntervalo.salida;
+  // pausada = hay intervalos y el último está cerrado pero la jornada no ha finalizado
+  const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !todayRecord?.horas_efectivas;
+  // finalizada = tiene horas_efectivas calculadas
+  const jornadaFinalizada = !!(todayRecord?.horas_efectivas || todayRecord?.horas_normales);
+  const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
   const exportCSV = () => {
     const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
@@ -266,33 +191,35 @@ export default function ControlHorario() {
           <div className="p-5">
             {/* Status row */}
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${pausaEnCurso ? 'bg-amber-400 animate-pulse' : fichadoEntrada && !fichadoSalida ? 'bg-emerald-500 animate-pulse' : fichadoSalida ? 'bg-slate-300' : 'bg-red-400'}`} />
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                jornadaActiva ? 'bg-emerald-500 animate-pulse' :
+                jornadaPausada ? 'bg-amber-400' :
+                jornadaFinalizada ? 'bg-slate-300' : 'bg-red-400'
+              }`} />
               <span className="text-sm font-medium text-slate-700">
-                {pausaEnCurso ? 'En pausa' :
-                 fichadoSalida ? `Jornada completada · ${todayRecord?.horas_efectivas || 0}h efectivas` :
-                 fichadoEntrada ? `En jornada desde ${todayRecord.hora_entrada}` :
-                 'Sin fichar hoy'}
+                {jornadaActiva ? `En jornada desde ${ultimoIntervalo?.entrada}` :
+                 jornadaPausada ? `Pausada · ${intervalos.length} tramo${intervalos.length > 1 ? 's' : ''}` :
+                 jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h efectivas` :
+                 'Sin jornada hoy'}
               </span>
-              {fichadoEntrada && !fichadoSalida && !pausaEnCurso && (
-                <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs ml-auto">Activo</Badge>
-              )}
-              {pausaEnCurso && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs ml-auto">Pausa</Badge>}
+              {jornadaActiva && <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs ml-auto">Activo</Badge>}
+              {jornadaPausada && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs ml-auto">Pausada</Badge>}
             </div>
 
             {/* Horas resumen */}
-            {fichadoEntrada && (
+            {todayRecord && intervalos.length > 0 && (
               <div className="grid grid-cols-4 gap-3 mb-4 text-center">
                 <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-xs text-slate-400">Entrada</p>
-                  <p className="font-semibold text-emerald-600 text-sm">{todayRecord.hora_entrada}</p>
+                  <p className="text-xs text-slate-400">Inicio</p>
+                  <p className="font-semibold text-emerald-600 text-sm">{intervalos[0]?.entrada || '—'}</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-xs text-slate-400">Salida</p>
-                  <p className="font-semibold text-red-500 text-sm">{todayRecord.hora_salida || '—'}</p>
+                  <p className="text-xs text-slate-400">Último fin</p>
+                  <p className="font-semibold text-red-500 text-sm">{ultimoIntervalo?.salida || (jornadaActiva ? '—' : todayRecord.hora_salida || '—')}</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2">
                   <p className="text-xs text-slate-400">Normales</p>
-                  <p className="font-semibold text-blue-600 text-sm">{todayRecord.horas_normales || '—'}h</p>
+                  <p className="font-semibold text-blue-600 text-sm">{todayRecord.horas_normales ? `${todayRecord.horas_normales}h` : '—'}</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2">
                   <p className="text-xs text-slate-400">Extra</p>
@@ -305,92 +232,64 @@ export default function ControlHorario() {
 
             {/* Tramos del día */}
             {intervalos.length > 0 && (
-              <div className="mb-3 text-xs bg-blue-50 rounded-lg p-2 space-y-1">
-                <p className="font-semibold text-blue-700 mb-1">Servicios del día ({intervalos.length})</p>
+              <div className="mb-4 text-xs bg-blue-50 rounded-lg p-2.5 space-y-1.5">
+                <p className="font-semibold text-blue-700 mb-1">Tramos del día ({intervalos.length})</p>
                 {intervalos.map((t, i) => (
                   <div key={i} className="flex items-center gap-2 text-slate-600">
                     <span className="bg-blue-200 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
                     <span className="text-emerald-600 font-medium">{t.entrada}</span>
                     <span className="text-slate-400">→</span>
-                    <span className={t.salida ? 'text-red-500 font-medium' : 'text-amber-500 animate-pulse'}>{t.salida || 'activo'}</span>
+                    <span className={!t.salida ? 'text-emerald-500 font-medium animate-pulse' : 'text-red-500 font-medium'}>
+                      {t.salida || 'en curso'}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Pausas */}
-            {todayRecord?.pausas?.length > 0 && (
-              <div className="mb-3 text-xs text-slate-500 bg-amber-50 rounded-lg p-2">
-                {todayRecord.pausas.map((p, i) => (
-                  <span key={i} className="mr-3">
-                    ☕ {p.inicio}{p.fin ? ` → ${p.fin}` : ' (activa)'}
-                  </span>
-                ))}
-              </div>
-            )}
+            {/* Botones de acción — 3 estados */}
+            <div className="space-y-2">
+              {/* INICIO JORNADA — visible cuando no está activa */}
+              {!jornadaActiva && !jornadaFinalizada && (
+                <Button
+                  onClick={() => inicioJornada.mutate()}
+                  disabled={inicioJornada.isPending || geoLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  {jornadaPausada ? 'Reanudar jornada' : 'Iniciar jornada'}
+                </Button>
+              )}
 
-            {/* Action buttons */}
-            {!usandoIntervalos ? (
-              <>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <Button
-                    onClick={() => fichaEntrada.mutate()}
-                    disabled={fichaEntrada.isPending || geoLoading || fichadoEntrada}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-10"
-                  >
-                    <LogIn className="h-4 w-4 mr-1.5" />
-                    {fichadoEntrada ? `Entrada: ${todayRecord.hora_entrada}` : 'Fichar entrada'}
-                  </Button>
-                  <Button
-                    onClick={() => fichaSalida.mutate()}
-                    disabled={fichaSalida.isPending || geoLoading || !fichadoEntrada || fichadoSalida || pausaEnCurso}
-                    variant="outline"
-                    className="border-red-200 text-red-600 hover:bg-red-50 h-10"
-                  >
-                    <LogOut className="h-4 w-4 mr-1.5" />
-                    {fichadoSalida ? `Salida: ${todayRecord.hora_salida}` : 'Fichar salida'}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  <Button variant="outline" onClick={() => iniciarPausa.mutate()} disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso} className="border-amber-200 text-amber-600 hover:bg-amber-50 h-9 text-xs">
-                    <Coffee className="h-3.5 w-3.5 mr-1" />Pausa
-                  </Button>
-                  <Button variant="outline" onClick={() => finalizarPausa.mutate()} disabled={!pausaEnCurso} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-9 text-xs">
-                    <Coffee className="h-3.5 w-3.5 mr-1" />Fin pausa
-                  </Button>
-                  <Button variant="outline" onClick={() => pararServicio.mutate()} disabled={!fichadoEntrada || fichadoSalida || pausaEnCurso} className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 text-xs">
-                    <RefreshCw className="h-3.5 w-3.5 mr-1" />Parar
-                  </Button>
-                </div>
-                {fichadoSalida && (
-                  <Button onClick={() => nuevoServicio.mutate()} disabled={geoLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm">
-                    <Plus className="h-4 w-4 mr-1.5" />Nuevo servicio
-                  </Button>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  <Button variant="outline" onClick={() => iniciarPausa.mutate()} disabled={!tramoActivo || pausaEnCurso} className="border-amber-200 text-amber-600 hover:bg-amber-50 h-10 text-xs">
-                    <Coffee className="h-3.5 w-3.5 mr-1" />Pausa
-                  </Button>
-                  <Button variant="outline" onClick={() => finalizarPausa.mutate()} disabled={!pausaEnCurso} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-10 text-xs">
-                    <Coffee className="h-3.5 w-3.5 mr-1" />Fin pausa
-                  </Button>
-                  <Button variant="outline" onClick={() => pararServicio.mutate()} disabled={!tramoActivo || pausaEnCurso} className="border-orange-200 text-orange-600 hover:bg-orange-50 h-10 text-xs">
-                    <RefreshCw className="h-3.5 w-3.5 mr-1" />Parar
-                  </Button>
-                </div>
+              {/* PAUSA + FIN — visible cuando está activa */}
+              {jornadaActiva && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => nuevoServicio.mutate()} disabled={!tramoParado || geoLoading} className="bg-blue-600 hover:bg-blue-700 text-white h-10 text-sm">
-                    <Plus className="h-4 w-4 mr-1.5" />Nuevo servicio
+                  <Button
+                    variant="outline"
+                    onClick={() => pausaJornada.mutate()}
+                    disabled={pausaJornada.isPending}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50 h-11"
+                  >
+                    <Coffee className="h-4 w-4 mr-2" />Pausa
                   </Button>
-                  <Button onClick={() => finalizarJornada.mutate()} disabled={!tramoActivo || pausaEnCurso || geoLoading} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-10 text-sm">
-                    <LogOut className="h-4 w-4 mr-1.5" />Finalizar jornada
+                  <Button
+                    variant="outline"
+                    onClick={() => finJornada.mutate()}
+                    disabled={finJornada.isPending || geoLoading}
+                    className="border-red-300 text-red-600 hover:bg-red-50 h-11"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />Fin jornada
                   </Button>
                 </div>
-              </>
-            )}
+              )}
+
+              {/* Jornada completada */}
+              {jornadaFinalizada && (
+                <div className="bg-slate-50 rounded-lg p-3 text-center text-sm text-slate-500">
+                  ✅ Jornada completada · {todayRecord?.horas_efectivas || 0}h efectivas
+                </div>
+              )}
+            </div>
             {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
 
             {/* Edit today + Solicitar ausencia */}

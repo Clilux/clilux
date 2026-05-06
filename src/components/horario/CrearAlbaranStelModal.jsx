@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { toast } from 'sonner';
-import { Search, FileText, Loader2, Plus, Trash2, ExternalLink, Package, AlertCircle, Tag } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from 'sonner';
+import { Search, FileText, Loader2, Plus, Trash2, ExternalLink, Package, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -21,28 +21,30 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
   const [titulo, setTitulo] = useState('');
   const [documentStates, setDocumentStates] = useState([]);
   const [documentStateId, setDocumentStateId] = useState(null);
-
-  // Product search per line
-  const [productSearch, setProductSearch] = useState({});
-  const [productResults, setProductResults] = useState({});
-  const [searchingProduct, setSearchingProduct] = useState({});
-  const productSearchTimeout = useRef({});
+  const [notas, setNotas] = useState(
+    [registro.notas, registro.technician_name && `Técnico: ${registro.technician_name}`].filter(Boolean).join(' | ')
+  );
 
   const horasEfectivas = registro.horas_efectivas || registro.horas_normales || 0;
   const horasExtra = registro.horas_extra || 0;
 
   const buildDefaultLines = () => {
     const lines = [];
-    if (horasEfectivas > 0) lines.push({ concepto: 'Mano de obra', cantidad: horasEfectivas, precio: 0, taxId: null, productId: null });
-    if (horasExtra > 0) lines.push({ concepto: 'Mano de obra extra', cantidad: horasExtra, precio: 0, taxId: null, productId: null });
-    if (lines.length === 0) lines.push({ concepto: 'Mano de obra', cantidad: 1, precio: 0, taxId: null, productId: null });
+    if (horasEfectivas > 0) lines.push({ concepto: 'Mano de obra', cantidad: horasEfectivas, precio: 0, taxId: null, productId: null, productName: null });
+    if (horasExtra > 0) lines.push({ concepto: 'Mano de obra extra', cantidad: horasExtra, precio: 0, taxId: null, productId: null, productName: null });
+    if (lines.length === 0) lines.push({ concepto: 'Mano de obra', cantidad: 1, precio: 0, taxId: null, productId: null, productName: null });
     return lines;
   };
 
   const [lineas, setLineas] = useState(buildDefaultLines);
-  const [notas, setNotas] = useState(
-    [registro.notas, registro.technician_name && `Técnico: ${registro.technician_name}`].filter(Boolean).join(' | ')
-  );
+
+  // Per-line product search state
+  const [activeSearchLine, setActiveSearchLine] = useState(null);
+  const [productQuery, setProductQuery] = useState('');
+  const [productResults, setProductResults] = useState([]);
+  const [searchingProduct, setSearchingProduct] = useState(false);
+  const productTimeout = useRef(null);
+  const productDropdownRef = useRef(null);
 
   useEffect(() => {
     base44.functions.invoke('stelProxy', { action: 'getDocumentStates', payload: {} })
@@ -50,55 +52,68 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
       .catch(() => {});
   }, []);
 
-  const updateLinea = (i, field, value) => {
-    setLineas(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
-  };
-
-  const removeLinea = (i) => setLineas(prev => prev.filter((_, idx) => idx !== i));
-
-  const addLinea = () => setLineas(prev => [...prev, { concepto: '', cantidad: 1, precio: 0, taxId: null, productId: null }]);
-
-  const searchClients = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const r = await base44.functions.invoke('stelProxy', { action: 'searchClients', payload: { query: searchQuery } });
-      setSearchResults(r.data?.clients || []);
-    } catch (e) {
-      toast.error('Error buscando clientes: ' + e.message);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const searchProducts = async (lineIndex, query) => {
-    setProductSearch(prev => ({ ...prev, [lineIndex]: query }));
-    if (!query.trim()) { setProductResults(prev => ({ ...prev, [lineIndex]: [] })); return; }
-    clearTimeout(productSearchTimeout.current[lineIndex]);
-    productSearchTimeout.current[lineIndex] = setTimeout(async () => {
-      setSearchingProduct(prev => ({ ...prev, [lineIndex]: true }));
-      try {
-        const r = await base44.functions.invoke('stelProxy', { action: 'searchProducts', payload: { query } });
-        setProductResults(prev => ({ ...prev, [lineIndex]: r.data?.products || [] }));
-      } catch (_) {}
-      finally { setSearchingProduct(prev => ({ ...prev, [lineIndex]: false })); }
+  // Auto-search clients as user types (debounced)
+  const clientSearchTimeout = useRef(null);
+  const handleClientQueryChange = (val) => {
+    setSearchQuery(val);
+    clearTimeout(clientSearchTimeout.current);
+    if (!val.trim()) { setSearchResults([]); return; }
+    clientSearchTimeout.current = setTimeout(() => {
+      setSearching(true);
+      base44.functions.invoke('stelProxy', { action: 'searchClients', payload: { query: val } })
+        .then(r => setSearchResults(r.data?.clients || []))
+        .catch(e => toast.error('Error buscando clientes: ' + e.message))
+        .finally(() => setSearching(false));
     }, 400);
   };
 
-  const selectProduct = (lineIndex, product) => {
-    setLineas(prev => prev.map((l, idx) => idx === lineIndex ? {
+  // Product search for a specific line
+  const handleProductSearch = (lineIndex, query) => {
+    setActiveSearchLine(lineIndex);
+    setProductQuery(query);
+    setProductResults([]);
+    clearTimeout(productTimeout.current);
+    if (!query.trim()) return;
+    productTimeout.current = setTimeout(() => {
+      setSearchingProduct(true);
+      base44.functions.invoke('stelProxy', { action: 'searchProducts', payload: { query } })
+        .then(r => setProductResults(r.data?.products || []))
+        .catch(() => {})
+        .finally(() => setSearchingProduct(false));
+    }, 400);
+  };
+
+  const selectProduct = (product) => {
+    if (activeSearchLine === null) return;
+    setLineas(prev => prev.map((l, idx) => idx === activeSearchLine ? {
       ...l,
       concepto: product.name,
       precio: product.price,
       taxId: product.taxId || null,
       productId: product.id,
+      productName: product.name,
+      productType: product.type,
     } : l));
-    setProductSearch(prev => ({ ...prev, [lineIndex]: undefined }));
-    setProductResults(prev => ({ ...prev, [lineIndex]: [] }));
+    setActiveSearchLine(null);
+    setProductQuery('');
+    setProductResults([]);
   };
 
-  const clearProduct = (lineIndex) => {
-    setLineas(prev => prev.map((l, idx) => idx === lineIndex ? { ...l, productId: null } : l));
+  const clearProduct = (i) => {
+    setLineas(prev => prev.map((l, idx) => idx === i ? { ...l, productId: null, productName: null, productType: null } : l));
+  };
+
+  const updateLinea = (i, field, value) => {
+    setLineas(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
+  };
+
+  const removeLinea = (i) => {
+    setLineas(prev => prev.filter((_, idx) => idx !== i));
+    if (activeSearchLine === i) { setActiveSearchLine(null); setProductResults([]); }
+  };
+
+  const addLinea = () => {
+    setLineas(prev => [...prev, { concepto: '', cantidad: 1, precio: 0, taxId: null, productId: null, productName: null }]);
   };
 
   const createAlbaran = async () => {
@@ -106,21 +121,14 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
     if (lineas.some(l => !l.concepto.trim())) { toast.error('Completa todos los conceptos'); return; }
     const sinProducto = lineas.filter(l => !l.productId);
     if (sinProducto.length > 0) {
-      toast.error(`Todas las líneas deben tener un producto/servicio vinculado de STEL. Busca y selecciona uno para: "${sinProducto[0].concepto}"`);
+      toast.error(`Línea "${sinProducto[0].concepto}": busca y selecciona un producto/servicio de STEL`);
       return;
     }
     setCreating(true);
     try {
       const r = await base44.functions.invoke('stelProxy', {
         action: 'createAlbaran',
-        payload: {
-          clientId: selectedClient.id,
-          fecha: registro.fecha,
-          titulo,
-          lineas,
-          notas,
-          documentStateId,
-        }
+        payload: { clientId: selectedClient.id, fecha: registro.fecha, titulo, lineas, notas, documentStateId }
       });
       const alb = Array.isArray(r.data?.albaran) ? r.data.albaran[0] : r.data?.albaran;
       setAlbaranCreado(alb);
@@ -175,7 +183,7 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
@@ -201,30 +209,29 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
                   <p className="font-medium text-blue-800 text-sm">{selectedClient.name}</p>
                   {selectedClient.fiscalId && <p className="text-xs text-blue-600">{selectedClient.fiscalId}</p>}
                 </div>
-                <Button variant="ghost" size="sm" className="text-slate-400 h-7" onClick={() => { setSelectedClient(null); setSearchResults([]); }}>
+                <Button variant="ghost" size="sm" className="text-slate-400 h-7" onClick={() => { setSelectedClient(null); setSearchResults([]); setSearchQuery(''); }}>
                   Cambiar
                 </Button>
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="relative">
                   <Input
-                    placeholder="Buscar cliente por nombre..."
+                    placeholder="Escribe para buscar cliente..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && searchClients()}
+                    onChange={e => handleClientQueryChange(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleClientQueryChange(searchQuery)}
+                    autoComplete="off"
                   />
-                  <Button variant="outline" onClick={searchClients} disabled={searching} className="px-3">
-                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  </Button>
+                  {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />}
                 </div>
                 {searchResults.length > 0 && (
-                  <div className="border border-slate-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+                  <div className="border border-slate-200 rounded-lg overflow-hidden max-h-44 overflow-y-auto shadow-sm">
                     {searchResults.map(c => (
                       <button
                         key={c.id}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0"
-                        onClick={() => { setSelectedClient(c); setSearchResults([]); }}
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0"
+                        onMouseDown={() => { setSelectedClient(c); setSearchResults([]); setSearchQuery(''); }}
                       >
                         <p className="font-medium text-slate-700">{c.name}</p>
                         {c.fiscalId && <p className="text-xs text-slate-400">{c.fiscalId}</p>}
@@ -252,10 +259,11 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
           {/* Estado del albarán */}
           {documentStates.length > 0 && (
             <div>
-              <Label className="text-xs font-semibold text-slate-600 mb-1 block flex items-center gap-1">
-                <Tag className="h-3 w-3" />Estado del albarán
-              </Label>
-              <Select value={documentStateId ? String(documentStateId) : 'none'} onValueChange={v => setDocumentStateId(v === 'none' ? null : Number(v))}>
+              <Label className="text-xs font-semibold text-slate-600 mb-1 block">Estado del albarán</Label>
+              <Select
+                value={documentStateId ? String(documentStateId) : 'none'}
+                onValueChange={v => setDocumentStateId(v === 'none' ? null : Number(v))}
+              >
                 <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Sin estado (por defecto)" />
                 </SelectTrigger>
@@ -273,7 +281,7 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
           {lineasSinProducto > 0 && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>STEL Order requiere que cada línea tenga un producto o servicio vinculado. Busca y selecciona uno por cada línea.</span>
+              <span>Cada línea necesita un producto/servicio de STEL vinculado. Escribe en el campo de concepto para buscarlo.</span>
             </div>
           )}
 
@@ -287,110 +295,115 @@ export default function CrearAlbaranStelModal({ registro, onClose, onCreated }) 
             </div>
             <div className="space-y-3">
               {lineas.map((l, i) => (
-                <div key={i} className={`space-y-1 p-2 rounded-lg border ${l.productId ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'}`}>
-                  {/* Concepto con buscador de producto */}
-                  <div className="relative">
-                    <div className="flex gap-1">
-                      <div className="relative flex-1">
-                        <Input
-                          className="text-sm pr-7"
-                          placeholder="Escribe para buscar producto o servicio de STEL..."
-                          value={productSearch[i] !== undefined ? productSearch[i] : l.concepto}
-                          onChange={e => {
-                            updateLinea(i, 'concepto', e.target.value);
-                            updateLinea(i, 'productId', null); // clear product link when editing
-                            searchProducts(i, e.target.value);
-                          }}
-                          onFocus={() => {
-                            setProductSearch(prev => ({ ...prev, [i]: l.concepto }));
-                            if (l.concepto.trim()) searchProducts(i, l.concepto);
-                          }}
-                          onBlur={() => setTimeout(() => {
-                            setProductSearch(prev => ({ ...prev, [i]: undefined }));
-                            setProductResults(prev => ({ ...prev, [i]: [] }));
-                          }, 200)}
-                        />
-                        {searchingProduct[i] && (
-                          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-slate-400" />
-                        )}
-                        {!searchingProduct[i] && (
-                          <Package className={`absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${l.productId ? 'text-emerald-500' : 'text-slate-300'}`} />
-                        )}
+                <div key={i} className={`p-3 rounded-lg border space-y-2 ${l.productId ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white'}`}>
+                  {/* Producto vinculado */}
+                  {l.productId ? (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">{l.productName || l.concepto}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge className={`text-xs border-0 py-0 ${l.productType === 'service' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {l.productType === 'service' ? 'Servicio' : 'Producto'}
+                          </Badge>
+                        </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-8 text-slate-300 hover:text-red-400 shrink-0"
-                        onClick={() => removeLinea(i)}
-                        disabled={lineas.length === 1}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <button className="text-xs text-slate-400 hover:text-red-500 shrink-0" onClick={() => clearProduct(i)}>
+                        Cambiar
+                      </button>
                     </div>
-                    {/* Vinculado a producto */}
-                    {l.productId && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Badge className="text-xs bg-emerald-100 text-emerald-700 border-0 font-normal">
-                          ✓ Producto vinculado (id: {l.productId})
-                        </Badge>
-                        <button className="text-xs text-slate-400 hover:text-slate-600" onClick={() => clearProduct(i)}>× desvincular</button>
+                  ) : (
+                    /* Buscador de producto */
+                    <div className="relative">
+                      <div className="flex gap-1">
+                        <div className="relative flex-1">
+                          <Input
+                            className="text-sm pr-7"
+                            placeholder="Buscar producto/servicio en STEL..."
+                            value={activeSearchLine === i ? productQuery : l.concepto}
+                            onChange={e => {
+                              if (activeSearchLine !== i) setActiveSearchLine(i);
+                              updateLinea(i, 'concepto', e.target.value);
+                              handleProductSearch(i, e.target.value);
+                            }}
+                            onFocus={() => {
+                              setActiveSearchLine(i);
+                              setProductQuery(l.concepto);
+                              if (l.concepto.trim()) handleProductSearch(i, l.concepto);
+                            }}
+                          />
+                          {searchingProduct && activeSearchLine === i
+                            ? <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-slate-400" />
+                            : <Package className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                          }
+                        </div>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-9 w-8 text-slate-300 hover:text-red-400 shrink-0"
+                          onClick={() => removeLinea(i)}
+                          disabled={lineas.length === 1}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                    )}
-                    {/* Dropdown productos */}
-                    {productResults[i]?.length > 0 && (
-                      <div className="absolute z-50 top-full left-0 right-8 mt-1 border border-slate-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
-                        {productResults[i].map(p => (
-                          <button
-                            key={`${p.type}-${p.id}`}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0"
-                            onMouseDown={() => selectProduct(i, p)}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-medium text-slate-700 truncate">{p.name}</span>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <Badge className={`text-xs border-0 ${p.type === 'service' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                  {p.type === 'service' ? 'Servicio' : 'Producto'}
-                                </Badge>
-                                <span className="text-xs text-slate-500">{p.price?.toFixed(2)}€</span>
+                      {/* Dropdown resultados */}
+                      {activeSearchLine === i && productResults.length > 0 && (
+                        <div
+                          ref={productDropdownRef}
+                          className="absolute z-[9999] left-0 right-8 mt-1 border border-slate-200 rounded-lg bg-white shadow-xl max-h-52 overflow-y-auto"
+                        >
+                          {productResults.map(p => (
+                            <button
+                              key={`${p.type}-${p.id}`}
+                              className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 border-b border-slate-50 last:border-0"
+                              onMouseDown={e => { e.preventDefault(); selectProduct(p); }}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-slate-700 truncate">{p.name}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Badge className={`text-xs border-0 ${p.type === 'service' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {p.type === 'service' ? 'Servicio' : 'Producto'}
+                                  </Badge>
+                                  <span className="text-xs text-slate-500 font-medium">{p.price?.toFixed(2)}€</span>
+                                </div>
                               </div>
-                            </div>
-                            {p.reference && <span className="text-xs text-slate-400">Ref: {p.reference}</span>}
-                            {p.description && <p className="text-xs text-slate-400 truncate">{p.description}</p>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                              {p.reference && <p className="text-xs text-slate-400">Ref: {p.reference}</p>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Cantidad y precio */}
                   <div className="grid grid-cols-12 gap-2 items-center">
-                    <Input
-                      className="col-span-3 text-sm text-center"
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="Ud."
-                      value={l.cantidad}
-                      onChange={e => updateLinea(i, 'cantidad', parseFloat(e.target.value) || 0)}
-                    />
+                    <div className="col-span-4">
+                      <Input
+                        className="text-sm text-center"
+                        type="number" min="0" step="0.5"
+                        placeholder="Cantidad"
+                        value={l.cantidad}
+                        onChange={e => updateLinea(i, 'cantidad', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
                     <div className="col-span-4 relative">
                       <Input
-                        className="text-sm pr-6"
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        className="text-sm pr-5"
+                        type="number" min="0" step="0.01"
                         placeholder="€/ud"
                         value={l.precio}
                         onChange={e => updateLinea(i, 'precio', parseFloat(e.target.value) || 0)}
                       />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">€</span>
                     </div>
-                    <div className="col-span-5 text-sm font-medium text-slate-600 text-right pr-1">
+                    <div className="col-span-4 text-sm font-semibold text-slate-600 text-right">
                       = {(l.cantidad * l.precio).toFixed(2)}€
                     </div>
                   </div>
                 </div>
               ))}
-              <div className="text-right text-sm font-semibold text-slate-700 border-t pt-2">
+
+              <div className="text-right text-sm font-bold text-slate-700 border-t pt-2">
                 Total: {lineas.reduce((a, l) => a + l.cantidad * l.precio, 0).toFixed(2)}€
               </div>
             </div>
