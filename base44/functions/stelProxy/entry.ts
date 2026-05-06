@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const STEL_BASE = 'https://stelorder.com';
+const STEL_BASE = 'https://app.stelorder.com/app';
 
 async function getApiKey(base44Client) {
   // Priority 1: environment secret
@@ -19,7 +19,7 @@ async function stelGet(path, params = {}, apiKey) {
   const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
   const url = `${STEL_BASE}${path}${qs}`;
   console.log('[stelProxy] GET', url);
-  const res = await fetch(url, { headers: { 'API_KEY': apiKey } });
+  const res = await fetch(url, { headers: { 'APIKEY': apiKey } });
   const text = await res.text();
   console.log('[stelProxy] Response status:', res.status, '| body preview:', text.substring(0, 200));
   if (!res.ok) throw new Error(`STEL API error ${res.status}: ${text}`);
@@ -31,7 +31,7 @@ async function stelPost(path, body, apiKey) {
   console.log('[stelProxy] POST', url);
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'API_KEY': apiKey },
+    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
     body: JSON.stringify(body),
   });
   const text = await res.text();
@@ -44,7 +44,7 @@ async function stelPut(path, body, apiKey) {
   console.log('[stelProxy] PUT', url);
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'API_KEY': apiKey },
+    headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey },
     body: JSON.stringify(body),
   });
   const text = await res.text();
@@ -91,14 +91,14 @@ Deno.serve(async (req) => {
 
     // --- TEST CONNECTION ---
     if (action === 'testConnection') {
-      const data = await stelGet('/clients', { limit: 1 }, apiKey);
+      const data = await stelGet('/clients', {}, apiKey);
       return Response.json({ ok: true, message: 'Conexión correcta con STEL Order' });
     }
 
     // --- CLIENTS ---
     if (action === 'searchClients') {
-      const { query = '', limit = 20, offset = 0 } = payload;
-      const params = { limit, offset };
+      const { query = '' } = payload;
+      const params = {};
       if (query) params['legal-name'] = query;
       const data = await stelGet('/clients', params, apiKey);
       const list = Array.isArray(data) ? data : (data.clients || []);
@@ -106,11 +106,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'listClients') {
-      const { limit = 50, offset = 0, search = '' } = payload;
-      const params = { limit, offset };
+      const { search = '' } = payload;
+      const params = {};
       if (search) params['legal-name'] = search;
-      const data = await stelGet('/customers', params, apiKey);
-      const list = Array.isArray(data) ? data : [];
+      const data = await stelGet('/clients', params, apiKey);
+      const list = Array.isArray(data) ? data : (data.clients || data.data || []);
       return Response.json({ clients: list.map(mapClient) });
     }
 
