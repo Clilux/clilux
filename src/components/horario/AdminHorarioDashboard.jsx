@@ -1,29 +1,116 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, Clock, LogIn, LogOut, Coffee, Calendar, FileDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
 import EditarRegistroModal from './EditarRegistroModal';
 import CrearAlbaranStelModal from './CrearAlbaranStelModal';
+import SolicitudAusenciaModal from './SolicitudAusenciaModal';
 import { useQueryClient } from '@tanstack/react-query';
+import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
+import { toast } from 'sonner';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord }) {
   const queryClient = useQueryClient();
-  const [period, setPeriod] = useState('month'); // day | week | month | year
+  const [period, setPeriod] = useState('month');
   const [refDate, setRefDate] = useState(new Date());
   const [selectedTech, setSelectedTech] = useState('all');
   const [expandedRow, setExpandedRow] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
   const [albaranRecord, setAlbaranRecord] = useState(null);
+  const [showAusencia, setShowAusencia] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  const jornadaDiaria = myTechRecord?.horas_jornada_diaria || 8;
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const { data: myRegistros = [] } = useQuery({
+    queryKey: ['my-registros-admin', currentUser?.email],
+    queryFn: async () => {
+      const all = await base44.entities.RegistroHorario.list('-fecha', 500);
+      return all.filter(r => r.technician_email === currentUser?.email);
+    },
+    enabled: !!currentUser && !!myTechRecord,
+  });
+
+  const todayRecord = myRegistros.find(r => r.fecha === todayStr);
+  const intervalos = todayRecord?.intervalos || [];
+  const ultimoIntervalo = intervalos[intervalos.length - 1];
+  const jornadaActiva = !!ultimoIntervalo && !ultimoIntervalo.salida;
+  const jornadaFinalizada = !!(todayRecord?.finalizada);
+  const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaActiva && !jornadaFinalizada;
+
+  const inicioJornada = useMutation({
+    mutationFn: async () => {
+      setGeoLoading(true);
+      const geo = await getGeoLocation().catch(() => null);
+      setGeoLoading(false);
+      const now = format(new Date(), 'HH:mm');
+      const nuevoIntervalo = { entrada: now, salida: null };
+      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
+      if (todayRecord) {
+        const newIntervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
+        return base44.entities.RegistroHorario.update(todayRecord.id, {
+          intervalos: newIntervalos, hora_salida: null, finalizada: false,
+          ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
+        });
+      }
+      return base44.entities.RegistroHorario.create({
+        technician_email: currentUser.email,
+        technician_name: myTechRecord?.name || currentUser.full_name || currentUser.email,
+        technician_id: myTechRecord?.id || '',
+        company_id: myTechRecord?.company_id || '',
+        fecha: todayStr, hora_entrada: now, tipo_jornada: 'normal', pausas: [],
+        intervalos: [nuevoIntervalo],
+        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints }),
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-registros-admin'] }); toast.success('Jornada iniciada'); },
+    onError: () => setGeoLoading(false),
+  });
+
+  const pausaJornada = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      const now = format(new Date(), 'HH:mm');
+      const newIntervalos = (todayRecord.intervalos || []).map((t, i) =>
+        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
+      );
+      return base44.entities.RegistroHorario.update(todayRecord.id, { intervalos: newIntervalos, hora_salida: now });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-registros-admin'] }); toast.success('Jornada pausada'); },
+  });
+
+  const finJornada = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      setGeoLoading(true);
+      const geo = await getGeoLocation().catch(() => null);
+      setGeoLoading(false);
+      const now = format(new Date(), 'HH:mm');
+      const newIntervalos = (todayRecord.intervalos || []).map((t, i) =>
+        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
+      );
+      const calcs = calcularHoras({ ...todayRecord, intervalos: newIntervalos, hora_salida: now }, jornadaDiaria);
+      const geopoints = [...(todayRecord.geopoints || [])];
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
+      return base44.entities.RegistroHorario.update(todayRecord.id, {
+        intervalos: newIntervalos, hora_salida: now, finalizada: true, ...calcs,
+        ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
+      });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-registros-admin'] }); toast.success('Jornada finalizada'); },
+    onError: () => setGeoLoading(false),
+  });
 
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
@@ -257,6 +344,121 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
 
   return (
     <div className="space-y-5">
+
+      {/* Mi jornada (admin que también es técnico) */}
+      {myTechRecord && (
+        <Card className="bg-white border-0 shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-white/80" />
+              <span className="text-white font-semibold">Mi jornada de hoy</span>
+            </div>
+            <span className="text-blue-100 text-xs capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</span>
+          </div>
+          <div className="p-5">
+            {/* Status */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                jornadaActiva ? 'bg-emerald-500 animate-pulse' :
+                jornadaPausada ? 'bg-amber-400' :
+                jornadaFinalizada ? 'bg-slate-300' : 'bg-red-400'
+              }`} />
+              <span className="text-sm font-medium text-slate-700">
+                {jornadaActiva ? `En jornada desde ${ultimoIntervalo?.entrada}` :
+                 jornadaPausada ? `Pausada · ${intervalos.length} tramo${intervalos.length > 1 ? 's' : ''}` :
+                 jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h efectivas` :
+                 'Sin jornada hoy'}
+              </span>
+              {jornadaActiva && <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs ml-auto">Activo</Badge>}
+              {jornadaPausada && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs ml-auto">Pausada</Badge>}
+            </div>
+
+            {/* Resumen horas */}
+            {todayRecord && intervalos.length > 0 && (
+              <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Inicio</p>
+                  <p className="font-semibold text-emerald-600 text-sm">{intervalos[0]?.entrada || '—'}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Último fin</p>
+                  <p className="font-semibold text-red-500 text-sm">{ultimoIntervalo?.salida || (jornadaActiva ? '—' : todayRecord.hora_salida || '—')}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Normales</p>
+                  <p className="font-semibold text-blue-600 text-sm">{todayRecord.horas_normales ? `${todayRecord.horas_normales}h` : '—'}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-xs text-slate-400">Extra</p>
+                  <p className={`font-semibold text-sm ${(todayRecord.horas_extra || 0) > 0 ? 'text-orange-500' : 'text-slate-300'}`}>
+                    {(todayRecord.horas_extra || 0) > 0 ? `${todayRecord.horas_extra}h` : '0h'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tramos */}
+            {intervalos.length > 0 && (
+              <div className="mb-4 text-xs bg-blue-50 rounded-lg p-2.5 space-y-1.5">
+                <p className="font-semibold text-blue-700 mb-1">Tramos del día ({intervalos.length})</p>
+                {intervalos.map((t, i) => (
+                  <div key={i} className="flex items-center gap-2 text-slate-600">
+                    <span className="bg-blue-200 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                    <span className="text-emerald-600 font-medium">{t.entrada}</span>
+                    <span className="text-slate-400">→</span>
+                    <span className={!t.salida ? 'text-emerald-500 font-medium animate-pulse' : 'text-red-500 font-medium'}>
+                      {t.salida || 'en curso'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="space-y-2">
+              {!jornadaActiva && (
+                <Button
+                  onClick={() => inicioJornada.mutate()}
+                  disabled={inicioJornada.isPending || geoLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  {jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Iniciar jornada'}
+                </Button>
+              )}
+              {jornadaActiva && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => pausaJornada.mutate()} disabled={pausaJornada.isPending}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50 h-11">
+                    <Coffee className="h-4 w-4 mr-2" />Pausa
+                  </Button>
+                  <Button variant="outline" onClick={() => finJornada.mutate()} disabled={finJornada.isPending || geoLoading}
+                    className="border-red-300 text-red-600 hover:bg-red-50 h-11">
+                    <LogOut className="h-4 w-4 mr-2" />Fin jornada
+                  </Button>
+                </div>
+              )}
+              {jornadaFinalizada && !jornadaActiva && (
+                <p className="text-xs text-slate-400 text-center">Jornada finalizada · Puedes reanudar si es necesario</p>
+              )}
+            </div>
+            {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
+
+            {/* Acciones secundarias */}
+            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+              {todayRecord && (
+                <Button variant="ghost" size="sm" className="text-xs text-slate-500 gap-1.5" onClick={() => setEditingRecord(todayRecord)}>
+                  <Pencil className="h-3.5 w-3.5" />Corregir fichaje
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="text-xs text-purple-600 gap-1.5 ml-auto" onClick={() => setShowAusencia(true)}>
+                <Calendar className="h-3.5 w-3.5" />Solicitar ausencia
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={period} onValueChange={setPeriod}>
@@ -510,8 +712,15 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
         <EditarRegistroModal
           registro={editingRecord}
           currentUser={currentUser}
-          jornadaDiaria={8}
-          onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['admin-registros'] }); }}
+          jornadaDiaria={jornadaDiaria}
+          onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['admin-registros'] }); queryClient.invalidateQueries({ queryKey: ['my-registros-admin'] }); }}
+        />
+      )}
+      {showAusencia && (
+        <SolicitudAusenciaModal
+          currentUser={currentUser}
+          techRecord={myTechRecord}
+          onClose={() => setShowAusencia(false)}
         />
       )}
     </div>
