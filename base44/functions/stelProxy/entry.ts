@@ -170,31 +170,44 @@ Deno.serve(async (req) => {
     // --- PRODUCTS / SERVICES ---
     if (action === 'searchProducts') {
       const { query = '' } = payload;
-      // STEL doesn't support text search on /products — fetch all and filter locally
-      const data = await stelGet('/products', {}, apiKey);
-      let list = Array.isArray(data) ? data : (data.products || data.data || []);
-      // Filter locally by query (matches name or description, case-insensitive)
+      // Fetch both products and services in parallel
+      const [prodData, svcData] = await Promise.all([
+        stelGet('/products', {}, apiKey).catch(() => []),
+        stelGet('/services', {}, apiKey).catch(() => []),
+      ]);
+      let products = Array.isArray(prodData) ? prodData : (prodData.products || prodData.data || []);
+      let services = Array.isArray(svcData) ? svcData : (svcData.services || svcData.data || []);
+
+      // Tag each item with its type
+      products = products.map(p => ({ ...p, _type: 'product' }));
+      services = services.map(s => ({ ...s, _type: 'service' }));
+
+      let list = [...products, ...services];
+
+      // Filter locally by query
       if (query.trim()) {
         const q = query.toLowerCase();
         list = list.filter(p => {
-          const name = (p.name || p.description || '').toLowerCase();
+          const name = (p.name || '').toLowerCase();
           const desc = (p.description || '').toLowerCase();
-          return name.includes(q) || desc.includes(q);
+          const ref = (p.reference || p['full-reference'] || '').toLowerCase();
+          return name.includes(q) || desc.includes(q) || ref.includes(q);
         });
       }
-      // Extract tax id from primary-tax-path e.g. "app.stelorder.com/app/taxLines/129850"
+
       return Response.json({
-        products: list.slice(0, 30).map(p => {
+        products: list.slice(0, 50).map(p => {
           const taxPath = p['primary-tax-path'] || '';
           const taxIdMatch = taxPath.match(/\/taxLines\/(\d+)/);
           return {
             id: p.id,
-            name: p.name || p.description || '',
+            type: p._type,
+            name: p.name || '',
             description: p.description || '',
             price: p['sales-price'] ?? 0,
-            taxId: taxIdMatch ? parseInt(taxIdMatch[1]) : null,
+            taxId: p['primary-tax-id'] || (taxIdMatch ? parseInt(taxIdMatch[1]) : null),
             taxPercentage: p['primary-tax-percentage'] ?? null,
-            reference: p.reference || '',
+            reference: p['full-reference'] || p.reference || '',
           };
         })
       });
@@ -210,33 +223,36 @@ Deno.serve(async (req) => {
     if (action === 'createAlbaran') {
       const { clientId, fecha, titulo, lineas, notas } = payload;
 
+      // STEL requires ISO 8601 with timezone: 2026-05-06T00:00:00+0000
+      const fechaISO = fecha && fecha.includes('T') ? fecha : `${fecha}T00:00:00+0000`;
+
       const lines = lineas.map(l => {
         if (l.productId) {
-          // Linked product line
+          // Linked product/service line — use ITEM type with item-id
           return {
             'line-type': 'ITEM',
             'item-id': l.productId,
-            name: l.concepto,
+            description: l.concepto,
             quantity: l.cantidad,
             price: l.precio,
-            ...(l.taxId ? { 'tax-id': l.taxId } : {}),
+            ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
           };
         } else {
-          // Free text line (no product) — STEL only allows ITEM/COMPONENT/SECTION
-          // SECTION is a text-only header but we try it for free text
+          // Free text line — STEL requires ITEM lines; skip if no productId
+          // Fall back to a minimal ITEM without item-id (will be rejected, so we handle this in UI)
           return {
-            'line-type': 'SECTION',
-            name: l.concepto,
+            'line-type': 'ITEM',
+            description: l.concepto,
             quantity: l.cantidad,
             price: l.precio,
-            ...(l.taxId ? { 'tax-id': l.taxId } : {}),
+            ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
           };
         }
       });
 
       const body = {
         'account-id': clientId,
-        date: fecha,
+        date: fechaISO,
         ...(titulo ? { subject: titulo } : {}),
         notes: notas || '',
         lines,
