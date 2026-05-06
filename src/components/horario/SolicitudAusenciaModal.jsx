@@ -28,23 +28,27 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!form.fecha_inicio || !form.fecha_fin || dias < 1) throw new Error('Fechas inválidas');
-      return base44.entities.Ausencia.create({
-        technician_email: currentUser.email,
-        technician_name: techRecord?.name || currentUser.full_name || currentUser.email,
+      if (!form.fecha_inicio || !form.fecha_fin) throw new Error('Debes seleccionar fechas de inicio y fin');
+      if (dias < 1) throw new Error('La fecha de fin debe ser posterior a la de inicio');
+      const data = {
+        technician_email: currentUser?.email || '',
+        technician_name: techRecord?.name || currentUser?.full_name || currentUser?.email || '',
         technician_id: techRecord?.id || '',
         company_id: techRecord?.company_id || '',
-        ...form,
+        tipo: form.tipo,
+        fecha_inicio: form.fecha_inicio,
+        fecha_fin: form.fecha_fin,
         dias_totales: dias,
         estado: 'pendiente',
-      });
+      };
+      if (form.motivo) data.motivo = form.motivo;
+      return base44.entities.Ausencia.create(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       toast.success('Solicitud enviada, pendiente de aprobación');
       onClose();
     },
-    onError: (err) => toast.error(err.message || 'Error al enviar'),
+    onError: (err) => toast.error(err.message || 'Error al enviar la solicitud'),
   });
 
   return (

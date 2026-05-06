@@ -236,8 +236,10 @@ Deno.serve(async (req) => {
         'line-type': 'ITEM',
         'item-id': l.productId,
         description: l.concepto || undefined,
+        units: l.cantidad,
         quantity: l.cantidad,
         price: l.precio,
+        'unit-price': l.precio,
         ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
       }));
 

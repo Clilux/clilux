@@ -62,11 +62,12 @@ export default function ControlHorario() {
       const nuevoIntervalo = { entrada: now, salida: null };
       const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
       if (todayRecord) {
-        // Reanudar: añadir nuevo intervalo
+        // Reanudar: añadir nuevo intervalo y quitar flag finalizada
         const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
         return base44.entities.RegistroHorario.update(todayRecord.id, {
           intervalos,
           hora_salida: null,
+          finalizada: false,
           ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
         });
       }
@@ -341,15 +342,15 @@ export default function ControlHorario() {
 
             {/* Botones de acción — 3 estados */}
             <div className="space-y-2">
-              {/* INICIO JORNADA — visible cuando no está activa */}
-              {!jornadaActiva && !jornadaFinalizada && (
+              {/* INICIO / REANUDAR JORNADA — visible cuando no está activa */}
+              {!jornadaActiva && (
                 <Button
                   onClick={() => inicioJornada.mutate()}
                   disabled={inicioJornada.isPending || geoLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11"
                 >
                   <LogIn className="h-4 w-4 mr-2" />
-                  {jornadaPausada ? 'Reanudar jornada' : 'Iniciar jornada'}
+                  {jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Iniciar jornada'}
                 </Button>
               )}
 
@@ -375,11 +376,11 @@ export default function ControlHorario() {
                 </div>
               )}
 
-              {/* Jornada completada */}
-              {jornadaFinalizada && (
-                <div className="bg-slate-50 rounded-lg p-3 text-center text-sm text-slate-500">
-                  ✅ Jornada completada · {todayRecord?.horas_efectivas || 0}h efectivas
-                </div>
+              {/* Info jornada finalizada */}
+              {jornadaFinalizada && !jornadaActiva && (
+                <p className="text-xs text-slate-400 text-center">
+                  Jornada finalizada · {todayRecord?.horas_efectivas || 0}h efectivas · Puedes reanudar si es necesario
+                </p>
               )}
             </div>
             {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
