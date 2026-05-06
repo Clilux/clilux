@@ -248,8 +248,12 @@ Deno.serve(async (req) => {
         lines,
       };
 
-      // Only include subject if non-empty (STEL rejects empty string subject)
-      if (titulo && titulo.trim()) body.subject = titulo.trim();
+      // Send title as both 'subject' and 'name' — STEL uses 'subject' for delivery notes
+      if (titulo && titulo.trim()) {
+        body.subject = titulo.trim();
+        body.name = titulo.trim();
+        body.title = titulo.trim();
+      }
       // Only include document-state-id if provided
       if (documentStateId) body['document-state-id'] = documentStateId;
 

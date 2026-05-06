@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download } from 'lucide-react';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
@@ -138,6 +138,61 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
   const totalDias = new Set(registros.map(r => r.fecha + r.technician_email)).size;
   const conGPS = registros.filter(r => r.geopoints?.length > 0 || r.ubicacion_entrada).length;
 
+  // Resumen mensual por técnico
+  const resumenPorTecnico = useMemo(() => {
+    const map = {};
+    registros.forEach(r => {
+      const key = r.technician_email;
+      if (!map[key]) map[key] = { name: r.technician_name || r.technician_email, normal: 0, extra: 0, dias: new Set() };
+      map[key].normal += r.horas_normales || 0;
+      map[key].extra += r.horas_extra || 0;
+      map[key].dias.add(r.fecha);
+    });
+    return Object.values(map).map(t => ({ ...t, dias: t.dias.size })).sort((a, b) => b.normal - a.normal);
+  }, [registros]);
+
+  const exportCSV = () => {
+    const rows = [['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'H.Pausa', 'Tipo', 'Notas']];
+    registros.sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(r => {
+      rows.push([
+        r.technician_name || r.technician_email, r.fecha,
+        r.hora_entrada || '', r.hora_salida || '',
+        r.horas_normales || 0, r.horas_extra || 0,
+        r.minutos_pausa ? `${r.minutos_pausa}min` : '0',
+        r.tipo_jornada || 'normal', r.notas || ''
+      ]);
+    });
+    const csv = rows.map(r => r.join(';')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `horario_${periodLabel.replace(/\s/g, '_')}.csv`;
+    a.click();
+  };
+
+  const exportRowCSV = (r) => {
+    const intervalos = r.intervalos || [];
+    const tramosStr = intervalos.map((t, i) => `Tramo${i+1}: ${t.entrada}-${t.salida||'en curso'}`).join(' | ');
+    const rows = [
+      ['Técnico', 'Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'Min.Pausa', 'Tipo', 'Tramos', 'Notas'],
+      [
+        r.technician_name || r.technician_email, r.fecha,
+        r.hora_entrada || '', r.hora_salida || '',
+        r.horas_normales || 0, r.horas_extra || 0,
+        r.minutos_pausa || 0,
+        r.tipo_jornada || 'normal',
+        tramosStr,
+        r.notas || ''
+      ]
+    ];
+    const csv = rows.map(row => row.join(';')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `jornada_${r.technician_name?.split(' ')[0] || 'tecnico'}_${r.fecha}.csv`;
+    a.click();
+  };
+
   return (
     <div className="space-y-5">
       {/* Controls */}
@@ -208,6 +263,42 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
               <Bar dataKey="extra" fill="#f97316" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </Card>
+      )}
+
+      {/* Resumen mensual por técnico */}
+      {resumenPorTecnico.length > 0 && (
+        <Card className="bg-white border-0 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+            <h3 className="font-semibold text-slate-700 text-sm">Resumen por técnico · {periodLabel}</h3>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={exportCSV}>
+              <Download className="h-3.5 w-3.5" />Exportar CSV
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="text-left p-3 text-slate-500 font-medium">Técnico</th>
+                  <th className="text-center p-3 text-slate-500 font-medium">Días</th>
+                  <th className="text-center p-3 text-slate-500 font-medium">H. normales</th>
+                  <th className="text-center p-3 text-slate-500 font-medium">H. extra</th>
+                  <th className="text-center p-3 text-slate-500 font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumenPorTecnico.map((t, i) => (
+                  <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
+                    <td className="p-3 font-medium text-slate-700">{t.name}</td>
+                    <td className="p-3 text-center text-slate-600">{t.dias}</td>
+                    <td className="p-3 text-center font-semibold text-blue-600">{Math.round(t.normal * 10) / 10}h</td>
+                    <td className="p-3 text-center font-semibold text-orange-500">{Math.round(t.extra * 10) / 10 > 0 ? `${Math.round(t.extra * 10) / 10}h` : '—'}</td>
+                    <td className="p-3 text-center font-bold text-slate-700">{Math.round((t.normal + t.extra) * 10) / 10}h</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -284,6 +375,15 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                             {r.historial_modificaciones?.length > 0 && (
                               <History className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" title={`${r.historial_modificaciones.length} mod.`} />
                             )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-slate-400 hover:text-emerald-600"
+                              onClick={() => exportRowCSV(r)}
+                              title="Descargar jornada CSV"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

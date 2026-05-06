@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
@@ -156,6 +156,21 @@ export default function ControlHorario() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `horario_${monthStr}.csv`;
+    a.click();
+  };
+
+  const exportRowCSV = (r) => {
+    const intervalos = r.intervalos || [];
+    const tramosStr = intervalos.map((t, i) => `Tramo${i+1}: ${t.entrada}-${t.salida||'en curso'}`).join(' | ');
+    const rows = [
+      ['Fecha', 'Entrada', 'Salida', 'H.Normales', 'H.Extra', 'Min.Pausa', 'Tipo', 'Tramos', 'Notas'],
+      [r.fecha, r.hora_entrada||'', r.hora_salida||'', r.horas_normales||0, r.horas_extra||0, r.minutos_pausa||0, r.tipo_jornada||'normal', tramosStr, r.notas||'']
+    ];
+    const csv = rows.map(row => row.join(';')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `jornada_${r.fecha}.csv`;
     a.click();
   };
 
@@ -382,6 +397,9 @@ export default function ControlHorario() {
                           {r.historial_modificaciones?.length > 0 && (
                             <History className="h-3.5 w-3.5 text-amber-400" title="Modificado" />
                           )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => exportRowCSV(r)} title="Descargar jornada">
+                            <FileDown className="h-3.5 w-3.5" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={() => setEditingRecord(r)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
