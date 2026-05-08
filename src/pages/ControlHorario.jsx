@@ -11,7 +11,7 @@ import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Penc
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
+import { calcularHoras, getGeoLocation, formatHoras } from '@/lib/horario-utils';
 import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
@@ -336,11 +336,11 @@ export default function ControlHorario() {
       {/* Monthly stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
-          <p className="text-2xl font-bold text-blue-600">{Math.round(totalNormal * 10) / 10}h</p>
+          <p className="text-2xl font-bold text-blue-600">{formatHoras(totalNormal)}</p>
           <p className="text-xs text-slate-500 mt-0.5">Horas normales</p>
         </Card>
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
-          <p className={`text-2xl font-bold ${totalExtra > 0 ? 'text-orange-500' : 'text-slate-300'}`}>{Math.round(totalExtra * 10) / 10}h</p>
+          <p className={`text-2xl font-bold ${totalExtra > 0 ? 'text-orange-500' : 'text-slate-300'}`}>{formatHoras(totalExtra)}</p>
           <p className="text-xs text-slate-500 mt-0.5">Horas extra</p>
         </Card>
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
@@ -385,8 +385,8 @@ export default function ControlHorario() {
                     <td className="p-3 text-slate-600 whitespace-nowrap">{r.fecha ? format(parseISO(r.fecha), "EEE d MMM", { locale: es }) : '-'}</td>
                     <td className="p-3"><span className="text-emerald-600 font-medium">{r.hora_entrada || '—'}</span>{r.ubicacion_entrada && <MapPin className="h-3 w-3 text-emerald-300 inline ml-1" />}</td>
                     <td className="p-3"><span className="text-red-500 font-medium">{r.hora_salida || '—'}</span>{r.ubicacion_salida && <MapPin className="h-3 w-3 text-red-300 inline ml-1" />}</td>
-                    <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? `${r.horas_normales}h` : '—'}</td>
-                    <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? `${r.horas_extra}h` : '—'}</td>
+                    <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? formatHoras(r.horas_normales) : '—'}</td>
+                    <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? formatHoras(r.horas_extra) : '—'}</td>
                     <td className="p-3 text-slate-400 text-xs">{r.minutos_pausa > 0 ? `${r.minutos_pausa}m` : '—'}</td>
                     <td className="p-3">
                       <div className="flex items-center gap-1">

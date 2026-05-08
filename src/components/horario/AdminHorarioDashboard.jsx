@@ -15,6 +15,7 @@ import MapaRuta from '@/components/horario/MapaRuta';
 import EditarRegistroModal from './EditarRegistroModal';
 import CrearAlbaranStelModal from './CrearAlbaranStelModal';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatHoras } from '@/lib/horario-utils';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord }) {
   const queryClient = useQueryClient();
@@ -355,9 +356,9 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                   <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="p-3 font-medium text-slate-700">{t.name}</td>
                     <td className="p-3 text-center text-slate-600">{t.dias}</td>
-                    <td className="p-3 text-center font-semibold text-blue-600">{Math.round(t.normal * 10) / 10}h</td>
-                    <td className="p-3 text-center font-semibold text-orange-500">{Math.round(t.extra * 10) / 10 > 0 ? `${Math.round(t.extra * 10) / 10}h` : '—'}</td>
-                    <td className="p-3 text-center font-bold text-slate-700">{Math.round((t.normal + t.extra) * 10) / 10}h</td>
+                    <td className="p-3 text-center font-semibold text-blue-600">{formatHoras(t.normal)}</td>
+                    <td className="p-3 text-center font-semibold text-orange-500">{t.extra > 0 ? formatHoras(t.extra) : '—'}</td>
+                    <td className="p-3 text-center font-bold text-slate-700">{formatHoras(t.normal + t.extra)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -405,8 +406,8 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                         </td>
                         <td className="p-3 text-emerald-600 font-medium">{r.hora_entrada || '—'}</td>
                         <td className="p-3 text-red-500 font-medium">{r.hora_salida || '—'}</td>
-                        <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? `${r.horas_normales}h` : '—'}</td>
-                        <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? `${r.horas_extra}h` : '—'}</td>
+                        <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? formatHoras(r.horas_normales) : '—'}</td>
+                        <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? formatHoras(r.horas_extra) : '—'}</td>
                         <td className="p-3">
                           {tieneGeo ? (
                             <Button

@@ -10,6 +10,15 @@ export function minutesToHours(m) {
   return Math.round((m / 60) * 100) / 100;
 }
 
+// Formatea minutos como "Xh Ym" — más legible que decimales
+export function formatHoras(h) {
+  const totalMins = Math.round(h * 60);
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (mins === 0) return `${hrs}h`;
+  return `${hrs}h ${mins}m`;
+}
+
 /**
  * Calculate hours for a registro given the technician's contracted daily hours.
  * Returns { horas_trabajadas, horas_efectivas, horas_normales, horas_extra, minutos_pausa }
