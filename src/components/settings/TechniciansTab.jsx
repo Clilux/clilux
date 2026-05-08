@@ -26,9 +26,9 @@ export default function TechniciansTab({ technicians, queryClient }) {
       const existing = await base44.entities.Technician.filter({ email });
       if (existing.length > 0) throw new Error('Ya existe un técnico con ese email');
       await base44.entities.Technician.create({
-        name,
-        email,
-        portal_password: password,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        portal_password: password.trim(),
         phone: phone || '',
         specialty: specialty || '',
         status: 'active',
@@ -46,7 +46,7 @@ export default function TechniciansTab({ technicians, queryClient }) {
 
   const updatePasswordMutation = useMutation({
     mutationFn: async ({ id, password }) => {
-      await base44.entities.Technician.update(id, { portal_password: password });
+      await base44.entities.Technician.update(id, { portal_password: password.trim() });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });

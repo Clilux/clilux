@@ -112,9 +112,9 @@ export default function AdminPanel() {
         : (inviteData.companyName ? inviteData.companyName.toLowerCase().replace(/\s+/g, '_') : '');
 
       await base44.entities.Technician.create({
-        name: inviteData.techName,
-        email: inviteData.email,
-        portal_password: inviteData.password,
+        name: inviteData.techName.trim(),
+        email: inviteData.email.trim().toLowerCase(),
+        portal_password: inviteData.password.trim(),
         company_name: inviteData.companyName || '',
         company_id: companyId,
         status: 'active',
@@ -137,7 +137,7 @@ export default function AdminPanel() {
       return;
     }
     try {
-      await base44.entities.Technician.update(techId, { portal_password: editPassword });
+      await base44.entities.Technician.update(techId, { portal_password: editPassword.trim() });
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success('Contraseña actualizada');
       setEditingPwdId(null);

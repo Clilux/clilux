@@ -101,8 +101,10 @@ export default function MenuInicio() {
     setIsLoggingIn(true);
     try {
       // Buscar técnico con esas credenciales en la BD
-      const technicians = await base44.entities.Technician.filter({ email: techCredentials.email });
-      const tech = technicians.find(t => t.portal_password === techCredentials.password && t.status === 'active');
+      const technicians = await base44.entities.Technician.filter({ email: techCredentials.email.trim().toLowerCase() });
+      const inputPwd = techCredentials.password.trim();
+      const tech = technicians.find(t => (t.portal_password || '').trim() === inputPwd && t.status === 'active');
+      console.log('[TechLogin] found techs:', technicians.length, 'match:', !!tech, 'pwd stored:', technicians[0]?.portal_password, 'input:', inputPwd);
       if (tech) {
         localStorage.setItem('clilux_tech_email', techCredentials.email);
         localStorage.setItem('clilux_tech_password', techCredentials.password);
