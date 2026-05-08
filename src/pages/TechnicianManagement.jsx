@@ -39,11 +39,21 @@ export default function TechnicianManagement() {
   const technicians = users.filter(u => u.role === 'admin' || !u.user_email);
 
   const inviteMutation = useMutation({
-    mutationFn: async ({ email, role }) => {
-      await base44.users.inviteUser(email, role);
+    mutationFn: async ({ email, fullName }) => {
+      await base44.users.inviteUser(email, 'user');
+      // También crear el registro Technician si no existe
+      const existing = await base44.entities.Technician.filter({ email });
+      if (existing.length === 0) {
+        await base44.entities.Technician.create({
+          name: fullName || email.split('@')[0],
+          email,
+          status: 'active',
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
       setInviteSuccess(true);
       toast.success('Técnico invitado correctamente');
     },
@@ -108,7 +118,7 @@ export default function TechnicianManagement() {
       toast.error('Introduce el email del técnico');
       return;
     }
-    inviteMutation.mutate({ email, role: 'admin' });
+    inviteMutation.mutate({ email, fullName });
   };
 
   const handleCreate = async () => {
@@ -232,9 +242,18 @@ export default function TechnicianManagement() {
                         className="mt-1"
                       />
                     </div>
+                    <div>
+                      <Label>Nombre completo</Label>
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Juan Pérez"
+                        className="mt-1"
+                      />
+                    </div>
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                       <p className="font-medium mb-1">ℹ️ Cómo funciona:</p>
-                      <p className="text-xs">El técnico recibirá un email desde noreply@base44.com con un enlace para crear su contraseña. Puede tardar unos minutos. Revisar spam.</p>
+                      <p className="text-xs">El técnico recibirá un email de bienvenida. Para acceder, deberá ir a la pantalla de login y pulsar <strong>"¿Olvidaste tu contraseña?"</strong> para establecer la suya. Revisar spam si no llega.</p>
                     </div>
                     <Button 
                       onClick={handleInvite} 
@@ -271,9 +290,19 @@ export default function TechnicianManagement() {
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm text-emerald-700">
-                        {email} recibirá un email con instrucciones para crear su contraseña.
-                      </p>
+                      <div className="space-y-3">
+                        <p className="text-sm text-emerald-700">
+                          Se ha enviado un email de bienvenida a <strong>{email}</strong>.
+                        </p>
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                          <p className="font-semibold mb-1">📧 Instrucciones para el técnico:</p>
+                          <ol className="list-decimal list-inside space-y-1">
+                            <li>Ir a la pantalla de inicio de sesión</li>
+                            <li>Pulsar <strong>"¿Olvidaste tu contraseña?"</strong></li>
+                            <li>Introducir su email y seguir el enlace recibido</li>
+                          </ol>
+                        </div>
+                      </div>
                     )}
                   </div>
                   
