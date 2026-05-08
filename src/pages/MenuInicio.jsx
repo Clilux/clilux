@@ -6,14 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
 
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null | 'client' | 'admin' | 'admin_register'
+  const [mode, setMode] = useState(null); // null | 'client' | 'admin' | 'admin_register' | 'forgot_tech'
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -136,6 +136,12 @@ export default function MenuInicio() {
               <Wrench className="h-5 w-5" />
               Acceso Técnico
             </Button>
+            <button
+              onClick={() => setMode('forgot_tech')}
+              className="w-full text-center text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2 py-1"
+            >
+              ¿Técnico? ¿Olvidaste tu contraseña?
+            </button>
             <Button
             onClick={() => setMode('admin')}
             className="bg-amber-700/80 text-white w-full h-12 hover:bg-amber-700 border border-amber-600/40 flex items-center justify-center gap-3 text-base font-medium rounded-md"
@@ -362,6 +368,34 @@ export default function MenuInicio() {
         </div>
         }
 
+        {/* Olvidar contraseña técnico */}
+        {mode === 'forgot_tech' &&
+        <div className="space-y-4">
+          <div className="text-center p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <KeyRound className="h-10 w-10 text-blue-400 mx-auto mb-3" />
+            <h3 className="text-white font-semibold mb-2">Recuperar contraseña</h3>
+            <p className="text-slate-300 text-sm mb-4">
+              Para recuperar tu contraseña, accede a la pantalla de inicio de sesión y pulsa <strong className="text-white">"¿Olvidaste tu contraseña?"</strong>. Recibirás un email con el enlace de recuperación.
+            </p>
+            <Button
+              onClick={() => base44.auth.redirectToLogin(createPageUrl('HomeTecnico'))}
+              className="bg-blue-600 text-white w-full h-11 hover:bg-blue-700 flex items-center justify-center gap-2 font-medium rounded-md"
+            >
+              <Wrench className="h-4 w-4" />
+              Ir al inicio de sesión
+            </Button>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setMode(null)}
+            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
+            variant="ghost"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
+        </div>
+        }
+
         {/* Formulario cliente */}
         {mode === 'client' &&
         <form onSubmit={handleClientLogin} className="space-y-5">
@@ -421,14 +455,9 @@ export default function MenuInicio() {
               ← Volver
             </Button>
 
-            <Button
-            type="button"
-            onClick={handleForget}
-            className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
-            variant="ghost">
-
-              Olvidar credenciales
-            </Button>
+            <p className="text-center text-xs text-slate-400">
+              ¿Olvidaste tu contraseña? Contacta con tu administrador.
+            </p>
           </form>
         }
 
