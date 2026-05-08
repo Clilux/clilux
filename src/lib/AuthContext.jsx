@@ -21,6 +21,15 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      // Si hay sesión de técnico propio o cliente, no requerir auth de Base44
+      const hasTechSession = !!sessionStorage.getItem('technician_email');
+      const hasClientSession = !!sessionStorage.getItem('client_id');
+      if (hasTechSession || hasClientSession) {
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
+        return;
+      }
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.

@@ -13,9 +13,11 @@ import { toast } from 'sonner';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null | 'client' | 'admin_register' | 'forgot_tech'
+  const [mode, setMode] = useState(null); // null | 'client' | 'technician' | 'admin_register' | 'forgot_tech'
   const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [techCredentials, setTechCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
+  const [techLoginError, setTechLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [registerData, setRegisterData] = useState({
     fullName: '',
@@ -42,25 +44,30 @@ export default function MenuInicio() {
   // Auto-login para cliente si hay credenciales guardadas (solo si no viene de logout)
   useEffect(() => {
     const autoLogin = async () => {
-      // Si hay flag de logout reciente, no hacer auto-login
       if (sessionStorage.getItem('just_logged_out')) {
         sessionStorage.removeItem('just_logged_out');
         return;
       }
+      // Auto-login técnico
+      const savedTechEmail = localStorage.getItem('clilux_tech_email');
+      const savedTechPassword = localStorage.getItem('clilux_tech_password');
+      if (savedTechEmail && savedTechPassword) {
+        sessionStorage.setItem('technician_email', savedTechEmail);
+        navigate(createPageUrl('HomeTecnico'));
+        return;
+      }
+      // Auto-login cliente
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
-
       if (savedEmail && savedPassword && settings) {
         const clientUsers = settings.client_users || [];
         const clientUser = clientUsers.find((u) => u.email === savedEmail && u.password === savedPassword);
-
         if (clientUser) {
           sessionStorage.setItem('client_id', clientUser.client_id);
           navigate(createPageUrl('HomeCliente'));
         }
       }
     };
-
     autoLogin();
   }, [settings, navigate]);
 
@@ -88,18 +95,44 @@ export default function MenuInicio() {
     }
   };
 
-  const handleTechnicianLogin = async () => {
+  const handleTechnicianLogin = async (e) => {
+    e.preventDefault();
+    setTechLoginError('');
     setIsLoggingIn(true);
-    await base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
+    try {
+      // Buscar técnico con esas credenciales en la BD
+      const technicians = await base44.entities.Technician.filter({ email: techCredentials.email });
+      const tech = technicians.find(t => t.portal_password === techCredentials.password && t.status === 'active');
+      if (tech) {
+        localStorage.setItem('clilux_tech_email', techCredentials.email);
+        localStorage.setItem('clilux_tech_password', techCredentials.password);
+        sessionStorage.setItem('technician_email', techCredentials.email);
+        navigate(createPageUrl('HomeTecnico'));
+      } else {
+        setTechLoginError('Email o contraseña incorrectos, o técnico inactivo');
+      }
+    } catch (err) {
+      setTechLoginError('Error al iniciar sesión: ' + err.message);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleAdminLogin = () => {
+    base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
   };
 
   const handleForget = () => {
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
+    localStorage.removeItem('clilux_tech_email');
+    localStorage.removeItem('clilux_tech_password');
     sessionStorage.removeItem('client_id');
+    sessionStorage.removeItem('technician_email');
     setCredentials({ email: '', password: '' });
+    setTechCredentials({ email: '', password: '' });
     setMode(null);
-    toast.success('Credenciales olvidadas');
+    toast.success('Sesión cerrada');
   };
 
   return (
@@ -126,27 +159,14 @@ export default function MenuInicio() {
         <div className="space-y-3">
             <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
 
-            {/* Técnico / Administrador — mismo botón, la app detecta el rol automáticamente */}
+            {/* Técnico */}
             <Button
-              onClick={handleTechnicianLogin}
-              className="bg-[#525b57] text-white w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-              variant="ghost"
+              onClick={() => setMode('technician')}
+              className="bg-[#525b57] text-white w-full h-12 hover:bg-[#3d4440] border border-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
             >
               <Wrench className="h-5 w-5" />
-              Acceso Técnico / Administrador
+              Acceso Técnico
             </Button>
-            <button
-              onClick={() => setMode('forgot_tech')}
-              className="w-full text-center text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2 py-1"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-
-            <div className="relative flex items-center gap-3 py-1">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-slate-500 text-xs">o</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
 
             {/* Cliente */}
             <Button
@@ -157,21 +177,82 @@ export default function MenuInicio() {
               Acceso Cliente
             </Button>
 
-            <div className="relative flex items-center gap-3 py-1">
+            <div className="relative flex items-center gap-3 py-2">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-slate-500 text-xs">¿Primera vez como administrador?</span>
+              <span className="text-slate-500 text-xs">Administradores</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
             <Button
-              onClick={() => setMode('admin_register')}
+              onClick={handleAdminLogin}
               className="bg-amber-700/60 text-white w-full h-10 hover:bg-amber-700 border border-amber-600/30 flex items-center justify-center gap-2 text-sm font-medium rounded-md"
               variant="ghost"
             >
-              <UserPlus className="h-4 w-4" />
-              Solicitar acceso administrador
+              <Shield className="h-4 w-4" />
+              Acceso Administrador
             </Button>
+
+            <button
+              onClick={() => setMode('admin_register')}
+              className="w-full text-center text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2 py-1"
+            >
+              ¿Primera vez? Solicitar acceso administrador
+            </button>
           </div>
+        }
+
+        {/* Login técnico */}
+        {mode === 'technician' &&
+        <form onSubmit={handleTechnicianLogin} className="space-y-5">
+          <p className="text-center text-slate-300 text-sm mb-2">Acceso para técnicos</p>
+          <div>
+            <Label className="text-white text-sm font-medium">Email</Label>
+            <Input
+              type="email"
+              value={techCredentials.email}
+              onChange={(e) => setTechCredentials(p => ({ ...p, email: e.target.value }))}
+              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+              placeholder="tecnico@empresa.com"
+              required
+              disabled={isLoggingIn}
+            />
+          </div>
+          <div>
+            <Label className="text-white text-sm font-medium">Contraseña</Label>
+            <Input
+              type="password"
+              value={techCredentials.password}
+              onChange={(e) => setTechCredentials(p => ({ ...p, password: e.target.value }))}
+              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+              placeholder="••••••••"
+              required
+              disabled={isLoggingIn}
+            />
+          </div>
+          {techLoginError && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+              <p className="text-red-400 text-sm">{techLoginError}</p>
+            </div>
+          )}
+          <Button
+            type="submit"
+            disabled={isLoggingIn}
+            className="bg-[#525b57] text-white w-full h-12 hover:bg-[#3d4440] font-medium text-base rounded-md"
+          >
+            {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Iniciar Sesión'}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => { setMode(null); setTechLoginError(''); }}
+            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
+            variant="ghost"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
+          </Button>
+          <p className="text-center text-xs text-slate-400">
+            Las credenciales son asignadas por tu administrador.
+          </p>
+        </form>
         }
 
         {/* Registro nuevo administrador */}

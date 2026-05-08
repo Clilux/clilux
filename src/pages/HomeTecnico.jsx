@@ -143,8 +143,21 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
 // ── Main component ───────────────────────────────────────────
 export default function HomeTecnico() {
   const [activeTab, setActiveTab] = useState('inicio');
-  const { user } = useCurrentTechnician();
-  const isAdmin = user?.role === 'admin';
+  const navigate = useNavigate();
+
+  // Detectar si el técnico está logado por sesión propia (no Base44)
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  // Base44 user (admin que se logó con Base44)
+  const { data: base44User } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech, // Solo si no hay sesión de técnico propio
+    retry: false,
+  });
+
+  const isAdmin = !isSessionTech && base44User?.role === 'admin';
 
   const { data: appSettings } = useQuery({
     queryKey: ['settings'],
@@ -156,20 +169,22 @@ export default function HomeTecnico() {
 
   const stelEnabled = appSettings?.integrations?.stel_order?.enabled === true;
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
+  // Registro del técnico actual (por sesión propia o por Base44)
+  const { data: myTechRecord = null } = useQuery({
+    queryKey: ['my-tech-record', sessionTechEmail || base44User?.email],
+    queryFn: async () => {
+      const email = sessionTechEmail || base44User?.email;
+      if (!email) return null;
+      const techs = await base44.entities.Technician.filter({ email });
+      return techs[0] || null;
+    },
+    enabled: !!(sessionTechEmail || base44User?.email),
   });
 
-  const { data: allTechnicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: !!currentUser,
-  });
-
-  const myTechRecord = allTechnicians.find(t =>
-    t.user_email === currentUser?.email || t.email === currentUser?.email
-  );
+  // Para compatibilidad con FichajeRapido que usa currentUser
+  const currentUser = isSessionTech
+    ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
+    : base44User;
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
@@ -202,10 +217,20 @@ export default function HomeTecnico() {
 
   const handleLogout = async () => {
     sessionStorage.setItem('just_logged_out', '1');
+    // Limpiar sesión de técnico propio
+    localStorage.removeItem('clilux_tech_email');
+    localStorage.removeItem('clilux_tech_password');
+    sessionStorage.removeItem('technician_email');
+    // Limpiar sesión de cliente
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
     sessionStorage.removeItem('client_id');
-    base44.auth.logout(createPageUrl('MenuInicio'));
+    if (isSessionTech) {
+      // Técnico propio: redirigir sin logout de Base44
+      navigate(createPageUrl('MenuInicio'));
+    } else {
+      base44.auth.logout(createPageUrl('MenuInicio'));
+    }
   };
 
   return (

@@ -39,8 +39,12 @@ const AuthenticatedApp = () => {
     );
   }
 
+  // Si hay sesión de técnico propio o cliente, no bloquear la app con errores de auth Base44
+  const hasTechSession = !!sessionStorage.getItem('technician_email');
+  const hasClientSession = !!sessionStorage.getItem('client_id');
+
   // Handle authentication errors
-  if (authError) {
+  if (authError && !hasTechSession && !hasClientSession) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
