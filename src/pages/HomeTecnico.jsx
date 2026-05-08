@@ -254,11 +254,19 @@ export default function HomeTecnico() {
                   </Button>
                 </Link>
               )}
-              <Link to={createPageUrl('Settings')}>
-                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </Link>
+              {isSessionTech ? (
+                <Link to={createPageUrl('Clients')}>
+                  <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9" title="Clientes">
+                    <Users className="h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link to={createPageUrl('Settings')}>
+                  <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
                 <LogOut className="h-5 w-5" />
               </Button>
