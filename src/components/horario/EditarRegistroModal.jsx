@@ -37,13 +37,27 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
       if (cambios.length === 0) { toast.info('Sin cambios'); return null; }
       if (!motivo.trim()) throw new Error('Debes indicar el motivo de la modificación');
 
-      const calcs = calcularHoras({ ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida }, jornadaDiaria);
+      // Actualizar también los intervalos para que calcularHoras use los valores correctos
+      let intervalosActualizados = registro.intervalos ? [...registro.intervalos] : [];
+      if (intervalosActualizados.length > 0) {
+        // Actualizar entrada del primer tramo
+        intervalosActualizados[0] = { ...intervalosActualizados[0], entrada: horaEntrada };
+        // Actualizar salida del último tramo
+        const last = intervalosActualizados.length - 1;
+        intervalosActualizados[last] = { ...intervalosActualizados[last], salida: horaSalida };
+      }
+
+      const calcs = calcularHoras(
+        { ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida, intervalos: intervalosActualizados },
+        jornadaDiaria
+      );
       const historialPrevio = registro.historial_modificaciones || [];
       return base44.entities.RegistroHorario.update(registro.id, {
         hora_entrada: horaEntrada,
         hora_salida: horaSalida,
         tipo_jornada: tipoJornada,
         notas,
+        intervalos: intervalosActualizados,
         ...calcs,
         historial_modificaciones: [...historialPrevio, ...cambios],
       });
@@ -93,7 +107,15 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
           </div>
 
           {horaEntrada && horaSalida && (() => {
-            const c = calcularHoras({ ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida }, jornadaDiaria);
+            const ivs = registro.intervalos?.length > 0
+              ? (() => {
+                  const arr = [...registro.intervalos];
+                  arr[0] = { ...arr[0], entrada: horaEntrada };
+                  arr[arr.length - 1] = { ...arr[arr.length - 1], salida: horaSalida };
+                  return arr;
+                })()
+              : [];
+            const c = calcularHoras({ ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida, intervalos: ivs }, jornadaDiaria);
             return (
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="bg-blue-50 rounded p-2"><span className="font-bold text-blue-600">{c.horas_normales}h</span><br />normales</div>

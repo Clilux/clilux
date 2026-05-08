@@ -39,13 +39,13 @@ export default function ControlHorario() {
     queryKey: ['registros-horario', monthStr, currentUser?.email],
     queryFn: async () => {
       const all = await base44.entities.RegistroHorario.list('-fecha', 500);
-      if (isAdmin) return all;
+      // Siempre filtramos los propios registros del usuario autenticado
       return all.filter(r => r.technician_email === currentUser?.email && r.fecha?.startsWith(monthStr));
     },
     enabled: !!currentUser,
   });
 
-  const myRegistros = isAdmin ? [] : registros.filter(r => r.fecha?.startsWith(monthStr));
+  const myRegistros = registros;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todayRecord = myRegistros.find(r => r.fecha === todayStr);
