@@ -13,8 +13,9 @@ import { toast } from 'sonner';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from 'react-router-dom';
 import {
-  Users, UserCheck, UserPlus, Send, Building2,
-  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Eye
+  Users, UserCheck, UserPlus, Building2,
+  Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Send,
+  Eye, EyeOff, Key
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -24,7 +25,11 @@ export default function AdminPanel() {
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [manageTech, setManageTech] = useState(null);
   const [manageData, setManageData] = useState({ companyName: '', companyId: '', isAdmin: false });
-  const [inviteData, setInviteData] = useState({ email: '', role: 'user', techName: '', companyName: '', companyId: '' });
+  const [inviteData, setInviteData] = useState({ email: '', techName: '', companyName: '', companyId: '', password: '', passwordConfirm: '' });
+  const [showInvitePwd, setShowInvitePwd] = useState(false);
+  const [editingPwdId, setEditingPwdId] = useState(null);
+  const [editPassword, setEditPassword] = useState('');
+  const [showEditPwd, setShowEditPwd] = useState(false);
   const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
 
@@ -82,40 +87,63 @@ export default function AdminPanel() {
   }
 
   const handleInviteTechnician = async () => {
-    if (!inviteData.email) return;
+    if (!inviteData.email || !inviteData.techName || !inviteData.password) {
+      toast.error('Nombre, email y contraseña son obligatorios');
+      return;
+    }
+    if (inviteData.password !== inviteData.passwordConfirm) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+    if (inviteData.password.length < 4) {
+      toast.error('La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
     setSending(true);
     try {
-      // Invite the user to the platform
-      await base44.users.inviteUser(inviteData.email, 'user');
-
-      // Create or update the Technician record
-      const existing = technicians.find(t => t.email === inviteData.email || t.user_email === inviteData.email);
+      const existing = technicians.find(t => t.email === inviteData.email);
       if (existing) {
-        await base44.entities.Technician.update(existing.id, {
-          user_email: inviteData.email,
-          invited_at: new Date().toISOString(),
-          ...(inviteData.companyName && { company_name: inviteData.companyName, company_id: inviteData.companyName.toLowerCase().replace(/\s+/g, '_') }),
-        });
-      } else {
-        await base44.entities.Technician.create({
-          name: inviteData.techName || inviteData.email,
-          email: inviteData.email,
-          user_email: inviteData.email,
-          company_name: inviteData.companyName || '',
-          company_id: inviteData.companyName ? inviteData.companyName.toLowerCase().replace(/\s+/g, '_') : '',
-          status: 'active',
-          invited_at: new Date().toISOString(),
-        });
+        toast.error('Ya existe un técnico con ese email');
+        setSending(false);
+        return;
       }
+      const companyId = inviteData.companyId && inviteData.companyId !== '__nueva__'
+        ? inviteData.companyId
+        : (inviteData.companyName ? inviteData.companyName.toLowerCase().replace(/\s+/g, '_') : '');
+
+      await base44.entities.Technician.create({
+        name: inviteData.techName,
+        email: inviteData.email,
+        portal_password: inviteData.password,
+        company_name: inviteData.companyName || '',
+        company_id: companyId,
+        status: 'active',
+      });
 
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Invitación enviada a ${inviteData.email}`);
+      toast.success(`Técnico ${inviteData.techName} creado correctamente`);
       setShowInviteDialog(false);
-      setInviteData({ email: '', role: 'user', techName: '', companyName: '' });
+      setInviteData({ email: '', techName: '', companyName: '', companyId: '', password: '', passwordConfirm: '' });
     } catch (err) {
-      toast.error('Error al enviar la invitación: ' + (err.message || ''));
+      toast.error('Error al crear el técnico: ' + (err.message || ''));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleUpdatePassword = async (techId) => {
+    if (!editPassword || editPassword.length < 4) {
+      toast.error('La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
+    try {
+      await base44.entities.Technician.update(techId, { portal_password: editPassword });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('Contraseña actualizada');
+      setEditingPwdId(null);
+      setEditPassword('');
+    } catch (err) {
+      toast.error('Error: ' + err.message);
     }
   };
 
@@ -242,18 +270,7 @@ export default function AdminPanel() {
     }
   };
 
-  const handleReinvite = async (tech) => {
-    const email = tech.user_email || tech.email;
-    if (!email) return;
-    try {
-      await base44.users.inviteUser(email, 'user');
-      await base44.entities.Technician.update(tech.id, { invited_at: new Date().toISOString() });
-      queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Invitación reenviada a ${email}`);
-    } catch {
-      toast.error('Error al reenviar la invitación');
-    }
-  };
+
 
   // Group technicians by company
   const companies = {};
@@ -300,8 +317,8 @@ export default function AdminPanel() {
                 <UserCheck className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-800">{technicians.filter(t => t.invited_at).length}</p>
-                <p className="text-xs text-slate-500">Con acceso</p>
+                <p className="text-2xl font-bold text-slate-800">{technicians.filter(t => t.portal_password && t.status === 'active').length}</p>
+                <p className="text-xs text-slate-500">Con contraseña activa</p>
               </div>
             </div>
           </Card>
@@ -384,7 +401,7 @@ export default function AdminPanel() {
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            Invitar técnico
+            Crear técnico
           </Button>
         </div>
 
@@ -399,8 +416,8 @@ export default function AdminPanel() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {techs.map(tech => {
-                  const accessEmail = tech.user_email || tech.email;
-                  const hasAccess = !!tech.invited_at;
+                  const accessEmail = tech.email;
+                  const hasAccess = !!tech.portal_password && tech.status === 'active';
                   return (
                     <Card key={tech.id} className="p-4 bg-white border-0 shadow-sm">
                       <div className="flex items-start justify-between">
@@ -414,7 +431,7 @@ export default function AdminPanel() {
                               <p className="font-semibold text-slate-800 text-sm">{tech.name}</p>
                               {tech.is_admin && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-1.5 py-0"><Shield className="h-2.5 w-2.5 mr-0.5" />Admin</Badge>}
                             </div>
-                            <p className="text-xs text-slate-500">{accessEmail}</p>
+                            <p className="text-xs text-slate-500">{tech.email}</p>
                             <p className="text-xs text-slate-400 mt-0.5">{clientsByTech(tech.email)} cliente{clientsByTech(tech.email) !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
@@ -429,18 +446,7 @@ export default function AdminPanel() {
                               Pendiente
                             </Badge>
                           )}
-                          <div className="flex gap-1 mt-1">
-                           <Link to={`/TechnicianProfile?email=${encodeURIComponent(tech.user_email || tech.email)}`}>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               className="h-7 px-2 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
-                               title="Ver perfil completo"
-                             >
-                               <Eye className="h-3 w-3 mr-1" />
-                               Ver
-                             </Button>
-                           </Link>
+                          <div className="flex gap-1 mt-1 flex-wrap justify-end">
                            <Button
                              variant="outline"
                              size="sm"
@@ -454,12 +460,12 @@ export default function AdminPanel() {
                            <Button
                              variant="outline"
                              size="sm"
-                             className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
-                             title="Reenviar invitación"
-                             onClick={() => handleReinvite(tech)}
+                             className="h-7 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                             title="Cambiar contraseña"
+                             onClick={() => { setEditingPwdId(editingPwdId === tech.id ? null : tech.id); setEditPassword(''); }}
                            >
-                             <RefreshCw className="h-3 w-3 mr-1" />
-                             Invitar
+                             <Key className="h-3 w-3 mr-1" />
+                             Contraseña
                            </Button>
                            <Button
                              variant="ghost"
@@ -470,9 +476,32 @@ export default function AdminPanel() {
                              <Trash2 className="h-3.5 w-3.5" />
                            </Button>
                           </div>
-                        </div>
-                      </div>
-                    </Card>
+                          </div>
+                          </div>
+                          {editingPwdId === tech.id && (
+                          <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type={showEditPwd ? 'text' : 'password'}
+                              value={editPassword}
+                              onChange={(e) => setEditPassword(e.target.value)}
+                              placeholder="Nueva contraseña"
+                              className="pr-10 text-sm"
+                            />
+                            <button type="button" onClick={() => setShowEditPwd(v => !v)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                              {showEditPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+                            disabled={!editPassword}
+                            onClick={() => handleUpdatePassword(tech.id)}>
+                            Guardar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingPwdId(null)}>Cancelar</Button>
+                          </div>
+                          )}
+                          </Card>
                   );
                 })}
               </div>
@@ -485,7 +514,7 @@ export default function AdminPanel() {
               <p className="text-slate-500 mb-4">Aún no hay técnicos registrados</p>
               <Button onClick={() => setShowInviteDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                 <UserPlus className="h-4 w-4 mr-2" />
-                Invitar primer técnico
+                Crear primer técnico
               </Button>
             </Card>
           )}
@@ -644,32 +673,61 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Invite dialog */}
+      {/* Invite / Create technician dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invitar técnico al sistema</DialogTitle>
+            <DialogTitle>Crear nuevo técnico</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div>
-              <Label>Nombre del técnico</Label>
-              <Input
-                value={inviteData.techName}
-                onChange={(e) => setInviteData(p => ({ ...p, techName: e.target.value }))}
-                placeholder="Juan García"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={inviteData.email}
-                onChange={(e) => setInviteData(p => ({ ...p, email: e.target.value }))}
-                placeholder="tecnico@empresa.com"
-                className="mt-1"
-              />
-              <p className="text-xs text-slate-400 mt-1">Recibirá un email para crear su cuenta</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Nombre completo *</Label>
+                <Input
+                  value={inviteData.techName}
+                  onChange={(e) => setInviteData(p => ({ ...p, techName: e.target.value }))}
+                  placeholder="Juan García"
+                  className="mt-1"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData(p => ({ ...p, email: e.target.value }))}
+                  placeholder="tecnico@empresa.com"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Contraseña *</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showInvitePwd ? 'text' : 'password'}
+                    value={inviteData.password}
+                    onChange={(e) => setInviteData(p => ({ ...p, password: e.target.value }))}
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowInvitePwd(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showInvitePwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label>Confirmar contraseña *</Label>
+                <Input
+                  type="password"
+                  value={inviteData.passwordConfirm}
+                  onChange={(e) => setInviteData(p => ({ ...p, passwordConfirm: e.target.value }))}
+                  placeholder="••••••••"
+                  className={`mt-1 ${inviteData.passwordConfirm && inviteData.password !== inviteData.passwordConfirm ? 'border-red-400' : ''}`}
+                />
+                {inviteData.passwordConfirm && inviteData.password !== inviteData.passwordConfirm && (
+                  <p className="text-xs text-red-500 mt-0.5">No coinciden</p>
+                )}
+              </div>
             </div>
             <div>
               <Label>Empresa / Grupo</Label>
@@ -700,17 +758,19 @@ export default function AdminPanel() {
                   onChange={(e) => setInviteData(p => ({ ...p, companyName: e.target.value, companyId: '' }))}
                 />
               )}
-              <p className="text-xs text-slate-400 mt-1">Los técnicos de la misma empresa comparten clientes</p>
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+            <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded-lg border border-blue-100">
+              El técnico accederá desde <strong>"Acceso Técnico"</strong> con su email y la contraseña que asignes aquí.
+            </p>
+            <div className="flex justify-end gap-3 pt-1">
               <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Cancelar</Button>
               <Button
                 onClick={handleInviteTechnician}
-                disabled={!inviteData.email || sending}
+                disabled={!inviteData.email || !inviteData.techName || !inviteData.password || sending}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Enviar invitación
+                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                Crear técnico
               </Button>
             </div>
           </div>
