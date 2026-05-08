@@ -1,0 +1,203 @@
+{
+  "name": "Equipment",
+  "type": "object",
+  "properties": {
+    "reference_name": {
+      "type": "string",
+      "description": "Nombre de referencia del equipo"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "equipment_type": {
+      "type": "string",
+      "description": "Tipo de equipo"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Marca del equipo"
+    },
+    "model": {
+      "type": "string",
+      "description": "Modelo"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "N\u00famero de serie"
+    },
+    "location": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n dentro del edificio"
+    },
+    "installation_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de instalaci\u00f3n"
+    },
+    "registration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de registro en el sistema"
+    },
+    "cooling_power_kw": {
+      "type": "number",
+      "description": "Potencia frigor\u00edfica (kW)"
+    },
+    "heating_power_kw": {
+      "type": "number",
+      "description": "Potencia calor\u00edfica (kW)"
+    },
+    "refrigerant_type": {
+      "type": "string",
+      "description": "Tipo de refrigerante"
+    },
+    "refrigerant_charge_kg": {
+      "type": "number",
+      "description": "Carga de refrigerante (kg)"
+    },
+    "warranty_end": {
+      "type": "string",
+      "format": "date",
+      "description": "Fin de garant\u00eda"
+    },
+    "first_revision_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la primera revisi\u00f3n programada"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Foto principal del equipo"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Galer\u00eda de fotos del equipo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "operational",
+        "maintenance_needed",
+        "out_of_service"
+      ],
+      "default": "operational"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Documentos adjuntos (manuales, garant\u00edas, etc.)"
+    },
+    "spare_parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Repuestos y consumibles (correas, filtros, etc.)"
+    },
+    "maintenance_config": {
+      "type": "object",
+      "properties": {
+        "monthly_enabled": {
+          "type": "boolean"
+        },
+        "monthly_fields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "quarterly_enabled": {
+          "type": "boolean"
+        },
+        "quarterly_fields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "biannual_enabled": {
+          "type": "boolean"
+        },
+        "biannual_fields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "annual_enabled": {
+          "type": "boolean"
+        },
+        "annual_fields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Configuraci\u00f3n de campos de mantenimiento por periodicidad"
+    },
+    "technical_data": {
+      "type": "object",
+      "description": "Datos t\u00e9cnicos espec\u00edficos del equipo"
+    },
+    "parent_equipment_id": {
+      "type": "string",
+      "description": "ID de la unidad exterior (si este equipo es una unidad interior)"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "exterior",
+        "interior",
+        "standalone"
+      ],
+      "default": "standalone",
+      "description": "Tipo de unidad: exterior, interior o independiente"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico que cre\u00f3 el equipo"
+    }
+  },
+  "required": [
+    "building_id",
+    "client_id",
+    "equipment_type",
+    "brand",
+    "model",
+    "registration_date"
+  ]
+}

@@ -217,6 +217,18 @@ export default function EquipmentForm() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
+
+  // Técnico en sesión (para auto-registro)
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const { data: sessionTechRecord } = useQuery({
+    queryKey: ['session-tech-record', sessionTechEmail],
+    queryFn: async () => {
+      if (!sessionTechEmail) return null;
+      const techs = await base44.entities.Technician.filter({ email: sessionTechEmail });
+      return techs[0] || null;
+    },
+    enabled: !!sessionTechEmail,
+  });
   const [step, setStep] = useState(1);
   
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
@@ -430,6 +442,9 @@ export default function EquipmentForm() {
         }
       }
 
+      // Técnico que crea el equipo (desde sesión propia)
+      const creatingTechName = sessionTechRecord?.name || null;
+
       // Crear equipo
       const equipmentData = {
         reference_name: data.reference_name,
@@ -451,6 +466,7 @@ export default function EquipmentForm() {
         first_revision_date: data.first_revision_date,
         unit_type: data.unit_type || 'standalone',
         parent_equipment_id: data.parent_equipment_id || null,
+        ...(creatingTechName ? { created_by_name: creatingTechName } : {}),
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
           monthly_fields: data.maintenance_fields.filter(f => f.periods.includes('mensual')),

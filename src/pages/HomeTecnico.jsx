@@ -241,10 +241,17 @@ export default function HomeTecnico() {
         <div className="bg-white px-4 py-3 border-b border-slate-200">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
                 <Thermometer className="h-5 w-5 text-white" />
               </div>
-              <span className="text-slate-800 font-semibold text-lg">Clilux</span>
+              <div>
+                <span className="text-slate-800 font-semibold text-lg">Clilux</span>
+                {(myTechRecord?.name || currentUser?.full_name) && (
+                  <p className="text-xs text-slate-500 leading-none mt-0.5">
+                    {myTechRecord?.name || currentUser?.full_name}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               {isAdmin && (
