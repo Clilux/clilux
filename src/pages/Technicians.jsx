@@ -1,35 +1,23 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, User, Mail, Phone, Edit, Trash2, Eye, EyeOff, KeyRound, UserCheck, Send } from 'lucide-react';
+import { Plus, User, Mail, Phone, Edit, Trash2, UserCheck, Send, Loader2, Info } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+
+const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active' };
 
 export default function Technicians() {
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);
   const [editingTech, setEditingTech] = useState(null);
-  const [showPortalPassword, setShowPortalPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    specialty: '',
-    status: 'active',
-    company_id: '',
-    company_name: '',
-    user_email: '',
-    portal_email: '',
-    portal_password: '',
-  });
+  const [formData, setFormData] = useState(emptyForm);
   const [invitingId, setInvitingId] = useState(null);
 
   const { data: technicians = [], isLoading } = useQuery({
@@ -42,12 +30,22 @@ export default function Technicians() {
       if (editingTech) {
         return base44.entities.Technician.update(editingTech.id, data);
       }
-      return base44.entities.Technician.create(data);
+      // Al crear: también invitar automáticamente al sistema
+      const tech = await base44.entities.Technician.create(data);
+      await base44.users.inviteUser(data.email, 'user');
+      await base44.entities.Technician.update(tech.id, {
+        user_email: data.email,
+        invited_at: new Date().toISOString(),
+      });
+      return tech;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(editingTech ? 'Técnico actualizado' : 'Técnico añadido');
+      toast.success(editingTech ? 'Técnico actualizado' : 'Técnico añadido e invitación enviada');
       handleCloseDialog();
+    },
+    onError: (err) => {
+      toast.error('Error: ' + (err.message || 'Inténtalo de nuevo'));
     },
   });
 
@@ -59,17 +57,25 @@ export default function Technicians() {
     },
   });
 
-  const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_id: '', company_name: '', user_email: '', portal_email: '', portal_password: '' };
+  const handleReinvite = async (tech) => {
+    const email = tech.user_email || tech.email;
+    if (!email) { toast.error('El técnico no tiene email'); return; }
+    setInvitingId(tech.id);
+    try {
+      await base44.users.inviteUser(email, 'user');
+      await base44.entities.Technician.update(tech.id, { user_email: email, invited_at: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success(`Invitación reenviada a ${email}`);
+    } catch {
+      toast.error('Error al enviar la invitación');
+    } finally {
+      setInvitingId(null);
+    }
+  };
 
   const handleOpenDialog = (tech = null) => {
-    if (tech) {
-      setEditingTech(tech);
-      setFormData(tech);
-    } else {
-      setEditingTech(null);
-      setFormData(emptyForm);
-    }
-    setShowPortalPassword(false);
+    setEditingTech(tech);
+    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active' } : emptyForm);
     setShowDialog(true);
   };
 
@@ -77,23 +83,6 @@ export default function Technicians() {
     setShowDialog(false);
     setEditingTech(null);
     setFormData(emptyForm);
-    setShowPortalPassword(false);
-  };
-
-  const handleInviteToSystem = async (tech) => {
-    const emailToInvite = tech.user_email || tech.email;
-    if (!emailToInvite) { toast.error('El técnico no tiene email'); return; }
-    setInvitingId(tech.id);
-    try {
-      await base44.users.inviteUser(emailToInvite, 'user');
-      await base44.entities.Technician.update(tech.id, { user_email: emailToInvite, invited_at: new Date().toISOString() });
-      queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Invitación enviada a ${emailToInvite}`);
-    } catch (err) {
-      toast.error('Error al enviar la invitación');
-    } finally {
-      setInvitingId(null);
-    }
   };
 
   const handleSubmit = (e) => {
@@ -103,8 +92,16 @@ export default function Technicians() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <NavHeader title="Técnicos" />
+
+        {/* Info banner */}
+        <div className="mb-5 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
+          <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-700">
+            Al añadir un técnico se le enviará un email de invitación. Deberá usar <strong>"¿Olvidaste tu contraseña?"</strong> en el inicio de sesión para establecer su contraseña y acceder a la app.
+          </p>
+        </div>
 
         <div className="flex justify-end mb-6">
           <Button onClick={() => handleOpenDialog()} className="bg-slate-800 hover:bg-slate-700">
@@ -118,12 +115,12 @@ export default function Technicians() {
             <Card key={tech.id} className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                    <User className="h-6 w-6 text-slate-600" />
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
+                    {(tech.name || '?')[0].toUpperCase()}
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-800">{tech.name}</h3>
-                    <Badge variant={tech.status === 'active' ? 'default' : 'secondary'} className="mt-1">
+                    <Badge variant={tech.status === 'active' ? 'default' : 'secondary'} className="mt-1 text-xs">
                       {tech.status === 'active' ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </div>
@@ -138,46 +135,53 @@ export default function Technicians() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm">
+              <div className="space-y-1.5 text-sm">
                 {tech.email && (
                   <div className="flex items-center gap-2 text-slate-600">
-                    <Mail className="h-4 w-4" />
-                    <span>{tech.email}</span>
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{tech.email}</span>
                   </div>
                 )}
                 {tech.phone && (
                   <div className="flex items-center gap-2 text-slate-600">
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
                     <span>{tech.phone}</span>
                   </div>
                 )}
                 {tech.specialty && (
-                  <p className="text-slate-500 italic">{tech.specialty}</p>
+                  <p className="text-slate-500 italic text-xs">{tech.specialty}</p>
                 )}
-                {tech.company_name && (
-                  <p className="text-xs text-blue-600 font-medium">🏢 {tech.company_name}</p>
-                )}
+              </div>
 
-                {/* Acceso al sistema */}
-                <div className="mt-3 pt-3 border-t border-slate-100">
-                  {tech.invited_at ? (
+              {/* Estado de acceso */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                {tech.invited_at ? (
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-medium">
                       <UserCheck className="h-3.5 w-3.5" />
-                      Acceso activado · {tech.user_email || tech.email}
+                      Invitación enviada
                     </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs h-7 border-blue-200 text-blue-600 hover:bg-blue-50 w-full"
+                    <button
+                      onClick={() => handleReinvite(tech)}
                       disabled={invitingId === tech.id}
-                      onClick={() => handleInviteToSystem(tech)}
+                      className="text-xs text-slate-400 hover:text-blue-600 underline underline-offset-2 flex items-center gap-1"
                     >
-                      <Send className="h-3 w-3 mr-1" />
-                      {invitingId === tech.id ? 'Enviando...' : 'Invitar al sistema'}
-                    </Button>
-                  )}
-                </div>
+                      {invitingId === tech.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                      Reenviar invitación
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-7 border-blue-200 text-blue-600 hover:bg-blue-50 w-full"
+                    disabled={invitingId === tech.id}
+                    onClick={() => handleReinvite(tech)}
+                  >
+                    {invitingId === tech.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                    Enviar invitación
+                  </Button>
+                )}
               </div>
             </Card>
           ))}
@@ -185,6 +189,7 @@ export default function Technicians() {
 
         {technicians.length === 0 && !isLoading && (
           <Card className="p-8 text-center bg-white border-0 shadow-sm">
+            <User className="h-10 w-10 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500">No hay técnicos registrados. Añade el primero.</p>
           </Card>
         )}
@@ -194,6 +199,13 @@ export default function Technicians() {
             <DialogHeader>
               <DialogTitle>{editingTech ? 'Editar Técnico' : 'Añadir Técnico'}</DialogTitle>
             </DialogHeader>
+            {!editingTech && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  Se enviará automáticamente un email de invitación al técnico para que active su cuenta.
+                </p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label>Nombre *</Label>
@@ -202,16 +214,19 @@ export default function Technicians() {
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   required
                   className="mt-1"
+                  placeholder="Juan Pérez"
                 />
               </div>
               <div>
-                <Label>Email *</Label>
+                <Label>Email * {!editingTech && <span className="text-slate-400 font-normal">(se usará para el acceso)</span>}</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   required
                   className="mt-1"
+                  placeholder="tecnico@empresa.com"
+                  disabled={!!editingTech}
                 />
               </div>
               <div>
@@ -220,6 +235,7 @@ export default function Technicians() {
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   className="mt-1"
+                  placeholder="+34 600 000 000"
                 />
               </div>
               <div>
@@ -230,27 +246,6 @@ export default function Technicians() {
                   placeholder="Ej: Climatización, Refrigeración"
                   className="mt-1"
                 />
-              </div>
-              <div>
-                <Label>Empresa / Grupo</Label>
-                <Input
-                  value={formData.company_name || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value, company_id: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
-                  placeholder="Ej: Clilux, TechFrio..."
-                  className="mt-1"
-                />
-                <p className="text-xs text-slate-400 mt-1">Técnicos de la misma empresa verán los mismos clientes</p>
-              </div>
-              <div>
-                <Label>Email de acceso al sistema</Label>
-                <Input
-                  type="email"
-                  value={formData.user_email || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, user_email: e.target.value }))}
-                  placeholder="email@dominio.com"
-                  className="mt-1"
-                />
-                <p className="text-xs text-slate-400 mt-1">Email con el que iniciará sesión en la app</p>
               </div>
               <div>
                 <Label>Estado</Label>
@@ -264,51 +259,13 @@ export default function Technicians() {
                 </select>
               </div>
 
-              <div className="pt-2 border-t">
-                <p className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-                  <KeyRound className="h-4 w-4" /> Credenciales de Acceso al Portal
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <Label>Email de acceso</Label>
-                    <Input
-                      type="email"
-                      value={formData.portal_email || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, portal_email: e.target.value }))}
-                      placeholder="tecnico@portal.com"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label>Contraseña</Label>
-                    <div className="relative mt-1">
-                      <Input
-                        type={showPortalPassword ? 'text' : 'password'}
-                        value={formData.portal_password || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, portal_password: e.target.value }))}
-                        placeholder="••••••••"
-                        className="pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-10 w-10"
-                        onClick={() => setShowPortalPassword(p => !p)}
-                      >
-                        {showPortalPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={saveMutation.isPending}>
-                  {editingTech ? 'Guardar' : 'Añadir'}
+                  {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {editingTech ? 'Guardar cambios' : 'Añadir e invitar'}
                 </Button>
               </div>
             </form>

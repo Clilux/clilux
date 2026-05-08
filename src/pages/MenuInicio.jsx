@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null | 'client' | 'admin' | 'admin_register' | 'forgot_tech'
+  const [mode, setMode] = useState(null); // null | 'client' | 'admin_register' | 'forgot_tech'
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -125,67 +125,53 @@ export default function MenuInicio() {
         {!mode &&
         <div className="space-y-3">
             <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
+
+            {/* Técnico / Administrador — mismo botón, la app detecta el rol automáticamente */}
             <Button
-            onClick={() => setMode('client')} className="bg-[#16bba4] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow w-full h-12 hover:bg-blue-700 flex items-center justify-center gap-3">
-              <Users className="h-5 w-5" />
-              Acceso Cliente
-            </Button>
-            <Button
-            onClick={handleTechnicianLogin} className="bg-[#525b57] text-white px-4 py-2 text-base font-medium rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3"
-            variant="ghost">
+              onClick={handleTechnicianLogin}
+              className="bg-[#525b57] text-white w-full h-12 hover:bg-white/20 border border-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
+              variant="ghost"
+            >
               <Wrench className="h-5 w-5" />
-              Acceso Técnico
+              Acceso Técnico / Administrador
             </Button>
             <button
               onClick={() => setMode('forgot_tech')}
               className="w-full text-center text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2 py-1"
             >
-              ¿Técnico? ¿Olvidaste tu contraseña?
+              ¿Olvidaste tu contraseña?
             </button>
+
+            <div className="relative flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-slate-500 text-xs">o</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
+            {/* Cliente */}
             <Button
-            onClick={() => setMode('admin')}
-            className="bg-amber-700/80 text-white w-full h-12 hover:bg-amber-700 border border-amber-600/40 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-            variant="ghost">
-              <Shield className="h-5 w-5" />
-              Acceso Administrador
+              onClick={() => setMode('client')}
+              className="bg-[#16bba4] text-white w-full h-12 hover:bg-teal-500 flex items-center justify-center gap-3 text-base font-medium rounded-md shadow"
+            >
+              <Users className="h-5 w-5" />
+              Acceso Cliente
             </Button>
 
-          </div>
-        }
+            <div className="relative flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-slate-500 text-xs">¿Primera vez como administrador?</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
 
-        {/* Modo administrador - elegir login o registro */}
-        {mode === 'admin' &&
-        <div className="space-y-4">
-          <p className="text-center text-slate-300 text-sm mb-2">Panel de Administración</p>
-          <Button
-            onClick={() => base44.auth.redirectToLogin('/AdminPanel')}
-            className="bg-amber-600 text-white w-full h-12 hover:bg-amber-700 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-          >
-            <Shield className="h-5 w-5" />
-            Iniciar sesión como administrador
-          </Button>
-          <div className="relative flex items-center gap-3">
-            <div className="flex-1 h-px bg-white/20" />
-            <span className="text-slate-400 text-xs">¿Primera vez?</span>
-            <div className="flex-1 h-px bg-white/20" />
+            <Button
+              onClick={() => setMode('admin_register')}
+              className="bg-amber-700/60 text-white w-full h-10 hover:bg-amber-700 border border-amber-600/30 flex items-center justify-center gap-2 text-sm font-medium rounded-md"
+              variant="ghost"
+            >
+              <UserPlus className="h-4 w-4" />
+              Solicitar acceso administrador
+            </Button>
           </div>
-          <Button
-            onClick={() => setMode('admin_register')}
-            className="bg-white/10 border border-white/20 text-white w-full h-12 hover:bg-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-            variant="ghost"
-          >
-            <UserPlus className="h-5 w-5" />
-            Registrarse como nuevo administrador
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setMode(null)}
-            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
-            variant="ghost"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-        </div>
         }
 
         {/* Registro nuevo administrador */}
@@ -339,7 +325,7 @@ export default function MenuInicio() {
           </Button>
           <Button
             type="button"
-            onClick={() => { setMode('admin'); setRegisterError(''); }}
+            onClick={() => { setMode(null); setRegisterError(''); }}
             className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
             variant="ghost"
           >
@@ -356,7 +342,7 @@ export default function MenuInicio() {
           </div>
           <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
           <p className="text-slate-300 text-sm">
-            Tu solicitud de acceso como administrador ha sido registrada. Un administrador del sistema revisará tus datos y te enviará un email de acceso a <strong className="text-white">{registerData.contactEmail}</strong>.
+            Tu solicitud ha sido registrada. El administrador del sistema revisará tus datos y te enviará una invitación a <strong className="text-white">{registerData.contactEmail}</strong>. Podrás acceder usando el botón <strong className="text-white">"Acceso Técnico / Administrador"</strong>.
           </p>
           <Button
             onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
@@ -456,7 +442,7 @@ export default function MenuInicio() {
             </Button>
 
             <p className="text-center text-xs text-slate-400">
-              ¿Olvidaste tu contraseña? Contacta con tu administrador.
+              Las credenciales del portal cliente son gestionadas por el técnico responsable.
             </p>
           </form>
         }
