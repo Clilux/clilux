@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, Thermometer, ClipboardCheck,
-  LogOut, AlertCircle, Plus, FileText } from
+  LogOut, AlertCircle, Plus, FileText, Activity } from
 'lucide-react';
 
 export default function HomeCliente() {
@@ -164,6 +164,28 @@ export default function HomeCliente() {
                     <p className="text-sm text-slate-500">Certificados RITE y otros documentos de tu instalación</p>
                   </Card>
                 </Link>
+
+                {/* SCADA - solo visible si el técnico lo ha habilitado */}
+                {clientData.client?.scada_enabled && clientData.client?.scada_brands?.length > 0 && (
+                  <Link to={createPageUrl('ClientScada')}>
+                    <Card className="bg-white p-6 rounded-xl border-2 border-purple-200 shadow hover:shadow-md transition-all cursor-pointer col-span-1 md:col-span-2">
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="p-2 rounded-lg bg-purple-100">
+                          <Activity className="h-8 w-8 text-purple-600" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-slate-800">SCADA</h2>
+                          <p className="text-sm text-slate-500">Control de automatización y climatización</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {clientData.client.scada_brands.map(b => (
+                          <span key={b} className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium capitalize">{b}</span>
+                        ))}
+                      </div>
+                    </Card>
+                  </Link>
+                )}
               </div>
             </> :
 

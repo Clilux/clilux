@@ -16,6 +16,7 @@ import BuildingCard from '../components/cards/BuildingCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
+import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
 import { toast } from 'sonner';
 
 export default function ClientDetail() {
@@ -226,6 +227,8 @@ export default function ClientDetail() {
               })}
             </div>
           )}
+
+          <ScadaAccessPanel client={client} />
 
           {clientPortalUsers.length > 0 && (
             <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">

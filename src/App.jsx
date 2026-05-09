@@ -16,6 +16,7 @@ import GestionAusencias from './pages/GestionAusencias';
 import TechnicianProfile from './pages/TechnicianProfile';
 import StelClientes from './pages/StelClientes';
 import StelClientosTab from './pages/StelClientosTab';
+import ClientScada from './pages/ClientScada';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -84,6 +85,7 @@ const AuthenticatedApp = () => {
       <Route path="/TechnicianProfile" element={<LayoutWrapper currentPageName="TechnicianProfile"><TechnicianProfile /></LayoutWrapper>} />
       <Route path="/StelClientes" element={<LayoutWrapper currentPageName="StelClientes"><StelClientes /></LayoutWrapper>} />
       <Route path="/StelClientosTab" element={<LayoutWrapper currentPageName="StelClientosTab"><StelClientosTab /></LayoutWrapper>} />
+      <Route path="/ClientScada" element={<LayoutWrapper currentPageName="ClientScada"><ClientScada /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
