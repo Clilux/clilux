@@ -2,32 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
-
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null | 'client' | 'technician' | 'admin_register' | 'forgot_tech'
+  const [mode, setMode] = useState(null);
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [techCredentials, setTechCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [techLoginError, setTechLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [registerData, setRegisterData] = useState({
-    fullName: '',
-    contactEmail: '',
-    password: '',
-    passwordConfirm: '',
-    companyName: '',
-    companyCif: '',
-    companyAddress: '',
-    technicianEmail: '',
+    fullName: '', contactEmail: '', password: '', passwordConfirm: '',
+    companyName: '', companyCif: '', companyAddress: '', technicianEmail: '',
   });
   const [registerError, setRegisterError] = useState('');
   const [registerSending, setRegisterSending] = useState(false);
@@ -41,14 +33,12 @@ export default function MenuInicio() {
     }
   });
 
-  // Auto-login para cliente si hay credenciales guardadas (solo si no viene de logout)
   useEffect(() => {
     const autoLogin = async () => {
       if (sessionStorage.getItem('just_logged_out')) {
         sessionStorage.removeItem('just_logged_out');
         return;
       }
-      // Auto-login técnico
       const savedTechEmail = localStorage.getItem('clilux_tech_email');
       const savedTechPassword = localStorage.getItem('clilux_tech_password');
       if (savedTechEmail && savedTechPassword) {
@@ -56,12 +46,10 @@ export default function MenuInicio() {
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
-      // Auto-login cliente
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
       if (savedEmail && savedPassword && settings) {
-        const clientUsers = settings.client_users || [];
-        const clientUser = clientUsers.find((u) => u.email === savedEmail && u.password === savedPassword);
+        const clientUser = (settings.client_users || []).find(u => u.email === savedEmail && u.password === savedPassword);
         if (clientUser) {
           sessionStorage.setItem('client_id', clientUser.client_id);
           navigate(createPageUrl('HomeCliente'));
@@ -75,11 +63,8 @@ export default function MenuInicio() {
     e.preventDefault();
     setLoginError('');
     setIsLoggingIn(true);
-
     try {
-      const clientUsers = settings?.client_users || [];
-      const clientUser = clientUsers.find((u) => u.email === credentials.email && u.password === credentials.password);
-
+      const clientUser = (settings?.client_users || []).find(u => u.email === credentials.email && u.password === credentials.password);
       if (clientUser) {
         localStorage.setItem('clilux_email', credentials.email);
         localStorage.setItem('clilux_password', credentials.password);
@@ -88,7 +73,7 @@ export default function MenuInicio() {
       } else {
         setLoginError('Email o contraseña incorrectos');
       }
-    } catch (error) {
+    } catch {
       setLoginError('Error al iniciar sesión');
     } finally {
       setIsLoggingIn(false);
@@ -100,11 +85,9 @@ export default function MenuInicio() {
     setTechLoginError('');
     setIsLoggingIn(true);
     try {
-      // Buscar técnico con esas credenciales en la BD
       const technicians = await base44.entities.Technician.filter({ email: techCredentials.email.trim().toLowerCase() });
       const inputPwd = techCredentials.password.trim();
       const tech = technicians.find(t => (t.portal_password || '').trim() === inputPwd && t.status === 'active');
-      console.log('[TechLogin] found techs:', technicians.length, 'match:', !!tech, 'pwd stored:', technicians[0]?.portal_password, 'input:', inputPwd);
       if (tech) {
         localStorage.setItem('clilux_tech_email', techCredentials.email);
         localStorage.setItem('clilux_tech_password', techCredentials.password);
@@ -120,424 +103,272 @@ export default function MenuInicio() {
     }
   };
 
-  const handleAdminLogin = () => {
-    base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
-  };
+  const handleAdminLogin = () => base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
 
-  const handleForget = () => {
-    localStorage.removeItem('clilux_email');
-    localStorage.removeItem('clilux_password');
-    localStorage.removeItem('clilux_tech_email');
-    localStorage.removeItem('clilux_tech_password');
-    sessionStorage.removeItem('client_id');
-    sessionStorage.removeItem('technician_email');
-    setCredentials({ email: '', password: '' });
-    setTechCredentials({ email: '', password: '' });
-    setMode(null);
-    toast.success('Sesión cerrada');
-  };
+  const logoUrl = settings?.logo_url;
+  const companyName = settings?.company_name || 'Clilux';
 
   return (
-    <div className="bg-slate-100 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex items-center justify-center">
-      <div className="fixed top-10 right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-      <div className="fixed bottom-10 left-10 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl" />
-      <div className="fixed top-1/3 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4 overflow-y-auto">
+      {/* Decorative blobs */}
+      <div className="fixed top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <Card className="bg-[#f0f5f5] text-card-foreground p-8 rounded-xl border shadow w-full max-w-md backdrop-blur-sm border-white/20 relative z-10">
+      <div className="w-full max-w-sm relative z-10">
+        {/* Logo & brand */}
         <div className="text-center mb-8">
-          {settings?.logo_url ?
-          <img src={settings.logo_url} alt="Logo" className="h-20 object-contain mx-auto mb-4" /> :
-
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
-              <Thermometer className="h-10 w-10 text-white" />
-            </div>
-          }
-          <h1 className="text-white text-4xl font-bold">{settings?.company_name || 'Clilux M'}</h1>
-          <p className="text-slate-400 mt-2 text-lg">Sistema de Gestión de Climatización</p>
-        </div>
-
-        {/* Selección de modo */}
-        {!mode &&
-        <div className="space-y-3">
-            <p className="text-center text-slate-300 text-sm mb-5">¿Cómo deseas acceder?</p>
-
-            {/* Técnico */}
-            <Button
-              onClick={() => setMode('technician')}
-              className="bg-[#525b57] text-white w-full h-12 hover:bg-[#3d4440] border border-white/20 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-            >
-              <Wrench className="h-5 w-5" />
-              Acceso Técnico
-            </Button>
-
-            {/* Cliente */}
-            <Button
-              onClick={() => setMode('client')}
-              className="bg-[#16bba4] text-white w-full h-12 hover:bg-teal-500 flex items-center justify-center gap-3 text-base font-medium rounded-md shadow"
-            >
-              <Users className="h-5 w-5" />
-              Acceso Cliente
-            </Button>
-
-            <div className="relative flex items-center gap-3 py-2">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-slate-500 text-xs">Administradores</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            <Button
-              onClick={handleAdminLogin}
-              className="bg-amber-700/60 text-white w-full h-10 hover:bg-amber-700 border border-amber-600/30 flex items-center justify-center gap-2 text-sm font-medium rounded-md"
-              variant="ghost"
-            >
-              <Shield className="h-4 w-4" />
-              Acceso Administrador
-            </Button>
-
-            <button
-              onClick={() => setMode('admin_register')}
-              className="w-full text-center text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2 py-1"
-            >
-              ¿Primera vez? Solicitar acceso administrador
-            </button>
-          </div>
-        }
-
-        {/* Login técnico */}
-        {mode === 'technician' &&
-        <form onSubmit={handleTechnicianLogin} className="space-y-5">
-          <p className="text-center text-slate-300 text-sm mb-2">Acceso para técnicos</p>
-          <div>
-            <Label className="text-white text-sm font-medium">Email</Label>
-            <Input
-              type="email"
-              value={techCredentials.email}
-              onChange={(e) => setTechCredentials(p => ({ ...p, email: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="tecnico@empresa.com"
-              required
-              disabled={isLoggingIn}
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm font-medium">Contraseña</Label>
-            <Input
-              type="password"
-              value={techCredentials.password}
-              onChange={(e) => setTechCredentials(p => ({ ...p, password: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="••••••••"
-              required
-              disabled={isLoggingIn}
-            />
-          </div>
-          {techLoginError && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400 text-sm">{techLoginError}</p>
-            </div>
-          )}
-          <Button
-            type="submit"
-            disabled={isLoggingIn}
-            className="bg-[#525b57] text-white w-full h-12 hover:bg-[#3d4440] font-medium text-base rounded-md"
-          >
-            {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Iniciar Sesión'}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => { setMode(null); setTechLoginError(''); }}
-            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
-            variant="ghost"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-          <p className="text-center text-xs text-slate-400">
-            Las credenciales son asignadas por tu administrador.
-          </p>
-        </form>
-        }
-
-        {/* Registro nuevo administrador */}
-        {mode === 'admin_register' && !registerDone &&
-        <div className="space-y-3">
-          <p className="text-center text-slate-300 text-sm mb-1">Solicitud de acceso administrador</p>
-
-          <div>
-            <Label className="text-white text-sm">Nombre completo *</Label>
-            <Input
-              value={registerData.fullName}
-              onChange={(e) => setRegisterData(p => ({ ...p, fullName: e.target.value }))}
-              placeholder="Juan García López"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm">Email de acceso / recuperación *</Label>
-            <Input
-              type="email"
-              value={registerData.contactEmail}
-              onChange={(e) => setRegisterData(p => ({ ...p, contactEmail: e.target.value }))}
-              placeholder="admin@tuempresa.com"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm">Contraseña *</Label>
-            <Input
-              type="password"
-              value={registerData.password}
-              onChange={(e) => setRegisterData(p => ({ ...p, password: e.target.value }))}
-              placeholder="••••••••"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm">Confirmar contraseña *</Label>
-            <Input
-              type="password"
-              value={registerData.passwordConfirm}
-              onChange={(e) => setRegisterData(p => ({ ...p, passwordConfirm: e.target.value }))}
-              placeholder="••••••••"
-              className={`mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 ${registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm ? 'border-red-400' : ''}`}
-            />
-            {registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm && (
-              <p className="text-xs text-red-400 mt-1">Las contraseñas no coinciden</p>
-            )}
-          </div>
-
-          <div className="pt-1 border-t border-white/10">
-            <p className="text-xs text-amber-300 mb-2 font-medium">Datos de la empresa</p>
-          </div>
-
-          <div>
-            <Label className="text-white text-sm">Nombre de la empresa *</Label>
-            <Input
-              value={registerData.companyName}
-              onChange={(e) => setRegisterData(p => ({ ...p, companyName: e.target.value }))}
-              placeholder="Climatización S.L."
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm">CIF / NIF * (identificador único de empresa)</Label>
-            <Input
-              value={registerData.companyCif}
-              onChange={(e) => setRegisterData(p => ({ ...p, companyCif: e.target.value.toUpperCase() }))}
-              placeholder="B12345678"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div>
-            <Label className="text-white text-sm">Dirección</Label>
-            <Input
-              value={registerData.companyAddress}
-              onChange={(e) => setRegisterData(p => ({ ...p, companyAddress: e.target.value }))}
-              placeholder="Calle Mayor 1, Madrid"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-
-          <div className="pt-1 border-t border-white/10">
-            <p className="text-xs text-amber-300 mb-2 font-medium">Cuenta técnico (opcional)</p>
-            <p className="text-xs text-slate-400 mb-2">Si ya tienes una cuenta técnico en el sistema, indícalo para vincularla como administrador.</p>
-          </div>
-          <div>
-            <Label className="text-white text-sm">Email de tu cuenta técnico</Label>
-            <Input
-              type="email"
-              value={registerData.technicianEmail}
-              onChange={(e) => setRegisterData(p => ({ ...p, technicianEmail: e.target.value }))}
-              placeholder="tecnico@tuempresa.com (opcional)"
-              className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-            />
-          </div>
-
-          {registerError && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400 text-sm">{registerError}</p>
-            </div>
-          )}
-
-          <Button
-            onClick={async () => {
-              setRegisterError('');
-              const { fullName, contactEmail, password, passwordConfirm, companyName, companyCif } = registerData;
-              if (!fullName || !contactEmail || !password || !companyName || !companyCif) {
-                setRegisterError('Rellena todos los campos obligatorios (*)');
-                return;
-              }
-              if (password !== passwordConfirm) {
-                setRegisterError('Las contraseñas no coinciden');
-                return;
-              }
-              if (password.length < 6) {
-                setRegisterError('La contraseña debe tener al menos 6 caracteres');
-                return;
-              }
-              setRegisterSending(true);
-              try {
-                // Verificar que no exista ya un admin con ese CIF
-                const existing = await base44.entities.AdminRequest.filter({ company_cif: companyCif.toUpperCase() });
-                if (existing.length > 0) {
-                  setRegisterError('Ya existe una solicitud o empresa registrada con ese CIF. Solo puede haber un administrador por empresa.');
-                  setRegisterSending(false);
-                  return;
-                }
-                // Guardar la solicitud
-                await base44.entities.AdminRequest.create({
-                  full_name: fullName,
-                  contact_email: contactEmail,
-                  company_name: companyName,
-                  company_cif: companyCif.toUpperCase(),
-                  company_address: registerData.companyAddress,
-                  technician_email: registerData.technicianEmail || null,
-                  status: 'pending',
-                });
-                setRegisterDone(true);
-              } catch (err) {
-                setRegisterError('Error al enviar la solicitud: ' + (err.message || ''));
-              } finally {
-                setRegisterSending(false);
-              }
-            }}
-            disabled={registerSending || (registerData.passwordConfirm && registerData.password !== registerData.passwordConfirm)}
-            className="bg-amber-600 text-white w-full h-12 hover:bg-amber-700 flex items-center justify-center gap-3 text-base font-medium rounded-md"
-          >
-            {registerSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-5 w-5" />}
-            Enviar solicitud de registro
-          </Button>
-          <Button
-            type="button"
-            onClick={() => { setMode(null); setRegisterError(''); }}
-            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
-            variant="ghost"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-        </div>
-        }
-
-        {/* Registro completado */}
-        {mode === 'admin_register' && registerDone &&
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-            <Shield className="h-8 w-8 text-emerald-400" />
-          </div>
-          <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
-          <p className="text-slate-300 text-sm">
-            Tu solicitud ha sido registrada. El administrador del sistema revisará tus datos y te enviará una invitación a <strong className="text-white">{registerData.contactEmail}</strong>. Podrás acceder usando el botón <strong className="text-white">"Acceso Técnico / Administrador"</strong>.
-          </p>
-          <Button
-            onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
-            className="w-full h-11 bg-white/10 border border-white/20 text-white hover:bg-white/20"
-            variant="ghost"
-          >
-            Volver al inicio
-          </Button>
-        </div>
-        }
-
-        {/* Olvidar contraseña técnico */}
-        {mode === 'forgot_tech' &&
-        <div className="space-y-4">
-          <div className="text-center p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <KeyRound className="h-10 w-10 text-blue-400 mx-auto mb-3" />
-            <h3 className="text-white font-semibold mb-2">Recuperar contraseña</h3>
-            <p className="text-slate-300 text-sm mb-4">
-              Para recuperar tu contraseña, accede a la pantalla de inicio de sesión y pulsa <strong className="text-white">"¿Olvidaste tu contraseña?"</strong>. Recibirás un email con el enlace de recuperación.
-            </p>
-            <Button
-              onClick={() => base44.auth.redirectToLogin(createPageUrl('HomeTecnico'))}
-              className="bg-blue-600 text-white w-full h-11 hover:bg-blue-700 flex items-center justify-center gap-2 font-medium rounded-md"
-            >
-              <Wrench className="h-4 w-4" />
-              Ir al inicio de sesión
-            </Button>
-          </div>
-          <Button
-            type="button"
-            onClick={() => setMode(null)}
-            className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-sm font-medium"
-            variant="ghost"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-        </div>
-        }
-
-        {/* Formulario cliente */}
-        {mode === 'client' &&
-        <form onSubmit={handleClientLogin} className="space-y-5">
-            <div>
-              <Label className="text-white text-sm font-medium">Email</Label>
-              <Input
-              type="email"
-              value={credentials.email}
-              onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="tu@email.com"
-              required
-              disabled={isLoggingIn} />
-
-            </div>
-
-            <div>
-              <Label className="text-white text-sm font-medium">Contraseña</Label>
-              <Input
-              type="password"
-              value={credentials.password}
-              onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
-              className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-              placeholder="••••••••"
-              required
-              disabled={isLoggingIn} />
-
-            </div>
-
-            {loginError &&
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                <p className="text-red-400 text-sm">{loginError}</p>
+          {logoUrl
+            ? <img src={logoUrl} alt="Logo" className="h-20 object-contain mx-auto mb-4" />
+            : (
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+                <Thermometer className="h-10 w-10 text-white" />
               </div>
+            )
           }
-
-            <Button
-            type="submit" className="bg-stone-600 text-primary-foreground px-4 py-2 text-base font-medium rounded-[10px] inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow w-full h-12 hover:bg-blue-700"
-
-            disabled={isLoggingIn}>
-
-              {isLoggingIn ?
-            <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Iniciando sesión...
-                </> :
-
-            'Iniciar Sesión'
-            }
-            </Button>
-
-            <Button
-            type="button"
-            onClick={() => {setMode(null);setLoginError('');}}
-            className="w-full h-12 bg-white/5 border border-white/20 text-white hover:bg-white/10 text-base font-medium"
-            variant="ghost">
-
-              ← Volver
-            </Button>
-
-            <p className="text-center text-xs text-slate-400">
-              Las credenciales del portal cliente son gestionadas por el técnico responsable.
-            </p>
-          </form>
-        }
-
-        <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400">Acceso para técnicos y clientes</p>
+          <h1 className="text-white text-3xl font-bold tracking-tight">{companyName}</h1>
+          <p className="text-slate-400 mt-1 text-sm">Sistema de Gestión de Climatización</p>
         </div>
-      </Card>
 
-      <p className="absolute bottom-6 text-center text-slate-500 text-sm">
-        © 2024 Clilux - Todos los derechos reservados
-      </p>
-    </div>);
+        {/* Panel */}
+        <div className="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
 
+          {/* ── Selección de modo ── */}
+          {!mode && (
+            <div className="space-y-3">
+              <p className="text-slate-400 text-xs text-center uppercase tracking-widest mb-5 font-semibold">¿Cómo deseas acceder?</p>
+
+              <button
+                onClick={() => setMode('technician')}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-slate-700/60 border border-slate-600/50 hover:bg-slate-700 hover:border-slate-500 transition-all text-left group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                  <Wrench className="h-6 w-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">Técnico</p>
+                  <p className="text-slate-400 text-xs">Gestión de equipos y clientes</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => setMode('client')}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-slate-700/60 border border-slate-600/50 hover:bg-slate-700 hover:border-slate-500 transition-all text-left group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center shrink-0 group-hover:bg-teal-500/30 transition-colors">
+                  <Users className="h-6 w-6 text-teal-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">Cliente</p>
+                  <p className="text-slate-400 text-xs">Portal de seguimiento</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+              </button>
+
+              <div className="pt-2">
+                <div className="h-px bg-white/5 mb-4" />
+                <button
+                  onClick={handleAdminLogin}
+                  className="w-full flex items-center gap-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all text-left group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Shield className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-amber-300 font-medium text-sm">Acceso Administrador</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-amber-500/50" />
+                </button>
+                <button
+                  onClick={() => setMode('admin_register')}
+                  className="w-full text-center text-xs text-slate-500 hover:text-slate-400 py-3 transition-colors"
+                >
+                  ¿Primera vez? Solicitar acceso administrador
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Login técnico ── */}
+          {mode === 'technician' && (
+            <form onSubmit={handleTechnicianLogin} className="space-y-4">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                  <Wrench className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold">Acceso Técnico</p>
+                  <p className="text-slate-400 text-xs">Credenciales asignadas por tu administrador</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Email</Label>
+                <Input type="email" value={techCredentials.email}
+                  onChange={e => setTechCredentials(p => ({ ...p, email: e.target.value }))}
+                  className="mt-1.5 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                  placeholder="tecnico@empresa.com" required disabled={isLoggingIn} />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Contraseña</Label>
+                <Input type="password" value={techCredentials.password}
+                  onChange={e => setTechCredentials(p => ({ ...p, password: e.target.value }))}
+                  className="mt-1.5 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                  placeholder="••••••••" required disabled={isLoggingIn} />
+              </div>
+              {techLoginError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 text-sm">{techLoginError}</p>
+                </div>
+              )}
+              <Button type="submit" disabled={isLoggingIn}
+                className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl">
+                {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Iniciar Sesión'}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => { setMode(null); setTechLoginError(''); }}
+                className="w-full h-10 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl text-sm">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+              </Button>
+            </form>
+          )}
+
+          {/* ── Login cliente ── */}
+          {mode === 'client' && (
+            <form onSubmit={handleClientLogin} className="space-y-4">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-teal-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold">Portal Cliente</p>
+                  <p className="text-slate-400 text-xs">Accede a tus equipos e incidencias</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Email</Label>
+                <Input type="email" value={credentials.email}
+                  onChange={e => setCredentials(p => ({ ...p, email: e.target.value }))}
+                  className="mt-1.5 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 focus:border-teal-500"
+                  placeholder="tu@email.com" required disabled={isLoggingIn} />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Contraseña</Label>
+                <Input type="password" value={credentials.password}
+                  onChange={e => setCredentials(p => ({ ...p, password: e.target.value }))}
+                  className="mt-1.5 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 focus:border-teal-500"
+                  placeholder="••••••••" required disabled={isLoggingIn} />
+              </div>
+              {loginError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 text-sm">{loginError}</p>
+                </div>
+              )}
+              <Button type="submit" disabled={isLoggingIn}
+                className="w-full h-11 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl">
+                {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Iniciar Sesión'}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => { setMode(null); setLoginError(''); }}
+                className="w-full h-10 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl text-sm">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+              </Button>
+            </form>
+          )}
+
+          {/* ── Registro administrador ── */}
+          {mode === 'admin_register' && !registerDone && (
+            <div className="space-y-3">
+              <p className="text-white font-semibold mb-1">Solicitud de acceso administrador</p>
+              <p className="text-slate-400 text-xs mb-4">Rellena el formulario y revisaremos tu solicitud.</p>
+              {[
+                { label: 'Nombre completo *', key: 'fullName', type: 'text', placeholder: 'Juan García López' },
+                { label: 'Email de acceso *', key: 'contactEmail', type: 'email', placeholder: 'admin@tuempresa.com' },
+                { label: 'Contraseña *', key: 'password', type: 'password', placeholder: '••••••••' },
+                { label: 'Confirmar contraseña *', key: 'passwordConfirm', type: 'password', placeholder: '••••••••' },
+              ].map(f => (
+                <div key={f.key}>
+                  <Label className="text-slate-300 text-xs">{f.label}</Label>
+                  <Input type={f.type} value={registerData[f.key]}
+                    onChange={e => setRegisterData(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="mt-1 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 text-sm" />
+                </div>
+              ))}
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-amber-400 text-xs font-semibold mb-2 uppercase tracking-wide">Datos de la empresa</p>
+              </div>
+              {[
+                { label: 'Nombre de la empresa *', key: 'companyName', placeholder: 'Climatización S.L.' },
+                { label: 'CIF / NIF *', key: 'companyCif', placeholder: 'B12345678' },
+                { label: 'Dirección', key: 'companyAddress', placeholder: 'Calle Mayor 1, Madrid' },
+              ].map(f => (
+                <div key={f.key}>
+                  <Label className="text-slate-300 text-xs">{f.label}</Label>
+                  <Input value={registerData[f.key]}
+                    onChange={e => setRegisterData(p => ({ ...p, [f.key]: f.key === 'companyCif' ? e.target.value.toUpperCase() : e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="mt-1 bg-slate-700/60 border-slate-600 text-white placeholder:text-slate-500 text-sm" />
+                </div>
+              ))}
+              {registerError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 text-sm">{registerError}</p>
+                </div>
+              )}
+              <Button
+                onClick={async () => {
+                  setRegisterError('');
+                  const { fullName, contactEmail, password, passwordConfirm, companyName, companyCif } = registerData;
+                  if (!fullName || !contactEmail || !password || !companyName || !companyCif) { setRegisterError('Rellena todos los campos obligatorios (*)'); return; }
+                  if (password !== passwordConfirm) { setRegisterError('Las contraseñas no coinciden'); return; }
+                  if (password.length < 6) { setRegisterError('La contraseña debe tener al menos 6 caracteres'); return; }
+                  setRegisterSending(true);
+                  try {
+                    const existing = await base44.entities.AdminRequest.filter({ company_cif: companyCif.toUpperCase() });
+                    if (existing.length > 0) { setRegisterError('Ya existe una solicitud con ese CIF.'); setRegisterSending(false); return; }
+                    await base44.entities.AdminRequest.create({
+                      full_name: fullName, contact_email: contactEmail,
+                      company_name: companyName, company_cif: companyCif.toUpperCase(),
+                      company_address: registerData.companyAddress,
+                      technician_email: registerData.technicianEmail || null, status: 'pending',
+                    });
+                    setRegisterDone(true);
+                  } catch (err) {
+                    setRegisterError('Error al enviar: ' + (err.message || ''));
+                  } finally {
+                    setRegisterSending(false);
+                  }
+                }}
+                disabled={registerSending}
+                className="w-full h-11 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl">
+                {registerSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="h-4 w-4 mr-2" />Enviar solicitud</>}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => { setMode(null); setRegisterError(''); }}
+                className="w-full h-10 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl text-sm">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+              </Button>
+            </div>
+          )}
+
+          {/* ── Registro completado ── */}
+          {mode === 'admin_register' && registerDone && (
+            <div className="space-y-4 text-center py-4">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto">
+                <Shield className="h-8 w-8 text-emerald-400" />
+              </div>
+              <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                El administrador revisará tus datos y te enviará una invitación a <strong className="text-white">{registerData.contactEmail}</strong>.
+              </p>
+              <Button onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
+                className="w-full h-11 bg-slate-700 hover:bg-slate-600 text-white rounded-xl">
+                Volver al inicio
+              </Button>
+            </div>
+          )}
+
+        </div>
+
+        <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados</p>
+      </div>
+    </div>
+  );
 }

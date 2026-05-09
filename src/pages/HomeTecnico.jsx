@@ -311,22 +311,18 @@ export default function HomeTecnico() {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Clientes',   value: clients.length,   icon: Users,         color: 'bg-blue-500/20',    iconCls: 'text-blue-400',    page: 'Clients',   loading: loadingClients },
-                  { label: 'Edificios',  value: buildings.length, icon: Building2,     color: 'bg-emerald-500/20', iconCls: 'text-emerald-400', page: 'Buildings' },
-                  { label: 'Equipos',    value: equipment.length, icon: Wrench,        color: 'bg-purple-500/20',  iconCls: 'text-purple-400',  page: 'Equipment' },
-                  { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/20' : 'bg-slate-500/20', iconCls: pendingIncidents.length > 0 ? 'text-red-400' : 'text-slate-400', page: 'Incidents' },
-                ].map(({ label, value, icon: Icon, color, iconCls, page, loading }) => (
+                  { label: 'Clientes',   value: clients.length,   icon: Users,         color: 'bg-blue-500/10 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: loadingClients },
+                  { label: 'Edificios',  value: buildings.length, icon: Building2,     color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings' },
+                  { label: 'Equipos',    value: equipment.length, icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',  iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment' },
+                  { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents' },
+                ].map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) => (
                   <Link key={label} to={createPageUrl(page)} onClick={playFuturisticSound}>
-                    <Card className="bg-white border-slate-200 p-4 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center shrink-0`}>
-                          <Icon className={`h-6 w-6 ${iconCls}`} />
-                        </div>
-                        <div>
-                          {loading ? <Skeleton className="h-7 w-10 mb-1" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
-                          <p className="text-xs text-slate-500">{label}</p>
-                        </div>
+                    <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
+                      <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center mb-3`}>
+                        <Icon className={`h-7 w-7 ${iconCls}`} />
                       </div>
+                      {loading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-3xl font-bold text-slate-800">{value}</p>}
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
                     </Card>
                   </Link>
                 ))}
@@ -494,14 +490,14 @@ export default function HomeTecnico() {
                 <Sparkles className="h-5 w-5 text-yellow-500" />
                 Funciones
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {FUNCIONES.map(({ id, label, page, icon: Icon, color, iconCls }) => (
                   <Link key={id} to={createPageUrl(page)} onClick={playFuturisticSound}>
-                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-105 transition-transform cursor-pointer h-36 flex flex-col items-center justify-center gap-3 shadow-sm`}>
-                      <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center">
-                        <Icon className={`h-7 w-7 ${iconCls}`} />
+                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
+                      <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
+                        <Icon className={`h-9 w-9 ${iconCls}`} />
                       </div>
-                      <p className="text-slate-800 text-sm text-center font-medium leading-tight">{label}</p>
+                      <p className="text-slate-800 text-sm text-center font-semibold leading-tight">{label}</p>
                     </Card>
                   </Link>
                 ))}
