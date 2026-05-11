@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,21 +24,12 @@ export default function MenuInicio() {
   const [registerSending, setRegisterSending] = useState(false);
   const [registerDone, setRegisterDone] = useState(false);
 
-  const { data: settings } = useQuery({
-    queryKey: ['app-settings'],
-    queryFn: async () => {
-      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
-      return all[0] || null;
-    }
-  });
-
   useEffect(() => {
     const autoLogin = async () => {
       if (sessionStorage.getItem('just_logged_out')) {
         sessionStorage.removeItem('just_logged_out');
         return;
       }
-      // Auto-login solo si ya hay sesión activa en sessionStorage (misma pestaña/sesión)
       const activeTechSession = sessionStorage.getItem('technician_email');
       if (activeTechSession) {
         navigate(createPageUrl('HomeTecnico'));
@@ -50,36 +40,47 @@ export default function MenuInicio() {
         navigate(createPageUrl('HomeCliente'));
         return;
       }
-      // Auto-login de cliente por localStorage (recordar sesión)
+      // Auto-login de cliente por localStorage
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
-      if (savedEmail && savedPassword && settings) {
-        const clientUser = (settings.client_users || []).find(u => u.email === savedEmail && u.password === savedPassword);
-        if (clientUser) {
-          sessionStorage.setItem('client_id', clientUser.client_id);
-          navigate(createPageUrl('HomeCliente'));
+      if (savedEmail && savedPassword) {
+        try {
+          const res = await base44.functions.invoke('clientLogin', {
+            email: savedEmail,
+            password: savedPassword
+          });
+          if (res.data?.success) {
+            sessionStorage.setItem('client_id', res.data.client_id);
+            navigate(createPageUrl('HomeCliente'));
+          }
+        } catch {
+          // Si falla el auto-login, simplemente mostrar el menú
         }
       }
     };
     autoLogin();
-  }, [settings, navigate]);
+  }, [navigate]);
 
   const handleClientLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     setIsLoggingIn(true);
     try {
-      const clientUser = (settings?.client_users || []).find(u => u.email === credentials.email && u.password === credentials.password);
-      if (clientUser) {
-        localStorage.setItem('clilux_email', credentials.email);
+      const res = await base44.functions.invoke('clientLogin', {
+        email: credentials.email.trim(),
+        password: credentials.password
+      });
+      const data = res.data;
+      if (data?.success) {
+        localStorage.setItem('clilux_email', credentials.email.trim());
         localStorage.setItem('clilux_password', credentials.password);
-        sessionStorage.setItem('client_id', clientUser.client_id);
+        sessionStorage.setItem('client_id', data.client_id);
         navigate(createPageUrl('HomeCliente'));
       } else {
-        setLoginError('Email o contraseña incorrectos');
+        setLoginError(data?.error || 'Email o contraseña incorrectos');
       }
-    } catch {
-      setLoginError('Error al iniciar sesión');
+    } catch (err) {
+      setLoginError('Error al iniciar sesión: ' + err.message);
     } finally {
       setIsLoggingIn(false);
     }
@@ -90,20 +91,16 @@ export default function MenuInicio() {
     setTechLoginError('');
     setIsLoggingIn(true);
     try {
-      const emailLower = techCredentials.email.trim().toLowerCase();
-      const inputPwd = techCredentials.password.trim();
-      // Traer todos los técnicos y comparar manualmente (insensible a mayúsculas en email)
-      const allTechs = await base44.entities.Technician.list();
-      const tech = allTechs.find(t =>
-        (t.email || '').trim().toLowerCase() === emailLower &&
-        (t.portal_password || '').trim() === inputPwd &&
-        t.status === 'active'
-      );
-      if (tech) {
-        sessionStorage.setItem('technician_email', tech.email);
+      const res = await base44.functions.invoke('technicianLogin', {
+        email: techCredentials.email.trim(),
+        password: techCredentials.password.trim()
+      });
+      const data = res.data;
+      if (data?.success) {
+        sessionStorage.setItem('technician_email', data.email);
         navigate(createPageUrl('HomeTecnico'));
       } else {
-        setTechLoginError('Email o contraseña incorrectos, o técnico inactivo');
+        setTechLoginError(data?.error || 'Email o contraseña incorrectos');
       }
     } catch (err) {
       setTechLoginError('Error al iniciar sesión: ' + err.message);
@@ -114,8 +111,8 @@ export default function MenuInicio() {
 
   const handleAdminLogin = () => base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
 
-  const logoUrl = settings?.logo_url;
-  const companyName = settings?.company_name || 'Clilux';
+  const logoUrl = null;
+  const companyName = 'Clilux';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4 overflow-y-auto">
