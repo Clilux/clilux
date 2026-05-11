@@ -432,6 +432,39 @@ export default function Settings() {
 
           <TabsContent value="appearance">
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+              <h3 className="font-semibold text-slate-800 mb-4">Paletas Predefinidas</h3>
+              <p className="text-sm text-slate-500 mb-4">Haz clic en una paleta para aplicarla directamente.</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                {[
+                  { name: 'Oscuro Clásico', bg: '#0f172a', btn: '#3b82f6', text: '#ffffff', icon: '#60a5fa', primary: '#1e293b', accent: '#10b981' },
+                  { name: 'Azul Profesional', bg: '#1e3a5f', btn: '#2563eb', text: '#ffffff', icon: '#93c5fd', primary: '#1e3a5f', accent: '#0ea5e9' },
+                  { name: 'Verde Técnico', bg: '#14532d', btn: '#16a34a', text: '#ffffff', icon: '#86efac', primary: '#166534', accent: '#4ade80' },
+                  { name: 'Gris Neutro', bg: '#1f2937', btn: '#6366f1', text: '#f9fafb', icon: '#a5b4fc', primary: '#374151', accent: '#8b5cf6' },
+                  { name: 'Blanco Limpio', bg: '#f8fafc', btn: '#2563eb', text: '#1e293b', icon: '#2563eb', primary: '#e2e8f0', accent: '#0284c7' },
+                  { name: 'Slate Moderno', bg: '#0f172a', btn: '#0ea5e9', text: '#e2e8f0', icon: '#38bdf8', primary: '#1e293b', accent: '#06b6d4' },
+                  { name: 'Rojo Energía', bg: '#1c0a00', btn: '#dc2626', text: '#fef2f2', icon: '#fca5a5', primary: '#450a0a', accent: '#f97316' },
+                  { name: 'Corporativo', bg: '#18181b', btn: '#d97706', text: '#fafaf9', icon: '#fbbf24', primary: '#27272a', accent: '#f59e0b' },
+                ].map(palette => (
+                  <button
+                    key={palette.name}
+                    onClick={() => setFormData(prev => ({ ...prev, background_color: palette.bg, button_color: palette.btn, text_color: palette.text, icon_color: palette.icon, primary_color: palette.primary, accent_color: palette.accent }))}
+                    className="rounded-lg border-2 border-transparent hover:border-blue-400 overflow-hidden transition-all shadow-sm hover:shadow-md"
+                    title={palette.name}
+                  >
+                    <div className="h-10 flex" style={{ backgroundColor: palette.bg }}>
+                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.btn }} />
+                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.icon }} />
+                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.accent }} />
+                    </div>
+                    <div className="p-1.5 bg-white text-center">
+                      <span className="text-xs text-slate-600 font-medium">{palette.name}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
               <h3 className="font-semibold text-slate-800 mb-6">Marca de Agua para Documentos</h3>
               <h4 className="font-medium text-slate-700 mb-2">Marca de Agua</h4>
               <p className="text-sm text-slate-500 mb-3">Esta imagen aparecerá como marca de agua semitransparente en los certificados y documentos PDF generados.</p>
