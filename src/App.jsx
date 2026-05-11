@@ -45,14 +45,14 @@ const AuthenticatedApp = () => {
   const hasClientSession = !!sessionStorage.getItem('client_id');
 
   // Handle authentication errors
+  // IMPORTANT: Esta app tiene su propio login (técnicos/clientes).
+  // Solo los admin usan el login de Base44. No redirigir automáticamente.
   if (authError && !hasTechSession && !hasClientSession) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
     }
+    // Para auth_required y otros errores, simplemente mostrar la app (MenuInicio)
+    // Los técnicos y clientes usan su propio sistema de autenticación
   }
 
   // Render the main app
