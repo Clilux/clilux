@@ -90,11 +90,17 @@ export default function MenuInicio() {
     setTechLoginError('');
     setIsLoggingIn(true);
     try {
-      const technicians = await base44.entities.Technician.filter({ email: techCredentials.email.trim().toLowerCase() });
+      const emailLower = techCredentials.email.trim().toLowerCase();
       const inputPwd = techCredentials.password.trim();
-      const tech = technicians.find(t => (t.portal_password || '').trim() === inputPwd && t.status === 'active');
+      // Traer todos los técnicos y comparar manualmente (insensible a mayúsculas en email)
+      const allTechs = await base44.entities.Technician.list();
+      const tech = allTechs.find(t =>
+        (t.email || '').trim().toLowerCase() === emailLower &&
+        (t.portal_password || '').trim() === inputPwd &&
+        t.status === 'active'
+      );
       if (tech) {
-        sessionStorage.setItem('technician_email', techCredentials.email);
+        sessionStorage.setItem('technician_email', tech.email);
         navigate(createPageUrl('HomeTecnico'));
       } else {
         setTechLoginError('Email o contraseña incorrectos, o técnico inactivo');
