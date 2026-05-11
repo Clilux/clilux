@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Upload, Palette, Building, FileText, Thermometer, Plus, Trash2, Settings2, Users, Download, UploadCloud, Eye, EyeOff, Send, KeyRound, Plug } from 'lucide-react';
+import { Loader2, Save, Upload, Building, Plus, Trash2, Users, Download, UploadCloud, Eye, EyeOff, Send, Plug } from 'lucide-react';
 import IntegracionesTab from '@/components/settings/IntegracionesTab';
 import TechniciansTab from '@/components/settings/TechniciansTab';
 import NavHeader from '../components/navigation/NavHeader';
@@ -17,20 +15,17 @@ import { toast } from 'sonner';
 export default function Settings() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [showPassword, setShowPassword] = useState({});
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
   });
 
-  const [showPassword, setShowPassword] = useState({});
-
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
   });
-
-
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -38,21 +33,12 @@ export default function Settings() {
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || {
         setting_key: 'main',
-        primary_color: '#1e293b',
-        secondary_color: '#3b82f6',
-        accent_color: '#10b981',
         logo_url: '',
-        company_name: 'Clilux M',
+        company_name: '',
         equipment_types: [],
         revision_fields: [],
         client_fields: [],
         client_users: [],
-        maintenance_periods: {
-          monthly: true,
-          quarterly: true,
-          biannual: true,
-          annual: true,
-        },
       };
     },
   });
@@ -65,9 +51,7 @@ export default function Settings() {
   const [formData, setFormData] = useState(settings || {});
 
   useEffect(() => {
-    if (settings) {
-      setFormData(settings);
-    }
+    if (settings) setFormData(settings);
   }, [settings]);
 
   const saveMutation = useMutation({
@@ -81,9 +65,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       toast.success('Configuración guardada');
     },
-    onError: () => {
-      toast.error('Error al guardar');
-    },
+    onError: () => toast.error('Error al guardar'),
   });
 
   const handleChange = (field, value) => {
@@ -93,112 +75,59 @@ export default function Settings() {
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const result = await base44.integrations.Core.UploadFile({ file });
       handleChange('logo_url', result.file_url);
       toast.success('Logo subido');
-    } catch (error) {
+    } catch {
       toast.error('Error al subir el logo');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSave = () => {
-    saveMutation.mutate(formData);
-  };
-
-  // Gestión de tipos de equipos personalizados
-  const addEquipmentType = () => {
-    const newType = prompt('Nombre del nuevo tipo de equipo:');
-    if (newType && newType.trim()) {
-      const newTypes = [...(formData.equipment_types || []), newType.trim()];
-      setFormData(prev => ({ ...prev, equipment_types: newTypes }));
+  const handleWatermarkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      handleChange('watermark_url', result.file_url);
+      toast.success('Marca de agua subida');
+    } catch {
+      toast.error('Error al subir la imagen');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeEquipmentType = (index) => {
-    const filtered = (formData.equipment_types || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, equipment_types: filtered }));
-  };
+  const handleSave = () => saveMutation.mutate(formData);
 
-  // Gestión de campos personalizados de revisión
-  const addRevisionField = () => {
-    const newFields = [...(formData.revision_fields || []), { field_name: '', field_label: '', field_type: 'text', required: false }];
-    setFormData(prev => ({ ...prev, revision_fields: newFields }));
-  };
-
-  const updateRevisionField = (index, field, value) => {
-    const updated = [...(formData.revision_fields || [])];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData(prev => ({ ...prev, revision_fields: updated }));
-  };
-
-  const removeRevisionField = (index) => {
-    const filtered = (formData.revision_fields || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, revision_fields: filtered }));
-  };
-
-  // Gestión de campos personalizados de cliente
-  const addClientField = () => {
-    const newFields = [...(formData.client_fields || []), { field_name: '', field_label: '', field_type: 'text', required: false }];
-    setFormData(prev => ({ ...prev, client_fields: newFields }));
-  };
-
-  const updateClientField = (index, field, value) => {
-    const updated = [...(formData.client_fields || [])];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData(prev => ({ ...prev, client_fields: updated }));
-  };
-
-  const removeClientField = (index) => {
-    const filtered = (formData.client_fields || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, client_fields: filtered }));
-  };
-
-  // Gestión de usuarios del portal cliente
+  // Client users
   const addClientUser = () => {
-    const newUsers = [...(formData.client_users || []), { email: '', password: '', client_id: '', can_edit: false }];
-    setFormData(prev => ({ ...prev, client_users: newUsers }));
+    setFormData(prev => ({ ...prev, client_users: [...(prev.client_users || []), { email: '', password: '', client_id: '', can_edit: false }] }));
   };
-
   const updateClientUser = (index, field, value) => {
     const updated = [...(formData.client_users || [])];
     updated[index] = { ...updated[index], [field]: value };
     setFormData(prev => ({ ...prev, client_users: updated }));
   };
-
   const removeClientUser = (index) => {
-    const filtered = (formData.client_users || []).filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, client_users: filtered }));
+    setFormData(prev => ({ ...prev, client_users: (prev.client_users || []).filter((_, i) => i !== index) }));
   };
 
   const sendAccessEmail = async (user) => {
     const client = clients.find(c => c.id === user.client_id);
-    if (!user.email || !user.password) {
-      toast.error('El usuario debe tener email y contraseña configurados');
-      return;
-    }
-
-    // Guardar automáticamente antes de enviar para asegurar que los datos están persistidos
+    if (!user.email || !user.password) { toast.error('El usuario debe tener email y contraseña configurados'); return; }
     try {
-      if (settings?.id) {
-        await base44.entities.AppSettings.update(settings.id, formData);
-      } else {
-        await base44.entities.AppSettings.create({ ...formData, setting_key: 'main' });
-      }
+      if (settings?.id) await base44.entities.AppSettings.update(settings.id, formData);
+      else await base44.entities.AppSettings.create({ ...formData, setting_key: 'main' });
       queryClient.invalidateQueries({ queryKey: ['settings'] });
-    } catch {
-      toast.error('Error al guardar antes de enviar');
-      return;
-    }
+    } catch { toast.error('Error al guardar antes de enviar'); return; }
 
-    // Construir URL absoluta del portal: tomar la URL actual y reemplazar el hash con la página del cliente
     const portalUrl = window.location.origin + '/MenuInicio';
     const companyName = formData.company_name || 'la empresa';
-
     try {
       await base44.integrations.Core.SendEmail({
         to: user.email,
@@ -207,101 +136,51 @@ export default function Settings() {
   <h2 style="color: #1e293b;">${companyName} - Acceso Portal Cliente</h2>
   <p>Estimado/a ${client ? client.name : 'cliente'},</p>
   <p>Ya puedes acceder a tu portal de cliente para consultar el estado de tus equipos, incidencias y revisiones.</p>
-
   <table width="100%" cellpadding="12" cellspacing="0" style="border: 2px solid #3b82f6; border-radius: 8px; background-color: #eff6ff; margin: 24px 0;">
-    <tr>
-      <td>
-        <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b;">USUARIO (EMAIL)</p>
-        <p style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold; color: #0f172a;">${user.email}</p>
-        <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b;">CONTRASENA DE ACCESO</p>
-        <p style="margin: 0; font-size: 16px; font-weight: bold; color: #0f172a;">${user.password}</p>
-      </td>
-    </tr>
+    <tr><td>
+      <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b;">USUARIO (EMAIL)</p>
+      <p style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold; color: #0f172a;">${user.email}</p>
+      <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b;">CONTRASEÑA DE ACCESO</p>
+      <p style="margin: 0; font-size: 16px; font-weight: bold; color: #0f172a;">${user.password}</p>
+    </td></tr>
   </table>
-
-  <p style="margin: 24px 0;">
-    <a href="${portalUrl}" style="background-color: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
-      Acceder al Portal
-    </a>
-  </p>
-
-  <p style="color: #94a3b8; font-size: 12px;">Si tienes algún problema para acceder, contacta con nosotros respondiendo a este email.</p>
+  <p style="margin: 24px 0;"><a href="${portalUrl}" style="background-color: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Acceder al Portal</a></p>
+  <p style="color: #94a3b8; font-size: 12px;">Si tienes problemas, responde a este email.</p>
 </div>`,
       });
-      toast.success(`Email de acceso enviado a ${user.email}`);
-    } catch (error) {
-      toast.error('Error al enviar el email');
-    }
+      toast.success(`Email enviado a ${user.email}`);
+    } catch { toast.error('Error al enviar el email'); }
   };
 
-  // Copia de seguridad
   const handleExportBackup = async () => {
     try {
       const [clientsData, buildingsData, equipmentData, revisionsData, incidentsData, settingsData, techniciansData] = await Promise.all([
-        base44.entities.Client.list(),
-        base44.entities.Building.list(),
-        base44.entities.Equipment.list(),
-        base44.entities.ScheduledRevision.list(),
-        base44.entities.Incident.list(),
-        base44.entities.AppSettings.list(),
-        base44.entities.Technician.list(),
+        base44.entities.Client.list(), base44.entities.Building.list(), base44.entities.Equipment.list(),
+        base44.entities.ScheduledRevision.list(), base44.entities.Incident.list(),
+        base44.entities.AppSettings.list(), base44.entities.Technician.list(),
       ]);
-
-      const backup = {
-        version: '1.0',
-        date: new Date().toISOString(),
-        data: {
-          clients: clientsData,
-          buildings: buildingsData,
-          equipment: equipmentData,
-          revisions: revisionsData,
-          incidents: incidentsData,
-          settings: settingsData,
-          technicians: techniciansData,
-        },
-      };
-
+      const backup = { version: '1.0', date: new Date().toISOString(), data: { clients: clientsData, buildings: buildingsData, equipment: equipmentData, revisions: revisionsData, incidents: incidentsData, settings: settingsData, technicians: techniciansData } };
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `clilux_backup_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `clilux_backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
       URL.revokeObjectURL(url);
       toast.success('Copia de seguridad descargada');
-    } catch (error) {
-      toast.error('Error al crear copia de seguridad');
-    }
+    } catch { toast.error('Error al crear copia de seguridad'); }
   };
 
   const handleImportBackup = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       const text = await file.text();
       const backup = JSON.parse(text);
-
-      if (!backup.version || !backup.data) {
-        throw new Error('Formato de backup inválido');
-      }
-
-      // Restore data
-      if (backup.data.clients?.length) {
-        await base44.entities.Client.bulkCreate(backup.data.clients.map(({ id, created_date, updated_date, ...rest }) => rest));
-      }
-      if (backup.data.buildings?.length) {
-        await base44.entities.Building.bulkCreate(backup.data.buildings.map(({ id, created_date, updated_date, ...rest }) => rest));
-      }
-      if (backup.data.equipment?.length) {
-        await base44.entities.Equipment.bulkCreate(backup.data.equipment.map(({ id, created_date, updated_date, ...rest }) => rest));
-      }
-
-      toast.success('Copia de seguridad restaurada. Algunos datos pueden requerir ajustes manuales.');
+      if (!backup.version || !backup.data) throw new Error('Formato de backup inválido');
+      if (backup.data.clients?.length) await base44.entities.Client.bulkCreate(backup.data.clients.map(({ id, created_date, updated_date, ...rest }) => rest));
+      if (backup.data.buildings?.length) await base44.entities.Building.bulkCreate(backup.data.buildings.map(({ id, created_date, updated_date, ...rest }) => rest));
+      if (backup.data.equipment?.length) await base44.entities.Equipment.bulkCreate(backup.data.equipment.map(({ id, created_date, updated_date, ...rest }) => rest));
+      toast.success('Copia restaurada.');
       queryClient.invalidateQueries();
-    } catch (error) {
-      toast.error('Error al restaurar: ' + error.message);
-    }
+    } catch (error) { toast.error('Error al restaurar: ' + error.message); }
   };
 
   if (isLoading || !currentUser) {
@@ -350,10 +229,6 @@ export default function Settings() {
               <Building className="h-4 w-4" />
               Empresa
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              Apariencia
-            </TabsTrigger>
             <TabsTrigger value="technicians" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Técnicos
@@ -372,102 +247,35 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
+          {/* ── EMPRESA ── */}
           <TabsContent value="empresa">
             <Card className="p-6 bg-white border-0 shadow-sm mb-6">
               <h3 className="font-semibold text-slate-800 mb-2">Datos de la Empresa</h3>
-              <p className="text-sm text-slate-500 mb-6">Estos datos se utilizan en los contratos, facturas y documentos generados por la aplicación.</p>
-              
+              <p className="text-sm text-slate-500 mb-6">Estos datos se utilizan en contratos, facturas y documentos PDF.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label>Nombre de la Empresa</Label>
-                  <Input value={formData.company_name || ''} onChange={(e) => handleChange('company_name', e.target.value)} className="mt-1" />
-                </div>
-                <div>
-                  <Label>CIF / NIF</Label>
-                  <Input value={formData.company_cif || ''} onChange={(e) => handleChange('company_cif', e.target.value)} className="mt-1" placeholder="B12345678" />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>Dirección</Label>
-                  <Input value={formData.company_address || ''} onChange={(e) => handleChange('company_address', e.target.value)} className="mt-1" placeholder="Calle Ejemplo, 1" />
-                </div>
-                <div>
-                  <Label>Ciudad</Label>
-                  <Input value={formData.company_city || ''} onChange={(e) => handleChange('company_city', e.target.value)} className="mt-1" placeholder="Madrid" />
-                </div>
-                <div>
-                  <Label>Código Postal</Label>
-                  <Input value={formData.company_postal_code || ''} onChange={(e) => handleChange('company_postal_code', e.target.value)} className="mt-1" placeholder="28001" />
-                </div>
-                <div>
-                  <Label>Teléfono</Label>
-                  <Input value={formData.company_phone || ''} onChange={(e) => handleChange('company_phone', e.target.value)} className="mt-1" placeholder="+34 600 000 000" />
-                </div>
-                <div>
-                  <Label>Email de Contacto</Label>
-                  <Input type="email" value={formData.company_email || ''} onChange={(e) => handleChange('company_email', e.target.value)} className="mt-1" placeholder="info@empresa.com" />
-                </div>
-                <div>
-                  <Label>Página Web</Label>
-                  <Input value={formData.company_web || ''} onChange={(e) => handleChange('company_web', e.target.value)} className="mt-1" placeholder="www.empresa.com" />
-                </div>
+                <div><Label className="text-slate-700">Nombre de la Empresa</Label><Input value={formData.company_name || ''} onChange={(e) => handleChange('company_name', e.target.value)} className="mt-1" /></div>
+                <div><Label className="text-slate-700">CIF / NIF</Label><Input value={formData.company_cif || ''} onChange={(e) => handleChange('company_cif', e.target.value)} className="mt-1" placeholder="B12345678" /></div>
+                <div className="md:col-span-2"><Label className="text-slate-700">Dirección</Label><Input value={formData.company_address || ''} onChange={(e) => handleChange('company_address', e.target.value)} className="mt-1" placeholder="Calle Ejemplo, 1" /></div>
+                <div><Label className="text-slate-700">Ciudad</Label><Input value={formData.company_city || ''} onChange={(e) => handleChange('company_city', e.target.value)} className="mt-1" placeholder="Madrid" /></div>
+                <div><Label className="text-slate-700">Código Postal</Label><Input value={formData.company_postal_code || ''} onChange={(e) => handleChange('company_postal_code', e.target.value)} className="mt-1" placeholder="28001" /></div>
+                <div><Label className="text-slate-700">Teléfono</Label><Input value={formData.company_phone || ''} onChange={(e) => handleChange('company_phone', e.target.value)} className="mt-1" placeholder="+34 600 000 000" /></div>
+                <div><Label className="text-slate-700">Email de Contacto</Label><Input type="email" value={formData.company_email || ''} onChange={(e) => handleChange('company_email', e.target.value)} className="mt-1" placeholder="info@empresa.com" /></div>
+                <div><Label className="text-slate-700">Página Web</Label><Input value={formData.company_web || ''} onChange={(e) => handleChange('company_web', e.target.value)} className="mt-1" placeholder="www.empresa.com" /></div>
               </div>
 
               <h4 className="font-medium text-slate-700 mt-8 mb-4">Logo de la Empresa</h4>
               <div className="flex items-center gap-4">
-                {formData.logo_url && (
-                  <img src={formData.logo_url} alt="Logo" className="h-16 object-contain rounded-lg border p-1" />
-                )}
+                {formData.logo_url && <img src={formData.logo_url} alt="Logo" className="h-16 object-contain rounded-lg border p-1" />}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-upload-empresa" />
                 <label htmlFor="logo-upload-empresa">
                   <Button type="button" variant="outline" asChild disabled={uploading}>
-                    <span>
-                      {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                      Subir logo
-                    </span>
+                    <span>{uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}Subir logo</span>
                   </Button>
                 </label>
               </div>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="appearance">
-            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-4">Paletas Predefinidas</h3>
-              <p className="text-sm text-slate-500 mb-4">Haz clic en una paleta para aplicarla directamente.</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-                {[
-                  { name: 'Oscuro Clásico', bg: '#0f172a', btn: '#3b82f6', text: '#ffffff', icon: '#60a5fa', primary: '#1e293b', accent: '#10b981' },
-                  { name: 'Azul Profesional', bg: '#1e3a5f', btn: '#2563eb', text: '#ffffff', icon: '#93c5fd', primary: '#1e3a5f', accent: '#0ea5e9' },
-                  { name: 'Verde Técnico', bg: '#14532d', btn: '#16a34a', text: '#ffffff', icon: '#86efac', primary: '#166534', accent: '#4ade80' },
-                  { name: 'Gris Neutro', bg: '#1f2937', btn: '#6366f1', text: '#f9fafb', icon: '#a5b4fc', primary: '#374151', accent: '#8b5cf6' },
-                  { name: 'Blanco Limpio', bg: '#f8fafc', btn: '#2563eb', text: '#1e293b', icon: '#2563eb', primary: '#e2e8f0', accent: '#0284c7' },
-                  { name: 'Slate Moderno', bg: '#0f172a', btn: '#0ea5e9', text: '#e2e8f0', icon: '#38bdf8', primary: '#1e293b', accent: '#06b6d4' },
-                  { name: 'Rojo Energía', bg: '#1c0a00', btn: '#dc2626', text: '#fef2f2', icon: '#fca5a5', primary: '#450a0a', accent: '#f97316' },
-                  { name: 'Corporativo', bg: '#18181b', btn: '#d97706', text: '#fafaf9', icon: '#fbbf24', primary: '#27272a', accent: '#f59e0b' },
-                ].map(palette => (
-                  <button
-                    key={palette.name}
-                    onClick={() => setFormData(prev => ({ ...prev, background_color: palette.bg, button_color: palette.btn, text_color: palette.text, icon_color: palette.icon, primary_color: palette.primary, accent_color: palette.accent }))}
-                    className="rounded-lg border-2 border-transparent hover:border-blue-400 overflow-hidden transition-all shadow-sm hover:shadow-md"
-                    title={palette.name}
-                  >
-                    <div className="h-10 flex" style={{ backgroundColor: palette.bg }}>
-                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.btn }} />
-                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.icon }} />
-                      <div className="w-1/3 h-full" style={{ backgroundColor: palette.accent }} />
-                    </div>
-                    <div className="p-1.5 bg-white text-center">
-                      <span className="text-xs text-slate-600 font-medium">{palette.name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-6">Marca de Agua para Documentos</h3>
-              <h4 className="font-medium text-slate-700 mb-2">Marca de Agua</h4>
-              <p className="text-sm text-slate-500 mb-3">Esta imagen aparecerá como marca de agua semitransparente en los certificados y documentos PDF generados.</p>
+              <h4 className="font-medium text-slate-700 mt-8 mb-2">Marca de Agua para Documentos PDF</h4>
+              <p className="text-sm text-slate-500 mb-3">Aparecerá como marca de agua semitransparente en los certificados y documentos PDF.</p>
               <div className="flex items-center gap-4">
                 {formData.watermark_url && (
                   <div className="relative h-20 w-32 border rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
@@ -476,26 +284,10 @@ export default function Settings() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <input type="file" accept="image/*" onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploading(true);
-                    try {
-                      const result = await base44.integrations.Core.UploadFile({ file });
-                      handleChange('watermark_url', result.file_url);
-                      toast.success('Marca de agua subida');
-                    } catch {
-                      toast.error('Error al subir la imagen');
-                    } finally {
-                      setUploading(false);
-                    }
-                  }} className="hidden" id="watermark-upload" />
+                  <input type="file" accept="image/*" onChange={handleWatermarkUpload} className="hidden" id="watermark-upload" />
                   <label htmlFor="watermark-upload">
                     <Button type="button" variant="outline" asChild disabled={uploading}>
-                      <span>
-                        {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                        Subir marca de agua
-                      </span>
+                      <span>{uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}Subir marca de agua</span>
                     </Button>
                   </label>
                   {formData.watermark_url && (
@@ -506,331 +298,113 @@ export default function Settings() {
                 </div>
               </div>
             </Card>
-
-            <Card className="p-6 bg-white border-0 shadow-sm mt-6">
-              <h3 className="font-semibold text-slate-800 mb-6">Apariencia de la Interfaz</h3>
-              <h4 className="font-medium text-slate-700 mb-4">Colores de la Interfaz</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label>Color de Fondo</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.background_color || '#0f172a'}
-                      onChange={(e) => handleChange('background_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.background_color || '#0f172a'}
-                      onChange={(e) => handleChange('background_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color de Botones</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.button_color || '#3b82f6'}
-                      onChange={(e) => handleChange('button_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.button_color || '#3b82f6'}
-                      onChange={(e) => handleChange('button_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color de Texto</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.text_color || '#ffffff'}
-                      onChange={(e) => handleChange('text_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.text_color || '#ffffff'}
-                      onChange={(e) => handleChange('text_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color de Iconos</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.icon_color || '#60a5fa'}
-                      onChange={(e) => handleChange('icon_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.icon_color || '#60a5fa'}
-                      onChange={(e) => handleChange('icon_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color Primario</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.primary_color || '#1e293b'}
-                      onChange={(e) => handleChange('primary_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.primary_color || '#1e293b'}
-                      onChange={(e) => handleChange('primary_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Color de Acento</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={formData.accent_color || '#10b981'}
-                      onChange={(e) => handleChange('accent_color', e.target.value)}
-                      className="h-10 w-16 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={formData.accent_color || '#10b981'}
-                      onChange={(e) => handleChange('accent_color', e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: formData.background_color || '#0f172a' }}>
-                <p className="text-sm mb-3" style={{ color: formData.text_color || '#ffffff' }}>Vista previa:</p>
-                <div className="flex gap-4 flex-wrap">
-                  <div 
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ backgroundColor: formData.button_color || '#3b82f6', color: '#fff' }}
-                  >
-                    Botón
-                  </div>
-                  <div 
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ backgroundColor: formData.primary_color || '#1e293b', color: '#fff' }}
-                  >
-                    Primario
-                  </div>
-                  <div 
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ backgroundColor: formData.accent_color || '#10b981', color: '#fff' }}
-                  >
-                    Acento
-                  </div>
-                </div>
-              </div>
-            </Card>
           </TabsContent>
 
+          {/* ── TÉCNICOS ── */}
           <TabsContent value="technicians">
             <TechniciansTab technicians={technicians} queryClient={queryClient} />
           </TabsContent>
 
+          {/* ── PORTAL CLIENTE ── */}
           <TabsContent value="portal">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-slate-800">Usuarios del Portal Cliente</h3>
                 <Button onClick={addClientUser} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir usuario
+                  <Plus className="h-4 w-4 mr-2" />Añadir usuario
                 </Button>
               </div>
-              
-              <p className="text-sm text-slate-500 mb-4">
-                Configura las credenciales de acceso para el portal de clientes.
-              </p>
-
+              <p className="text-sm text-slate-500 mb-4">Configura las credenciales de acceso para el portal de clientes.</p>
               {formData.client_users?.length > 0 ? (
                 <div className="space-y-4">
                   {formData.client_users.map((user, index) => (
-                    <div key={index} className="p-4 border rounded-lg">
+                    <div key={index} className="p-4 border border-slate-200 rounded-lg bg-slate-50">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                          <Label className="text-xs">Cliente</Label>
-                          <select
-                            value={user.client_id}
-                            onChange={(e) => updateClientUser(index, 'client_id', e.target.value)}
-                            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-slate-800"
-                          >
+                          <Label className="text-xs text-slate-600">Cliente</Label>
+                          <select value={user.client_id} onChange={(e) => updateClientUser(index, 'client_id', e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-white text-slate-800 text-sm">
                             <option value="">Seleccionar cliente...</option>
-                            {clients.map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
+                            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
                         </div>
                         <div>
-                          <Label className="text-xs">Email</Label>
-                          <Input
-                            type="email"
-                            value={user.email}
-                            onChange={(e) => updateClientUser(index, 'email', e.target.value)}
-                            placeholder="cliente@email.com"
-                            className="mt-1"
-                          />
+                          <Label className="text-xs text-slate-600">Email</Label>
+                          <Input type="email" value={user.email} onChange={(e) => updateClientUser(index, 'email', e.target.value)} placeholder="cliente@email.com" className="mt-1" />
                         </div>
                         <div>
-                         <Label className="text-xs">Contraseña</Label>
-                         <div className="relative">
-                           <Input
-                             type={showPassword[index] ? 'text' : 'password'}
-                             value={user.password}
-                             onChange={(e) => updateClientUser(index, 'password', e.target.value)}
-                             placeholder="••••••••"
-                             className="mt-1 pr-10"
-                           />
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             size="icon"
-                             className="absolute right-0 top-1 h-8 w-8"
-                             onClick={() => setShowPassword(prev => ({ ...prev, [index]: !prev[index] }))}
-                           >
-                             {showPassword[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                           </Button>
-                         </div>
+                          <Label className="text-xs text-slate-600">Contraseña</Label>
+                          <div className="relative">
+                            <Input type={showPassword[index] ? 'text' : 'password'} value={user.password} onChange={(e) => updateClientUser(index, 'password', e.target.value)} placeholder="••••••••" className="mt-1 pr-10" />
+                            <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-1 h-8 w-8" onClick={() => setShowPassword(prev => ({ ...prev, [index]: !prev[index] }))}>
+                              {showPassword[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
                         </div>
                         <div>
-                         <Label className="text-xs">Permisos</Label>
-                         <select
-                           value={user.can_edit ? 'edit' : 'view'}
-                           onChange={(e) => updateClientUser(index, 'can_edit', e.target.value === 'edit')}
-                           className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
-                         >
-                           <option value="view">Solo lectura</option>
-                           <option value="edit">Puede editar</option>
-                         </select>
+                          <Label className="text-xs text-slate-600">Permisos</Label>
+                          <select value={user.can_edit ? 'edit' : 'view'} onChange={(e) => updateClientUser(index, 'can_edit', e.target.value === 'edit')} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-white text-slate-800 text-sm">
+                            <option value="view">Solo lectura</option>
+                            <option value="edit">Puede editar</option>
+                          </select>
                         </div>
                         <div className="flex items-end gap-2">
-                         <Button 
-                           variant="outline"
-                           size="sm"
-                           onClick={() => sendAccessEmail(user)}
-                           title="Enviar credenciales por email"
-                           className="text-blue-600 hover:text-blue-700"
-                         >
-                           <Send className="h-4 w-4 mr-1" />
-                           Enviar acceso
-                         </Button>
-                         <Button 
-                           variant="ghost" 
-                           size="icon"
-                           onClick={() => removeClientUser(index)}
-                         >
-                           <Trash2 className="h-4 w-4 text-red-500" />
-                         </Button>
+                          <Button variant="outline" size="sm" onClick={() => sendAccessEmail(user)} className="text-blue-600 hover:text-blue-700 border-blue-200">
+                            <Send className="h-4 w-4 mr-1" />Enviar acceso
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => removeClientUser(index)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center py-8 text-slate-400">
-                  No hay usuarios configurados para el portal de clientes.
-                </p>
+                <p className="text-center py-8 text-slate-400">No hay usuarios configurados para el portal de clientes.</p>
               )}
             </Card>
           </TabsContent>
 
+          {/* ── COPIAS ── */}
           <TabsContent value="backup">
             <Card className="p-6 bg-white border-0 shadow-sm">
               <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad y Exportación</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="p-6 border rounded-lg text-center">
-                  <Download className="h-12 w-12 mx-auto text-blue-500 mb-4" />
-                  <h4 className="font-medium text-slate-800 mb-2">Descargar Local</h4>
-                  <p className="text-sm text-slate-500 mb-4">
-                    Descarga copia completa en JSON
-                  </p>
-                  <Button onClick={handleExportBackup} className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Descargar
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="p-6 border border-slate-200 rounded-lg text-center bg-slate-50">
+                  <Download className="h-10 w-10 mx-auto text-blue-500 mb-3" />
+                  <h4 className="font-medium text-slate-800 mb-1">Descargar Local</h4>
+                  <p className="text-sm text-slate-500 mb-4">Descarga copia completa en JSON</p>
+                  <Button onClick={handleExportBackup} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    <Download className="h-4 w-4 mr-2" />Descargar
                   </Button>
                 </div>
-
-                <div className="p-6 border rounded-lg text-center">
-                  <UploadCloud className="h-12 w-12 mx-auto text-emerald-500 mb-4" />
-                  <h4 className="font-medium text-slate-800 mb-2">Restaurar</h4>
-                  <p className="text-sm text-slate-500 mb-4">
-                    Importa desde archivo JSON
-                  </p>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportBackup}
-                    className="hidden"
-                    id="backup-upload"
-                  />
+                <div className="p-6 border border-slate-200 rounded-lg text-center bg-slate-50">
+                  <UploadCloud className="h-10 w-10 mx-auto text-emerald-500 mb-3" />
+                  <h4 className="font-medium text-slate-800 mb-1">Restaurar</h4>
+                  <p className="text-sm text-slate-500 mb-4">Importa desde archivo JSON</p>
+                  <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" id="backup-upload" />
                   <label htmlFor="backup-upload">
-                    <Button variant="outline" className="w-full" asChild>
-                      <span>
-                        <UploadCloud className="h-4 w-4 mr-2" />
-                        Seleccionar
-                      </span>
+                    <Button variant="outline" className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50" asChild>
+                      <span><UploadCloud className="h-4 w-4 mr-2" />Seleccionar</span>
                     </Button>
                   </label>
                 </div>
-
-                <div className="p-6 border rounded-lg text-center">
-                  <svg className="h-12 w-12 mx-auto text-purple-500 mb-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
-                  </svg>
-                  <h4 className="font-medium text-slate-800 mb-2">Google Drive</h4>
-                  <p className="text-sm text-slate-500 mb-4">
-                    Guarda en tu Drive personal
-                  </p>
-                  <Button variant="outline" className="w-full" disabled>
-                    <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
-                    </svg>
-                    Próximamente
-                  </Button>
-                </div>
               </div>
-
               <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-                <p className="text-sm text-amber-800">
-                  <strong>Nota:</strong> La restauración añadirá registros sin eliminar los existentes. 
-                  Se recomienda hacer copia antes de restaurar.
-                </p>
+                <p className="text-sm text-amber-800"><strong>Nota:</strong> La restauración añadirá registros sin eliminar los existentes. Se recomienda hacer copia antes de restaurar.</p>
               </div>
             </Card>
           </TabsContent>
 
+          {/* ── INTEGRACIONES ── */}
           <TabsContent value="integraciones">
             <IntegracionesTab formData={formData} onChange={handleChange} />
           </TabsContent>
         </Tabs>
 
         <div className="flex justify-end mt-6">
-          <Button 
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="bg-slate-800 hover:bg-slate-700"
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
+          <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-slate-800 hover:bg-slate-700 text-white">
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Guardar Configuración
           </Button>
         </div>
