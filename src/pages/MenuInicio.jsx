@@ -39,13 +39,18 @@ export default function MenuInicio() {
         sessionStorage.removeItem('just_logged_out');
         return;
       }
-      const savedTechEmail = localStorage.getItem('clilux_tech_email');
-      const savedTechPassword = localStorage.getItem('clilux_tech_password');
-      if (savedTechEmail && savedTechPassword) {
-        sessionStorage.setItem('technician_email', savedTechEmail);
+      // Auto-login solo si ya hay sesión activa en sessionStorage (misma pestaña/sesión)
+      const activeTechSession = sessionStorage.getItem('technician_email');
+      if (activeTechSession) {
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
+      const activeClientSession = sessionStorage.getItem('client_id');
+      if (activeClientSession) {
+        navigate(createPageUrl('HomeCliente'));
+        return;
+      }
+      // Auto-login de cliente por localStorage (recordar sesión)
       const savedEmail = localStorage.getItem('clilux_email');
       const savedPassword = localStorage.getItem('clilux_password');
       if (savedEmail && savedPassword && settings) {
@@ -89,8 +94,6 @@ export default function MenuInicio() {
       const inputPwd = techCredentials.password.trim();
       const tech = technicians.find(t => (t.portal_password || '').trim() === inputPwd && t.status === 'active');
       if (tech) {
-        localStorage.setItem('clilux_tech_email', techCredentials.email);
-        localStorage.setItem('clilux_tech_password', techCredentials.password);
         sessionStorage.setItem('technician_email', techCredentials.email);
         navigate(createPageUrl('HomeTecnico'));
       } else {
