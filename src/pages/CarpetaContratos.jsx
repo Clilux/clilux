@@ -42,14 +42,23 @@ export default function CarpetaContratos() {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [sortField, setSortField] = useState('created_date');
   const [sortDir, setSortDir] = useState('desc');
-  const [editModal, setEditModal] = useState(null); // contrato a editar
-  const [subirFirmado, setSubirFirmado] = useState(null); // contrato para subir firmado
+  const [editModal, setEditModal] = useState(null);
+  const [subirFirmado, setSubirFirmado] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const load = async () => {
     setLoading(true);
-    const data = await base44.entities.Contrato.list();
+    let data;
+    if (isSessionTech) {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'contratos' });
+      data = res.data?.data || [];
+    } else {
+      data = await base44.entities.Contrato.list();
+    }
     setContratos(data);
     setLoading(false);
   };

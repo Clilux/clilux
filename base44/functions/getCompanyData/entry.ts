@@ -62,6 +62,11 @@ Deno.serve(async (req) => {
     const data = await base44.asServiceRole.entities.ScheduledRevision.list();
     return Response.json({ data });
   }
+  if (entity === 'contratos') {
+    if (!permisos.ver_contratos) return deny('ver_contratos');
+    const data = await base44.asServiceRole.entities.Contrato.list();
+    return Response.json({ data });
+  }
   if (entity === 'settings') {
     const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
     return Response.json({ data: settings[0] || null });
