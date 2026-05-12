@@ -49,9 +49,10 @@ export default function Clients() {
     },
   });
 
-  // Admins ven todo. Técnicos de sesión ven todo (el proxy ya filtra por empresa en backend).
+  // Técnicos de sesión: el proxy ya controla los permisos, mostrar todos.
+  // Admins Base44: ver todo. Usuarios Base44 normales: filtrar por empresa/asignación.
   const isAdmin = !isSessionTech && user?.role === 'admin';
-  const visibleClients = isAdmin ? clients : clients.filter(c => {
+  const visibleClients = (isSessionTech || isAdmin) ? clients : clients.filter(c => {
     if (technician?.company_id && c.company_id === technician.company_id) return true;
     if (c.assigned_technician === user?.email) return true;
     return false;
