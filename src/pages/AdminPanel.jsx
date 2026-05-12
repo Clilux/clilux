@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserCheck, UserPlus, Building2,
   Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Send,
-  Eye, EyeOff, Key, Lock
+  Eye, EyeOff, Key, Lock, Save
 } from 'lucide-react';
 import PermisosTecnicoPanel from '@/components/settings/PermisosTecnicoPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -36,6 +36,7 @@ export default function AdminPanel() {
   const [showEditPwd, setShowEditPwd] = useState(false);
   const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
+  const [permisosLocal, setPermisosLocal] = useState({});
 
   const { data: technicians = [], isLoading: loadingTechs } = useQuery({
     queryKey: ['technicians'],
@@ -693,16 +694,40 @@ export default function AdminPanel() {
           <DialogHeader>
             <DialogTitle>Permisos de acceso</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 -mx-4 px-4 py-2">
+          <ScrollArea className="flex-1 -mx-4 px-4">
             {permisosTech && (
               <PermisosTecnicoPanel
                 technician={permisosTech}
+                onPermisoChange={setPermisosLocal}
                 onUpdated={() => {
                   queryClient.invalidateQueries({ queryKey: ['technicians'] });
                 }}
               />
             )}
           </ScrollArea>
+          <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setShowPermisosDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                setSending(true);
+                try {
+                  await base44.entities.Technician.update(permisosTech.id, { permisos: permisosLocal });
+                  queryClient.invalidateQueries({ queryKey: ['technicians'] });
+                  toast.success('Permisos guardados');
+                  setShowPermisosDialog(false);
+                } catch (err) {
+                  toast.error('Error al guardar: ' + err.message);
+                } finally {
+                  setSending(false);
+                }
+              }}
+              disabled={sending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Guardar permisos
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

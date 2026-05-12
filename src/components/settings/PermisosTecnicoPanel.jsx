@@ -32,19 +32,14 @@ const DEFAULTS = {
   ver_documentacion: true, ver_contratos: false, ver_scada: false,
 };
 
-export default function PermisosTecnicoPanel({ technician, onUpdated }) {
+export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoChange }) {
   const permisos = { ...DEFAULTS, ...(technician.permisos || {}) };
   const [local, setLocal] = useState(permisos);
-  const [saving, setSaving] = useState(false);
 
-  const toggle = (key) => setLocal(prev => ({ ...prev, [key]: !prev[key] }));
-
-  const save = async () => {
-    setSaving(true);
-    await base44.entities.Technician.update(technician.id, { permisos: local });
-    setSaving(false);
-    toast.success('Permisos guardados');
-    onUpdated?.();
+  const toggle = (key) => {
+    const updated = { ...local, [key]: !local[key] };
+    setLocal(updated);
+    onPermisoChange?.(updated);
   };
 
   // Agrupar
@@ -77,11 +72,6 @@ export default function PermisosTecnicoPanel({ technician, onUpdated }) {
           </div>
         </div>
       ))}
-
-      <Button onClick={save} disabled={saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2">
-        <Save className="h-4 w-4 mr-2" />
-        {saving ? 'Guardando...' : 'Guardar permisos'}
-      </Button>
     </div>
   );
 }
