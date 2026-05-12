@@ -160,8 +160,12 @@ export default function HomeTecnico() {
   const isAdmin = !isSessionTech && base44User?.role === 'admin';
 
   const { data: appSettings } = useQuery({
-    queryKey: ['settings'],
+    queryKey: ['settings', isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'settings' });
+        return res.data?.data || null;
+      }
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || null;
     },
@@ -186,25 +190,31 @@ export default function HomeTecnico() {
     ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
     : base44User;
 
+  // Helper: si es técnico de sesión propia, usar backend proxy para evitar problemas de auth Base44
+  const fetchViaProxy = async (entity) => {
+    const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity });
+    return res.data?.data || [];
+  };
+
   const { data: clients = [], isLoading: loadingClients } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date')
+    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: () => isSessionTech ? fetchViaProxy('clients') : base44.entities.Client.list('-created_date'),
   });
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list()
+    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: () => isSessionTech ? fetchViaProxy('buildings') : base44.entities.Building.list(),
   });
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list()
+    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: () => isSessionTech ? fetchViaProxy('equipment') : base44.entities.Equipment.list(),
   });
   const { data: scheduledRevisions = [] } = useQuery({
-    queryKey: ['scheduledRevisions'],
-    queryFn: () => base44.entities.ScheduledRevision.list()
+    queryKey: ['scheduledRevisions', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: () => isSessionTech ? fetchViaProxy('revisions') : base44.entities.ScheduledRevision.list(),
   });
   const { data: incidents = [] } = useQuery({
-    queryKey: ['incidents'],
-    queryFn: () => base44.entities.Incident.list('-created_date')
+    queryKey: ['incidents', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: () => isSessionTech ? fetchViaProxy('incidents') : base44.entities.Incident.list('-created_date'),
   });
 
   const pendingIncidents = incidents.filter(i => i.status === 'pending' || i.status === 'in_progress');

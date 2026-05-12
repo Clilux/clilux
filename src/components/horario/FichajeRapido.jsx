@@ -31,10 +31,10 @@ export default function FichajeRapido({ currentUser, techRecord }) {
   const { data: ausenciasPendientes = [] } = useQuery({
     queryKey: ['ausencias-pendientes', currentUser?.email],
     queryFn: async () => {
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 20);
-      return all.filter(a => a.technician_email === currentUser?.email && a.estado === 'pendiente');
+      if (!currentUser?.email) return [];
+      return base44.entities.Ausencia.filter({ technician_email: currentUser.email, estado: 'pendiente' });
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser?.email,
   });
 
   const entradaMutation = useMutation({
