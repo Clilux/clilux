@@ -10,7 +10,7 @@ import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine,
-  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug
+  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -251,7 +251,10 @@ export default function HomeTecnico() {
         {/* Top bar */}
         <div className="bg-white px-4 py-3 border-b border-slate-200">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button onClick={() => navigate(-1)} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9" title="Atrás">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
                 <Thermometer className="h-5 w-5 text-white" />
               </div>

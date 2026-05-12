@@ -4,23 +4,36 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogIn, LogOut, Clock, Calendar, ChevronRight, MapPin, Loader2, Coffee } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { LogIn, LogOut, Clock, Calendar, ChevronRight, MapPin, Loader2, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
+import { createPageUrl } from '@/utils';
 
 export default function FichajeRapido({ currentUser, techRecord }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [geoLoading, setGeoLoading] = useState(false);
   const jornadaDiaria = techRecord?.horas_jornada_diaria || 8;
 
-  const { data: todayRecord } = useQuery({
+  // Si sessionStorage tiene email, usar proxy; si no, acceso directo (admin con sesión Base44)
+  const isSessionTech = !!sessionStorage.getItem('technician_email');
+
+  const { data: todayRecord, isLoading: loadingFichaje } = useQuery({
     queryKey: ['fichaje-hoy', currentUser?.email, todayStr],
     queryFn: async () => {
       if (!currentUser?.email) return null;
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: currentUser.email,
+          entity: 'registro_horario_get',
+          fecha: todayStr,
+        });
+        return res.data?.data || null;
+      }
       const results = await base44.entities.RegistroHorario.filter({ technician_email: currentUser.email, fecha: todayStr });
       return results[0] || null;
     },
@@ -32,6 +45,18 @@ export default function FichajeRapido({ currentUser, techRecord }) {
     queryKey: ['ausencias-pendientes', currentUser?.email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
+      if (isSessionTech) {
+        // Las ausencias pendientes no son críticas — si fallan, devolver vacío
+        try {
+          const res = await base44.functions.invoke('getCompanyData', {
+            technician_email: currentUser.email,
+            entity: 'ausencias_pendientes',
+          });
+          return res.data?.data || [];
+        } catch {
+          return [];
+        }
+      }
       return base44.entities.Ausencia.filter({ technician_email: currentUser.email, estado: 'pendiente' });
     },
     enabled: !!currentUser?.email,
@@ -54,11 +79,34 @@ export default function FichajeRapido({ currentUser, techRecord }) {
         pausas: [],
         ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints: [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] }),
       };
+
+      if (isSessionTech) {
+        if (todayRecord) {
+          return base44.functions.invoke('getCompanyData', {
+            technician_email: currentUser.email,
+            entity: 'registro_horario_update',
+            record_id: todayRecord.id,
+            updates: { hora_entrada: now },
+          });
+        }
+        return base44.functions.invoke('getCompanyData', {
+          technician_email: currentUser.email,
+          entity: 'registro_horario_create',
+          record: base,
+        });
+      }
+
       if (todayRecord) return base44.entities.RegistroHorario.update(todayRecord.id, { hora_entrada: now });
       return base44.entities.RegistroHorario.create(base);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] }); toast.success(`Entrada: ${format(new Date(), 'HH:mm')}`); },
-    onError: () => setGeoLoading(false),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] });
+      toast.success(`Entrada: ${format(new Date(), 'HH:mm')}`);
+    },
+    onError: (err) => {
+      setGeoLoading(false);
+      toast.error('Error al fichar entrada: ' + (err?.message || 'inténtalo de nuevo'));
+    },
   });
 
   const salidaMutation = useMutation({
@@ -71,13 +119,29 @@ export default function FichajeRapido({ currentUser, techRecord }) {
       const calcs = calcularHoras({ ...todayRecord, hora_salida: now }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
       if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
+      const updates = {
         hora_salida: now, ...calcs,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
-      });
+      };
+
+      if (isSessionTech) {
+        return base44.functions.invoke('getCompanyData', {
+          technician_email: currentUser.email,
+          entity: 'registro_horario_update',
+          record_id: todayRecord.id,
+          updates,
+        });
+      }
+      return base44.entities.RegistroHorario.update(todayRecord.id, updates);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] }); toast.success(`Salida: ${format(new Date(), 'HH:mm')}`); },
-    onError: () => setGeoLoading(false),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] });
+      toast.success(`Salida: ${format(new Date(), 'HH:mm')}`);
+    },
+    onError: (err) => {
+      setGeoLoading(false);
+      toast.error('Error al fichar salida: ' + (err?.message || 'inténtalo de nuevo'));
+    },
   });
 
   const pausaEnCurso = todayRecord?.pausas?.some(p => !p.fin);
@@ -102,7 +166,8 @@ export default function FichajeRapido({ currentUser, techRecord }) {
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-3 h-3 rounded-full flex-shrink-0 ${pausaEnCurso ? 'bg-amber-400 animate-pulse' : fichadoEntrada && !fichadoSalida ? 'bg-emerald-500 animate-pulse' : fichadoSalida ? 'bg-slate-300' : 'bg-red-400'}`} />
           <span className="text-sm font-medium text-slate-700 flex-1">
-            {pausaEnCurso ? 'En pausa' :
+            {loadingFichaje ? 'Cargando...' :
+             pausaEnCurso ? 'En pausa' :
              fichadoSalida ? `Completada · ${todayRecord?.horas_efectivas || 0}h (${todayRecord?.horas_normales || 0}h norm + ${todayRecord?.horas_extra || 0}h ext)` :
              fichadoEntrada ? `Desde ${todayRecord.hora_entrada}` : 'Sin fichar'}
           </span>
@@ -126,7 +191,7 @@ export default function FichajeRapido({ currentUser, techRecord }) {
           </div>
         )}
 
-        {/* Botones */}
+        {/* Botones fichaje */}
         <div className="flex gap-2 mb-2">
           <Button size="sm" onClick={() => entradaMutation.mutate()} disabled={isLoading || fichadoEntrada} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9">
             {isLoading && !fichadoEntrada ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5 mr-1" />}
