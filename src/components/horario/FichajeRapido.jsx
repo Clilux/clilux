@@ -4,22 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogIn, LogOut, Clock, Calendar, ChevronRight, MapPin, Loader2, ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { LogIn, LogOut, Clock, Calendar, ChevronRight, MapPin, Loader2, Coffee } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
-import { createPageUrl } from '@/utils';
 
 export default function FichajeRapido({ currentUser, techRecord }) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [geoLoading, setGeoLoading] = useState(false);
   const jornadaDiaria = techRecord?.horas_jornada_diaria || 8;
 
-  // Si sessionStorage tiene email, usar proxy; si no, acceso directo (admin con sesión Base44)
   const isSessionTech = !!sessionStorage.getItem('technician_email');
 
   const { data: todayRecord, isLoading: loadingFichaje } = useQuery({
@@ -46,7 +43,6 @@ export default function FichajeRapido({ currentUser, techRecord }) {
     queryFn: async () => {
       if (!currentUser?.email) return [];
       if (isSessionTech) {
-        // Las ausencias pendientes no son críticas — si fallan, devolver vacío
         try {
           const res = await base44.functions.invoke('getCompanyData', {
             technician_email: currentUser.email,
@@ -62,13 +58,49 @@ export default function FichajeRapido({ currentUser, techRecord }) {
     enabled: !!currentUser?.email,
   });
 
-  const entradaMutation = useMutation({
+  // Helper para actualizar/crear registro
+  const updateRegistro = (id, updates) => {
+    if (isSessionTech) {
+      return base44.functions.invoke('getCompanyData', {
+        technician_email: currentUser.email, entity: 'registro_horario_update', record_id: id, updates,
+      });
+    }
+    return base44.entities.RegistroHorario.update(id, updates);
+  };
+  const createRegistro = (record) => {
+    if (isSessionTech) {
+      return base44.functions.invoke('getCompanyData', {
+        technician_email: currentUser.email, entity: 'registro_horario_create', record,
+      });
+    }
+    return base44.entities.RegistroHorario.create(record);
+  };
+
+  // Estado de jornada basado en intervalos
+  const intervalos = todayRecord?.intervalos || [];
+  const ultimoIntervalo = intervalos[intervalos.length - 1];
+  const jornadaActiva = !!ultimoIntervalo && !ultimoIntervalo.salida;
+  const jornadaFinalizada = !!(todayRecord?.finalizada);
+  const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaFinalizada;
+  const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
+
+  // INICIO / REANUDACIÓN
+  const inicioJornada = useMutation({
     mutationFn: async () => {
       setGeoLoading(true);
-      const geo = await getGeoLocation();
+      const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
       const now = format(new Date(), 'HH:mm');
-      const base = {
+      const nuevoIntervalo = { entrada: now, salida: null };
+      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
+      if (todayRecord) {
+        return updateRegistro(todayRecord.id, {
+          intervalos: [...intervalos, nuevoIntervalo],
+          hora_salida: null, finalizada: false,
+          ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
+        });
+      }
+      return createRegistro({
         technician_email: currentUser.email,
         technician_name: techRecord?.name || currentUser.full_name || currentUser.email,
         technician_id: techRecord?.id || '',
@@ -77,77 +109,52 @@ export default function FichajeRapido({ currentUser, techRecord }) {
         hora_entrada: now,
         tipo_jornada: 'normal',
         pausas: [],
-        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints: [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] }),
-      };
-
-      if (isSessionTech) {
-        if (todayRecord) {
-          return base44.functions.invoke('getCompanyData', {
-            technician_email: currentUser.email,
-            entity: 'registro_horario_update',
-            record_id: todayRecord.id,
-            updates: { hora_entrada: now },
-          });
-        }
-        return base44.functions.invoke('getCompanyData', {
-          technician_email: currentUser.email,
-          entity: 'registro_horario_create',
-          record: base,
-        });
-      }
-
-      if (todayRecord) return base44.entities.RegistroHorario.update(todayRecord.id, { hora_entrada: now });
-      return base44.entities.RegistroHorario.create(base);
+        intervalos: [nuevoIntervalo],
+        ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints }),
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] });
-      toast.success(`Entrada: ${format(new Date(), 'HH:mm')}`);
-    },
-    onError: (err) => {
-      setGeoLoading(false);
-      toast.error('Error al fichar entrada: ' + (err?.message || 'inténtalo de nuevo'));
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] }); toast.success('Jornada iniciada'); },
+    onError: () => { setGeoLoading(false); toast.error('Error al iniciar jornada'); },
   });
 
-  const salidaMutation = useMutation({
+  // PAUSA: cierra el intervalo activo
+  const pausaJornada = useMutation({
+    mutationFn: async () => {
+      if (!todayRecord) return;
+      const now = format(new Date(), 'HH:mm');
+      const updatedIntervalos = intervalos.map((t, i) =>
+        i === intervalos.length - 1 && !t.salida ? { ...t, salida: now } : t
+      );
+      return updateRegistro(todayRecord.id, { intervalos: updatedIntervalos, hora_salida: now });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] }); toast.success('Jornada pausada'); },
+    onError: () => toast.error('Error al pausar'),
+  });
+
+  // FIN JORNADA: cierra intervalo, calcula totales, marca finalizada
+  const finJornada = useMutation({
     mutationFn: async () => {
       if (!todayRecord) return;
       setGeoLoading(true);
-      const geo = await getGeoLocation();
+      const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
       const now = format(new Date(), 'HH:mm');
-      const calcs = calcularHoras({ ...todayRecord, hora_salida: now }, jornadaDiaria);
+      const updatedIntervalos = intervalos.map((t, i) =>
+        i === intervalos.length - 1 && !t.salida ? { ...t, salida: now } : t
+      );
+      const calcs = calcularHoras({ ...todayRecord, intervalos: updatedIntervalos, hora_salida: now }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
       if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
-      const updates = {
-        hora_salida: now, ...calcs,
+      return updateRegistro(todayRecord.id, {
+        intervalos: updatedIntervalos, hora_salida: now, finalizada: true, ...calcs,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
-      };
-
-      if (isSessionTech) {
-        return base44.functions.invoke('getCompanyData', {
-          technician_email: currentUser.email,
-          entity: 'registro_horario_update',
-          record_id: todayRecord.id,
-          updates,
-        });
-      }
-      return base44.entities.RegistroHorario.update(todayRecord.id, updates);
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] });
-      toast.success(`Salida: ${format(new Date(), 'HH:mm')}`);
-    },
-    onError: (err) => {
-      setGeoLoading(false);
-      toast.error('Error al fichar salida: ' + (err?.message || 'inténtalo de nuevo'));
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fichaje-hoy'] }); toast.success('Jornada finalizada'); },
+    onError: () => { setGeoLoading(false); toast.error('Error al finalizar jornada'); },
   });
 
-  const pausaEnCurso = todayRecord?.pausas?.some(p => !p.fin);
-  const fichadoEntrada = !!todayRecord?.hora_entrada;
-  const fichadoSalida = !!todayRecord?.hora_salida;
-  const isLoading = entradaMutation.isPending || salidaMutation.isPending || geoLoading;
+  const isLoading = inicioJornada.isPending || pausaJornada.isPending || finJornada.isPending || geoLoading;
 
   return (
     <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
@@ -164,19 +171,24 @@ export default function FichajeRapido({ currentUser, techRecord }) {
       <div className="p-4">
         {/* Estado */}
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${pausaEnCurso ? 'bg-amber-400 animate-pulse' : fichadoEntrada && !fichadoSalida ? 'bg-emerald-500 animate-pulse' : fichadoSalida ? 'bg-slate-300' : 'bg-red-400'}`} />
+          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+            jornadaActiva ? 'bg-emerald-500 animate-pulse' :
+            jornadaPausada ? 'bg-amber-400 animate-pulse' :
+            jornadaFinalizada ? 'bg-slate-300' : 'bg-red-400'
+          }`} />
           <span className="text-sm font-medium text-slate-700 flex-1">
             {loadingFichaje ? 'Cargando...' :
-             pausaEnCurso ? 'En pausa' :
-             fichadoSalida ? `Completada · ${todayRecord?.horas_efectivas || 0}h (${todayRecord?.horas_normales || 0}h norm + ${todayRecord?.horas_extra || 0}h ext)` :
-             fichadoEntrada ? `Desde ${todayRecord.hora_entrada}` : 'Sin fichar'}
+             jornadaActiva ? `En jornada desde ${ultimoIntervalo?.entrada}` :
+             jornadaPausada ? `Pausada · ${intervalos.length} tramo${intervalos.length > 1 ? 's' : ''}` :
+             jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h efectivas` :
+             'Sin jornada hoy'}
           </span>
-          {fichadoEntrada && !fichadoSalida && !pausaEnCurso && <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">Activo</Badge>}
-          {pausaEnCurso && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">Pausa</Badge>}
+          {jornadaActiva && <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">Activo</Badge>}
+          {jornadaPausada && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">Pausa</Badge>}
         </div>
 
-        {/* Mini stats si hay entrada */}
-        {fichadoEntrada && (
+        {/* Mini stats */}
+        {todayRecord && (
           <div className="grid grid-cols-2 gap-2 mb-3 text-xs text-center">
             <div className="bg-slate-50 rounded p-2">
               <span className="text-slate-400">Normales</span>
@@ -191,16 +203,43 @@ export default function FichajeRapido({ currentUser, techRecord }) {
           </div>
         )}
 
-        {/* Botones fichaje */}
-        <div className="flex gap-2 mb-2">
-          <Button size="sm" onClick={() => entradaMutation.mutate()} disabled={isLoading || fichadoEntrada} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9">
-            {isLoading && !fichadoEntrada ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5 mr-1" />}
-            {fichadoEntrada ? todayRecord.hora_entrada : 'Entrada'}
-          </Button>
-          <Button size="sm" onClick={() => salidaMutation.mutate()} disabled={isLoading || !fichadoEntrada || fichadoSalida || pausaEnCurso} variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50 h-9">
-            {isLoading && fichadoEntrada && !fichadoSalida ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5 mr-1" />}
-            {fichadoSalida ? todayRecord.hora_salida : 'Salida'}
-          </Button>
+        {/* Botones de jornada */}
+        <div className="space-y-2 mb-2">
+          {!jornadaActiva && (
+            <Button
+              size="sm"
+              onClick={() => inicioJornada.mutate()}
+              disabled={isLoading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-9"
+            >
+              {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <LogIn className="h-3.5 w-3.5 mr-1" />}
+              {jornadaPausada ? 'Reanudar jornada' : jornadaFinalizada ? 'Reanudar jornada' : 'Iniciar jornada'}
+            </Button>
+          )}
+          {jornadaActiva && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => pausaJornada.mutate()}
+                disabled={isLoading}
+                className="border-amber-300 text-amber-700 hover:bg-amber-50 h-9"
+              >
+                {pausaJornada.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Coffee className="h-3.5 w-3.5 mr-1" />}
+                Pausa
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => finJornada.mutate()}
+                disabled={isLoading}
+                className="border-red-200 text-red-600 hover:bg-red-50 h-9"
+              >
+                {finJornada.isPending || geoLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <LogOut className="h-3.5 w-3.5 mr-1" />}
+                Fin jornada
+              </Button>
+            </div>
+          )}
         </div>
 
         {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mb-2"><MapPin className="h-3 w-3 animate-pulse" />GPS...</p>}
