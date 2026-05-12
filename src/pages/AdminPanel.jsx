@@ -15,8 +15,10 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserCheck, UserPlus, Building2,
   Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Send,
-  Eye, EyeOff, Key
+  Eye, EyeOff, Key, Lock
 } from 'lucide-react';
+import PermisosTecnicoPanel from '@/components/settings/PermisosTecnicoPanel';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function AdminPanel() {
   const queryClient = useQueryClient();
@@ -25,6 +27,8 @@ export default function AdminPanel() {
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [manageTech, setManageTech] = useState(null);
   const [manageData, setManageData] = useState({ companyName: '', companyId: '', isAdmin: false });
+  const [showPermisosDialog, setShowPermisosDialog] = useState(false);
+  const [permisosTech, setPermisosTech] = useState(null);
   const [inviteData, setInviteData] = useState({ email: '', techName: '', companyName: '', companyId: '', password: '', passwordConfirm: '' });
   const [showInvitePwd, setShowInvitePwd] = useState(false);
   const [editingPwdId, setEditingPwdId] = useState(null);
@@ -460,6 +464,16 @@ export default function AdminPanel() {
                            <Button
                              variant="outline"
                              size="sm"
+                             className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                             title="Permisos de acceso"
+                             onClick={() => { setPermisosTech(tech); setShowPermisosDialog(true); }}
+                           >
+                             <Lock className="h-3 w-3 mr-1" />
+                             Permisos
+                           </Button>
+                           <Button
+                             variant="outline"
+                             size="sm"
                              className="h-7 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
                              title="Cambiar contraseña"
                              onClick={() => { setEditingPwdId(editingPwdId === tech.id ? null : tech.id); setEditPassword(''); }}
@@ -670,6 +684,25 @@ export default function AdminPanel() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permisos Dialog */}
+      <Dialog open={showPermisosDialog} onOpenChange={setShowPermisosDialog}>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Permisos de acceso</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-4 px-4 py-2">
+            {permisosTech && (
+              <PermisosTecnicoPanel
+                technician={permisosTech}
+                onUpdated={() => {
+                  queryClient.invalidateQueries({ queryKey: ['technicians'] });
+                }}
+              />
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

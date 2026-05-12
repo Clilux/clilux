@@ -21,24 +21,44 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Técnico no encontrado o inactivo' }, { status: 403 });
   }
 
+  // Permisos del técnico (con defaults si no están definidos)
+  const permisos = {
+    ver_clientes: true, editar_clientes: false,
+    ver_edificios: true,
+    ver_equipos: true, editar_equipos: false,
+    ver_incidencias: true, editar_incidencias: true,
+    ver_revisiones: true, editar_revisiones: true,
+    ver_horario: true, ver_ausencias: true,
+    ver_documentacion: true, ver_contratos: false, ver_scada: false,
+    ...(tech.permisos || {}),
+  };
+
+  // Helper para denegar acceso
+  const deny = (perm) => Response.json({ error: `Sin permiso: ${perm}`, no_permission: true }, { status: 403 });
+
   // ── Operaciones de lectura ────────────────────────────────────
   if (entity === 'clients') {
+    if (!permisos.ver_clientes) return deny('ver_clientes');
     const data = await base44.asServiceRole.entities.Client.list('-created_date');
     return Response.json({ data });
   }
   if (entity === 'buildings') {
+    if (!permisos.ver_edificios) return deny('ver_edificios');
     const data = await base44.asServiceRole.entities.Building.list();
     return Response.json({ data });
   }
   if (entity === 'equipment') {
+    if (!permisos.ver_equipos) return deny('ver_equipos');
     const data = await base44.asServiceRole.entities.Equipment.list();
     return Response.json({ data });
   }
   if (entity === 'incidents') {
+    if (!permisos.ver_incidencias) return deny('ver_incidencias');
     const data = await base44.asServiceRole.entities.Incident.list('-created_date');
     return Response.json({ data });
   }
   if (entity === 'revisions') {
+    if (!permisos.ver_revisiones) return deny('ver_revisiones');
     const data = await base44.asServiceRole.entities.ScheduledRevision.list();
     return Response.json({ data });
   }

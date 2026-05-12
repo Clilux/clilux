@@ -50,7 +50,7 @@
     "horas_jornada_diaria": {
       "type": "number",
       "default": 8,
-      "description": "Horas de jornada laboral diaria pactada (para calcular horas extra)"
+      "description": "Horas de jornada laboral diaria pactada"
     },
     "dias_laborables": {
       "type": "array",
@@ -65,6 +65,68 @@
         5
       ],
       "description": "D\u00edas laborables: 0=Dom, 1=Lun, ..., 6=S\u00e1b"
+    },
+    "permisos": {
+      "type": "object",
+      "description": "Permisos de acceso del t\u00e9cnico al portal",
+      "properties": {
+        "ver_clientes": {
+          "type": "boolean",
+          "default": true
+        },
+        "editar_clientes": {
+          "type": "boolean",
+          "default": false
+        },
+        "ver_edificios": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_equipos": {
+          "type": "boolean",
+          "default": true
+        },
+        "editar_equipos": {
+          "type": "boolean",
+          "default": false
+        },
+        "ver_incidencias": {
+          "type": "boolean",
+          "default": true
+        },
+        "editar_incidencias": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_revisiones": {
+          "type": "boolean",
+          "default": true
+        },
+        "editar_revisiones": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_horario": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_ausencias": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_documentacion": {
+          "type": "boolean",
+          "default": true
+        },
+        "ver_contratos": {
+          "type": "boolean",
+          "default": false
+        },
+        "ver_scada": {
+          "type": "boolean",
+          "default": false
+        }
+      }
     }
   },
   "required": [
