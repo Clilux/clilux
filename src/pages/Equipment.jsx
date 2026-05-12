@@ -25,19 +25,40 @@ export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('equipment_view') || 'grid');
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const { data: equipment = [], isLoading } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list('-created_date')
+    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Equipment.list('-created_date');
+    },
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list()
+    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Building.list();
+    },
   });
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list()
+    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Client.list();
+    },
   });
 
   const filteredEquipment = equipment.filter((eq) => {

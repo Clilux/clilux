@@ -59,13 +59,33 @@ export default function Calendar() {
     }
   };
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  const proxyFetch = async (entity) => {
+    const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity });
+    return res.data?.data || [];
+  };
+
   const { data: scheduledRevisions = [] } = useQuery({
-    queryKey: ['scheduled-revisions'],
-    queryFn: () => base44.entities.ScheduledRevision.list(),
+    queryKey: ['scheduled-revisions', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) return proxyFetch('revisions');
+      return base44.entities.ScheduledRevision.list();
+    },
   });
-  const { data: equipment = [] } = useQuery({ queryKey: ['equipment'], queryFn: () => base44.entities.Equipment.list() });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
-  const { data: buildings = [] } = useQuery({ queryKey: ['buildings'], queryFn: () => base44.entities.Building.list() });
+  const { data: equipment = [] } = useQuery({
+    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => isSessionTech ? proxyFetch('equipment') : base44.entities.Equipment.list(),
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => isSessionTech ? proxyFetch('clients') : base44.entities.Client.list(),
+  });
+  const { data: buildings = [] } = useQuery({
+    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => isSessionTech ? proxyFetch('buildings') : base44.entities.Building.list(),
+  });
 
   const filteredRevisions = scheduledRevisions.filter(rev =>
     filterClient === 'all' || rev.client_id === filterClient

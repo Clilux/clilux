@@ -26,6 +26,9 @@ export default function ClientDetail() {
   const clientId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const toggleClientStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -49,8 +52,13 @@ export default function ClientDetail() {
   });
 
   const { data: client, isLoading } = useQuery({
-    queryKey: ['client', clientId],
+    queryKey: ['client', clientId, isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
+        const clients = res.data?.data || [];
+        return clients.find(c => c.id === clientId) || null;
+      }
       const clients = await base44.entities.Client.filter({ id: clientId });
       return clients[0] || null;
     },
@@ -58,14 +66,26 @@ export default function ClientDetail() {
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings', clientId],
-    queryFn: () => base44.entities.Building.filter({ client_id: clientId }),
+    queryKey: ['buildings', clientId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
+        return (res.data?.data || []).filter(b => b.client_id === clientId);
+      }
+      return base44.entities.Building.filter({ client_id: clientId });
+    },
     enabled: !!clientId,
   });
 
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment-client', clientId],
-    queryFn: () => base44.entities.Equipment.filter({ client_id: clientId }),
+    queryKey: ['equipment-client', clientId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
+        return (res.data?.data || []).filter(e => e.client_id === clientId);
+      }
+      return base44.entities.Equipment.filter({ client_id: clientId });
+    },
     enabled: !!clientId,
   });
 

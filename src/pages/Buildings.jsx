@@ -22,14 +22,29 @@ export default function Buildings() {
     localStorage.setItem('buildings_view', mode);
   };
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const { data: buildings = [], isLoading } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list('-created_date'),
+    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Building.list('-created_date');
+    },
   });
 
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
+    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Equipment.list();
+    },
   });
 
   const filteredBuildings = buildings.filter(building =>
