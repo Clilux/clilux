@@ -217,10 +217,11 @@ export default function HomeTecnico() {
 
   const handleLogout = async () => {
     sessionStorage.setItem('just_logged_out', '1');
-    // Limpiar sesión de técnico propio
+    // Limpiar TODA sesión de técnico
     localStorage.removeItem('clilux_tech_email');
     localStorage.removeItem('clilux_tech_password');
     sessionStorage.removeItem('technician_email');
+    sessionStorage.removeItem('technician_id');
     // Limpiar sesión de cliente
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');

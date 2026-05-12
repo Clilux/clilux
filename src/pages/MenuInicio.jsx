@@ -30,8 +30,10 @@ export default function MenuInicio() {
         sessionStorage.removeItem('just_logged_out');
         return;
       }
-      const activeTechSession = sessionStorage.getItem('technician_email');
+      // Técnico: primero sessionStorage, luego localStorage (persistencia entre pestañas)
+      const activeTechSession = sessionStorage.getItem('technician_email') || localStorage.getItem('clilux_tech_email');
       if (activeTechSession) {
+        sessionStorage.setItem('technician_email', activeTechSession);
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
@@ -97,7 +99,14 @@ export default function MenuInicio() {
       });
       const data = res.data;
       if (data?.success) {
+        // Limpiar cualquier sesión de cliente previa
+        sessionStorage.removeItem('client_id');
+        localStorage.removeItem('clilux_email');
+        localStorage.removeItem('clilux_password');
+        // Guardar sesión de técnico en AMBOS storages para persistencia
         sessionStorage.setItem('technician_email', data.email);
+        localStorage.setItem('clilux_tech_email', data.email);
+        if (data.id) sessionStorage.setItem('technician_id', data.id);
         navigate(createPageUrl('HomeTecnico'));
       } else {
         setTechLoginError(data?.error || 'Email o contraseña incorrectos');

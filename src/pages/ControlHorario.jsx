@@ -23,26 +23,43 @@ export default function ControlHorario() {
   const [showAusencia, setShowAusencia] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
 
-  const { data: currentUser } = useQuery({ queryKey: ['current-user'], queryFn: () => base44.auth.me() });
+  // Detectar si hay sesión de técnico propio (no Base44)
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  const { data: base44User } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech,
+    retry: false,
+  });
+
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: !!currentUser,
   });
 
-  const isAdmin = currentUser?.role === 'admin';
-  const myTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
+  // Email efectivo: sesión de técnico propio tiene prioridad sobre Base44
+  const effectiveEmail = sessionTechEmail || base44User?.email;
+
+  const isAdmin = !isSessionTech && base44User?.role === 'admin';
+  const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
   const jornadaDiaria = myTechRecord?.horas_jornada_diaria || 8;
+
+  // currentUser unificado para compatibilidad con el resto del componente
+  const currentUser = isSessionTech
+    ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail, role: 'user' }
+    : base44User;
 
   const monthStr = format(viewMonth, 'yyyy-MM');
   const { data: registros = [], isLoading } = useQuery({
-    queryKey: ['registros-horario', monthStr, currentUser?.email],
+    queryKey: ['registros-horario', monthStr, effectiveEmail],
     queryFn: async () => {
-      const all = await base44.entities.RegistroHorario.list('-fecha', 500);
-      // Siempre filtramos los propios registros del usuario autenticado
-      return all.filter(r => r.technician_email === currentUser?.email && r.fecha?.startsWith(monthStr));
+      if (!effectiveEmail) return [];
+      const all = await base44.entities.RegistroHorario.filter({ technician_email: effectiveEmail });
+      return all.filter(r => r.fecha?.startsWith(monthStr));
     },
-    enabled: !!currentUser,
+    enabled: !!effectiveEmail,
   });
 
   const myRegistros = registros;
@@ -252,7 +269,7 @@ export default function ControlHorario() {
     doc.save(`jornada_${techName.split(' ')[0]}_${r.fecha}.pdf`);
   };
 
-  if (!currentUser) return null;
+  if (!effectiveEmail) return null;
 
   // Panel de técnico — reutilizado tanto en la vista pura de técnico como en admin+técnico
   const renderTechnicianPanel = () => (

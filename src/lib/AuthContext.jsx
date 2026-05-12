@@ -23,6 +23,11 @@ export const AuthProvider = ({ children }) => {
       setAuthError(null);
 
       // Si hay sesión de técnico propio o cliente, no requerir auth de Base44
+      // Sincronizar localStorage → sessionStorage por si se abrió nueva pestaña
+      const savedTechEmail = localStorage.getItem('clilux_tech_email');
+      if (savedTechEmail && !sessionStorage.getItem('technician_email')) {
+        sessionStorage.setItem('technician_email', savedTechEmail);
+      }
       const hasTechSession = !!sessionStorage.getItem('technician_email');
       const hasClientSession = !!sessionStorage.getItem('client_id');
       if (hasTechSession || hasClientSession) {

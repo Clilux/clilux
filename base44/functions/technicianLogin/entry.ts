@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     );
 
     if (tech) {
-      return Response.json({ success: true, email: tech.email, name: tech.name });
+      return Response.json({ success: true, email: tech.email, name: tech.name, id: tech.id, company_id: tech.company_id || '' });
     } else {
       return Response.json({ success: false, error: 'Email o contraseña incorrectos, o técnico inactivo' });
     }

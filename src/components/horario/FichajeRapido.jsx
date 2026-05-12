@@ -20,10 +20,11 @@ export default function FichajeRapido({ currentUser, techRecord }) {
   const { data: todayRecord } = useQuery({
     queryKey: ['fichaje-hoy', currentUser?.email, todayStr],
     queryFn: async () => {
-      const all = await base44.entities.RegistroHorario.list('-fecha', 10);
-      return all.find(r => r.fecha === todayStr && r.technician_email === currentUser?.email) || null;
+      if (!currentUser?.email) return null;
+      const results = await base44.entities.RegistroHorario.filter({ technician_email: currentUser.email, fecha: todayStr });
+      return results[0] || null;
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser?.email,
     refetchInterval: 60000,
   });
 
