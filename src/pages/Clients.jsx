@@ -19,23 +19,38 @@ export default function Clients() {
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
   const { technician, user } = useCurrentTechnician();
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const handleViewChange = (mode) => {
     setViewMode(mode);
     localStorage.setItem('clients_view', mode);
   };
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date'),
+    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Client.list('-created_date');
+    },
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list(),
+    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Building.list();
+    },
   });
 
-  // Admins ven todo. Técnicos ven clientes de su empresa o asignados a ellos.
-  const isAdmin = user?.role === 'admin';
+  // Admins ven todo. Técnicos de sesión ven todo (el proxy ya filtra por empresa en backend).
+  const isAdmin = !isSessionTech && user?.role === 'admin';
   const visibleClients = isAdmin ? clients : clients.filter(c => {
     if (technician?.company_id && c.company_id === technician.company_id) return true;
     if (c.assigned_technician === user?.email) return true;

@@ -53,6 +53,15 @@ Deno.serve(async (req) => {
     return Response.json({ data });
   }
 
+  // ── Fichaje: leer registros del mes ─────────────────────────
+  if (entity === 'registro_horario_mes') {
+    const { mes } = body; // formato 'yyyy-MM'
+    if (!mes) return Response.json({ error: 'mes requerido' }, { status: 400 });
+    const all = await base44.asServiceRole.entities.RegistroHorario.filter({ technician_email });
+    const data = all.filter(r => r.fecha?.startsWith(mes));
+    return Response.json({ data });
+  }
+
   // ── Fichaje: leer registro de hoy ────────────────────────────
   if (entity === 'registro_horario_get') {
     const { fecha } = body;

@@ -56,6 +56,14 @@ export default function ControlHorario() {
     queryKey: ['registros-horario', monthStr, effectiveEmail],
     queryFn: async () => {
       if (!effectiveEmail) return [];
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail,
+          entity: 'registro_horario_mes',
+          mes: monthStr,
+        });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.RegistroHorario.filter({ technician_email: effectiveEmail });
       return all.filter(r => r.fecha?.startsWith(monthStr));
     },
@@ -69,6 +77,25 @@ export default function ControlHorario() {
 
   // --- Mutations ---
 
+  // Helper para actualizar registro via proxy o directo
+  const updateRegistro = async (id, updates) => {
+    if (isSessionTech) {
+      return base44.functions.invoke('getCompanyData', {
+        technician_email: effectiveEmail, entity: 'registro_horario_update', record_id: id, updates,
+      });
+    }
+    return base44.entities.RegistroHorario.update(id, updates);
+  };
+
+  const createRegistro = async (record) => {
+    if (isSessionTech) {
+      return base44.functions.invoke('getCompanyData', {
+        technician_email: effectiveEmail, entity: 'registro_horario_create', record,
+      });
+    }
+    return base44.entities.RegistroHorario.create(record);
+  };
+
   // INICIO JORNADA: crea el registro del día con el primer intervalo abierto
   const inicioJornada = useMutation({
     mutationFn: async () => {
@@ -79,17 +106,13 @@ export default function ControlHorario() {
       const nuevoIntervalo = { entrada: now, salida: null };
       const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
       if (todayRecord) {
-        // Reanudar: añadir nuevo intervalo y quitar flag finalizada
         const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
-        return base44.entities.RegistroHorario.update(todayRecord.id, {
-          intervalos,
-          hora_salida: null,
-          finalizada: false,
+        return updateRegistro(todayRecord.id, {
+          intervalos, hora_salida: null, finalizada: false,
           ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
         });
       }
-      // Nuevo día
-      return base44.entities.RegistroHorario.create({
+      return createRegistro({
         technician_email: currentUser.email,
         technician_name: myTechRecord?.name || currentUser.full_name || currentUser.email,
         technician_id: myTechRecord?.id || '',
@@ -114,7 +137,7 @@ export default function ControlHorario() {
       const intervalos = (todayRecord.intervalos || []).map((t, i) =>
         i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
       );
-      return base44.entities.RegistroHorario.update(todayRecord.id, { intervalos, hora_salida: now });
+      return updateRegistro(todayRecord.id, { intervalos, hora_salida: now });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Jornada pausada'); },
   });
@@ -133,11 +156,8 @@ export default function ControlHorario() {
       const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: now }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
       if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
-      return base44.entities.RegistroHorario.update(todayRecord.id, {
-        intervalos,
-        hora_salida: now,
-        finalizada: true,
-        ...calcs,
+      return updateRegistro(todayRecord.id, {
+        intervalos, hora_salida: now, finalizada: true, ...calcs,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
