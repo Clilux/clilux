@@ -25,12 +25,12 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
           variant="ghost"
           size="icon"
           onClick={handleBack}
-          className="rounded-full hover:bg-white/10 text-white">
+          className="rounded-full hover:bg-white/10 text-[hsl(var(--foreground))]">
           
             <ArrowLeft className="h-5 w-5" />
           </Button>
         }
-        <h1 className="text-2xl font-semibold text-white">{title}</h1>
+        <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">{title}</h1>
       </div>
       {showHome &&
       <Link to={createPageUrl(homeUrl)}>
