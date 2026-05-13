@@ -39,7 +39,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
             <Link to="/Calendar">
               <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-9">
                 <Calendar className="h-4 w-4 mr-2" />
-                <span className="text-sm">Sueldos</span>
+                <span className="text-sm">Agenda</span>
               </Button>
             </Link>
             <Link to="/Documentacion">

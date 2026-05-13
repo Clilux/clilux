@@ -246,11 +246,11 @@ export default function HomeTecnico() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 relative overflow-x-hidden flex">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar */}
       <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} />
 
-      <div className="relative z-10 flex flex-col min-h-screen flex-1">
+      <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-800 shadow-sm">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -289,7 +289,7 @@ export default function HomeTecnico() {
         </div>
 
         {/* Content */}
-         <div className="flex-1 w-full p-6 pb-10 bg-slate-50">
+         <div className="flex-1 w-full p-6 pb-10 bg-slate-50 overflow-y-auto overflow-x-hidden">
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
