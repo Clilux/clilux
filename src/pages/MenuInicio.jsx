@@ -407,7 +407,6 @@ export default function MenuInicio() {
 
           <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados</p>
         </div>
-        </div>
-        </div>
+      </div>
   );
 }
