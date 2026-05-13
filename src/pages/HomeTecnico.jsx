@@ -17,6 +17,7 @@ import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { playFuturisticSound } from '@/lib/futuristicSound';
 import FichajeRapido from '@/components/horario/FichajeRapido';
+import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -245,65 +246,27 @@ export default function HomeTecnico() {
   };
 
   return (
-    <div className="min-h-screen bg-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 relative overflow-x-hidden flex">
+      {/* Sidebar */}
+      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex flex-col min-h-screen flex-1">
         {/* Top bar */}
-        <div className="bg-white px-4 py-3 border-b border-slate-200">
+         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-800 shadow-sm">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button onClick={() => navigate(-1)} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9" title="Atrás">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                <Thermometer className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                <Thermometer className="h-6 w-6 text-white" />
               </div>
               <div>
-                <span className="text-slate-800 font-semibold text-lg">Clilux</span>
-                {(myTechRecord?.name || currentUser?.full_name) && (
-                  <p className="text-xs text-slate-500 leading-none mt-0.5">
-                    {myTechRecord?.name || currentUser?.full_name}
-                  </p>
-                )}
+                <p className="text-white text-sm font-semibold">Hola {myTechRecord?.name?.split(' ')[0] || currentUser?.full_name?.split(' ')[0] || 'Técnico'}</p>
+                <p className="text-blue-100 text-xs">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              {isAdmin && (
-                <>
-                  <Link to={createPageUrl('AdminPanel')}>
-                    <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700 h-9 w-9" title="Panel Admin">
-                      <Shield className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { base44.auth.logout(createPageUrl('MenuInicio') + '?mode=technician'); }}
-                    className="text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 h-9 px-2 flex items-center gap-1"
-                    title="Entrar como técnico"
-                  >
-                    <Wrench className="h-4 w-4" />
-                    <span className="hidden sm:inline">Técnico</span>
-                  </Button>
-                </>
-              )}
-              {isSessionTech ? (
-                <Link to={createPageUrl('Clients')}>
-                  <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9" title="Clientes">
-                    <Users className="h-5 w-5" />
-                  </Button>
-                </Link>
-              ) : (
-                <Link to={createPageUrl('Settings')}>
-                  <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </Link>
-              )}
-              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-500 hover:text-slate-800 h-9 w-9">
-                <LogOut className="h-5 w-5" />
-              </Button>
+            <div className="text-right">
+              <p className="text-white text-3xl font-bold">{format(new Date(), 'HH:mm')}</p>
             </div>
+            {/* Hora derecha */}
           </div>
         </div>
 
@@ -326,13 +289,17 @@ export default function HomeTecnico() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 max-w-7xl mx-auto w-full p-4 pb-10 bg-slate-50">
+         <div className="flex-1 w-full p-6 pb-10 bg-slate-50">
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
-            <div className="space-y-5">
+            <div className="space-y-5 max-w-2xl">
               {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
-              {isSessionTech && <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />}
+              {isSessionTech && (
+                <div className="mb-6">
+                  <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
+                </div>
+              )}
 
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
