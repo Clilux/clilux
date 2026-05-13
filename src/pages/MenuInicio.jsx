@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null);
+  const initialMode = new URLSearchParams(window.location.search).get('mode');
+  const [mode, setMode] = useState(initialMode || null);
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [techCredentials, setTechCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');

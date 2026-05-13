@@ -269,11 +269,23 @@ export default function HomeTecnico() {
             </div>
             <div className="flex items-center gap-1">
               {isAdmin && (
-                <Link to={createPageUrl('AdminPanel')}>
-                  <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700 h-9 w-9" title="Panel Admin">
-                    <Shield className="h-5 w-5" />
+                <>
+                  <Link to={createPageUrl('AdminPanel')}>
+                    <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700 h-9 w-9" title="Panel Admin">
+                      <Shield className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { base44.auth.logout(createPageUrl('MenuInicio') + '?mode=technician'); }}
+                    className="text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 h-9 px-2 flex items-center gap-1"
+                    title="Entrar como técnico"
+                  >
+                    <Wrench className="h-4 w-4" />
+                    <span className="hidden sm:inline">Técnico</span>
                   </Button>
-                </Link>
+                </>
               )}
               {isSessionTech ? (
                 <Link to={createPageUrl('Clients')}>
@@ -319,8 +331,8 @@ export default function HomeTecnico() {
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
             <div className="space-y-5">
-              {/* Fichaje rápido */}
-              <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
+              {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
+              {isSessionTech && <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />}
 
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
