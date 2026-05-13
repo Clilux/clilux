@@ -164,9 +164,9 @@ export default function MenuInicio() {
             <p className="text-slate-400 mt-1 text-base">Sistema de Gestión de Climatización</p>
           </div>
 
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-2xl">
         {/* Panel */}
-        <div className="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl">
 
           {/* ── Selección de modo ── */}
           {!mode && (
