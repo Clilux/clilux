@@ -125,12 +125,10 @@ export default function MenuInicio() {
   const companyName = 'Clilux';
 
   return (
-    <div className="fixed inset-0 overflow-y-auto overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
+    <div className="h-screen overflow-y-auto overflow-x-hidden flex flex-col md:flex-row relative z-10" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
       {/* Decorative blobs */}
       <div className="fixed top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="min-h-screen flex flex-col md:flex-row relative z-10">
 
         {/* ── Panel izquierdo / branding (desktop) ── */}
         <div className="hidden md:flex md:w-1/2 flex-col items-center justify-center p-16 text-center">
@@ -173,7 +171,7 @@ export default function MenuInicio() {
           {/* ── Selección de modo ── */}
           {!mode && (
             <div className="space-y-4">
-              <p className="text-slate-400 text-sm text-center uppercase tracking-widest mb-6 font-semibold">¿Cómo deseas acceder?</p>
+              <p className="text-slate-400 text-base text-center uppercase tracking-widest mb-6 font-semibold">¿Cómo deseas acceder?</p>
 
               <button
                 onClick={() => setMode('technician')}
@@ -231,7 +229,7 @@ export default function MenuInicio() {
           {/* ── Login técnico ── */}
           {mode === 'technician' && (
             <form onSubmit={handleTechnicianLogin} className="space-y-5">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-7">
                 <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center shrink-0">
                   <Wrench className="h-7 w-7 text-blue-400" />
                 </div>
@@ -273,7 +271,7 @@ export default function MenuInicio() {
           {/* ── Login cliente ── */}
           {mode === 'client' && (
             <form onSubmit={handleClientLogin} className="space-y-5">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-7">
                 <div className="w-14 h-14 rounded-2xl bg-teal-500/20 flex items-center justify-center shrink-0">
                   <Users className="h-7 w-7 text-teal-400" />
                 </div>
@@ -405,11 +403,11 @@ export default function MenuInicio() {
           )}
 
         </div>
-
-            <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados</p>
           </div>
+
+          <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados</p>
         </div>
-      </div>
-    </div>
+        </div>
+        </div>
   );
 }

@@ -33,7 +33,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
             <Link to="/ControlHorario">
               <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-9">
                 <Clock className="h-4 w-4 mr-2" />
-                <span className="text-sm">Check-in</span>
+                <span className="text-sm">Control Horario</span>
               </Button>
             </Link>
             <Link to="/Calendar">

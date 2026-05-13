@@ -446,10 +446,12 @@ export default function ControlHorario() {
   // Admin puro (sin registro de técnico): solo panel de análisis
   if (isAdmin && !myTechRecord) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-        <div className="max-w-6xl mx-auto">
-          <NavHeader title="Control Horario" />
-          <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} />
+      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-6xl mx-auto">
+            <NavHeader title="Control Horario" />
+            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} />
+          </div>
         </div>
       </div>
     );
@@ -458,20 +460,22 @@ export default function ControlHorario() {
   // Admin que también es técnico: su ficha de técnico arriba + panel admin debajo
   if (isAdmin && myTechRecord) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <NavHeader title="Control Horario" />
+      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <NavHeader title="Control Horario" />
 
-          {/* ── Sección técnico ── */}
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mi jornada</p>
-            {renderTechnicianPanel()}
-          </div>
+            {/* ── Sección técnico ── */}
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mi jornada</p>
+              {renderTechnicianPanel()}
+            </div>
 
-          {/* ── Sección administración ── */}
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Panel de administración</p>
-            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
+            {/* ── Sección administración ── */}
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Panel de administración</p>
+              <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
+            </div>
           </div>
         </div>
         {editingRecord && (
@@ -487,18 +491,20 @@ export default function ControlHorario() {
 
   // Técnico puro
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        <NavHeader title="Mi Control Horario" />
-        {renderTechnicianPanel()}
-        {editingRecord && (
-          <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
-            onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
-        )}
-        {showAusencia && (
-          <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
-        )}
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-3xl mx-auto">
+          <NavHeader title="Mi Control Horario" />
+          {renderTechnicianPanel()}
+        </div>
       </div>
+      {editingRecord && (
+        <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
+          onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
+      )}
+      {showAusencia && (
+        <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
+      )}
     </div>
   );
 }
