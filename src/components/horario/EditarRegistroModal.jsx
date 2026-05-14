@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
 import { calcularHoras, formatHoras } from '@/lib/horario-utils';
 
-export default function EditarRegistroModal({ registro, currentUser, jornadaDiaria = 8, onClose }) {
+export default function EditarRegistroModal({ registro, currentUser, jornadaDiaria = 8, updateRegistro, onClose }) {
   const queryClient = useQueryClient();
   const [horaEntrada, setHoraEntrada] = useState(registro.hora_entrada || '');
   const [horaSalida, setHoraSalida] = useState(registro.hora_salida || '');
@@ -46,7 +46,8 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
         jornadaDiaria
       );
       const historialPrevio = registro.historial_modificaciones || [];
-      return base44.entities.RegistroHorario.update(registro.id, {
+      const doUpdate = updateRegistro || ((id, data) => base44.entities.RegistroHorario.update(id, data));
+      return doUpdate(registro.id, {
         hora_entrada: horaEntrada,
         hora_salida: horaSalida,
         tipo_jornada: tipoJornada,

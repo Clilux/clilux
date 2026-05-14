@@ -480,6 +480,7 @@ export default function ControlHorario() {
         </div>
         {editingRecord && (
           <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
+            updateRegistro={updateRegistro}
             onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
         )}
         {showAusencia && (
@@ -500,6 +501,7 @@ export default function ControlHorario() {
       </div>
       {editingRecord && (
         <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
+          updateRegistro={updateRegistro}
           onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
       )}
       {showAusencia && (
