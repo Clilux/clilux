@@ -28,38 +28,38 @@ export default function Equipment() {
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
-  const { data: equipment = [], isLoading } = useQuery({
-    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-all', sessionTechEmail],
     queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Equipment.list('-created_date');
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
     },
+    enabled: isSessionTech,
+    staleTime: 30000,
   });
 
-  const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Building.list();
-    },
+  const { data: equipmentDirect = [], isLoading: loadingDirect } = useQuery({
+    queryKey: ['equipment', 'direct'],
+    queryFn: () => base44.entities.Equipment.list('-created_date'),
+    enabled: !isSessionTech,
   });
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Client.list();
-    },
+  const { data: buildingsDirect = [] } = useQuery({
+    queryKey: ['buildings', 'direct'],
+    queryFn: () => base44.entities.Building.list(),
+    enabled: !isSessionTech,
   });
+
+  const { data: clientsDirect = [] } = useQuery({
+    queryKey: ['clients', 'direct'],
+    queryFn: () => base44.entities.Client.list(),
+    enabled: !isSessionTech,
+  });
+
+  const equipment = isSessionTech ? (proxyData?.equipment || []) : equipmentDirect;
+  const buildings = isSessionTech ? (proxyData?.buildings || []) : buildingsDirect;
+  const clients   = isSessionTech ? (proxyData?.clients   || []) : clientsDirect;
+  const isLoading = isSessionTech ? !proxyData : loadingDirect;
 
   const filteredEquipment = equipment.filter((eq) => {
     if (!searchTerm) return true;

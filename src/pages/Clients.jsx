@@ -27,27 +27,30 @@ export default function Clients() {
     localStorage.setItem('clients_view', mode);
   };
 
-  const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-all', sessionTechEmail],
     queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Client.list('-created_date');
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
     },
+    enabled: isSessionTech,
+    staleTime: 30000,
   });
 
-  const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Building.list();
-    },
+  const { data: clientsDirect = [], isLoading } = useQuery({
+    queryKey: ['clients', 'direct'],
+    queryFn: () => base44.entities.Client.list('-created_date'),
+    enabled: !isSessionTech,
   });
+
+  const { data: buildingsDirect = [] } = useQuery({
+    queryKey: ['buildings', 'direct'],
+    queryFn: () => base44.entities.Building.list(),
+    enabled: !isSessionTech,
+  });
+
+  const clients   = isSessionTech ? (proxyData?.clients   || []) : clientsDirect;
+  const buildings = isSessionTech ? (proxyData?.buildings || []) : buildingsDirect;
 
   // Técnicos de sesión: el proxy ya controla los permisos, mostrar todos.
   // Admins Base44: ver todo. Usuarios Base44 normales: filtrar por empresa/asignación.
@@ -93,7 +96,7 @@ export default function Clients() {
           </Link>
         </div>
 
-        {isLoading ? (
+        {(isSessionTech ? !proxyData : isLoading) ? (
           <div className="space-y-4">
             {[1, 2, 3, 4].map(i => (
               <Skeleton key={i} className="h-28 rounded-xl" />

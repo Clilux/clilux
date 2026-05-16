@@ -36,7 +36,27 @@ Deno.serve(async (req) => {
   // Helper para denegar acceso
   const deny = (perm) => Response.json({ error: `Sin permiso: ${perm}`, no_permission: true }, { status: 403 });
 
-  // ── Operaciones de lectura ────────────────────────────────────
+  // ── Carga masiva (evita múltiples llamadas simultáneas) ──────
+  if (entity === 'all') {
+    const fetches = await Promise.all([
+      permisos.ver_clientes   ? base44.asServiceRole.entities.Client.list('-created_date')          : Promise.resolve([]),
+      permisos.ver_edificios  ? base44.asServiceRole.entities.Building.list()                        : Promise.resolve([]),
+      permisos.ver_equipos    ? base44.asServiceRole.entities.Equipment.list()                       : Promise.resolve([]),
+      permisos.ver_incidencias? base44.asServiceRole.entities.Incident.list('-created_date')         : Promise.resolve([]),
+      permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.list()               : Promise.resolve([]),
+      base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' }),
+    ]);
+    return Response.json({
+      clients:   fetches[0],
+      buildings: fetches[1],
+      equipment: fetches[2],
+      incidents: fetches[3],
+      revisions: fetches[4],
+      settings:  fetches[5][0] || null,
+    });
+  }
+
+  // ── Operaciones de lectura individuales ───────────────────────
   if (entity === 'clients') {
     if (!permisos.ver_clientes) return deny('ver_clientes');
     const data = await base44.asServiceRole.entities.Client.list('-created_date');

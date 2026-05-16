@@ -25,27 +25,31 @@ export default function Buildings() {
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
-  const { data: buildings = [], isLoading } = useQuery({
-    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-all', sessionTechEmail],
     queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Building.list('-created_date');
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
     },
+    enabled: isSessionTech,
+    staleTime: 30000,
   });
 
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: async () => {
-      if (isSessionTech) {
-        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
-        return res.data?.data || [];
-      }
-      return base44.entities.Equipment.list();
-    },
+  const { data: buildingsDirect = [], isLoading: loadingDirect } = useQuery({
+    queryKey: ['buildings', 'direct'],
+    queryFn: () => base44.entities.Building.list('-created_date'),
+    enabled: !isSessionTech,
   });
+
+  const { data: equipmentDirect = [] } = useQuery({
+    queryKey: ['equipment', 'direct'],
+    queryFn: () => base44.entities.Equipment.list(),
+    enabled: !isSessionTech,
+  });
+
+  const buildings = isSessionTech ? (proxyData?.buildings || []) : buildingsDirect;
+  const equipment = isSessionTech ? (proxyData?.equipment || []) : equipmentDirect;
+  const isLoading = isSessionTech ? !proxyData : loadingDirect;
 
   const filteredBuildings = buildings.filter(building =>
     building.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

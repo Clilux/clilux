@@ -191,37 +191,54 @@ export default function HomeTecnico() {
     ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
     : base44User;
 
-  // Helper: si es técnico de sesión propia, usar backend proxy para evitar problemas de auth Base44
-  const fetchViaProxy = async (entity) => {
-    const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity });
-    return res.data?.data || [];
-  };
+  // Helper: carga todo en una sola llamada para evitar rate limit
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-all', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
+    },
+    enabled: isSessionTech,
+    staleTime: 30000,
+  });
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? fetchViaProxy('clients') : base44.entities.Client.list('-created_date'),
+    queryFn: () => base44.entities.Client.list('-created_date'),
+    enabled: !isSessionTech,
   });
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? fetchViaProxy('buildings') : base44.entities.Building.list(),
+    queryFn: () => base44.entities.Building.list(),
+    enabled: !isSessionTech,
   });
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? fetchViaProxy('equipment') : base44.entities.Equipment.list(),
+    queryFn: () => base44.entities.Equipment.list(),
+    enabled: !isSessionTech,
   });
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduledRevisions', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? fetchViaProxy('revisions') : base44.entities.ScheduledRevision.list(),
+    queryFn: () => base44.entities.ScheduledRevision.list(),
+    enabled: !isSessionTech,
   });
   const { data: incidents = [] } = useQuery({
     queryKey: ['incidents', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? fetchViaProxy('incidents') : base44.entities.Incident.list('-created_date'),
+    queryFn: () => base44.entities.Incident.list('-created_date'),
+    enabled: !isSessionTech,
   });
 
-  const pendingIncidents = incidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
+  // Datos finales: proxy (técnicos) o direct (admins Base44)
+  const finalClients   = isSessionTech ? (proxyData?.clients   || []) : clients;
+  const finalBuildings = isSessionTech ? (proxyData?.buildings  || []) : buildings;
+  const finalEquipment = isSessionTech ? (proxyData?.equipment  || []) : equipment;
+  const finalRevisions = isSessionTech ? (proxyData?.revisions  || []) : scheduledRevisions;
+  const finalIncidents = isSessionTech ? (proxyData?.incidents  || []) : incidents;
+
+  const pendingIncidents = finalIncidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
   const today = new Date();
   const next30Days = addDays(today, 30);
-  const upcomingRevisions = scheduledRevisions
+  const upcomingRevisions = finalRevisions
     .filter(sr => sr.status === 'pending')
     .filter(sr => { const d = parseISO(sr.scheduled_date); return isAfter(d, today) && isBefore(d, next30Days); })
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
@@ -304,10 +321,10 @@ export default function HomeTecnico() {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Clientes',   value: clients.length,   icon: Users,         color: 'bg-blue-500/10 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: loadingClients },
-                  { label: 'Edificios',  value: buildings.length, icon: Building2,     color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings' },
-                  { label: 'Equipos',    value: equipment.length, icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',  iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment' },
-                  { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents' },
+                  { label: 'Clientes',   value: finalClients.length,   icon: Users,         color: 'bg-blue-500/10 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: isSessionTech ? !proxyData : loadingClients },
+                  { label: 'Edificios',  value: finalBuildings.length, icon: Building2,     color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings' },
+                  { label: 'Equipos',    value: finalEquipment.length, icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',  iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment' },
+                  { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: false },
                 ].map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) => (
                   <Link key={label} to={createPageUrl(page)} onClick={playFuturisticSound}>
                     <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
@@ -341,9 +358,9 @@ export default function HomeTecnico() {
                 ) : (
                   <div className="space-y-2">
                     {upcomingRevisions.slice(0, 6).map(rev => {
-                      const client = clients.find(c => c.id === rev.client_id);
-                      const building = buildings.find(b => b.id === rev.building_id);
-                      const equip = equipment.find(e => e.id === rev.equipment_id);
+                      const client = finalClients.find(c => c.id === rev.client_id);
+                      const building = finalBuildings.find(b => b.id === rev.building_id);
+                      const equip = finalEquipment.find(e => e.id === rev.equipment_id);
                       return (
                         <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
                           <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
@@ -386,7 +403,7 @@ export default function HomeTecnico() {
                   </div>
                   <div className="space-y-2">
                     {pendingIncidents.slice(0, 3).map(inc => {
-                      const client = clients.find(c => c.id === inc.client_id);
+                      const client = finalClients.find(c => c.id === inc.client_id);
                       return (
                         <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
                           <Card className="bg-red-50 border-red-200 p-3 hover:bg-red-100 transition-colors cursor-pointer shadow-sm">
@@ -427,7 +444,7 @@ export default function HomeTecnico() {
                 <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
                 ) : (
                 <div className="space-y-2">
-                  {clients.slice(0, 5).map(client => (
+                  {finalClients.slice(0, 5).map(client => (
                     <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`} onClick={playFuturisticSound}>
                       <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                         <div className="flex items-center justify-between">
@@ -468,10 +485,10 @@ export default function HomeTecnico() {
                 </Link>
               </div>
               <MiniCalendar
-                revisions={scheduledRevisions}
-                clients={clients}
-                buildings={buildings}
-                equipment={equipment}
+                revisions={finalRevisions}
+                clients={finalClients}
+                buildings={finalBuildings}
+                equipment={finalEquipment}
               />
             </div>
           )}
