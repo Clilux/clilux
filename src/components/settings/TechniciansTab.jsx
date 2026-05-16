@@ -11,7 +11,7 @@ import { Users, UserPlus, Loader2, Check, Eye, EyeOff, ExternalLink, Pencil, Key
 import { toast } from 'sonner';
 
 export default function TechniciansTab({ technicians, queryClient }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', passwordConfirm: '', phone: '', specialty: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', passwordConfirm: '', phone: '', specialty: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', company_name: '' });
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [done, setDone] = useState(false);
@@ -22,7 +22,7 @@ export default function TechniciansTab({ technicians, queryClient }) {
   const [showEditPwd, setShowEditPwd] = useState(false);
 
   const createMutation = useMutation({
-    mutationFn: async ({ name, email, password, phone, specialty }) => {
+    mutationFn: async ({ name, email, password, phone, specialty, fgas_cert_num, rite_cert_num, empresa_fgas_cert_num, company_name }) => {
       const existing = await base44.entities.Technician.filter({ email });
       if (existing.length > 0) throw new Error('Ya existe un técnico con ese email');
       await base44.entities.Technician.create({
@@ -31,13 +31,17 @@ export default function TechniciansTab({ technicians, queryClient }) {
         portal_password: password.trim(),
         phone: phone || '',
         specialty: specialty || '',
+        fgas_cert_num: fgas_cert_num || '',
+        rite_cert_num: rite_cert_num || '',
+        empresa_fgas_cert_num: empresa_fgas_cert_num || '',
+        company_name: company_name || '',
         status: 'active',
       });
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       setDone(true);
-      setForm({ name: '', email: '', password: '', passwordConfirm: '', phone: '', specialty: '' });
+      setForm({ name: '', email: '', password: '', passwordConfirm: '', phone: '', specialty: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', company_name: '' });
     },
     onError: (error) => {
       setFormError(error.message);
@@ -167,6 +171,42 @@ export default function TechniciansTab({ technicians, queryClient }) {
                   className="mt-1"
                 />
               </div>
+              <div>
+                <Label className="text-xs">Empresa mantenedora (opcional)</Label>
+                <Input
+                  value={form.company_name}
+                  onChange={(e) => setForm(p => ({ ...p, company_name: e.target.value }))}
+                  placeholder="Nombre de la empresa"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nº Carné F-Gas (opcional)</Label>
+                <Input
+                  value={form.fgas_cert_num}
+                  onChange={(e) => setForm(p => ({ ...p, fgas_cert_num: e.target.value }))}
+                  placeholder="Nº certificado frigorista"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nº Carné RITE (opcional)</Label>
+                <Input
+                  value={form.rite_cert_num}
+                  onChange={(e) => setForm(p => ({ ...p, rite_cert_num: e.target.value }))}
+                  placeholder="Nº habilitación RITE"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nº Certificado Empresa F-Gas (opcional)</Label>
+                <Input
+                  value={form.empresa_fgas_cert_num}
+                  onChange={(e) => setForm(p => ({ ...p, empresa_fgas_cert_num: e.target.value }))}
+                  placeholder="Nº cert. empresa habilitada"
+                  className="mt-1"
+                />
+              </div>
             </div>
 
             {formError && (
@@ -220,6 +260,11 @@ export default function TechniciansTab({ technicians, queryClient }) {
                     <div>
                       <p className="font-medium text-slate-800 text-sm">{tech.name}</p>
                       <p className="text-xs text-slate-400">{tech.email}</p>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {tech.fgas_cert_num && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">F-Gas: {tech.fgas_cert_num}</span>}
+                        {tech.rite_cert_num && <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">RITE: {tech.rite_cert_num}</span>}
+                        {tech.company_name && <span className="text-xs bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded">{tech.company_name}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -47,6 +47,18 @@
     "invited_at": {
       "type": "string"
     },
+    "fgas_cert_num": {
+      "type": "string",
+      "description": "N\u00ba de certificado personal F-Gas (carn\u00e9 frigorista)"
+    },
+    "rite_cert_num": {
+      "type": "string",
+      "description": "N\u00ba de carn\u00e9 RITE / habilitaci\u00f3n como mantenedor de instalaciones t\u00e9rmicas"
+    },
+    "empresa_fgas_cert_num": {
+      "type": "string",
+      "description": "N\u00ba de certificado de empresa habilitada F-Gas (si el t\u00e9cnico trabaja en su propia empresa)"
+    },
     "horas_jornada_diaria": {
       "type": "number",
       "default": 8,
@@ -69,16 +81,14 @@
     "vacaciones_anuales": {
       "type": "number",
       "default": 22,
-      "description": "D\u00edas de vacaciones anuales pactados (por defecto 22 d\u00edas laborables)"
+      "description": "D\u00edas de vacaciones anuales pactados"
     },
     "vacaciones_dias_usados_anteriores": {
       "type": "number",
-      "default": 0,
-      "description": "D\u00edas de vacaciones ya usados antes de incorporarse a este sistema (otra app, inicio de a\u00f1o, etc.)"
+      "default": 0
     },
     "vacaciones_notas": {
-      "type": "string",
-      "description": "Notas sobre las vacaciones del trabajador (ej: viene de Factorial con 5 d\u00edas usados)"
+      "type": "string"
     },
     "permisos": {
       "type": "object",

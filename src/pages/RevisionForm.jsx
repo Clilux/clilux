@@ -30,6 +30,7 @@ export default function RevisionForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const scheduledRevisionId = urlParams.get('id');
   const { technician, user } = useCurrentTechnician();
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
 
   // ALL hooks at the top - no conditional hooks
   const [formData, setFormData] = useState({});
@@ -73,6 +74,11 @@ export default function RevisionForm() {
       return items[0] || null;
     },
     enabled: !!scheduledRevision?.building_id,
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians-revision'],
+    queryFn: () => base44.entities.Technician.filter({ status: 'active' }),
   });
 
   const { data: previousPendingRevisions = [] } = useQuery({
@@ -408,11 +414,24 @@ export default function RevisionForm() {
           <div className="space-y-4 mb-6 pb-6 border-b">
             <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
-              <Input
-                value={technicianName}
-                onChange={(e) => setTechnicianName(e.target.value)}
-                placeholder="Nombre del técnico"
-              />
+              {technicians.length > 0 ? (
+                <select
+                  value={technicianName}
+                  onChange={e => setTechnicianName(e.target.value)}
+                  className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background"
+                >
+                  <option value="">— Seleccionar técnico —</option>
+                  {technicians.map(t => (
+                    <option key={t.id} value={t.name}>{t.name}{t.specialty ? ` · ${t.specialty}` : ''}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  value={technicianName}
+                  onChange={(e) => setTechnicianName(e.target.value)}
+                  placeholder="Nombre del técnico"
+                />
+              )}
             </div>
           </div>
 

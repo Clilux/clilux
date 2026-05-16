@@ -34,6 +34,19 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+// GWP inline para mostrar cálculos en ficha (mismo dataset que FGasTab)
+const GWP_TABLE_INLINE = {
+  'R32': 675, 'R134a': 1430, 'R404A': 3922, 'R407A': 2107, 'R407C': 1774,
+  'R407F': 1825, 'R407H': 1495, 'R410A': 2088, 'R448A': 1387, 'R449A': 1397,
+  'R452A': 2140, 'R452B': 676, 'R454B': 466, 'R507A': 3985, 'R513A': 631,
+  'R290': 0, 'R600a': 0, 'R744': 1, 'R717': 0, 'R1234yf': 0.501, 'R1234ze': 1.37,
+  'R23': 14800, 'R125': 3500, 'R143a': 4470, 'R152a': 124, 'R227ea': 3220,
+  'R236fa': 9810, 'R245fa': 1030, 'R365mfc': 794, 'R417A': 2346, 'R422A': 3143,
+  'R422D': 2729, 'R427A': 2138, 'R437A': 1805, 'R438A': 2265, 'R442A': 1888,
+  'R449B': 1412, 'R449C': 1396, 'R450A': 601, 'R454A': 239, 'R454C': 148,
+  'R455A': 148, 'R457A': 139, 'R458A': 702, 'R459A': 444, 'R466A': 733,
+};
+
 const equipmentTypeLabels = {
   split_mural: 'Split Mural',
   split_cassette: 'Split Cassette',
@@ -360,7 +373,22 @@ export default function EquipmentDetail() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Wind className="h-3 w-3" />Refrigerante</p>
-                      <Input value={specs.refrigerant_type} onChange={e => setSpecs(p => ({...p, refrigerant_type: e.target.value}))} className="h-8 text-sm" />
+                      <Input
+                        value={specs.refrigerant_type}
+                        onChange={e => setSpecs(p => ({...p, refrigerant_type: e.target.value}))}
+                        className="h-8 text-sm"
+                        list="refrigerant-list-detail"
+                        placeholder="ej: R410A, R32..."
+                      />
+                      <datalist id="refrigerant-list-detail">
+                        {Object.keys(GWP_TABLE_INLINE).map(r => <option key={r} value={r} />)}
+                      </datalist>
+                      {specs.refrigerant_type && GWP_TABLE_INLINE[specs.refrigerant_type] !== undefined && (
+                        <p className="text-xs text-blue-600 mt-0.5">
+                          GWP: {GWP_TABLE_INLINE[specs.refrigerant_type]}
+                          {specs.refrigerant_charge_kg && ` · ${((Number(specs.refrigerant_charge_kg) * GWP_TABLE_INLINE[specs.refrigerant_type]) / 1000).toFixed(3)} tCO₂eq`}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-cyan-400" />Carga refrigerante (kg)</p>
@@ -421,6 +449,16 @@ export default function EquipmentDetail() {
                         <div>
                           <p className="text-xs text-slate-500">Carga</p>
                           <p className="text-sm text-slate-700">{equipment.refrigerant_charge_kg} kg</p>
+                          {equipment.refrigerant_type && (() => {
+                            const gwpVal = GWP_TABLE_INLINE[equipment.refrigerant_type] ?? equipment.gwp;
+                            if (!gwpVal && gwpVal !== 0) return null;
+                            const tco2 = (equipment.refrigerant_charge_kg * gwpVal) / 1000;
+                            return (
+                              <p className="text-xs text-slate-400">
+                                GWP {gwpVal} · <span className={tco2 >= 5 ? 'text-amber-600 font-medium' : 'text-slate-400'}>{tco2.toFixed(3)} tCO₂eq</span>
+                              </p>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}

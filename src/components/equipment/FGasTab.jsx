@@ -106,24 +106,24 @@ const RESULTADO_CONFIG = {
 };
 
 const emptyForm = {
-  fecha_intervencion: new Date().toISOString().split('T')[0],
-  tipo_intervencion: 'control_fugas',
-  tecnico_nombre: '',
-  tecnico_cert_num: '',
-  empresa_mantenedora: '',
-  empresa_cert_num: '',
-  refrigerante_tipo: '',
-  carga_total_kg: '',
-  gas_anyadido_kg: '',
-  tipo_gas_anyadido: 'virgen',
-  gas_recuperado_kg: '',
-  control_fugas_resultado: 'apto',
-  fuga_localizada: false,
-  fuga_ubicacion: '',
-  fuga_fecha_reparacion: '',
-  gestor_residuos: '',
-  gestor_residuos_num: '',
-  observaciones: '',
+fecha_intervencion: new Date().toISOString().split('T')[0],
+tipo_intervencion: 'control_fugas',
+tecnico_nombre: '',
+tecnico_cert_num: '',
+empresa_mantenedora: '',
+empresa_cert_num: '',
+refrigerante_tipo: '',
+carga_total_kg: '',
+gas_anyadido_kg: '',
+tipo_gas_anyadido: 'virgen',
+gas_recuperado_kg: '',
+control_fugas_resultado: 'apto',
+fuga_localizada: false,
+fuga_ubicacion: '',
+fuga_fecha_reparacion: '',
+gestor_residuos: '',
+gestor_residuos_num: '',
+observaciones: '',
 };
 
 export default function FGasTab({ equipment, equipmentId }) {
@@ -133,11 +133,17 @@ export default function FGasTab({ equipment, equipmentId }) {
   const [form, setForm] = useState(emptyForm);
   const [expandedId, setExpandedId] = useState(null);
 
-  // Calcular tCO2eq
+  // Calcular tCO2eq desde datos del equipo (auto)
   const gwp = GWP_TABLE[equipment?.refrigerant_type] || equipment?.gwp || 0;
   const cargaKg = equipment?.refrigerant_charge_kg || 0;
   const tco2eq = (cargaKg * gwp) / 1000;
   const freq = getLeakCheckFrequency(tco2eq);
+
+  // Cargar técnicos para autocompletar
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians-fgas'],
+    queryFn: () => base44.entities.Technician.filter({ status: 'active' }),
+  });
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ['fgas-registros', equipmentId],
@@ -270,7 +276,15 @@ export default function FGasTab({ equipment, equipmentId }) {
 
       {/* Botón nuevo registro */}
       {!showForm && (
-        <Button size="sm" onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(true); }} className="bg-blue-600 hover:bg-blue-700">
+        <Button size="sm" onClick={() => {
+          setForm({
+            ...emptyForm,
+            refrigerante_tipo: equipment?.refrigerant_type || '',
+            carga_total_kg: equipment?.refrigerant_charge_kg || '',
+          });
+          setEditingId(null);
+          setShowForm(true);
+        }} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />Nuevo Registro F-Gas
         </Button>
       )}
@@ -295,19 +309,41 @@ export default function FGasTab({ equipment, equipmentId }) {
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Técnico (nombre) *</label>
-              <Input value={form.tecnico_nombre} onChange={e => f('tecnico_nombre', e.target.value)} className="h-8 text-sm" placeholder="Nombre completo" />
+              <select
+                value={form.tecnico_nombre}
+                onChange={e => {
+                  const name = e.target.value;
+                  const tech = technicians.find(t => t.name === name);
+                  f('tecnico_nombre', name);
+                  if (tech) {
+                    if (tech.fgas_cert_num) f('tecnico_cert_num', tech.fgas_cert_num);
+                    if (tech.company_name) f('empresa_mantenedora', tech.company_name);
+                    if (tech.empresa_fgas_cert_num) f('empresa_cert_num', tech.empresa_fgas_cert_num);
+                  }
+                }}
+                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background"
+              >
+                <option value="">— Seleccionar técnico —</option>
+                {technicians.map(t => (
+                  <option key={t.id} value={t.name}>{t.name}{t.fgas_cert_num ? ` · F-Gas: ${t.fgas_cert_num}` : ''}</option>
+                ))}
+                <option value="__manual__">✏ Introducir manualmente</option>
+              </select>
+              {(form.tecnico_nombre === '__manual__' || (form.tecnico_nombre && !technicians.find(t => t.name === form.tecnico_nombre))) && (
+                <Input value={form.tecnico_nombre === '__manual__' ? '' : form.tecnico_nombre} onChange={e => f('tecnico_nombre', e.target.value)} className="h-8 text-sm mt-1" placeholder="Nombre completo" />
+              )}
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Nº Certificado Técnico F-Gas</label>
-              <Input value={form.tecnico_cert_num} onChange={e => f('tecnico_cert_num', e.target.value)} className="h-8 text-sm" placeholder="Nº carné F-Gas" />
+              <Input value={form.tecnico_cert_num} onChange={e => f('tecnico_cert_num', e.target.value)} className="h-8 text-sm" placeholder="Nº carné F-Gas (autorellenado si técnico tiene datos)" />
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Empresa mantenedora habilitada</label>
-              <Input value={form.empresa_mantenedora} onChange={e => f('empresa_mantenedora', e.target.value)} className="h-8 text-sm" />
+              <Input value={form.empresa_mantenedora} onChange={e => f('empresa_mantenedora', e.target.value)} className="h-8 text-sm" placeholder="Autorellenado desde técnico" />
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Nº Certificado Empresa F-Gas</label>
-              <Input value={form.empresa_cert_num} onChange={e => f('empresa_cert_num', e.target.value)} className="h-8 text-sm" />
+              <Input value={form.empresa_cert_num} onChange={e => f('empresa_cert_num', e.target.value)} className="h-8 text-sm" placeholder="Autorellenado desde técnico" />
             </div>
 
             <div className="sm:col-span-2 border-t pt-3 mt-1">
