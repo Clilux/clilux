@@ -203,29 +203,34 @@ export default function HomeTecnico() {
   });
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
-    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryKey: ['clients', 'direct'],
     queryFn: () => base44.entities.Client.list('-created_date'),
     enabled: !isSessionTech,
+    staleTime: 60000,
   });
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings', isSessionTech ? 'proxy' : 'direct'],
+    queryKey: ['buildings', 'direct'],
     queryFn: () => base44.entities.Building.list(),
     enabled: !isSessionTech,
+    staleTime: 60000,
   });
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
+    queryKey: ['equipment', 'direct'],
     queryFn: () => base44.entities.Equipment.list(),
     enabled: !isSessionTech,
+    staleTime: 60000,
   });
   const { data: scheduledRevisions = [] } = useQuery({
-    queryKey: ['scheduledRevisions', isSessionTech ? 'proxy' : 'direct'],
+    queryKey: ['scheduledRevisions', 'direct'],
     queryFn: () => base44.entities.ScheduledRevision.list(),
     enabled: !isSessionTech,
+    staleTime: 60000,
   });
   const { data: incidents = [] } = useQuery({
-    queryKey: ['incidents', isSessionTech ? 'proxy' : 'direct'],
+    queryKey: ['incidents', 'direct'],
     queryFn: () => base44.entities.Incident.list('-created_date'),
     enabled: !isSessionTech,
+    staleTime: 60000,
   });
 
   // Datos finales: proxy (técnicos) o direct (admins Base44)

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck, Umbrella } from 'lucide-react';
+import VacacionesPanel from './VacacionesPanel';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -266,9 +267,14 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <TabsList className="bg-white shadow-sm">
           <TabsTrigger value="registros" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Registros</TabsTrigger>
+          <TabsTrigger value="vacaciones" className="gap-1.5"><Umbrella className="h-3.5 w-3.5" />Vacaciones</TabsTrigger>
           <TabsTrigger value="cumplimiento" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Cumplimiento legal</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {mainTab === 'vacaciones' && (
+        <VacacionesPanel technicians={technicians} myTechRecord={myTechRecord} />
+      )}
 
       {mainTab === 'cumplimiento' && (
         <CumplimientoLegalPanel technicians={technicians} myTechRecord={myTechRecord} />

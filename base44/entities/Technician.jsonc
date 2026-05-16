@@ -66,6 +66,20 @@
       ],
       "description": "D\u00edas laborables: 0=Dom, 1=Lun, ..., 6=S\u00e1b"
     },
+    "vacaciones_anuales": {
+      "type": "number",
+      "default": 22,
+      "description": "D\u00edas de vacaciones anuales pactados (por defecto 22 d\u00edas laborables)"
+    },
+    "vacaciones_dias_usados_anteriores": {
+      "type": "number",
+      "default": 0,
+      "description": "D\u00edas de vacaciones ya usados antes de incorporarse a este sistema (otra app, inicio de a\u00f1o, etc.)"
+    },
+    "vacaciones_notas": {
+      "type": "string",
+      "description": "Notas sobre las vacaciones del trabajador (ej: viene de Factorial con 5 d\u00edas usados)"
+    },
     "permisos": {
       "type": "object",
       "description": "Permisos de acceso del t\u00e9cnico al portal",
