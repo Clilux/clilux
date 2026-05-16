@@ -491,7 +491,7 @@ export default function EquipmentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className={`grid w-full mb-6 ${equipment.has_fluorinated_gas ? 'grid-cols-4 sm:grid-cols-8' : 'grid-cols-4 sm:grid-cols-7'}`}>
+          <TabsList className={`grid w-full mb-6 ${equipment.refrigerant_type ? 'grid-cols-4 sm:grid-cols-8' : 'grid-cols-4 sm:grid-cols-7'}`}>
             <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
@@ -499,7 +499,7 @@ export default function EquipmentDetail() {
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
-            {equipment.has_fluorinated_gas && (
+            {equipment.refrigerant_type && (
               <TabsTrigger value="fgas" className="text-blue-700 font-semibold">F-Gas 🌿</TabsTrigger>
             )}
           </TabsList>
@@ -554,7 +554,7 @@ export default function EquipmentDetail() {
             />
           </TabsContent>
 
-          {equipment.has_fluorinated_gas && (
+          {equipment.refrigerant_type && (
             <TabsContent value="fgas">
               <Card className="p-6 bg-white border-0 shadow-sm">
                 <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
