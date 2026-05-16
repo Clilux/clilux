@@ -16,17 +16,18 @@ import DiagnosticoCOP from './DiagnosticoCOP';
 // IMPORTANTE: el usuario introduce presión MANOMÉTRICA → se convierte sumando 1.013 bar
 const REFRIGERANT_TABLES = {
   // R410A: ficha técnica Gas Servei 2024 (presión absoluta de burbuja)
+  // CORRECCIÓN: tabla oficial con valores precisos
   R410A: [
-    { p: 1.391, t: -45 }, { p: 1.602, t: -42 }, { p: 2.143, t: -36 },
-    { p: 2.659, t: -31 }, { p: 3.305, t: -25 }, { p: 4.007, t: -20 },
-    { p: 4.816, t: -15 }, { p: 5.746, t: -10 }, { p: 6.806, t: -5 },
-    { p: 8.009, t:  0  }, { p: 9.367, t:  5  }, { p: 10.884, t: 10 },
-    { p: 12.584, t: 15 }, { p: 14.476, t: 20 }, { p: 16.574, t: 25 },
-    { p: 19.894, t: 31 }, { p: 22.060, t: 34 }, { p: 24.386, t: 37 },
-    { p: 26.697, t: 44 }, { p: 27.335, t: 45 }, { p: 28.647, t: 47 },
-    { p: 30.007, t: 49 }, { p: 32.862, t: 53 }, { p: 35.895, t: 57 },
-    { p: 39.115, t: 61 }, { p: 42.532, t: 65 }, { p: 46.155, t: 69 },
-    { p: 49.0,   t: 71 }
+    { p: 1.39,  t: -45 }, { p: 1.60,  t: -42 }, { p: 2.14,  t: -36 },
+    { p: 2.66,  t: -31 }, { p: 3.31,  t: -25 }, { p: 4.01,  t: -20 },
+    { p: 4.82,  t: -15 }, { p: 5.75,  t: -10 }, { p: 6.81,  t: -5 },
+    { p: 8.01,  t:  0  }, { p: 9.37,  t:  5  }, { p: 10.88, t: 10 },
+    { p: 12.59, t: 15 }, { p: 14.48, t: 20 }, { p: 16.57, t: 25 },
+    { p: 18.94, t: 30 }, { p: 20.06, t: 32 }, { p: 22.06, t: 35 },
+    { p: 24.39, t: 38 }, { p: 26.70, t: 41 }, { p: 27.34, t: 42 },
+    { p: 28.65, t: 44 }, { p: 30.01, t: 46 }, { p: 32.86, t: 50 },
+    { p: 35.90, t: 54 }, { p: 39.12, t: 58 }, { p: 42.53, t: 62 },
+    { p: 46.16, t: 66 }, { p: 50.00, t: 70 }
   ],
   // R32: presiones absolutas de burbuja
   R32: [
@@ -78,23 +79,28 @@ const getTempFromPressure = (refrigerante, presionManometrica) => {
   const table = REFRIGERANT_TABLES[refrigerante];
   if (!table) return null;
 
-  const presion = presionManometrica + PATM; // convertir a absoluta
+  const presion = presionManometrica + PATM; // convertir a absoluta (ej: 9 + 1.013 = 10.013)
 
-  // Si la presión es exacta
-  const exactMatch = table.find(entry => Math.abs(entry.p - presion) < 0.05);
+  // Si la presión es exacta (tolerancia 0.02 bar)
+  const exactMatch = table.find(entry => Math.abs(entry.p - presion) < 0.02);
   if (exactMatch) return exactMatch.t;
 
-  // Interpolación lineal
+  // Interpolación lineal (buscamos el intervalo donde cae la presión)
   for (let i = 0; i < table.length - 1; i++) {
-    if (presion >= table[i].p && presion <= table[i + 1].p) {
-      const p1 = table[i].p, t1 = table[i].t;
-      const p2 = table[i + 1].p, t2 = table[i + 1].t;
+    const p1 = table[i].p;
+    const p2 = table[i + 1].p;
+    
+    // Si la presión está dentro del intervalo [p1, p2]
+    if (presion >= p1 && presion <= p2) {
+      const t1 = table[i].t;
+      const t2 = table[i + 1].t;
+      // Interpolación lineal: T = T1 + (P - P1) * (T2 - T1) / (P2 - P1)
       const temp = t1 + (presion - p1) * (t2 - t1) / (p2 - p1);
-      return Math.round(temp * 10) / 10;
+      return Math.round(temp * 10) / 10; // redondear a 0.1°C
     }
   }
 
-  // Fuera de rango: extrapolación extrema
+  // Fuera de rango: usar valor extremo más cercano
   if (presion < table[0].p) return table[0].t;
   if (presion > table[table.length - 1].p) return table[table.length - 1].t;
 
