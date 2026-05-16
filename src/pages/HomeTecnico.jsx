@@ -192,14 +192,15 @@ export default function HomeTecnico() {
     : base44User;
 
   // Helper: carga todo en una sola llamada para evitar rate limit
-  const { data: proxyData } = useQuery({
+  const { data: proxyData = {} } = useQuery({
     queryKey: ['proxy-all', sessionTechEmail],
     queryFn: async () => {
       const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
       return res.data || {};
     },
     enabled: isSessionTech,
-    staleTime: 30000,
+    staleTime: 60000, // 60s para que los datos cached persistan al navegar
+    gcTime: 300000,   // 5 min cache en memoria
   });
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
@@ -234,11 +235,12 @@ export default function HomeTecnico() {
   });
 
   // Datos finales: proxy (técnicos) o direct (admins Base44)
-  const finalClients   = isSessionTech ? (proxyData?.clients   || []) : clients;
-  const finalBuildings = isSessionTech ? (proxyData?.buildings  || []) : buildings;
-  const finalEquipment = isSessionTech ? (proxyData?.equipment  || []) : equipment;
-  const finalRevisions = isSessionTech ? (proxyData?.revisions  || []) : scheduledRevisions;
-  const finalIncidents = isSessionTech ? (proxyData?.incidents  || []) : incidents;
+  // Siempre fallback a array vacío para evitar undefined o null
+  const finalClients   = isSessionTech ? (proxyData?.clients   ?? []) : (clients ?? []);
+  const finalBuildings = isSessionTech ? (proxyData?.buildings  ?? []) : (buildings ?? []);
+  const finalEquipment = isSessionTech ? (proxyData?.equipment  ?? []) : (equipment ?? []);
+  const finalRevisions = isSessionTech ? (proxyData?.revisions  ?? []) : (scheduledRevisions ?? []);
+  const finalIncidents = isSessionTech ? (proxyData?.incidents  ?? []) : (incidents ?? []);
 
   const pendingIncidents = finalIncidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
   const today = new Date();
@@ -326,7 +328,7 @@ export default function HomeTecnico() {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Clientes',   value: finalClients.length,   icon: Users,         color: 'bg-blue-500/10 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: isSessionTech ? !proxyData : loadingClients },
+                  { label: 'Clientes',   value: finalClients.length,   icon: Users,         color: 'bg-blue-500/10 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: isSessionTech && finalClients.length === 0 && !proxyData?.clients },
                   { label: 'Edificios',  value: finalBuildings.length, icon: Building2,     color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings' },
                   { label: 'Equipos',    value: finalEquipment.length, icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',  iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment' },
                   { label: 'Incidencias',value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: false },
