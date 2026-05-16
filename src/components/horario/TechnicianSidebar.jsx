@@ -8,6 +8,49 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
   const navigate = useNavigate();
 
   return (
+    <>
+    {/* Barra inferior móvil */}
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-blue-700 border-t border-blue-800 flex items-center justify-around px-2 py-2 shadow-lg">
+      <Link to={createPageUrl('HomeTecnico')}>
+        <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-3 py-1">
+          <Home className="h-5 w-5" />
+          <span className="text-[10px]">Inicio</span>
+        </button>
+      </Link>
+      {isSessionTech && (
+        <>
+          <Link to="/ControlHorario">
+            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-3 py-1">
+              <Clock className="h-5 w-5" />
+              <span className="text-[10px]">Horario</span>
+            </button>
+          </Link>
+          <Link to="/Calendar">
+            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-3 py-1">
+              <Calendar className="h-5 w-5" />
+              <span className="text-[10px]">Agenda</span>
+            </button>
+          </Link>
+        </>
+      )}
+      {isAdmin && (
+        <Link to={createPageUrl('AdminPanel')}>
+          <button className="flex flex-col items-center gap-1 text-amber-300 hover:text-amber-200 px-3 py-1">
+            <Shield className="h-5 w-5" />
+            <span className="text-[10px]">Admin</span>
+          </button>
+        </Link>
+      )}
+      <button
+        onClick={onLogout}
+        className="flex flex-col items-center gap-1 text-red-300 hover:text-red-200 px-3 py-1"
+      >
+        <LogOut className="h-5 w-5" />
+        <span className="text-[10px]">Salir</span>
+      </button>
+    </div>
+
+    {/* Sidebar desktop */}
     <div className="hidden md:flex w-48 bg-blue-600 flex-col shadow-lg">
       {/* Logo */}
       <div className="p-4 border-b border-blue-700">
@@ -94,5 +137,6 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
         </Button>
       </div>
     </div>
+    </>
   );
 }

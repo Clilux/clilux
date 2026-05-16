@@ -77,11 +77,11 @@ export default function HomeCliente() {
                 <p className="text-sm text-slate-400">Portal del Cliente</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-slate-300 text-lg">{clientData?.client?.name || 'Cliente'}</span>
-              <Button onClick={handleLogout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300 text-sm hidden sm:inline">{clientData?.client?.name || 'Cliente'}</span>
+              <Button onClick={handleLogout} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Cerrar Sesión</span>
               </Button>
             </div>
           </div>

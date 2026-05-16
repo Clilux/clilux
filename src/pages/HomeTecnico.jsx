@@ -289,7 +289,7 @@ export default function HomeTecnico() {
         </div>
 
         {/* Content */}
-         <div className="flex-1 w-full p-6 pb-10 bg-slate-50 overflow-y-auto overflow-x-hidden">
+         <div className="flex-1 w-full p-6 pb-24 md:pb-10 bg-slate-50 overflow-y-auto overflow-x-hidden">
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
