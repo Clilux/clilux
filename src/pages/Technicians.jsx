@@ -11,7 +11,7 @@ import { Plus, User, Mail, Phone, Edit, Trash2, UserCheck, Send, Loader2, Info }
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
-const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active' };
+const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_name: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '' };
 
 export default function Technicians() {
   const queryClient = useQueryClient();
@@ -75,7 +75,7 @@ export default function Technicians() {
 
   const handleOpenDialog = (tech = null) => {
     setEditingTech(tech);
-    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active' } : emptyForm);
+    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active', company_name: tech.company_name || '', fgas_cert_num: tech.fgas_cert_num || '', rite_cert_num: tech.rite_cert_num || '', empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '' } : emptyForm);
     setShowDialog(true);
   };
 
@@ -257,6 +257,48 @@ export default function Technicians() {
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
                 </select>
+              </div>
+
+              <div className="border-t pt-3">
+                <p className="text-xs font-medium text-slate-600 mb-3">Datos de certificación (opcional)</p>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <Label className="text-xs">Empresa mantenedora</Label>
+                    <Input
+                      value={formData.company_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                      placeholder="Nombre de la empresa"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nº Carné F-Gas</Label>
+                    <Input
+                      value={formData.fgas_cert_num}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fgas_cert_num: e.target.value }))}
+                      placeholder="Nº certificado frigorista"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nº Carné RITE</Label>
+                    <Input
+                      value={formData.rite_cert_num}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rite_cert_num: e.target.value }))}
+                      placeholder="Nº habilitación RITE"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nº Certificado Empresa F-Gas</Label>
+                    <Input
+                      value={formData.empresa_fgas_cert_num}
+                      onChange={(e) => setFormData(prev => ({ ...prev, empresa_fgas_cert_num: e.target.value }))}
+                      placeholder="Nº cert. empresa habilitada"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
