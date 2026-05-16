@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,47 +11,77 @@ import { toast } from 'sonner';
 import MollierDiagram from './MollierDiagram';
 import DiagnosticoCOP from './DiagnosticoCOP';
 
-// Tablas de propiedades Presión-Temperatura para refrigerantes (REMLE - Presión Manométrica en bares)
+// Tablas Presión(absoluta bar burbuja) → Temperatura de saturación
+// Fuentes: fichas técnicas oficiales de cada refrigerante
+// IMPORTANTE: el usuario introduce presión MANOMÉTRICA → se convierte sumando 1.013 bar
 const REFRIGERANT_TABLES = {
+  // R410A: ficha técnica Gas Servei 2024 (presión absoluta de burbuja)
   R410A: [
-    { p: 3.73, t: -30 }, { p: 5.05, t: -20 }, { p: 6.7, t: -10 }, { p: 9.54, t: 0 },
-    { p: 12.7, t: 10 }, { p: 16.65, t: 20 }, { p: 21.45, t: 30 }, { p: 27.2, t: 40 },
-    { p: 34.05, t: 50 }, { p: 42.15, t: 60 }, { p: 51.6, t: 70 }
+    { p: 1.391, t: -45 }, { p: 1.602, t: -42 }, { p: 2.143, t: -36 },
+    { p: 2.659, t: -31 }, { p: 3.305, t: -25 }, { p: 4.007, t: -20 },
+    { p: 4.816, t: -15 }, { p: 5.746, t: -10 }, { p: 6.806, t: -5 },
+    { p: 8.009, t:  0  }, { p: 9.367, t:  5  }, { p: 10.884, t: 10 },
+    { p: 12.584, t: 15 }, { p: 14.476, t: 20 }, { p: 16.574, t: 25 },
+    { p: 19.894, t: 31 }, { p: 22.060, t: 34 }, { p: 24.386, t: 37 },
+    { p: 26.697, t: 44 }, { p: 27.335, t: 45 }, { p: 28.647, t: 47 },
+    { p: 30.007, t: 49 }, { p: 32.862, t: 53 }, { p: 35.895, t: 57 },
+    { p: 39.115, t: 61 }, { p: 42.532, t: 65 }, { p: 46.155, t: 69 },
+    { p: 49.0,   t: 71 }
   ],
+  // R32: presiones absolutas de burbuja
   R32: [
-    { p: 4.77, t: -30 }, { p: 6.82, t: -20 }, { p: 9.48, t: -10 }, { p: 12.85, t: 0 },
-    { p: 17.05, t: 10 }, { p: 22.2, t: 20 }, { p: 28.45, t: 30 }, { p: 35.95, t: 40 },
-    { p: 44.85, t: 50 }, { p: 55.35, t: 60 }
+    { p: 1.92,  t: -40 }, { p: 2.78,  t: -30 }, { p: 3.90,  t: -20 },
+    { p: 5.33,  t: -10 }, { p: 7.07,  t:  0  }, { p: 9.18,  t:  10 },
+    { p: 11.73, t:  20 }, { p: 14.77, t:  30 }, { p: 18.36, t:  40 },
+    { p: 22.57, t:  50 }, { p: 27.44, t:  60 }
   ],
+  // R134A: presiones absolutas de burbuja
   R134A: [
-    { p: 0.84, t: -30 }, { p: 1.32, t: -20 }, { p: 2.0, t: -10 }, { p: 2.93, t: 0 },
-    { p: 4.15, t: 10 }, { p: 5.72, t: 20 }, { p: 7.72, t: 30 }, { p: 10.24, t: 40 },
-    { p: 13.36, t: 50 }, { p: 17.18, t: 60 }
+    { p: 0.51,  t: -40 }, { p: 0.66,  t: -35 }, { p: 0.84,  t: -30 },
+    { p: 1.06,  t: -25 }, { p: 1.33,  t: -20 }, { p: 1.65,  t: -15 },
+    { p: 2.03,  t: -10 }, { p: 2.47,  t:  -5 }, { p: 2.93,  t:   0 },
+    { p: 3.55,  t:   5 }, { p: 4.15,  t:  10 }, { p: 4.87,  t:  15 },
+    { p: 5.72,  t:  20 }, { p: 6.67,  t:  25 }, { p: 7.72,  t:  30 },
+    { p: 8.93,  t:  35 }, { p: 10.17, t:  40 }, { p: 11.60, t:  45 },
+    { p: 13.18, t:  50 }, { p: 14.92, t:  55 }, { p: 16.82, t:  60 }
   ],
+  // R404A: presiones absolutas de burbuja
   R404A: [
-    { p: 3.73, t: -30 }, { p: 5.32, t: -20 }, { p: 7.38, t: -10 }, { p: 10.02, t: 0 },
-    { p: 13.35, t: 10 }, { p: 17.5, t: 20 }, { p: 22.6, t: 30 }, { p: 28.8, t: 40 },
-    { p: 36.2, t: 50 }, { p: 45.0, t: 60 }
+    { p: 1.70,  t: -40 }, { p: 2.38,  t: -30 }, { p: 3.27,  t: -20 },
+    { p: 4.38,  t: -10 }, { p: 5.77,  t:  0  }, { p: 7.46,  t:  10 },
+    { p: 9.51,  t:  20 }, { p: 11.98, t:  30 }, { p: 14.91, t:  40 },
+    { p: 18.37, t:  50 }, { p: 22.43, t:  60 }
   ],
+  // R407C: presiones absolutas de punto de burbuja
   R407C: [
-    { p: 3.5, t: -30 }, { p: 5.0, t: -20 }, { p: 6.95, t: -10 }, { p: 9.45, t: 0 },
-    { p: 12.6, t: 10 }, { p: 16.5, t: 20 }, { p: 21.3, t: 30 }, { p: 27.1, t: 40 },
-    { p: 34.0, t: 50 }, { p: 42.15, t: 60 }
+    { p: 1.53,  t: -40 }, { p: 2.17,  t: -30 }, { p: 3.00,  t: -20 },
+    { p: 4.06,  t: -10 }, { p: 5.38,  t:  0  }, { p: 7.03,  t:  10 },
+    { p: 9.05,  t:  20 }, { p: 11.49, t:  30 }, { p: 14.42, t:  40 },
+    { p: 17.91, t:  50 }, { p: 22.04, t:  60 }
   ],
+  // R22: presiones absolutas de burbuja
   R22: [
-    { p: 2.36, t: -30 }, { p: 3.45, t: -20 }, { p: 4.95, t: -10 }, { p: 6.95, t: 0 },
-    { p: 9.55, t: 10 }, { p: 12.85, t: 20 }, { p: 16.95, t: 30 }, { p: 21.95, t: 40 },
-    { p: 27.95, t: 50 }, { p: 35.15, t: 60 }
+    { p: 1.05,  t: -40 }, { p: 1.53,  t: -30 }, { p: 2.18,  t: -20 },
+    { p: 2.98,  t: -10 }, { p: 4.00,  t:  0  }, { p: 5.28,  t:  10 },
+    { p: 6.86,  t:  20 }, { p: 8.79,  t:  30 }, { p: 11.12, t:  40 },
+    { p: 13.90, t:  50 }, { p: 17.18, t:  60 }
   ]
 };
 
-// Interpolar temperatura de saturación a partir de presión
-const getTempFromPressure = (refrigerante, presion) => {
+// El usuario introduce presión MANOMÉTRICA (relativa). La tabla usa presión ABSOLUTA.
+// Conversión: P_absoluta = P_manométrica + 1.013
+const PATM = 1.013;
+
+// Interpolar temperatura de saturación a partir de presión MANOMÉTRICA (usuario introduce manométrica)
+// Se convierte a absoluta sumando PATM antes de buscar en la tabla
+const getTempFromPressure = (refrigerante, presionManometrica) => {
   const table = REFRIGERANT_TABLES[refrigerante];
   if (!table) return null;
 
+  const presion = presionManometrica + PATM; // convertir a absoluta
+
   // Si la presión es exacta
-  const exactMatch = table.find(entry => Math.abs(entry.p - presion) < 0.1);
+  const exactMatch = table.find(entry => Math.abs(entry.p - presion) < 0.05);
   if (exactMatch) return exactMatch.t;
 
   // Interpolación lineal
@@ -64,7 +94,7 @@ const getTempFromPressure = (refrigerante, presion) => {
     }
   }
 
-  // Fuera de rango
+  // Fuera de rango: extrapolación extrema
   if (presion < table[0].p) return table[0].t;
   if (presion > table[table.length - 1].p) return table[table.length - 1].t;
 
@@ -95,7 +125,7 @@ export default function COPCalculator({ equipment }) {
   const [results, setResults] = useState(null);
 
   // Auto-calcular temperaturas de saturación cuando cambian las presiones
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.presion_baja && formData.refrigerante) {
       const temp = getTempFromPressure(formData.refrigerante, parseFloat(formData.presion_baja));
       if (temp !== null) {
@@ -104,7 +134,7 @@ export default function COPCalculator({ equipment }) {
     }
   }, [formData.presion_baja, formData.refrigerante]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.presion_alta && formData.refrigerante) {
       const temp = getTempFromPressure(formData.refrigerante, parseFloat(formData.presion_alta));
       if (temp !== null) {
@@ -928,13 +958,13 @@ export default function COPCalculator({ equipment }) {
           )}
 
           {/* Botones de acción */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 sticky bottom-0 bg-white py-3 border-t border-slate-100 mt-2">
             <Button variant="outline" onClick={handleReset} className="flex-1">
               Limpiar
             </Button>
             <Button onClick={handleCalculate} className="flex-1 bg-blue-600 hover:bg-blue-700">
               <Calculator className="h-4 w-4 mr-2" />
-              Calcular
+              {results ? 'Recalcular' : 'Calcular'}
             </Button>
           </div>
         </div>
