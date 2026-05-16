@@ -26,7 +26,7 @@ export default function AdminPanel() {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [manageTech, setManageTech] = useState(null);
-  const [manageData, setManageData] = useState({ companyName: '', companyId: '', isAdmin: false });
+  const [manageData, setManageData] = useState({ companyName: '', companyId: '', isAdmin: false, name: '', phone: '', specialty: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '' });
   const [showPermisosDialog, setShowPermisosDialog] = useState(false);
   const [permisosTech, setPermisosTech] = useState(null);
   const [inviteData, setInviteData] = useState({ email: '', techName: '', companyName: '', companyId: '', password: '', passwordConfirm: '' });
@@ -246,6 +246,12 @@ export default function AdminPanel() {
       companyName: tech.company_name || '',
       companyId: tech.company_id || '',
       isAdmin: tech.is_admin || false,
+      name: tech.name || '',
+      phone: tech.phone || '',
+      specialty: tech.specialty || '',
+      fgas_cert_num: tech.fgas_cert_num || '',
+      rite_cert_num: tech.rite_cert_num || '',
+      empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '',
     });
     setShowManageDialog(true);
   };
@@ -256,9 +262,15 @@ export default function AdminPanel() {
     try {
       const companyId = manageData.companyId || manageData.companyName?.toLowerCase().replace(/\s+/g, '_');
       await base44.entities.Technician.update(manageTech.id, {
+        name: manageData.name,
+        phone: manageData.phone,
+        specialty: manageData.specialty,
         company_name: manageData.companyName,
         company_id: companyId,
         is_admin: manageData.isAdmin,
+        fgas_cert_num: manageData.fgas_cert_num,
+        rite_cert_num: manageData.rite_cert_num,
+        empresa_fgas_cert_num: manageData.empresa_fgas_cert_num,
       });
       // Si se marca como admin, promover también en base44
       if (manageData.isAdmin) {
@@ -608,6 +620,35 @@ export default function AdminPanel() {
             <DialogTitle>Gestionar técnico: {manageTech?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Nombre</Label>
+                <Input
+                  value={manageData.name}
+                  onChange={(e) => setManageData(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Nombre completo"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Teléfono</Label>
+                <Input
+                  value={manageData.phone}
+                  onChange={(e) => setManageData(p => ({ ...p, phone: e.target.value }))}
+                  placeholder="+34 600 000 000"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Especialidad</Label>
+                <Input
+                  value={manageData.specialty}
+                  onChange={(e) => setManageData(p => ({ ...p, specialty: e.target.value }))}
+                  placeholder="Climatización..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
             <div>
               <Label>Nombre de empresa</Label>
               <Input
@@ -638,6 +679,23 @@ export default function AdminPanel() {
                 </Select>
               </div>
             )}
+            <div className="border-t pt-3">
+              <p className="text-xs font-medium text-slate-600 mb-2">Certificaciones F-Gas / RITE</p>
+              <div className="grid grid-cols-1 gap-2">
+                <div>
+                  <Label className="text-xs">Nº Carné F-Gas</Label>
+                  <Input value={manageData.fgas_cert_num} onChange={(e) => setManageData(p => ({ ...p, fgas_cert_num: e.target.value }))} placeholder="Nº certificado frigorista" className="mt-1 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Nº Carné RITE</Label>
+                  <Input value={manageData.rite_cert_num} onChange={(e) => setManageData(p => ({ ...p, rite_cert_num: e.target.value }))} placeholder="Nº habilitación RITE" className="mt-1 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Nº Certificado Empresa F-Gas</Label>
+                  <Input value={manageData.empresa_fgas_cert_num} onChange={(e) => setManageData(p => ({ ...p, empresa_fgas_cert_num: e.target.value }))} placeholder="Nº cert. empresa habilitada" className="mt-1 text-sm" />
+                </div>
+              </div>
+            </div>
             <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
               <Checkbox
                 id="isAdmin"
