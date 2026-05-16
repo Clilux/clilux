@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Info, FileText } from 'lucide-react';
-
+import { Calculator, Info, FileText, Activity } from 'lucide-react';
 import { toast } from 'sonner';
+import MollierDiagram from './MollierDiagram';
+import DiagnosticoCOP from './DiagnosticoCOP';
 
 // Tablas de propiedades Presión-Temperatura para refrigerantes (REMLE - Presión Manométrica en bares)
 const REFRIGERANT_TABLES = {
@@ -507,11 +508,71 @@ export default function COPCalculator({ equipment }) {
       </div>
 
       <div class="section">
-        <div class="section-title">💡 Interpretación</div>
-        <p style="margin-bottom: 10px;"><strong>COP Frío:</strong> Por cada kW de energía consumida, se obtienen <strong>${results.copFrio} kW</strong> de refrigeración</p>
-        <p style="margin-bottom: 10px;"><strong>COP Calor:</strong> Por cada kW de energía consumida, se obtienen <strong>${results.copCalor} kW</strong> de calefacción</p>
-        <p style="margin-bottom: 10px;">Recalentamiento: <strong>${results.recalentamiento}°C</strong> ${parseFloat(results.recalentamiento) > 5 && parseFloat(results.recalentamiento) < 15 ? '✅ Óptimo' : '⚠️ Revisar'}</p>
-        <p>Subenfriamiento: <strong>${results.subenfriamiento}°C</strong> ${parseFloat(results.subenfriamiento) > 3 && parseFloat(results.subenfriamiento) < 10 ? '✅ Óptimo' : '⚠️ Revisar'}</p>
+        <div class="section-title">🔬 Entalpías del Ciclo</div>
+        <div class="data-grid">
+          <div class="data-item" style="border-left-color: #3b82f6;">
+            <div class="data-label">h₁ — Aspiración compresor</div>
+            <div class="data-value">${results.h1} kJ/kg</div>
+          </div>
+          <div class="data-item" style="border-left-color: #ef4444;">
+            <div class="data-label">h₂ — Descarga compresor</div>
+            <div class="data-value">${results.h2} kJ/kg</div>
+          </div>
+          <div class="data-item" style="border-left-color: #f59e0b;">
+            <div class="data-label">h₃ — Salida condensador</div>
+            <div class="data-value">${results.h3} kJ/kg</div>
+          </div>
+          <div class="data-item" style="border-left-color: #10b981;">
+            <div class="data-label">h₄ — Entrada evaporador</div>
+            <div class="data-value">${results.h4} kJ/kg</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">💡 Diagnóstico del Circuito</div>
+        ${(() => {
+          const recap = parseFloat(results.recalentamiento);
+          const subenfr = parseFloat(results.subenfriamiento);
+          const copFrioVal = parseFloat(results.copFrio);
+          const tDesc = parseFloat(formData.temp_descarga);
+          const pAlta = parseFloat(formData.presion_alta);
+          const pBaja = parseFloat(formData.presion_baja);
+          const ratioPres = pAlta > 0 && pBaja > 0 ? ((pAlta + 1.013) / (pBaja + 1.013)).toFixed(2) : 'N/A';
+
+          const checks = [
+            { label: 'Recalentamiento', val: `${recap}°C`, ok: recap >= 4 && recap <= 12, warn: recap > 12 && recap <= 20, msg: recap < 4 ? '⚠️ Demasiado bajo — riesgo de retorno de líquido' : recap > 20 ? '⚠️ Excesivo — pérdida de eficiencia volumétrica' : '✅ Óptimo (4-12°C)' },
+            { label: 'Subenfriamiento', val: `${subenfr}°C`, ok: subenfr >= 3 && subenfr <= 10, warn: subenfr < 3 && subenfr >= 0, msg: subenfr < 0 ? '🔴 Negativo — posible falta de carga' : subenfr < 3 ? '⚠️ Bajo — riesgo de flash-gas' : subenfr > 15 ? '⚠️ Excesivo — posible sobrecarga' : '✅ Óptimo (3-10°C)' },
+            { label: 'COP Frío', val: copFrioVal.toFixed(2), ok: copFrioVal >= 3.5, warn: copFrioVal >= 2.5 && copFrioVal < 3.5, msg: copFrioVal >= 3.5 ? '✅ Rendimiento bueno' : copFrioVal >= 2.5 ? '⚠️ Rendimiento mejorable' : '🔴 Rendimiento bajo — investigar causa' },
+            { label: 'Ratio de Compresión', val: ratioPres, ok: parseFloat(ratioPres) >= 2 && parseFloat(ratioPres) <= 6, warn: parseFloat(ratioPres) > 6 && parseFloat(ratioPres) <= 8, msg: parseFloat(ratioPres) > 8 ? '🔴 Muy elevado — riesgo de avería del compresor' : parseFloat(ratioPres) > 6 ? '⚠️ Algo alto — vigilar temperatura de descarga' : '✅ Normal' },
+            { label: 'T. Descarga Compresor', val: `${tDesc}°C`, ok: tDesc <= 90, warn: tDesc > 90 && tDesc <= 110, msg: tDesc > 110 ? '🔴 Crítica — riesgo de fallo del compresor' : tDesc > 90 ? '⚠️ Elevada — vigilar de cerca' : '✅ Correcta (<90°C)' },
+          ];
+
+          return checks.map(c => `
+            <div style="padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid ${c.ok ? '#10b981' : c.warn ? '#f59e0b' : '#ef4444'}; background: ${c.ok ? '#f0fdf4' : c.warn ? '#fffbeb' : '#fef2f2'}; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>${c.label}</strong><br>
+                <span style="font-size: 13px; color: #64748b;">${c.msg}</span>
+              </div>
+              <strong style="font-size: 20px; color: ${c.ok ? '#059669' : c.warn ? '#d97706' : '#dc2626'};">${c.val}</strong>
+            </div>
+          `).join('');
+        })()}
+      </div>
+
+      <div class="section">
+        <div class="section-title">📐 Datos del Ciclo Completo</div>
+        <div class="formula">
+          Refrigerante: <strong>${formData.refrigerante}</strong><br/>
+          Presión Baja: <strong>${formData.presion_baja} bar</strong> → T_evap: <strong>${formData.temp_evaporacion}°C</strong> | T_asp: <strong>${formData.temp_aspiracion}°C</strong><br/>
+          Presión Alta: <strong>${formData.presion_alta} bar</strong> → T_cond: <strong>${formData.temp_condensacion}°C</strong> | T_liq: <strong>${formData.temp_liquido}°C</strong> | T_desc: <strong>${formData.temp_descarga}°C</strong><br/><br/>
+          Efecto Frigorífico Q_e = h₁ - h₄ = ${results.h1} - ${results.h4} = <strong>${results.efectoRefrigerante} kJ/kg</strong><br/>
+          Trabajo Compresor W_c = h₂ - h₁ = ${results.h2} - ${results.h1} = <strong>${results.trabajoCompresion} kJ/kg</strong><br/>
+          Calor Condensador Q_c = h₂ - h₃ = ${results.h2} - ${results.h3} = <strong>${results.calorCondensador} kJ/kg</strong><br/><br/>
+          <strong>COP Frío = Q_e / W_c = ${results.efectoRefrigerante} / ${results.trabajoCompresion} = ${results.copFrio}</strong><br/>
+          <strong>COP Calor = Q_c / W_c = ${results.calorCondensador} / ${results.trabajoCompresion} = ${results.copCalor}</strong><br/>
+          <strong>EER = COP Frío = ${results.eer} (EN 14511)</strong>
+        </div>
       </div>
     </div>
 
@@ -839,9 +900,29 @@ export default function COPCalculator({ equipment }) {
                 <p className="text-amber-700">• EER = COP Frío (norma europea EN 14511)</p>
               </div>
 
-              <Button onClick={generateReport} className="w-full mt-3 bg-slate-700 hover:bg-slate-800">
+              {/* Diagrama de Mollier */}
+              <div className="mt-4 p-3 bg-white rounded border border-green-300">
+                <p className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  Diagrama P-h (Mollier) — Ciclo Frigorífico
+                </p>
+                <MollierDiagram
+                  results={results}
+                  refrigerante={formData.refrigerante}
+                  pBaja={formData.presion_baja}
+                  pAlta={formData.presion_alta}
+                />
+              </div>
+
+              {/* Diagnóstico */}
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-800 mb-3">🔍 Diagnóstico del Circuito Frigorífico</p>
+                <DiagnosticoCOP results={results} />
+              </div>
+
+              <Button onClick={generateReport} className="w-full mt-4 bg-slate-700 hover:bg-slate-800">
                 <FileText className="h-4 w-4 mr-2" />
-                Descargar Informe Detallado
+                Descargar Informe Completo PDF
               </Button>
             </Card>
           )}
