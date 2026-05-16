@@ -13,35 +13,80 @@ import {
   Droplet, Trash2, Edit, ChevronDown, ChevronUp, Info
 } from 'lucide-react';
 
-// GWP values según IPCC AR5 (normativa UE F-Gas 517/2014)
+// GWP values según Reglamento (UE) 2024/573 – Anexo I (AR4 para HFCs)
+// Para mezclas: PCG calculado por media ponderada (Anexo VI)
 const GWP_TABLE = {
-  'R22': 1810,
-  'R134a': 1430,
-  'R404A': 3922,
-  'R407C': 1774,
-  'R410A': 2088,
-  'R32': 675,
-  'R290': 3,
-  'R600a': 3,
-  'R744': 1,
-  'R1234yf': 4,
-  'R1234ze': 7,
-  'R407F': 1825,
-  'R407H': 1495,
-  'R448A': 1387,
-  'R449A': 1397,
-  'R450A': 601,
-  'R452A': 2140,
-  'R454B': 466,
-  'R513A': 631,
+  // HFC puros – Sección 1 Anexo I
+  'R23':    14800,  // HFC-23 trifluorometano
+  'R32':    675,    // HFC-32 difluorometano
+  'R125':   3500,   // HFC-125 pentafluoretano
+  'R134a':  1430,   // HFC-134a 1,1,1,2-tetrafluoroetano
+  'R143a':  4470,   // HFC-143a 1,1,1-trifluoroetano
+  'R152a':  124,    // HFC-152a 1,1-difluoroetano
+  'R227ea': 3220,   // HFC-227ea heptafluoropropano
+  'R236fa': 9810,   // HFC-236fa hexafluoropropano
+  'R245fa': 1030,   // HFC-245fa pentafluoropropano
+  'R365mfc':794,    // HFC-365mfc pentafluorobutano
+
+  // Mezclas zeótropas – GWP calculado por media ponderada Anexo VI
+  // Fuente: fabricantes (Honeywell, Chemours, Arkema) y Gas Servei
+  'R404A':  3922,   // 44% R125 + 52% R143a + 4% R134a
+  'R407A':  2107,   // 20% R32 + 40% R125 + 40% R134a
+  'R407C':  1774,   // 23% R32 + 25% R125 + 52% R134a
+  'R407F':  1825,   // 30% R32 + 30% R125 + 40% R134a
+  'R407H':  1495,   // 32.5% R32 + 15% R125 + 52.5% R134a
+  'R410A':  2088,   // 50% R32 + 50% R125
+  'R410B':  2229,   // 45% R32 + 55% R125
+  'R417A':  2346,   // 46.6% R125 + 50% R134a + 3.4% R600
+  'R422A':  3143,   // 85.1% R125 + 11.5% R134a + 3.4% R600a
+  'R422D':  2729,   // 65.1% R125 + 31.5% R134a + 3.4% R600a
+  'R427A':  2138,   // 15% R32 + 25% R125 + 10% R143a + 50% R134a
+  'R437A':  1805,   // 19.5% R125 + 78.5% R134a + 1.4% R600 + 0.6% R601
+  'R438A':  2265,   // 8.5% R32 + 45% R125 + 44.2% R134a + 1.7% R600 + 0.6% R601a
+  'R442A':  1888,   // 31% R32 + 31% R125 + 30% R134a + 3% R152a + 5% R1234ze
+  'R448A':  1387,   // 26% R32 + 26% R125 + 20% R134a + 21% R1234ze + 7% R1234yf
+  'R449A':  1397,   // 24.3% R32 + 24.7% R125 + 25.3% R1234yf + 25.7% R134a
+  'R449B':  1412,   // 25.2% R32 + 24.3% R125 + 26.3% R1234yf + 24.2% R134a
+  'R449C':  1396,   // 20% R32 + 28% R125 + 27% R1234yf + 25% R134a
+  'R450A':  601,    // 42% R134a + 58% R1234ze
+  'R452A':  2140,   // 11% R32 + 59% R125 + 30% R1234yf
+  'R452B':  676,    // 67% R32 + 7% R125 + 26% R1234yf
+  'R454A':  239,    // 35% R32 + 65% R1234yf
+  'R454B':  466,    // 68.9% R32 + 31.1% R1234yf
+  'R454C':  148,    // 21.5% R32 + 78.5% R1234yf
+  'R455A':  148,    // 3% R744 + 21.5% R32 + 75.5% R1234yf
+  'R457A':  139,    // 18% R32 + 77.5% R1234yf + 4.5% R152a
+  'R458A':  702,    // 20.5% R32 + 4% R125 + 61.4% R134a + 13.5% R227ea + 0.6% R236fa
+  'R459A':  444,    // 68% R32 + 31% R1234yf + 1% R125
+  'R459B':  544,    // 21% R32 + 69% R1234yf + 10% R125  -- datos Gas Servei
+  'R466A':  733,    // 49% R32 + 11.5% R125 + 39.5% R13I1
+  'R507A':  3985,   // 50% R125 + 50% R143a (azeótropo)
+  'R513A':  631,    // 56% R1234yf + 44% R134a
+
+  // Refrigerantes naturales – GWP por defecto Anexo VI Reg. 2024/573
+  'R290':   0,      // propano (PCG < 1 per Reg.)
+  'R600a':  0,      // isobutano
+  'R600':   0,      // butano
+  'R601':   0,      // pentano
+  'R601a':  0,      // isopentano
+  'R744':   1,      // CO2
+  'R717':   0,      // amoniaco
+  'R170':   0,      // etano (< 1 per Reg.)
+  'R1234yf':0.501,  // HFO-1234yf (Anexo II Reg. 2024/573)
+  'R1234ze':1.37,   // HFO-1234ze (Anexo II Reg. 2024/573)
+  'R1336mzz(Z)': 2.08, // HFO-1336mzz(Z)
 };
 
-// Frecuencia de control de fugas según Reglamento UE 517/2014 Art. 4
+// Frecuencia de control de fugas según Reglamento (UE) 2024/573 Art. 5 apdo. 6
+// ≥ 5 tCO₂eq → obligatorio control de fugas (Art. 5 apdo. 1)
+// < 50 tCO₂eq  → al menos cada 12 meses (o 24 meses con detector)
+// ≥ 50 y < 500 → al menos cada 6 meses  (o 12 meses con detector)
+// ≥ 500        → al menos cada 3 meses  (o 6 meses con detector)
 function getLeakCheckFrequency(tco2eq) {
-  if (tco2eq >= 500) return { label: 'Cada 3 meses', months: 3, color: 'bg-red-100 text-red-800' };
-  if (tco2eq >= 50) return { label: 'Cada 6 meses', months: 6, color: 'bg-orange-100 text-orange-800' };
-  if (tco2eq >= 5) return { label: 'Anual', months: 12, color: 'bg-amber-100 text-amber-800' };
-  return { label: 'No obligatorio (< 5 tCO₂eq)', months: null, color: 'bg-green-100 text-green-800' };
+  if (tco2eq >= 500) return { label: 'Cada 3 meses (≥500 tCO₂eq)', months: 3, color: 'bg-red-100 text-red-800', note: 'Con detector de fugas: cada 6 meses' };
+  if (tco2eq >= 50)  return { label: 'Cada 6 meses (≥50 tCO₂eq)',  months: 6, color: 'bg-orange-100 text-orange-800', note: 'Con detector de fugas: cada 12 meses' };
+  if (tco2eq >= 5)   return { label: 'Anual (≥5 tCO₂eq)',           months: 12, color: 'bg-amber-100 text-amber-800', note: 'Con detector de fugas: cada 24 meses' };
+  return { label: 'No obligatorio (<5 tCO₂eq)', months: null, color: 'bg-green-100 text-green-800', note: 'Por debajo del umbral mínimo Art. 5' };
 }
 
 const TIPO_LABELS = {
@@ -204,6 +249,7 @@ export default function FGasTab({ equipment, equipmentId }) {
         <Card className="p-4 border-0 bg-amber-50">
           <p className="text-xs text-amber-600 font-medium mb-1 flex items-center gap-1"><Clock className="h-3 w-3" />Control de fugas</p>
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${freq.color}`}>{freq.label}</span>
+          {freq.note && <p className="text-xs text-slate-400 mt-1">{freq.note}</p>}
           {equipment?.next_leak_check_date && (
             <p className="text-xs text-slate-500 mt-1">
               Próxima: {format(new Date(equipment.next_leak_check_date), 'dd/MM/yyyy')}
@@ -216,8 +262,9 @@ export default function FGasTab({ equipment, equipmentId }) {
       <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
         <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
         <span>
-          <strong>Reglamento UE 517/2014 (F-Gas):</strong> ≥5 tCO₂eq → revisión anual · ≥50 tCO₂eq → cada 6 meses · ≥500 tCO₂eq → cada 3 meses.
-          Documentación obligatoria durante <strong>mínimo 5 años</strong>.
+          <strong>Reglamento (UE) 2024/573 — F-Gas (Art. 5):</strong> ≥5 tCO₂eq → anual · ≥50 tCO₂eq → cada 6 meses · ≥500 tCO₂eq → cada 3 meses.
+          Con sistema detector de fugas instalado: duplicar el intervalo. GWP según Anexo I (AR4 para HFCs). Documentación obligatoria <strong>mínimo 5 años</strong> (Art. 7).
+          Desde 01/01/2025 prohibido uso de gas con GWP ≥2500 en cualquier equipo de refrigeración.
         </span>
       </div>
 
