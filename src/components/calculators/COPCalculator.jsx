@@ -148,7 +148,9 @@ export default function COPCalculator({ equipment }) {
       // Líquido saturado o subenfriado
       const hLiquidoSatAlta = 200 + (pAlta - 10) * 8.5;
       const subenfriamiento = tCond - tLiq;
-      h3 = hLiquidoSatAlta - subenfriamiento * 4.2; // cp líquido ≈ 4.2 kJ/kg·K
+      // cp líquido aproximado según refrigerante (kJ/kg·K)
+      const cpLiquido = { R410A: 1.5, R32: 2.0, R134A: 1.46, R404A: 1.5, R407C: 1.55, R22: 1.19 }[formData.refrigerante] ?? 1.5;
+      h3 = hLiquidoSatAlta - subenfriamiento * cpLiquido;
     }
 
     if (formData.h4_manual) {
@@ -185,8 +187,8 @@ export default function COPCalculator({ equipment }) {
     // COP CALOR
     const copCalor = calorCondensador / trabajoCompresion;
     
-    // EER (Energy Efficiency Ratio)
-    const eer = copFrio * 3.412;
+    // EER (Energy Efficiency Ratio) — en norma europea (EN 14511) EER = COP frío (misma definición)
+    const eer = copFrio;
     
     // Cálculos adicionales
     const recalentamiento = tAsp - tEvap;
@@ -484,7 +486,7 @@ export default function COPCalculator({ equipment }) {
           <strong>Fórmulas aplicadas:</strong><br/>
           COP Frío = (h₁ - h₄) / (h₂ - h₁) = ${results.efectoRefrigerante} / ${results.trabajoCompresion}<br/>
           COP Calor = (h₂ - h₃) / (h₂ - h₁) = ${results.calorCondensador} / ${results.trabajoCompresion}<br/>
-          EER = COP Frío × 3.412
+          EER = COP Frío (norma europea EN 14511)
         </div>
       </div>
 
@@ -834,7 +836,7 @@ export default function COPCalculator({ equipment }) {
                 <p className="font-medium text-amber-800 mb-1">Fórmulas aplicadas:</p>
                 <p className="text-amber-700">• COP Frío = (h₁ - h₄) / (h₂ - h₁)</p>
                 <p className="text-amber-700">• COP Calor = (h₂ - h₃) / (h₂ - h₁)</p>
-                <p className="text-amber-700">• EER = COP Frío × 3.412</p>
+                <p className="text-amber-700">• EER = COP Frío (norma europea EN 14511)</p>
               </div>
 
               <Button onClick={generateReport} className="w-full mt-3 bg-slate-700 hover:bg-slate-800">
