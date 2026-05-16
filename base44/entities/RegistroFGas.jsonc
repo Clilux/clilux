@@ -1,0 +1,135 @@
+{
+  "name": "RegistroFGas",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string",
+      "description": "ID del equipo"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "fecha_intervencion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la intervenci\u00f3n"
+    },
+    "tipo_intervencion": {
+      "type": "string",
+      "enum": [
+        "control_fugas",
+        "carga_gas",
+        "recuperacion_gas",
+        "mantenimiento",
+        "reparacion",
+        "instalacion",
+        "desguace"
+      ],
+      "description": "Tipo de intervenci\u00f3n realizada"
+    },
+    "tecnico_nombre": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico que realiza la intervenci\u00f3n"
+    },
+    "tecnico_cert_num": {
+      "type": "string",
+      "description": "N\u00famero de certificado F-Gas del t\u00e9cnico"
+    },
+    "empresa_mantenedora": {
+      "type": "string",
+      "description": "Empresa mantenedora habilitada"
+    },
+    "empresa_cert_num": {
+      "type": "string",
+      "description": "N\u00famero de certificado de empresa mantenedora F-Gas"
+    },
+    "refrigerante_tipo": {
+      "type": "string",
+      "description": "Tipo de refrigerante (ej: R410A, R32, R134a)"
+    },
+    "carga_total_kg": {
+      "type": "number",
+      "description": "Carga total del equipo en kg tras la intervenci\u00f3n"
+    },
+    "gas_anyadido_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de gas a\u00f1adida en kg"
+    },
+    "tipo_gas_anyadido": {
+      "type": "string",
+      "enum": [
+        "virgen",
+        "reciclado",
+        "regenerado"
+      ],
+      "description": "Tipo de gas a\u00f1adido"
+    },
+    "gas_recuperado_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de gas recuperado en kg"
+    },
+    "control_fugas_resultado": {
+      "type": "string",
+      "enum": [
+        "apto",
+        "no_apto",
+        "no_aplica"
+      ],
+      "description": "Resultado del control de fugas"
+    },
+    "fuga_localizada": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfSe localiz\u00f3 una fuga?"
+    },
+    "fuga_ubicacion": {
+      "type": "string",
+      "description": "Localizaci\u00f3n de la fuga si se encontr\u00f3"
+    },
+    "fuga_fecha_reparacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de reparaci\u00f3n de la fuga"
+    },
+    "gestor_residuos": {
+      "type": "string",
+      "description": "Centro de reciclaje/regeneraci\u00f3n o gestor de residuos autorizado"
+    },
+    "gestor_residuos_num": {
+      "type": "string",
+      "description": "N\u00famero de identificaci\u00f3n del gestor de residuos"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Observaciones adicionales"
+    },
+    "proxima_revision_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la pr\u00f3xima revisi\u00f3n de fugas obligatoria"
+    },
+    "co2_equivalent_tons": {
+      "type": "number",
+      "description": "tCO2eq del equipo en el momento de la intervenci\u00f3n"
+    },
+    "gwp": {
+      "type": "number",
+      "description": "GWP del refrigerante utilizado"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "URL del certificado/informe t\u00e9cnico firmado"
+    }
+  },
+  "required": [
+    "equipment_id",
+    "client_id",
+    "fecha_intervencion",
+    "tipo_intervencion",
+    "tecnico_nombre",
+    "refrigerante_tipo"
+  ]
+}

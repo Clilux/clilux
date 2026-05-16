@@ -28,6 +28,7 @@ import MaintenancePlan from '../components/equipment/MaintenancePlan';
 import COPCalculator from '../components/calculators/COPCalculator';
 import SparePartsTab from '../components/equipment/SparePartsTab';
 import EquipmentIncidents from '../components/equipment/EquipmentIncidents';
+import FGasTab from '../components/equipment/FGasTab';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -490,7 +491,7 @@ export default function EquipmentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-6">
+          <TabsList className={`grid w-full mb-6 ${equipment.has_fluorinated_gas ? 'grid-cols-4 sm:grid-cols-8' : 'grid-cols-4 sm:grid-cols-7'}`}>
             <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
@@ -498,6 +499,9 @@ export default function EquipmentDetail() {
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
+            {equipment.has_fluorinated_gas && (
+              <TabsTrigger value="fgas" className="text-blue-700 font-semibold">F-Gas 🌿</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="plan">
@@ -549,6 +553,17 @@ export default function EquipmentDetail() {
               onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
             />
           </TabsContent>
+
+          {equipment.has_fluorinated_gas && (
+            <TabsContent value="fgas">
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <Wind className="h-4 w-4 text-blue-600" />Registro F-Gas — Libro de Gases Fluorados
+                </h3>
+                <FGasTab equipment={equipment} equipmentId={equipmentId} />
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
 
         <DeleteConfirmDialog
