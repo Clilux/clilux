@@ -21,6 +21,19 @@ const TIPO_LABELS = {
   tras_averia: 'Tras avería',
 };
 
+const PPM_OPTIONS = [
+  { value: 5, label: '5 ppm — Mantenimiento' },
+  { value: 20, label: '20 ppm — Choque' },
+  { value: 50, label: '50 ppm — Positivo Legionella' },
+];
+
+const HIPOCLORITO_OPTIONS = [
+  { value: 15, label: '15% — Industrial puro' },
+  { value: 10, label: '10% — Industrial semi-degradado' },
+  { value: 5, label: '5% — Lejía comercial común' },
+  { value: 4, label: '4% — Lejía doméstica (apta agua potable)' },
+];
+
 const emptyForm = {
   fecha: new Date().toISOString().split('T')[0],
   tipo_tratamiento: 'mantenimiento_mensual',
@@ -40,14 +53,22 @@ const emptyForm = {
   check_paneles_celulosa: false,
   check_valvula_vaciado: false,
   observaciones: '',
+  // nuevos campos de cálculo
+  ppm_deseadas: 5,
+  porcentaje_hipoclorito: 15,
+  cloro_a_neutralizar: '',
 };
 
-function calcularDosis(litros) {
-  if (!litros) return null;
-  const hipoclorito_mantenimiento = +(litros * 0.033).toFixed(2);
-  const hipoclorito_choque = +(litros * 0.139).toFixed(2);
-  const metabisulfito = +(litros * 0.01).toFixed(2);
-  return { hipoclorito_mantenimiento, hipoclorito_choque, metabisulfito };
+// Fórmula oficial: (volumen * ppm) / (% * 10)
+function calcularHipoclorito(litros, ppm, porcentaje) {
+  if (!litros || !ppm || !porcentaje) return null;
+  return +((litros * ppm) / (porcentaje * 10)).toFixed(2);
+}
+
+// Fórmula oficial: volumen * cloro_a_neutralizar * 0.002
+function calcularMetabisulfito(litros, cloro) {
+  if (!litros || cloro === '' || cloro === null || cloro === undefined) return null;
+  return +(litros * Number(cloro) * 0.002).toFixed(2);
 }
 
 function AlertaValor({ valor, label, min, max, invertir = false }) {
@@ -71,7 +92,18 @@ export default function LDTab({ equipment, equipmentId }) {
   const [generatingPdf, setGeneratingPdf] = useState(null);
 
   const balsaLitros = equipment?.balsa_litros || null;
-  const dosis = calcularDosis(balsaLitros);
+
+  // Cálculos en tiempo real
+  const hipocloritoCal = calcularHipoclorito(
+    Number(form.hipoclorito_ml) || balsaLitros,
+    form.ppm_deseadas,
+    form.porcentaje_hipoclorito
+  );
+  const hipocloritoCalculado = calcularHipoclorito(balsaLitros, form.ppm_deseadas, form.porcentaje_hipoclorito);
+  const metabisulfitoCalculado = calcularMetabisulfito(balsaLitros, form.cloro_a_neutralizar);
+
+  // Validación: cloro a neutralizar > 60 ppm bloquea guardar
+  const cloroNeutralizarError = form.cloro_a_neutralizar !== '' && Number(form.cloro_a_neutralizar) > 60;
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians-ld'],
@@ -110,6 +142,9 @@ export default function LDTab({ equipment, equipmentId }) {
         ph_final: data.ph_final !== '' ? Number(data.ph_final) : null,
         cloro_libre_final: data.cloro_libre_final !== '' ? Number(data.cloro_libre_final) : null,
         temperatura_final: data.temperatura_final !== '' ? Number(data.temperatura_final) : null,
+        ppm_deseadas: data.ppm_deseadas || null,
+        porcentaje_hipoclorito: data.porcentaje_hipoclorito || null,
+        cloro_a_neutralizar: data.cloro_a_neutralizar !== '' ? Number(data.cloro_a_neutralizar) : null,
         proxima_revision_fecha: proxima,
       };
       if (editingId) return base44.entities.RegistroLD.update(editingId, payload);
@@ -153,6 +188,9 @@ export default function LDTab({ equipment, equipmentId }) {
       check_paneles_celulosa: r.check_paneles_celulosa || false,
       check_valvula_vaciado: r.check_valvula_vaciado || false,
       observaciones: r.observaciones || '',
+      ppm_deseadas: r.ppm_deseadas || 5,
+      porcentaje_hipoclorito: r.porcentaje_hipoclorito || 15,
+      cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
     });
     setEditingId(r.id);
     setShowForm(true);
@@ -297,11 +335,7 @@ export default function LDTab({ equipment, equipmentId }) {
   };
 
   const openNewForm = () => {
-    setForm({
-      ...emptyForm,
-      hipoclorito_ml: dosis ? dosis.hipoclorito_mantenimiento : '',
-      metabisulfito_g: dosis ? dosis.metabisulfito : '',
-    });
+    setForm({ ...emptyForm });
     setEditingId(null);
     setShowForm(true);
   };
@@ -319,20 +353,20 @@ export default function LDTab({ equipment, equipmentId }) {
           {!balsaLitros && <p className="text-xs text-amber-600 mt-0.5">Edita el equipo para definirlo</p>}
         </Card>
         <Card className="p-4 border-0 bg-blue-50">
-          <p className="text-xs text-blue-600 font-medium mb-1">Dosis recomendada (mantenimiento)</p>
-          {dosis ? (
+          <p className="text-xs text-blue-600 font-medium mb-1">Hipoclorito mantenimiento (5 ppm / 15%)</p>
+          {balsaLitros ? (
             <>
-              <p className="text-sm font-semibold text-slate-800">{dosis.hipoclorito_mantenimiento} ml Hipoclorito</p>
-              <p className="text-xs text-slate-500">{dosis.metabisulfito} g Metabisulfito</p>
+              <p className="text-sm font-semibold text-slate-800">{calcularHipoclorito(balsaLitros, 5, 15)} ml</p>
+              <p className="text-xs text-slate-500">({balsaLitros}L × 5) / (15 × 10)</p>
             </>
           ) : <p className="text-sm text-slate-400">—</p>}
         </Card>
         <Card className="p-4 border-0 bg-amber-50">
-          <p className="text-xs text-amber-600 font-medium mb-1">Dosis choque</p>
-          {dosis ? (
+          <p className="text-xs text-amber-600 font-medium mb-1">Hipoclorito choque (20 ppm / 15%)</p>
+          {balsaLitros ? (
             <>
-              <p className="text-sm font-semibold text-slate-800">{dosis.hipoclorito_choque} ml Hipoclorito</p>
-              <p className="text-xs text-slate-500">Para desinfección inicial/avería</p>
+              <p className="text-sm font-semibold text-slate-800">{calcularHipoclorito(balsaLitros, 20, 15)} ml</p>
+              <p className="text-xs text-slate-500">({balsaLitros}L × 20) / (15 × 10)</p>
             </>
           ) : <p className="text-sm text-slate-400">—</p>}
         </Card>
@@ -410,16 +444,52 @@ export default function LDTab({ equipment, equipmentId }) {
             {/* FASE QUÍMICA */}
             <div className="sm:col-span-2 border-t pt-3 mt-1">
               <p className="text-xs font-semibold text-amber-700 mb-2 uppercase tracking-wide">🧪 Fase Química (Dosificación)</p>
-              {dosis && (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2">
-                  Dosis recomendada: <strong>{dosis.hipoclorito_mantenimiento} ml</strong> Hipoclorito (mant.) /
-                  <strong> {dosis.hipoclorito_choque} ml</strong> (choque) · <strong>{dosis.metabisulfito} g</strong> Metabisulfito
-                </p>
-              )}
             </div>
+
+            {/* Selector ppm */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">PPM deseadas *</label>
+              <select value={form.ppm_deseadas} onChange={e => f('ppm_deseadas', Number(e.target.value))}
+                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                {PPM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* Selector % hipoclorito */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Concentración hipoclorito *</label>
+              <select value={form.porcentaje_hipoclorito} onChange={e => f('porcentaje_hipoclorito', Number(e.target.value))}
+                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                {HIPOCLORITO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* Resultado calculado hipoclorito */}
+            {balsaLitros && (
+              <div className="sm:col-span-2">
+                <div className={`flex items-start gap-3 p-3 rounded-lg border ${hipocloritoCalculado !== null && hipocloritoCalculado < 5 ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-300'}`}>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 mb-0.5">Dosis calculada de hipoclorito sódico</p>
+                    <p className="text-xl font-bold text-slate-800">
+                      {hipocloritoCalculado !== null ? `${hipocloritoCalculado} ml` : '—'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      ({balsaLitros} L × {form.ppm_deseadas} ppm) / ({form.porcentaje_hipoclorito}% × 10)
+                    </p>
+                  </div>
+                </div>
+                {hipocloritoCalculado !== null && hipocloritoCalculado < 5 && (
+                  <p className="text-xs text-amber-700 font-medium mt-1">
+                    ⚠️ Cantidad muy baja. Utilizar jeringuilla de precisión para la medición.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Hipoclorito sódico añadido (ml)</label>
-              <Input type="number" step="0.1" value={form.hipoclorito_ml} onChange={e => f('hipoclorito_ml', e.target.value)} className="h-8 text-sm" />
+              <Input type="number" step="0.1" value={form.hipoclorito_ml} onChange={e => f('hipoclorito_ml', e.target.value)} className="h-8 text-sm"
+                placeholder={hipocloritoCalculado !== null ? `Calc: ${hipocloritoCalculado} ml` : ''} />
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Tiempo de recirculación (min, mín. 60)</label>
@@ -435,11 +505,42 @@ export default function LDTab({ equipment, equipmentId }) {
 
             {/* MEDICIONES FINALES */}
             <div className="sm:col-span-2 border-t pt-3 mt-1">
-              <p className="text-xs font-semibold text-emerald-700 mb-2 uppercase tracking-wide">✅ Mediciones Finales</p>
+              <p className="text-xs font-semibold text-emerald-700 mb-2 uppercase tracking-wide">✅ Mediciones Finales (Neutralización)</p>
             </div>
+
+            {/* Cloro a neutralizar + cálculo metabisulfito */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Cloro libre a neutralizar (ppm medido)</label>
+              <Input type="number" step="0.1" value={form.cloro_a_neutralizar}
+                onChange={e => f('cloro_a_neutralizar', e.target.value)}
+                className={`h-8 text-sm ${cloroNeutralizarError ? 'border-red-500' : ''}`}
+                placeholder="Medir antes de añadir metabisulfito" />
+              {cloroNeutralizarError && (
+                <p className="text-xs text-red-600 font-medium mt-0.5">⛔ Valor &gt;60 ppm imposible. Revisa el análisis antes de guardar.</p>
+              )}
+            </div>
+
+            {/* Resultado calculado metabisulfito */}
+            {balsaLitros && (
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Dosis calculada de metabisulfito</p>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200 min-h-[2rem]">
+                  <p className="text-lg font-bold text-slate-800">
+                    {metabisulfitoCalculado !== null ? `${metabisulfitoCalculado} g` : '—'}
+                  </p>
+                  {metabisulfitoCalculado !== null && (
+                    <p className="text-xs text-slate-400">
+                      ({balsaLitros} L × {form.cloro_a_neutralizar} ppm × 0.002)
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Metabisulfito sódico añadido (g)</label>
-              <Input type="number" step="0.01" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)} className="h-8 text-sm" />
+              <Input type="number" step="0.01" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)} className="h-8 text-sm"
+                placeholder={metabisulfitoCalculado !== null ? `Calc: ${metabisulfitoCalculado} g` : ''} />
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">pH final</label>
@@ -484,8 +585,10 @@ export default function LDTab({ equipment, equipmentId }) {
           </div>
 
           <div className="flex gap-2 mt-4">
-            <Button size="sm" onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending || !form.tecnico_nombre || !form.fecha}
+            <Button size="sm" onClick={() => saveMutation.mutate(form)}
+              disabled={saveMutation.isPending || !form.tecnico_nombre || !form.fecha || cloroNeutralizarError}
               className="bg-cyan-600 hover:bg-cyan-700">
+              {cloroNeutralizarError && <span className="text-xs mr-1">⛔</span>}
               {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Guardar Registro
             </Button>
