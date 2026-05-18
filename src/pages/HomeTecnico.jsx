@@ -10,7 +10,7 @@ import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine,
-  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft
+  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -37,6 +37,7 @@ const FUNCIONES = [
   { id: '12', label: 'Contrato',         page: 'ContratoMantenimiento', icon: FileText,  color: 'from-green-500/30 to-teal-500/30',   iconCls: 'text-green-300' },
   { id: '13', label: 'Control Horario',  page: 'ControlHorario',        icon: Clock,     color: 'from-blue-500/30 to-cyan-500/30',    iconCls: 'text-blue-300' },
   { id: '14', label: 'Mis Ausencias',    page: 'GestionAusencias',      icon: Calendar,  color: 'from-purple-500/30 to-violet-500/30',iconCls: 'text-purple-300' },
+  { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',   icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300' },
 ];
 
 const AUTOMATIZACION = [

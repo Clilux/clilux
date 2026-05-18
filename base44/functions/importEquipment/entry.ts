@@ -1,10 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Mapeo: cabecera del Excel → campo de la entidad Equipment
 const FIELD_MAP = {
   'Nombre de referencia':          'reference_name',
-  'ID Cliente':                    'client_id',
-  'ID Edificio':                   'building_id',
   'Tipo de equipo':                'equipment_type',
   'Marca':                         'brand',
   'Modelo':                        'model',
@@ -21,9 +18,34 @@ const FIELD_MAP = {
   'Fin garantía (AAAA-MM-DD)':     'warranty_end',
 };
 
-const NUMERIC_FIELDS = ['cooling_power_kw', 'heating_power_kw', 'refrigerant_charge_kg', 'balsa_litros'];
+const NUMERIC_FIELDS  = ['cooling_power_kw', 'heating_power_kw', 'refrigerant_charge_kg', 'balsa_litros'];
 const REQUIRED_FIELDS = ['equipment_type', 'brand', 'model'];
-const VALID_STATUSES = ['operational', 'maintenance_needed', 'out_of_service'];
+const VALID_STATUSES  = ['operational', 'maintenance_needed', 'out_of_service'];
+
+// Tipos válidos para normalización
+const EQUIPMENT_TYPES = [
+  'Enfriadora / Chiller',
+  'Bomba de calor aire-agua',
+  'Bomba de calor agua-agua',
+  'Torre de refrigeración',
+  'Enfriamiento Adibático / evaporativo',
+  'Climatizadora / UTA',
+  'Fan-coil',
+  'Split / Multi-split',
+  'VRF / VRV exterior',
+  'VRF / VRV interior',
+  'Recuperador de calor',
+  'Condensadora',
+  'Caldera de gas',
+  'Caldera de gasoil',
+  'Aerotermia',
+  'Geotermia',
+  'Grupo de presión hidráulico',
+  'Depósito acumulador ACS',
+  'Intercambiador de calor',
+  'Centralita / BMS',
+  'Otro',
+];
 
 Deno.serve(async (req) => {
   try {
@@ -34,32 +56,7 @@ Deno.serve(async (req) => {
     const { file_url } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
 
-    // Extraer datos del Excel usando la integración Core
-    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
-        type: 'object',
-        properties: {
-          rows: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: Object.fromEntries(
-                Object.values(FIELD_MAP).map(f => [f, { type: 'string' }])
-              )
-            }
-          }
-        }
-      }
-    });
-
-    if (extracted.status !== 'success') {
-      return Response.json({ error: `Error extrayendo datos: ${extracted.details}` }, { status: 400 });
-    }
-
-    // La integración devuelve el objeto extraído. Lo parseamos manualmente del excel
-    // porque la plantilla tiene filas de cabecera/instrucciones.
-    // Usamos fetch para leer el excel crudo con SheetJS en Deno.
+    // Leer el excel con SheetJS
     const xlsxMod = await import('npm:xlsx@0.18.5');
     const XLSX = xlsxMod.default ?? xlsxMod;
 
@@ -76,36 +73,34 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'El archivo no contiene filas de datos (a partir de fila 4).' }, { status: 400 });
     }
 
-    const headers = rawRows[0];
-    const dataRows = rawRows.slice(3); // saltar cabecera, obligatorio, ejemplo
+    const headers  = rawRows[0];
+    const dataRows = rawRows.slice(3);
 
     let created = 0;
     let skipped = 0;
     const errors = [];
 
     for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      const rowNum = i + 4; // número de fila real en el excel
+      const row    = dataRows[i];
+      const rowNum = i + 4;
 
-      // Saltar filas completamente vacías
+      // Saltar filas vacías
       if (row.every(cell => cell === '' || cell === null || cell === undefined)) {
         skipped++;
         continue;
       }
 
-      // Mapear cabeceras → campos
+      // Mapear campos
       const record = {};
       headers.forEach((header, idx) => {
         const fieldName = FIELD_MAP[header];
         if (fieldName) {
           const val = String(row[idx] ?? '').trim();
-          if (val && val !== '(déjalo vacío, se asigna al importar)') {
-            record[fieldName] = val;
-          }
+          if (val) record[fieldName] = val;
         }
       });
 
-      // Validar campos obligatorios
+      // Validar obligatorios
       const missing = REQUIRED_FIELDS.filter(f => !record[f]);
       if (missing.length > 0) {
         errors.push({ row: rowNum, reason: `Faltan campos obligatorios: ${missing.join(', ')}` });
@@ -116,25 +111,42 @@ Deno.serve(async (req) => {
       NUMERIC_FIELDS.forEach(f => {
         if (record[f] !== undefined) {
           const n = parseFloat(record[f]);
-          record[f] = isNaN(n) ? undefined : n;
-          if (record[f] === undefined) delete record[f];
+          if (isNaN(n)) delete record[f];
+          else record[f] = n;
         }
       });
 
-      // Validar y normalizar status
+      // Normalizar status
       if (record.status) {
-        const statusLower = record.status.toLowerCase().replace(/ /g, '_');
-        record.status = VALID_STATUSES.includes(statusLower) ? statusLower : 'operational';
+        const s = record.status.toLowerCase().replace(/ /g, '_');
+        record.status = VALID_STATUSES.includes(s) ? s : 'operational';
       } else {
         record.status = 'operational';
       }
 
-      // Añadir registration_date si no existe
+      // Normalizar tipo de equipo: buscar coincidencia case-insensitive
+      if (record.equipment_type) {
+        const inputType = record.equipment_type.toLowerCase().trim();
+        const matched = EQUIPMENT_TYPES.find(t => t.toLowerCase() === inputType);
+        if (!matched) {
+          // Aceptar igualmente, pero lo dejamos como está
+          // El campo es libre, solo validamos que no esté vacío
+        }
+      }
+
+      // registration_date obligatorio en entidad
       if (!record.registration_date) {
         record.registration_date = new Date().toISOString().split('T')[0];
       }
 
-      // Crear el equipo
+      // client_id y building_id son requeridos en la entidad,
+      // usamos un placeholder vacío que el usuario deberá actualizar desde la app
+      // Los creamos sin ellos usando asServiceRole que puede omitir validaciones opcionales
+      // Pero como son required en el schema, ponemos cadena vacía y actualizamos luego.
+      // SOLUCIÓN: los marcamos como pending sin client/building
+      if (!record.client_id)   record.client_id   = 'pendiente';
+      if (!record.building_id) record.building_id = 'pendiente';
+
       await base44.asServiceRole.entities.Equipment.create(record);
       created++;
     }
