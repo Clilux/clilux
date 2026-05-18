@@ -162,6 +162,7 @@ const camposIDAE = {
       { key: 'tipo_sistema', label: 'Tipo de sistema *', type: 'select', options: ['Con depósito y recirculación', 'Sin recirculación (agua perdida)', 'Pulverización'], required: true },
       { key: 'ubicacion', label: 'Ubicación *', type: 'text', required: true },
       { key: 'caudal_agua', label: 'Caudal de agua (l/h)', type: 'number', required: false },
+      { key: 'balsa_litros', label: 'Volumen de la balsa (litros)', type: 'number', required: false },
     ],
     parametros: [
       // Parámetros mensuales (según documento Sevilla)
@@ -381,6 +382,7 @@ export default function EquipmentForm() {
         heating_power_kw: data.technical_data.potencia_calorifica || null,
         refrigerant_type: data.technical_data.tipo_refrigerante || '',
         refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+        balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
         technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
         registration_date: data.registration_date,
         installation_date: data.installation_date || null,
@@ -459,6 +461,7 @@ export default function EquipmentForm() {
         heating_power_kw: data.technical_data.potencia_calorifica || null,
         refrigerant_type: data.technical_data.tipo_refrigerante || '',
         refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+        balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
         technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
         registration_date: data.registration_date,
         status: data.status,
@@ -602,6 +605,7 @@ export default function EquipmentForm() {
       heating_power_kw: formData.technical_data.potencia_calorifica || null,
       refrigerant_type: formData.technical_data.tipo_refrigerante || '',
       refrigerant_charge_kg: formData.technical_data.carga_refrigerante || null,
+      balsa_litros: formData.technical_data.balsa_litros ? Number(formData.technical_data.balsa_litros) : null,
       technical_data: { ...formData.technical_data, custom_fields: formData.custom_fields },
       registration_date: formData.registration_date,
       status: formData.status,

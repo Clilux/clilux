@@ -60,6 +60,10 @@
       "type": "number",
       "description": "Carga de refrigerante (kg)"
     },
+    "balsa_litros": {
+      "type": "number",
+      "description": "Volumen de la balsa (litros) \u2014 solo equipos adiab\u00e1ticos/evaporativos"
+    },
     "warranty_end": {
       "type": "string",
       "format": "date",
@@ -110,7 +114,7 @@
           }
         }
       },
-      "description": "Documentos adjuntos (manuales, garant\u00edas, etc.)"
+      "description": "Documentos adjuntos"
     },
     "spare_parts": {
       "type": "array",
@@ -125,7 +129,7 @@
           }
         }
       },
-      "description": "Repuestos y consumibles (correas, filtros, etc.)"
+      "description": "Repuestos y consumibles"
     },
     "maintenance_config": {
       "type": "object",
@@ -175,7 +179,7 @@
     },
     "parent_equipment_id": {
       "type": "string",
-      "description": "ID de la unidad exterior (si este equipo es una unidad interior)"
+      "description": "ID de la unidad exterior"
     },
     "unit_type": {
       "type": "string",
@@ -184,8 +188,7 @@
         "interior",
         "standalone"
       ],
-      "default": "standalone",
-      "description": "Tipo de unidad: exterior, interior o independiente"
+      "default": "standalone"
     },
     "created_by_name": {
       "type": "string",
@@ -193,41 +196,34 @@
     },
     "has_fluorinated_gas": {
       "type": "boolean",
-      "default": false,
-      "description": "Indica si el equipo contiene gases fluorados (normativa F-Gas / Reglamento UE 517/2014)"
+      "default": false
     },
     "gwp": {
       "type": "number",
-      "description": "Potencial de Calentamiento Global (GWP) del refrigerante seg\u00fan IPCC AR5"
+      "description": "GWP del refrigerante"
     },
     "co2_equivalent_tons": {
       "type": "number",
-      "description": "Toneladas equivalentes de CO2 (carga_kg \u00d7 GWP / 1000). Determina frecuencia de control de fugas."
+      "description": "Toneladas equivalentes de CO2"
     },
     "next_leak_check_date": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha l\u00edmite para la pr\u00f3xima revisi\u00f3n de fugas obligatoria (F-Gas)"
+      "format": "date"
     },
     "fgas_operator_name": {
-      "type": "string",
-      "description": "Nombre del titular/operador del equipo (Libro de Registro F-Gas)"
+      "type": "string"
     },
     "fgas_operator_nif": {
-      "type": "string",
-      "description": "NIF del titular/operador"
+      "type": "string"
     },
     "fgas_certified_company": {
-      "type": "string",
-      "description": "Empresa mantenedora habilitada (certificada F-Gas)"
+      "type": "string"
     },
     "fgas_company_cert_num": {
-      "type": "string",
-      "description": "N\u00famero de certificado de empresa mantenedora F-Gas"
+      "type": "string"
     },
     "fgas_tech_cert_num": {
-      "type": "string",
-      "description": "N\u00famero de certificado personal del t\u00e9cnico F-Gas"
+      "type": "string"
     }
   },
   "required": [

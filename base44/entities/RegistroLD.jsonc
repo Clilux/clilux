@@ -1,0 +1,116 @@
+{
+  "name": "RegistroLD",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string",
+      "description": "ID del equipo"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del tratamiento"
+    },
+    "tipo_tratamiento": {
+      "type": "string",
+      "enum": [
+        "puesta_en_marcha",
+        "mantenimiento_mensual",
+        "tras_averia"
+      ],
+      "description": "Tipo de tratamiento"
+    },
+    "tecnico_nombre": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico responsable"
+    },
+    "balsa_litros": {
+      "type": "number",
+      "description": "Volumen de la balsa (litros)"
+    },
+    "ph_inicial": {
+      "type": "number",
+      "description": "pH inicial del agua"
+    },
+    "cloro_libre_inicial": {
+      "type": "number",
+      "description": "Cloro libre inicial (ppm)"
+    },
+    "temperatura_inicial": {
+      "type": "number",
+      "description": "Temperatura inicial del agua (\u00b0C)"
+    },
+    "hipoclorito_ml": {
+      "type": "number",
+      "description": "Cantidad de hipoclorito s\u00f3dico a\u00f1adido (ml)"
+    },
+    "tiempo_recirculacion_min": {
+      "type": "number",
+      "description": "Tiempo de recirculaci\u00f3n (minutos)"
+    },
+    "cloro_durante_desinfeccion": {
+      "type": "number",
+      "description": "Cloro libre durante la desinfecci\u00f3n (ppm)"
+    },
+    "metabisulfito_g": {
+      "type": "number",
+      "description": "Cantidad de metabisulfito s\u00f3dico a\u00f1adido (gramos)"
+    },
+    "ph_final": {
+      "type": "number",
+      "description": "pH final"
+    },
+    "cloro_libre_final": {
+      "type": "number",
+      "description": "Cloro libre final (ppm)"
+    },
+    "temperatura_final": {
+      "type": "number",
+      "description": "Temperatura final del agua (\u00b0C)"
+    },
+    "check_vaciado": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfVaciado completo inicial realizado?"
+    },
+    "check_limpieza_balsa": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfLimpieza mec\u00e1nica de la balsa realizada?"
+    },
+    "check_paneles_celulosa": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfPaneles de celulosa revisados/limpiados?"
+    },
+    "check_valvula_vaciado": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfV\u00e1lvula de vaciado autom\u00e1tico verificada?"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Observaciones adicionales"
+    },
+    "proxima_revision_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de pr\u00f3xima revisi\u00f3n (calculada autom\u00e1ticamente)"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "URL del certificado PDF generado"
+    }
+  },
+  "required": [
+    "equipment_id",
+    "client_id",
+    "fecha",
+    "tipo_tratamiento",
+    "tecnico_nombre"
+  ]
+}

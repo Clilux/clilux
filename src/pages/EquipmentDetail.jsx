@@ -29,6 +29,7 @@ import COPCalculator from '../components/calculators/COPCalculator';
 import SparePartsTab from '../components/equipment/SparePartsTab';
 import EquipmentIncidents from '../components/equipment/EquipmentIncidents';
 import FGasTab from '../components/equipment/FGasTab';
+import LDTab from '../components/equipment/LDTab';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -173,6 +174,7 @@ export default function EquipmentDetail() {
       refrigerant_type: equipment.refrigerant_type || '',
       refrigerant_charge_kg: equipment.refrigerant_charge_kg || '',
       location: equipment.location || '',
+      balsa_litros: equipment.balsa_litros || '',
     });
     setEditingSpecs(true);
   };
@@ -184,6 +186,7 @@ export default function EquipmentDetail() {
       refrigerant_type: specs.refrigerant_type || '',
       refrigerant_charge_kg: specs.refrigerant_charge_kg ? Number(specs.refrigerant_charge_kg) : null,
       location: specs.location || '',
+      balsa_litros: specs.balsa_litros ? Number(specs.balsa_litros) : null,
     });
   };
 
@@ -394,6 +397,12 @@ export default function EquipmentDetail() {
                       <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-cyan-400" />Carga refrigerante (kg)</p>
                       <Input type="number" value={specs.refrigerant_charge_kg} onChange={e => setSpecs(p => ({...p, refrigerant_charge_kg: e.target.value}))} className="h-8 text-sm" />
                     </div>
+                    {equipment.equipment_type === 'adiabatico' && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-blue-400" />Volumen balsa (L)</p>
+                        <Input type="number" value={specs.balsa_litros} onChange={e => setSpecs(p => ({...p, balsa_litros: e.target.value}))} className="h-8 text-sm" placeholder="Ej: 72" />
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSaveSpecs} disabled={updateSpecsMutation.isPending} className="bg-blue-600">
@@ -459,6 +468,15 @@ export default function EquipmentDetail() {
                               </p>
                             );
                           })()}
+                        </div>
+                      </div>
+                    )}
+                    {equipment.balsa_litros && (
+                      <div className="flex items-start gap-2">
+                        <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Volumen balsa</p>
+                          <p className="text-sm text-slate-700">{equipment.balsa_litros} L</p>
                         </div>
                       </div>
                     )}
@@ -529,7 +547,11 @@ export default function EquipmentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className={`grid w-full mb-6 ${equipment.refrigerant_type ? 'grid-cols-4 sm:grid-cols-8' : 'grid-cols-4 sm:grid-cols-7'}`}>
+          <TabsList className={`grid w-full mb-6 ${
+            equipment.refrigerant_type && equipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-9' :
+            (equipment.refrigerant_type || equipment.equipment_type === 'adiabatico') ? 'grid-cols-4 sm:grid-cols-8' :
+            'grid-cols-4 sm:grid-cols-7'
+          }`}>
             <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
             <TabsTrigger value="revisions">Revisiones</TabsTrigger>
             <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
@@ -539,6 +561,9 @@ export default function EquipmentDetail() {
             <TabsTrigger value="documents">Documentos</TabsTrigger>
             {equipment.refrigerant_type && (
               <TabsTrigger value="fgas" className="text-blue-700 font-semibold">F-Gas 🌿</TabsTrigger>
+            )}
+            {equipment.equipment_type === 'adiabatico' && (
+              <TabsTrigger value="ld" className="text-cyan-700 font-semibold">L+D 💧</TabsTrigger>
             )}
           </TabsList>
 
@@ -599,6 +624,17 @@ export default function EquipmentDetail() {
                   <Wind className="h-4 w-4 text-blue-600" />Registro F-Gas — Libro de Gases Fluorados
                 </h3>
                 <FGasTab equipment={equipment} equipmentId={equipmentId} />
+              </Card>
+            </TabsContent>
+          )}
+
+          {equipment.equipment_type === 'adiabatico' && (
+            <TabsContent value="ld">
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <Droplet className="h-4 w-4 text-cyan-600" />Limpieza y Desinfección (L+D) — Legionella
+                </h3>
+                <LDTab equipment={equipment} equipmentId={equipmentId} />
               </Card>
             </TabsContent>
           )}
