@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Search, Plus, Thermometer, MapPin,
-  Building2, Calendar, LayoutGrid, List, LayoutList } from
-'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+  Building2, LayoutGrid, List, LayoutList, Copy, Loader2 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import { toast } from 'sonner';
 
 const statusLabels = {
   operational: { label: 'Operativo', color: 'bg-emerald-500/20 text-emerald-400' },
@@ -20,10 +18,51 @@ const statusLabels = {
   out_of_service: { label: 'Fuera de servicio', color: 'bg-red-500/20 text-red-400' }
 };
 
+// ── Context Menu ─────────────────────────────────────────────
+function ContextMenu({ x, y, onDuplicate, onOpen, onClose }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+      style={{ top: y, left: x }}
+    >
+      <button
+        onClick={onOpen}
+        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+      >
+        <Thermometer className="h-4 w-4 text-slate-400" />
+        Abrir equipo
+      </button>
+      <div className="border-t border-slate-100 my-1" />
+      <button
+        onClick={onDuplicate}
+        className="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 flex items-center gap-2 font-medium"
+      >
+        <Copy className="h-4 w-4 text-blue-500" />
+        Duplicar equipo
+      </button>
+    </div>
+  );
+}
+
 // 'grid' = tarjetas grandes, 'compact' = tarjetas pequeñas, 'list' = lista
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('equipment_view') || 'grid');
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, eq }
+  const [duplicating, setDuplicating] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
@@ -63,24 +102,74 @@ export default function Equipment() {
 
   const filteredEquipment = equipment.filter((eq) => {
     if (!searchTerm) return true;
-
     const search = searchTerm.toLowerCase();
     const building = buildings.find((b) => b.id === eq.building_id);
     const client = clients.find((c) => c.id === eq.client_id);
-
     return (
       eq.brand?.toLowerCase().includes(search) ||
       eq.model?.toLowerCase().includes(search) ||
       eq.serial_number?.toLowerCase().includes(search) ||
       eq.equipment_type?.toLowerCase().includes(search) ||
       eq.location?.toLowerCase().includes(search) ||
+      eq.reference_name?.toLowerCase().includes(search) ||
       building?.name?.toLowerCase().includes(search) ||
-      client?.name?.toLowerCase().includes(search));
-
+      client?.name?.toLowerCase().includes(search)
+    );
   });
 
+  const handleContextMenu = useCallback((e, eq) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const x = Math.min(e.clientX, window.innerWidth - 180);
+    const y = Math.min(e.clientY, window.innerHeight - 100);
+    setContextMenu({ x, y, eq });
+  }, []);
+
+  const handleDuplicate = useCallback(async () => {
+    if (!contextMenu?.eq) return;
+    setContextMenu(null);
+    setDuplicating(true);
+    const source = contextMenu.eq;
+    try {
+      // Clonar todos los campos relevantes, omitir id, created_date, updated_date
+      const {
+        id, created_date, updated_date, created_by,
+        ...rest
+      } = source;
+
+      const newEquip = await base44.entities.Equipment.create({
+        ...rest,
+        reference_name: `Copia de ${source.reference_name || source.brand + ' ' + source.model}`,
+        serial_number: '', // limpiar número de serie (no puede ser el mismo)
+        registration_date: new Date().toISOString().split('T')[0],
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      toast.success('Equipo duplicado. Abriendo para editar...');
+      navigate(createPageUrl(`EquipmentForm?id=${newEquip.id}`));
+    } catch (err) {
+      toast.error('Error al duplicar el equipo');
+    } finally {
+      setDuplicating(false);
+    }
+  }, [contextMenu, navigate, queryClient]);
+
+  const handleOpen = useCallback(() => {
+    if (!contextMenu?.eq) return;
+    const id = contextMenu.eq.id;
+    setContextMenu(null);
+    navigate(createPageUrl(`EquipmentDetail?id=${id}`));
+  }, [contextMenu, navigate]);
+
+  // Cerrar menú con Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setContextMenu(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <div className="bg-gray-100 p-6 min-h-screen from-slate-900 via-slate-800 to-slate-900">
+    <div className="bg-gray-100 p-6 min-h-screen">
       <div className="bg-gray-50 mx-auto max-w-7xl">
         <NavHeader title="Equipos" />
 
@@ -90,12 +179,11 @@ export default function Equipment() {
             <Input
               placeholder="Buscar por marca, modelo, serie, ubicación, edificio..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} 
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-white/10 text-slate-950 pl-10 w-full" />
           </div>
 
           <div className="flex flex-wrap gap-3 w-full items-center">
-            {/* View mode toggles */}
             <div className="flex gap-1 border rounded-lg p-1 bg-white">
               <button
                 onClick={() => { setViewMode('grid'); localStorage.setItem('equipment_view', 'grid'); }}
@@ -123,11 +211,23 @@ export default function Equipment() {
                 Nuevo Equipo
               </Button>
             </Link>
-            
 
-
+            {duplicating && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Duplicando...
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Hint clic derecho */}
+        {filteredEquipment.length > 0 && (
+          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1">
+            <Copy className="h-3 w-3" />
+            Clic derecho sobre un equipo para duplicarlo
+          </p>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -140,99 +240,124 @@ export default function Equipment() {
         ) : filteredEquipment.length === 0 ? (
           <Card className="p-12 bg-white/10 backdrop-blur-sm border-white/20 text-center">
             <Thermometer className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">
               {searchTerm ? 'No se encontraron equipos' : 'No hay equipos registrados'}
             </h3>
             <p className="text-slate-400 mb-4">
               {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Comienza agregando tu primer equipo'}
             </p>
-            {!searchTerm && <p className="text-slate-400 text-sm mt-2">Usa "Escanear" para agregar equipos desde la página principal</p>}
           </Card>
         ) : (
           <>
-        {/* GRID VIEW */}
-        {viewMode === 'grid' && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredEquipment.map((eq) => {
-          const building = buildings.find((b) => b.id === eq.building_id);
-          const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-          return (
-            <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-              <Card className="p-5 bg-white hover:shadow-md transition-all group border">
-                {eq.photo_url &&
-                  <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl bg-slate-50">
-                    <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+          {/* GRID VIEW */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredEquipment.map((eq) => {
+                const building = buildings.find((b) => b.id === eq.building_id);
+                const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                return (
+                  <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
+                    <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                      <Card className="p-5 bg-white hover:shadow-md transition-all group border cursor-pointer select-none">
+                        {eq.photo_url &&
+                          <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl bg-slate-50">
+                            <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+                          </div>
+                        }
+                        <div className="flex items-start justify-between gap-2 mb-0.5">
+                          <h3 className="text-teal-700 text-base font-semibold">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-1">{eq.brand} {eq.model}</p>
+                        <p className="text-xs text-slate-400 mb-3">{eq.equipment_type}</p>
+                        <div className="space-y-1.5">
+                          {building && <div className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-3.5 w-3.5 text-slate-400" />{building.name}</div>}
+                          {eq.location && <div className="flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{eq.location}</div>}
+                          {eq.serial_number && <div className="text-xs text-slate-400">S/N: {eq.serial_number}</div>}
+                        </div>
+                      </Card>
+                    </Link>
                   </div>
-                }
-                  <div className="flex items-start justify-between gap-2 mb-0.5">
-                    <h3 className="text-teal-700 text-base font-semibold">{eq.reference_name || `${eq.brand} ${eq.model}`}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-1">{eq.brand} {eq.model}</p>
-                  <p className="text-xs text-slate-400 mb-3">{eq.equipment_type}</p>
-                  <div className="space-y-1.5">
-                    {building && <div className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-3.5 w-3.5 text-slate-400" />{building.name}</div>}
-                    {eq.location && <div className="flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{eq.location}</div>}
-                    {eq.serial_number && <div className="text-xs text-slate-400">S/N: {eq.serial_number}</div>}
-                  </div>
-                </Card>
-              </Link>);
-          })}
-          </div>}
+                );
+              })}
+            </div>
+          )}
 
-        {/* COMPACT VIEW */}
-        {viewMode === 'compact' && <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filteredEquipment.map((eq) => {
-          const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-          return (
-            <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-              <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1">
-                {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl bg-slate-50"><img src={eq.photo_url} alt="" className="w-full h-full object-contain" /></div>}
-                  <div className="flex items-start justify-between gap-1">
-                    <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+          {/* COMPACT VIEW */}
+          {viewMode === 'compact' && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filteredEquipment.map((eq) => {
+                const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                return (
+                  <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
+                    <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                      <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1 cursor-pointer select-none">
+                        {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl bg-slate-50"><img src={eq.photo_url} alt="" className="w-full h-full object-contain" /></div>}
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+                        </div>
+                        <p className="text-xs text-slate-500">{eq.brand} {eq.model}</p>
+                        <p className="text-xs text-slate-400">{eq.equipment_type}</p>
+                        {eq.location && <p className="text-xs text-slate-500 truncate">{eq.location}</p>}
+                      </Card>
+                    </Link>
                   </div>
-                  <p className="text-xs text-slate-500">{eq.brand} {eq.model}</p>
-                  <p className="text-xs text-slate-400">{eq.equipment_type}</p>
-                  {eq.location && <p className="text-xs text-slate-500 truncate">{eq.location}</p>}
-                </Card>
-              </Link>);
-          })}
-          </div>}
+                );
+              })}
+            </div>
+          )}
 
-        {/* LIST VIEW */}
-        {viewMode === 'list' && <div className="flex flex-col gap-2">
-            {filteredEquipment.map((eq) => {
-            const building = buildings.find((b) => b.id === eq.building_id);
-            const client = clients.find((c) => c.id === eq.client_id);
-            const statusInfo = statusLabels[eq.status] || statusLabels.operational;
-            return (
-              <Link key={eq.id} to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                <Card className="px-4 py-3 bg-white hover:shadow-md transition-all border flex items-center gap-4">
-                  {eq.photo_url
-                    ? <img src={eq.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
-                    : <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><Thermometer className="h-5 w-5 text-slate-400" /></div>
-                  }
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-teal-700">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
-                      <span className="text-xs text-slate-500">{eq.brand} {eq.model}</span>
-                      <span className="text-xs text-slate-400">{eq.equipment_type}</span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
-                      {client && <span>{client.name}</span>}
-                      {building && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{building.name}</span>}
-                      {eq.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{eq.location}</span>}
-                      {eq.serial_number && <span>S/N: {eq.serial_number}</span>}
-                    </div>
+          {/* LIST VIEW */}
+          {viewMode === 'list' && (
+            <div className="flex flex-col gap-2">
+              {filteredEquipment.map((eq) => {
+                const building = buildings.find((b) => b.id === eq.building_id);
+                const client = clients.find((c) => c.id === eq.client_id);
+                const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                return (
+                  <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
+                    <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
+                      <Card className="px-4 py-3 bg-white hover:shadow-md transition-all border flex items-center gap-4 cursor-pointer select-none">
+                        {eq.photo_url
+                          ? <img src={eq.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
+                          : <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><Thermometer className="h-5 w-5 text-slate-400" /></div>
+                        }
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-teal-700">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
+                            <span className="text-xs text-slate-500">{eq.brand} {eq.model}</span>
+                            <span className="text-xs text-slate-400">{eq.equipment_type}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500 flex-wrap">
+                            {client && <span>{client.name}</span>}
+                            {building && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{building.name}</span>}
+                            {eq.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{eq.location}</span>}
+                            {eq.serial_number && <span>S/N: {eq.serial_number}</span>}
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
+                      </Card>
+                    </Link>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
-                </Card>
-              </Link>);
-          })}
-          </div>}
+                );
+              })}
+            </div>
+          )}
           </>
         )}
       </div>
-    </div>);
 
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onOpen={handleOpen}
+          onDuplicate={handleDuplicate}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
+  );
 }
