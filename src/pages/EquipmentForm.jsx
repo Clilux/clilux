@@ -405,11 +405,59 @@ export default function EquipmentForm() {
           annual_fields: data.maintenance_fields.filter(f => f.periods.includes('anual')),
         }
       });
+
+      // Regenerar revisiones programadas si hay periodicidades y fecha
+      if (data.requires_maintenance !== false && data.selected_periods.length > 0 && data.first_revision_date) {
+        // Borrar revisiones pendientes existentes de este equipo
+        const existingRevisions = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'pending' });
+        for (const rev of existingRevisions) {
+          await base44.entities.ScheduledRevision.delete(rev.id);
+        }
+
+        // Generar nuevas revisiones
+        const periodConfig = {
+          'mensual':    { type: 'monthly',   interval: 1,  count: 12, priority: 1 },
+          'trimestral': { type: 'quarterly', interval: 3,  count: 4,  priority: 2 },
+          'semestral':  { type: 'biannual',  interval: 6,  count: 2,  priority: 3 },
+          'anual':      { type: 'annual',    interval: 12, count: 1,  priority: 4 },
+        };
+        const firstDate = new Date(data.first_revision_date);
+        const allRevisionDates = new Map();
+        data.selected_periods.forEach(period => {
+          const config = periodConfig[period];
+          if (!config) return;
+          for (let i = 0; i < config.count; i++) {
+            const revisionDate = new Date(firstDate);
+            revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
+            const dateKey = format(revisionDate, 'yyyy-MM-dd');
+            const existing = allRevisionDates.get(dateKey);
+            if (!existing || config.priority > existing.priority) {
+              allRevisionDates.set(dateKey, { date: dateKey, type: config.type, priority: config.priority });
+            }
+          }
+        });
+        const scheduledRevisions = [];
+        allRevisionDates.forEach(revision => {
+          scheduledRevisions.push({
+            equipment_id: equipmentId,
+            client_id: data.client_id,
+            building_id: data.building_id,
+            scheduled_date: revision.date,
+            revision_type: revision.type,
+            status: 'pending',
+          });
+        });
+        if (scheduledRevisions.length > 0) {
+          await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
+        }
+      }
+
       return existingEquipment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      toast.success('Equipo actualizado');
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      toast.success('Equipo actualizado y revisiones programadas');
       navigate(createPageUrl(`EquipmentDetail?id=${equipmentId}`));
     },
     onError: () => toast.error('Error al actualizar el equipo'),
