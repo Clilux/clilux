@@ -264,6 +264,7 @@ export default function EquipmentForm() {
     
     // Paso 4: Primera revisión
     first_revision_date: new Date().toISOString().split('T')[0],
+    last_revision_date: '',
     starting_period: '',
   });
 
@@ -313,6 +314,7 @@ export default function EquipmentForm() {
           ...(existingEquipment.maintenance_config?.annual_fields || []),
         ].filter((v, i, a) => a.findIndex(f => f.field_key === v.field_key) === i),
         first_revision_date: existingEquipment.first_revision_date || new Date().toISOString().split('T')[0],
+        last_revision_date: existingEquipment.last_revision_date || '',
         starting_period: '',
       });
     }
@@ -392,6 +394,7 @@ export default function EquipmentForm() {
         photo_url: data.photo_url || existingEquipment?.photo_url || null,
         photos: data.photos || existingEquipment?.photos || [],
         first_revision_date: data.first_revision_date,
+        last_revision_date: data.last_revision_date || null,
         unit_type: data.unit_type || 'standalone',
         parent_equipment_id: data.parent_equipment_id || null,
         maintenance_config: {
@@ -414,21 +417,26 @@ export default function EquipmentForm() {
           await base44.entities.ScheduledRevision.delete(rev.id);
         }
 
-        // Generar nuevas revisiones
         const periodConfig = {
-          'mensual':    { type: 'monthly',   interval: 1,  count: 12, priority: 1 },
-          'trimestral': { type: 'quarterly', interval: 3,  count: 4,  priority: 2 },
-          'semestral':  { type: 'biannual',  interval: 6,  count: 2,  priority: 3 },
-          'anual':      { type: 'annual',    interval: 12, count: 1,  priority: 4 },
+          'mensual':    { type: 'monthly',   interval: 1,  priority: 1 },
+          'trimestral': { type: 'quarterly', interval: 3,  priority: 2 },
+          'semestral':  { type: 'biannual',  interval: 6,  priority: 3 },
+          'anual':      { type: 'annual',    interval: 12, priority: 4 },
         };
         const firstDate = new Date(data.first_revision_date);
+        const endDate = data.last_revision_date ? new Date(data.last_revision_date) : null;
         const allRevisionDates = new Map();
         data.selected_periods.forEach(period => {
           const config = periodConfig[period];
           if (!config) return;
-          for (let i = 0; i < config.count; i++) {
+          const maxMonths = endDate
+            ? Math.ceil((endDate - firstDate) / (1000 * 60 * 60 * 24 * 30.44))
+            : 12;
+          const count = Math.max(1, Math.ceil(maxMonths / config.interval));
+          for (let i = 0; i < count; i++) {
             const revisionDate = new Date(firstDate);
             revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
+            if (endDate && revisionDate > endDate) break;
             const dateKey = format(revisionDate, 'yyyy-MM-dd');
             const existing = allRevisionDates.get(dateKey);
             if (!existing || config.priority > existing.priority) {
@@ -515,6 +523,7 @@ export default function EquipmentForm() {
         status: data.status,
         photo_url: data.photo_url || null,
         first_revision_date: data.first_revision_date,
+        last_revision_date: data.last_revision_date || null,
         unit_type: data.unit_type || 'standalone',
         parent_equipment_id: data.parent_equipment_id || null,
         ...(creatingTechName ? { created_by_name: creatingTechName } : {}),
@@ -536,40 +545,37 @@ export default function EquipmentForm() {
       if (data.requires_maintenance !== false && data.first_revision_date) {
         const scheduledRevisions = [];
         const firstDate = new Date(data.first_revision_date);
+        const endDate = data.last_revision_date ? new Date(data.last_revision_date) : null;
         
-        // Mapeo de periodicidad a tipo de revisión, prioridad y meses
         const periodConfig = {
-          'mensual': { type: 'monthly', interval: 1, count: 12, priority: 1 },
-          'trimestral': { type: 'quarterly', interval: 3, count: 4, priority: 2 },
-          'semestral': { type: 'biannual', interval: 6, count: 2, priority: 3 },
-          'anual': { type: 'annual', interval: 12, count: 1, priority: 4 }
+          'mensual':    { type: 'monthly',   interval: 1,  priority: 1 },
+          'trimestral': { type: 'quarterly', interval: 3,  priority: 2 },
+          'semestral':  { type: 'biannual',  interval: 6,  priority: 3 },
+          'anual':      { type: 'annual',    interval: 12, priority: 4 },
         };
         
-        // Recopilar todas las revisiones con sus fechas
-        const allRevisionDates = new Map(); // fecha => tipo más prioritario
+        const allRevisionDates = new Map();
         
         data.selected_periods.forEach(period => {
           const config = periodConfig[period];
           if (!config) return;
-          
-          for (let i = 0; i < config.count; i++) {
+          // Si hay fecha fin, generar hasta ella; si no, 1 año (12 meses / interval)
+          const maxMonths = endDate
+            ? Math.ceil((endDate - firstDate) / (1000 * 60 * 60 * 24 * 30.44))
+            : 12;
+          const count = Math.max(1, Math.ceil(maxMonths / config.interval));
+          for (let i = 0; i < count; i++) {
             const revisionDate = new Date(firstDate);
-            revisionDate.setMonth(firstDate.getMonth() + (i * config.interval));
+            revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
+            if (endDate && revisionDate > endDate) break;
             const dateKey = format(revisionDate, 'yyyy-MM-dd');
-            
-            // Solo mantener la revisión de mayor prioridad para cada fecha
             const existing = allRevisionDates.get(dateKey);
             if (!existing || config.priority > existing.priority) {
-              allRevisionDates.set(dateKey, {
-                date: dateKey,
-                type: config.type,
-                priority: config.priority
-              });
+              allRevisionDates.set(dateKey, { date: dateKey, type: config.type, priority: config.priority });
             }
           }
         });
         
-        // Crear revisiones únicas (solo la más prioritaria por fecha)
         allRevisionDates.forEach(revision => {
           scheduledRevisions.push({
             equipment_id: equipment.id,
@@ -581,7 +587,6 @@ export default function EquipmentForm() {
           });
         });
         
-        // Crear todas las revisiones programadas
         if (scheduledRevisions.length > 0) {
           await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
         }
@@ -1451,6 +1456,18 @@ export default function EquipmentForm() {
                   onChange={(e) => handleChange('first_revision_date', e.target.value)}
                   className="bg-white/5 border-white/20 text-white"
                 />
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Fecha Fin de Revisiones (opcional)</Label>
+                <Input
+                  type="date"
+                  value={formData.last_revision_date}
+                  min={formData.first_revision_date}
+                  onChange={(e) => handleChange('last_revision_date', e.target.value)}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+                <p className="text-xs text-slate-400 mt-1">Si no se indica, se generará 1 año de revisiones</p>
               </div>
 
               <div>
