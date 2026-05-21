@@ -1,0 +1,109 @@
+{
+  "name": "ClientDocument",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del documento"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "certificado_rite",
+        "otro"
+      ],
+      "default": "certificado_rite",
+      "description": "Tipo de documento"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo PDF guardado"
+    },
+    "num_certificado": {
+      "type": "string",
+      "description": "N\u00famero de certificado"
+    },
+    "building_name": {
+      "type": "string",
+      "description": "Nombre del edificio/instalaci\u00f3n"
+    },
+    "tecnico_nombre": {
+      "type": "string",
+      "description": "T\u00e9cnico que realiz\u00f3 el mantenimiento"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Observaciones del certificado"
+    },
+    "fecha_firma": {
+      "type": "string",
+      "description": "Fecha de firma del certificado"
+    },
+    "form_data": {
+      "type": "object",
+      "description": "Datos completos del formulario para visualizaci\u00f3n"
+    }
+  },
+  "required": [
+    "client_id",
+    "title",
+    "document_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.client_id": "{{user.data.linked_client_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
