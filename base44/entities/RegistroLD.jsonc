@@ -20,29 +20,80 @@
       "enum": [
         "puesta_en_marcha",
         "mantenimiento_mensual",
-        "tras_averia"
+        "tras_averia",
+        "aislamiento_legionella",
+        "medida_correctora",
+        "brote_casos"
       ],
       "description": "Tipo de tratamiento"
     },
-    "tecnico_nombre": {
+    "nombre_circuito": {
       "type": "string",
-      "description": "Nombre del t\u00e9cnico responsable"
+      "description": "Nombre del circuito / equipo adiab\u00e1tico"
+    },
+    "estado_conservacion": {
+      "type": "string",
+      "enum": [
+        "correcto",
+        "con_corrosion",
+        "con_incrustaciones",
+        "biocapa",
+        "algas"
+      ],
+      "description": "Estado de conservaci\u00f3n de la instalaci\u00f3n"
+    },
+    "plano_hidraulico": {
+      "type": "string",
+      "enum": [
+        "si",
+        "no"
+      ],
+      "description": "Plano actualizado del esquema hidr\u00e1ulico"
+    },
+    "hora_inicio": {
+      "type": "string",
+      "description": "Hora de inicio HH:MM"
+    },
+    "hora_fin": {
+      "type": "string",
+      "description": "Hora de fin HH:MM"
+    },
+    "hora_inicio_desinfeccion": {
+      "type": "string",
+      "description": "Hora inicio desinfecci\u00f3n HH:MM"
+    },
+    "hora_fin_desinfeccion": {
+      "type": "string",
+      "description": "Hora fin desinfecci\u00f3n HH:MM"
     },
     "balsa_litros": {
       "type": "number",
       "description": "Volumen de la balsa (litros)"
     },
     "ph_inicial": {
-      "type": "number",
-      "description": "pH inicial del agua"
+      "type": "number"
     },
     "cloro_libre_inicial": {
-      "type": "number",
-      "description": "Cloro libre inicial (ppm)"
+      "type": "number"
     },
     "temperatura_inicial": {
-      "type": "number",
-      "description": "Temperatura inicial del agua (\u00b0C)"
+      "type": "number"
+    },
+    "producto_principal": {
+      "type": "string",
+      "description": "Nombre del producto biocida principal (ej: Hipoclorito S\u00f3dico Brenntquisan Legionella)"
+    },
+    "dosis_producto_principal": {
+      "type": "string",
+      "description": "Dosis del producto principal (ej: 0,41)"
+    },
+    "producto_secundario": {
+      "type": "string",
+      "description": "Nombre del producto secundario (ej: Metabisulfito S\u00f3dico PWG Brenntag)"
+    },
+    "dosis_producto_secundario": {
+      "type": "string",
+      "description": "Dosis del producto secundario (ej: 0,11)"
     },
     "hipoclorito_ml": {
       "type": "number",
@@ -52,115 +103,120 @@
       "type": "number",
       "description": "Tiempo de recirculaci\u00f3n (minutos)"
     },
-    "cloro_durante_desinfeccion": {
+    "tiempo_neutralizacion_min": {
       "type": "number",
-      "description": "Cloro libre durante la desinfecci\u00f3n (ppm)"
+      "description": "Tiempo de neutralizaci\u00f3n (minutos)"
+    },
+    "cloro_durante_desinfeccion": {
+      "type": "number"
     },
     "metabisulfito_g": {
-      "type": "number",
-      "description": "Cantidad de metabisulfito s\u00f3dico a\u00f1adido (gramos)"
+      "type": "number"
     },
     "ph_final": {
-      "type": "number",
-      "description": "pH final"
+      "type": "number"
     },
     "cloro_libre_final": {
-      "type": "number",
-      "description": "Cloro libre final (ppm)"
+      "type": "number"
     },
     "temperatura_final": {
-      "type": "number",
-      "description": "Temperatura final del agua (\u00b0C)"
+      "type": "number"
     },
     "check_vaciado": {
-      "type": "boolean",
-      "default": false,
-      "description": "\u00bfVaciado completo inicial realizado?"
+      "type": "string",
+      "enum": [
+        "si",
+        "no",
+        "parcialmente"
+      ],
+      "default": "no"
+    },
+    "check_limpieza_antes_biocida": {
+      "type": "string",
+      "enum": [
+        "si",
+        "no",
+        "parcialmente"
+      ],
+      "default": "no",
+      "description": "\u00bfSe han limpiado antes de a\u00f1adir el biocida?"
     },
     "check_limpieza_balsa": {
       "type": "boolean",
-      "default": false,
-      "description": "\u00bfLimpieza mec\u00e1nica de la balsa realizada?"
+      "default": false
     },
     "check_paneles_celulosa": {
       "type": "boolean",
-      "default": false,
-      "description": "\u00bfPaneles de celulosa revisados/limpiados?"
+      "default": false
     },
     "check_valvula_vaciado": {
       "type": "boolean",
-      "default": false,
-      "description": "\u00bfV\u00e1lvula de vaciado autom\u00e1tico verificada?"
+      "default": false
+    },
+    "partes_tratamiento": {
+      "type": "string",
+      "description": "Partes donde se realiza el tratamiento (total/parcial) y medidas correctoras"
     },
     "observaciones": {
+      "type": "string"
+    },
+    "responsable_tecnico_nombre": {
       "type": "string",
-      "description": "Observaciones adicionales"
+      "description": "Nombre del responsable t\u00e9cnico"
+    },
+    "responsable_tecnico_dni": {
+      "type": "string",
+      "description": "DNI del responsable t\u00e9cnico"
+    },
+    "responsable_tecnico_curso": {
+      "type": "string",
+      "description": "Lugar/fecha del curso del responsable t\u00e9cnico"
+    },
+    "responsable_tecnico_cualificacion": {
+      "type": "string",
+      "description": "Cualificaci\u00f3n/titulaci\u00f3n del responsable t\u00e9cnico"
+    },
+    "aplicador_nombre": {
+      "type": "string",
+      "description": "Nombre del aplicador de tratamiento"
+    },
+    "aplicador_dni": {
+      "type": "string",
+      "description": "DNI del aplicador"
+    },
+    "aplicador_curso": {
+      "type": "string",
+      "description": "Lugar/fecha del curso del aplicador"
+    },
+    "aplicador_cualificacion": {
+      "type": "string",
+      "description": "Cualificaciones del aplicador"
+    },
+    "tecnico_nombre": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico (legacy/compatibilidad)"
     },
     "proxima_revision_fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha de pr\u00f3xima revisi\u00f3n (calculada autom\u00e1ticamente)"
+      "format": "date"
     },
     "documento_url": {
-      "type": "string",
-      "description": "URL del certificado PDF generado"
+      "type": "string"
+    },
+    "ppm_deseadas": {
+      "type": "number"
+    },
+    "porcentaje_hipoclorito": {
+      "type": "number"
+    },
+    "cloro_a_neutralizar": {
+      "type": "number"
     }
   },
   "required": [
     "equipment_id",
     "client_id",
     "fecha",
-    "tipo_tratamiento",
-    "tecnico_nombre"
-  ],
-  "rls": {
-    "create": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "read": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    }
-  }
+    "tipo_tratamiento"
+  ]
 }
