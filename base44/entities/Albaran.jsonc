@@ -1,0 +1,131 @@
+{
+  "name": "Albaran",
+  "type": "object",
+  "properties": {
+    "numero": {
+      "type": "string",
+      "description": "N\u00famero de albar\u00e1n"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del albar\u00e1n"
+    },
+    "presupuesto_id": {
+      "type": "string",
+      "description": "ID del presupuesto origen"
+    },
+    "lineas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "concepto": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "descuento": {
+            "type": "number",
+            "default": 0
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number"
+    },
+    "iva": {
+      "type": "number",
+      "default": 21
+    },
+    "total": {
+      "type": "number"
+    },
+    "observaciones": {
+      "type": "string"
+    },
+    "firma_cliente_url": {
+      "type": "string",
+      "description": "URL firma digital del cliente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "firmado",
+        "facturado"
+      ],
+      "default": "pendiente"
+    },
+    "convertido_factura": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "client_id",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
