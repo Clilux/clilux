@@ -1,0 +1,128 @@
+{
+  "name": "Building",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente propietario"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del edificio"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n del edificio"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "province": {
+      "type": "string",
+      "description": "Provincia"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitud geogr\u00e1fica"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitud geogr\u00e1fica"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto en el edificio"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "floors": {
+      "type": "number",
+      "description": "N\u00famero de plantas"
+    },
+    "surface_m2": {
+      "type": "number",
+      "description": "Superficie en m\u00b2"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Foto del edificio"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "client_id",
+    "name",
+    "address"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.client_id": "{{user.data.linked_client_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
