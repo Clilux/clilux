@@ -1,0 +1,133 @@
+{
+  "name": "Presupuesto",
+  "type": "object",
+  "properties": {
+    "numero": {
+      "type": "string",
+      "description": "N\u00famero de presupuesto"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del presupuesto"
+    },
+    "fecha_validez": {
+      "type": "string",
+      "format": "date",
+      "description": "V\u00e1lido hasta"
+    },
+    "lineas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "concepto": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "descuento": {
+            "type": "number",
+            "default": 0
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "L\u00edneas del presupuesto"
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Subtotal sin IVA"
+    },
+    "iva": {
+      "type": "number",
+      "default": 21,
+      "description": "Porcentaje IVA"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total con IVA"
+    },
+    "observaciones": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "enviado",
+        "aceptado",
+        "rechazado"
+      ],
+      "default": "borrador"
+    },
+    "convertido_albaran": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "client_id",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
