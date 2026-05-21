@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClient } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -8,7 +8,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email y contraseña requeridos' }, { status: 400 });
     }
 
-    const base44 = createClientFromRequest(req);
+    const base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID') });
+
     const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
     const appSettings = settings[0];
 

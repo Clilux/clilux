@@ -1,11 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClient } from 'npm:@base44/sdk@0.8.25';
 
 /**
  * Devuelve datos de la empresa usando service role (no requiere sesión Base44 del usuario).
  * Valida que el técnico exista y esté activo antes de devolver datos.
  */
 Deno.serve(async (req) => {
-  const base44 = createClientFromRequest(req);
+  const base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID') });
 
   const body = await req.json();
   const { technician_email, entity } = body;
