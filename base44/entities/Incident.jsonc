@@ -1,0 +1,181 @@
+{
+  "name": "Incident",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente que reporta"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio"
+    },
+    "equipment_id": {
+      "type": "string",
+      "description": "ID del equipo afectado"
+    },
+    "reported_by": {
+      "type": "string",
+      "description": "Email del usuario que reporta"
+    },
+    "reported_by_name": {
+      "type": "string",
+      "description": "Nombre del usuario que reporta"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo breve de la incidencia"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n detallada del problema"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium",
+      "description": "Prioridad de la incidencia"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "resolved",
+        "closed",
+        "deleted_by_technician"
+      ],
+      "default": "pending",
+      "description": "Estado de la incidencia"
+    },
+    "label": {
+      "type": "string",
+      "enum": [
+        "resuelta",
+        "recambio",
+        "irreparable"
+      ],
+      "description": "Etiqueta de resoluci\u00f3n del t\u00e9cnico"
+    },
+    "assigned_technician_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico asignado"
+    },
+    "technician_notes": {
+      "type": "string",
+      "description": "Notas del t\u00e9cnico"
+    },
+    "resolution_notes": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la resoluci\u00f3n"
+    },
+    "resolution_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de resoluci\u00f3n"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fotos adjuntas"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "technician": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Historial de comentarios y cambios de estado"
+    }
+  },
+  "required": [
+    "client_id",
+    "title",
+    "description"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.reported_by": "{{user.email}}"
+        },
+        {
+          "data.assigned_technician_id": "{{user.data.technician_id}}"
+        },
+        {
+          "data.client_id": "{{user.data.linked_client_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.assigned_technician_id": "{{user.data.technician_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
