@@ -1,0 +1,100 @@
+{
+  "name": "DocumentConfig",
+  "type": "object",
+  "properties": {
+    "doc_type": {
+      "type": "string",
+      "enum": [
+        "factura",
+        "albaran",
+        "presupuesto"
+      ],
+      "description": "Tipo de documento"
+    },
+    "estados_disponibles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Estados configurables para este tipo de documento"
+    },
+    "prefijo_numeracion": {
+      "type": "string",
+      "description": "Prefijo para la numeraci\u00f3n (ej: FAC-, ALB-)"
+    },
+    "siguiente_numero": {
+      "type": "number",
+      "default": 1,
+      "description": "Siguiente n\u00famero a usar"
+    },
+    "ivas_disponibles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "porcentaje": {
+            "type": "number"
+          },
+          "descripcion": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Tipos de IVA disponibles"
+    },
+    "campos_adicionales": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "requerido": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Campos personalizados adicionales"
+    }
+  },
+  "required": [
+    "doc_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
