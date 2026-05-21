@@ -1,0 +1,52 @@
+{
+  "name": "EquipmentSuggestions",
+  "type": "object",
+  "properties": {
+    "setting_key": {
+      "type": "string",
+      "description": "Clave \u00fanica (usar 'suggestions')"
+    },
+    "brands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de marcas usadas"
+    },
+    "refrigerants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de refrigerantes usados"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de modelos usados"
+    }
+  },
+  "required": [
+    "setting_key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
