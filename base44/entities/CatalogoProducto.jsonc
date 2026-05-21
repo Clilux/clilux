@@ -1,0 +1,94 @@
+{
+  "name": "CatalogoProducto",
+  "type": "object",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "producto",
+        "servicio"
+      ],
+      "default": "producto",
+      "description": "Tipo: Producto o Servicio"
+    },
+    "fabricante": {
+      "type": "string",
+      "description": "Fabricante/Marca del producto"
+    },
+    "codigo": {
+      "type": "string",
+      "description": "C\u00f3digo/referencia del producto"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del producto"
+    },
+    "familia": {
+      "type": "string",
+      "description": "Familia del producto"
+    },
+    "pvp": {
+      "type": "number",
+      "description": "Precio de venta al p\u00fablico base"
+    },
+    "descuento_compra": {
+      "type": "number",
+      "default": 0,
+      "description": "Descuento de compra en porcentaje"
+    },
+    "porcentaje_venta": {
+      "type": "number",
+      "default": 0,
+      "description": "Porcentaje de margen sobre precio de compra"
+    },
+    "precio_venta": {
+      "type": "number",
+      "description": "Precio de venta calculado"
+    },
+    "a\u00f1o_tarifa": {
+      "type": "number",
+      "description": "A\u00f1o de la tarifa"
+    },
+    "unidad": {
+      "type": "string",
+      "default": "ud",
+      "description": "Unidad de medida"
+    },
+    "nombre_catalogo": {
+      "type": "string",
+      "description": "Nombre del cat\u00e1logo al que pertenece"
+    },
+    "catalogo_id": {
+      "type": "string",
+      "description": "ID del cat\u00e1logo importado al que pertenece"
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "fabricante",
+    "codigo",
+    "descripcion",
+    "pvp"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
