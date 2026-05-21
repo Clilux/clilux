@@ -1,0 +1,108 @@
+{
+  "name": "DocumentoEnvio",
+  "type": "object",
+  "properties": {
+    "documento_id": {
+      "type": "string",
+      "description": "ID del documento (factura, albar\u00e1n, presupuesto)"
+    },
+    "tipo_documento": {
+      "type": "string",
+      "enum": [
+        "factura",
+        "albaran",
+        "presupuesto"
+      ],
+      "description": "Tipo de documento enviado"
+    },
+    "destinatario": {
+      "type": "string",
+      "description": "Email del destinatario"
+    },
+    "fecha_envio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del env\u00edo"
+    },
+    "metodo_envio": {
+      "type": "string",
+      "enum": [
+        "email",
+        "whatsapp",
+        "enlace"
+      ],
+      "description": "M\u00e9todo de env\u00edo utilizado"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "enviado",
+        "visto",
+        "error"
+      ],
+      "default": "enviado",
+      "description": "Estado del env\u00edo"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas adicionales del env\u00edo"
+    }
+  },
+  "required": [
+    "documento_id",
+    "tipo_documento",
+    "destinatario",
+    "fecha_envio",
+    "metodo_envio"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
