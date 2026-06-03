@@ -9,7 +9,8 @@ import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import {
   Plus, Droplets, AlertTriangle, CheckCircle2, Clock,
-  Trash2, Edit, ChevronDown, ChevronUp, FileText, Loader2
+  Trash2, Edit, ChevronDown, ChevronUp, FileText, Loader2,
+  ChevronRight, ChevronLeft, Info
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -408,6 +409,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
   const [form, setForm] = useState(emptyForm);
   const [expandedId, setExpandedId] = useState(null);
   const [generatingPdf, setGeneratingPdf] = useState(null);
+  const [step, setStep] = useState(0);
 
   const balsaLitros = equipment?.balsa_litros || null;
 
@@ -483,6 +485,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
   });
 
   const handleEdit = (r) => {
+    setStep(0);
     setForm({
       fecha: r.fecha || '',
       tipo_tratamiento: r.tipo_tratamiento || 'mantenimiento_mensual',
@@ -546,7 +549,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
     }
   };
 
-  const openNewForm = () => { setForm({ ...emptyForm }); setEditingId(null); setShowForm(true); };
+  const openNewForm = () => { setForm({ ...emptyForm }); setEditingId(null); setStep(0); setShowForm(true); };
 
   const Label = ({ children }) => <label className="text-xs text-slate-500 mb-1 block">{children}</label>;
   const Section = ({ icon, title, color }) => (
@@ -680,262 +683,440 @@ export default function LDTab({ equipment, equipmentId, client }) {
         </Button>
       )}
 
-      {/* ── FORMULARIO ── */}
+      {/* ── FORMULARIO WIZARD ── */}
       {showForm && (
-        <Card className="p-5 border border-cyan-200 bg-cyan-50/20">
-          <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <Droplets className="h-4 w-4 text-cyan-600" />
-            {editingId ? 'Editar Registro L+D' : 'Nuevo Registro L+D'}
-          </h4>
+        <Card className="border border-cyan-200 overflow-hidden">
+          {/* Cabecera con pasos */}
+          <div className="bg-slate-800 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Droplets className="h-4 w-4 text-cyan-400" />
+              <span className="text-white text-sm font-semibold">{editingId ? 'Editar Registro L+D' : 'Nuevo Registro L+D'}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {['Inicio', 'Medición inicial', 'Dosificación', 'Desinfección', 'Final y firmas'].map((s, i) => (
+                <button key={i} onClick={() => setStep(i)}
+                  className={`text-xs px-2 py-1 rounded transition-all ${step === i ? 'bg-cyan-500 text-white font-semibold' : 'text-slate-400 hover:text-white'}`}>
+                  <span className="hidden sm:inline">{s}</span>
+                  <span className="sm:hidden">{i + 1}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Barra de progreso */}
+          <div className="h-1 bg-slate-200">
+            <div className="h-1 bg-cyan-500 transition-all duration-300" style={{ width: `${((step + 1) / 5) * 100}%` }} />
+          </div>
 
-            {/* ─ Datos generales ─ */}
-            <Section icon="📋" title="Datos Generales" color="text-slate-700" />
-            <div>
-              <Label>Fecha *</Label>
-              <Input type="date" value={form.fecha} onChange={e => f('fecha', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Tipo de tratamiento *</Label>
-              <select value={form.tipo_tratamiento} onChange={e => f('tipo_tratamiento', e.target.value)}
-                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
-                {Object.entries(TIPO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Nombre del circuito / instalación</Label>
-              <Input value={form.nombre_circuito} onChange={e => f('nombre_circuito', e.target.value)} className="h-8 text-sm" placeholder="Ej: Equipo Adiabático planta 2" />
-            </div>
-            <div>
-              <Label>Estado de conservación</Label>
-              <select value={form.estado_conservacion} onChange={e => f('estado_conservacion', e.target.value)}
-                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
-                {Object.entries(ESTADO_CONSERVACION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Plano hidráulico actualizado</Label>
-              <SiNoSelect value={form.plano_hidraulico} onChange={v => f('plano_hidraulico', v)} />
-            </div>
-            <div>
-              <Label>Hora inicio actuación</Label>
-              <Input type="time" value={form.hora_inicio} onChange={e => f('hora_inicio', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Hora fin actuación</Label>
-              <Input type="time" value={form.hora_fin} onChange={e => f('hora_fin', e.target.value)} className="h-8 text-sm" />
-            </div>
+          <div className="p-5">
 
-            {/* ─ Mediciones iniciales ─ */}
-            <Section icon="📊" title="Mediciones Iniciales" color="text-blue-700" />
-            <div>
-              <Label>pH inicial</Label>
-              <Input type="number" step="0.1" value={form.ph_inicial} onChange={e => f('ph_inicial', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8 (óptimo)" />
-              <AlertaValor valor={form.ph_inicial} label="pH" min={7.2} max={7.8} />
-              {form.ph_inicial !== '' && Number(form.ph_inicial) > 8 && (
-                <span className="text-xs text-red-600 font-medium block">⚠ pH &gt;8: el cloro pierde &gt;70% de eficacia. Añadir reductor de pH.</span>
-              )}
-            </div>
-            <div>
-              <Label>Cloro libre inicial (ppm)</Label>
-              <Input type="number" step="0.1" value={form.cloro_libre_inicial} onChange={e => f('cloro_libre_inicial', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Temperatura inicial (°C)</Label>
-              <Input type="number" step="0.1" value={form.temperatura_inicial} onChange={e => f('temperatura_inicial', e.target.value)} className="h-8 text-sm" />
-              {form.temperatura_inicial !== '' && Number(form.temperatura_inicial) > 20 && (
-                <span className="text-xs text-red-600 font-medium">⚠ &gt;20°C: riesgo Legionella</span>
-              )}
-            </div>
-
-            {/* ─ Productos y dosificación ─ */}
-            <Section icon="🧪" title="Productos y Dosificación" color="text-amber-700" />
-            <div>
-              <Label>Producto principal (biocida)</Label>
-              <Input value={form.producto_principal} onChange={e => f('producto_principal', e.target.value)} className="h-8 text-sm" placeholder="Hipoclorito Sódico..." />
-            </div>
-            <div>
-              <Label>Dosis producto principal</Label>
-              <Input value={form.dosis_producto_principal} onChange={e => f('dosis_producto_principal', e.target.value)} className="h-8 text-sm" placeholder="Ej: 0,41 L/m³" />
-            </div>
-            <div>
-              <Label>Producto secundario (neutralizante)</Label>
-              <Input value={form.producto_secundario} onChange={e => f('producto_secundario', e.target.value)} className="h-8 text-sm" placeholder="Metabisulfito Sódico..." />
-            </div>
-            <div>
-              <Label>Dosis producto secundario</Label>
-              <Input value={form.dosis_producto_secundario} onChange={e => f('dosis_producto_secundario', e.target.value)} className="h-8 text-sm" placeholder="Ej: 0,11 g/L" />
-            </div>
-
-            <div>
-              <Label>PPM deseadas</Label>
-              <select value={form.ppm_deseadas} onChange={e => f('ppm_deseadas', Number(e.target.value))}
-                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
-                {PPM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Concentración hipoclorito</Label>
-              <select value={form.porcentaje_hipoclorito} onChange={e => f('porcentaje_hipoclorito', Number(e.target.value))}
-                className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
-                {HIPOCLORITO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-
-            {balsaLitros && hipocloritoCalculado !== null && (
-              <div className="sm:col-span-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                <p className="text-xs text-slate-500">Dosis calculada hipoclorito:</p>
-                <p className="text-xl font-bold text-slate-800">{hipocloritoCalculado} ml</p>
-                <p className="text-xs text-slate-400">({balsaLitros} L × {form.ppm_deseadas} ppm) / ({form.porcentaje_hipoclorito}% × 10)</p>
-              </div>
-            )}
-
-            <div>
-              <Label>Hipoclorito sódico añadido realmente (ml)</Label>
-              <Input type="number" step="0.1" value={form.hipoclorito_ml} onChange={e => f('hipoclorito_ml', e.target.value)} className="h-8 text-sm"
-                placeholder={hipocloritoCalculado !== null ? `Calc: ${hipocloritoCalculado} ml` : ''} />
-            </div>
-            <div>
-              <Label>Tiempo de recirculación (min, mín. 60)</Label>
-              <Input type="number" value={form.tiempo_recirculacion_min} onChange={e => f('tiempo_recirculacion_min', e.target.value)} className="h-8 text-sm" placeholder="120" />
-              {form.tiempo_recirculacion_min !== '' && Number(form.tiempo_recirculacion_min) < 120 && (
-                <span className="text-xs text-red-600">⚠ Mínimo requerido: 120 min para validez del Libro de Registro</span>
-              )}
-            </div>
-            <div>
-              <Label>Hora inicio desinfección</Label>
-              <Input type="time" value={form.hora_inicio_desinfeccion} onChange={e => f('hora_inicio_desinfeccion', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Hora fin desinfección</Label>
-              <Input type="time" value={form.hora_fin_desinfeccion} onChange={e => f('hora_fin_desinfeccion', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Cloro durante desinfección (ppm)</Label>
-              <Input type="number" step="0.1" value={form.cloro_durante_desinfeccion} onChange={e => f('cloro_durante_desinfeccion', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Tiempo de neutralización (min)</Label>
-              <Input type="number" value={form.tiempo_neutralizacion_min} onChange={e => f('tiempo_neutralizacion_min', e.target.value)} className="h-8 text-sm" placeholder="10" />
-            </div>
-
-            {/* ─ Mediciones finales ─ */}
-            <Section icon="✅" title="Mediciones Finales" color="text-emerald-700" />
-            <div>
-              <Label>Cloro libre a neutralizar (ppm medido al minuto 120, antes de tiosulfato)</Label>
-              <Input type="number" step="0.1" value={form.cloro_a_neutralizar}
-                onChange={e => f('cloro_a_neutralizar', e.target.value)}
-                className={`h-8 text-sm ${cloroNeutralizarError ? 'border-red-500' : ''}`}
-                placeholder="≥30 ppm confirma proceso correcto" />
-              {cloroNeutralizarError && <p className="text-xs text-red-600 font-medium">⛔ Valor &gt;60 ppm imposible.</p>}
-              {form.cloro_a_neutralizar !== '' && Number(form.cloro_a_neutralizar) < 30 && !cloroNeutralizarError && (
-                <span className="text-xs text-amber-600 font-medium">⚠ Menor de 30 ppm: el proceso puede no ser válido. Se debió reponer hipoclorito durante el proceso.</span>
-              )}
-            </div>
-            {balsaLitros && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Dosis calculada tiosulfato sódico (neutralización):</p>
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200 min-h-[2rem]">
-                  <p className="text-lg font-bold text-slate-800">{metabisulfitoCalculado !== null ? `${metabisulfitoCalculado} g` : '—'}</p>
-                  {metabisulfitoCalculado !== null && <p className="text-xs text-slate-400">hasta 0 ppm Cl</p>}
+            {/* ── PASO 0: Datos generales ── */}
+            {step === 0 && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700">
+                  <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-blue-800 mb-1">📋 Paso 1 — Datos de la intervención</p>
+                    <p>Registra los datos básicos de hoy: fecha, tipo de tratamiento y estado del equipo antes de empezar. Estos datos identifican el registro en el Libro de Mantenimiento.</p>
+                    <p className="mt-1 text-slate-500">El <strong>plano hidráulico</strong> es el esquema de tuberías y componentes del circuito. Debe estar actualizado antes de cada intervención.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Fecha *</Label>
+                    <Input type="date" value={form.fecha} onChange={e => f('fecha', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label>Tipo de tratamiento *</Label>
+                    <select value={form.tipo_tratamiento} onChange={e => f('tipo_tratamiento', e.target.value)}
+                      className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                      {Object.entries(TIPO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {form.tipo_tratamiento === 'puesta_en_marcha' && '→ Primer arranque de temporada o tras hibernación. Requiere 30 ppm y 120 min.'}
+                      {form.tipo_tratamiento === 'mantenimiento_mensual' && '→ Revisión mensual obligatoria. 20 ppm y 60 min mínimo.'}
+                      {form.tipo_tratamiento === 'aislamiento_legionella' && '→ Detección positiva en analítica. 50 ppm y 60 min mínimo. Notificar a Sanidad.'}
+                      {form.tipo_tratamiento === 'brote_casos' && '→ Brote confirmado. 50 ppm. Requiere notificación inmediata a autoridad sanitaria.'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Nombre del circuito / instalación</Label>
+                    <Input value={form.nombre_circuito} onChange={e => f('nombre_circuito', e.target.value)} className="h-8 text-sm" placeholder="Ej: Torre evaporativa planta cubierta" />
+                    <p className="text-xs text-slate-400 mt-0.5">Nombre con el que identificas este equipo en tu empresa.</p>
+                  </div>
+                  <div>
+                    <Label>Estado de conservación (inspección visual)</Label>
+                    <select value={form.estado_conservacion} onChange={e => f('estado_conservacion', e.target.value)}
+                      className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                      {Object.entries(ESTADO_CONSERVACION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-0.5">Revisa visualmente balsa, paneles, toberas y estructura.</p>
+                  </div>
+                  <div>
+                    <Label>¿Plano hidráulico actualizado disponible?</Label>
+                    <SiNoSelect value={form.plano_hidraulico} onChange={v => f('plano_hidraulico', v)} />
+                    <p className="text-xs text-slate-400 mt-0.5">Obligatorio tenerlo disponible para la inspección.</p>
+                  </div>
+                  <div>
+                    <Label>¿Se ha vaciado la balsa previamente?</Label>
+                    <SiNoSelect value={form.check_vaciado} onChange={v => f('check_vaciado', v)} incluirParcialmente />
+                    <p className="text-xs text-slate-400 mt-0.5">Para puesta en marcha/hibernación es obligatorio vaciar y limpiar antes de añadir biocida.</p>
+                  </div>
+                  <div>
+                    <Label>¿Se ha limpiado antes de añadir el biocida?</Label>
+                    <SiNoSelect value={form.check_limpieza_antes_biocida} onChange={v => f('check_limpieza_antes_biocida', v)} incluirParcialmente />
+                    <p className="text-xs text-slate-400 mt-0.5">Limpieza mecánica con pistola a presión, eliminando incrustaciones y biocapa.</p>
+                  </div>
+                  <div>
+                    <Label>Hora inicio actuación</Label>
+                    <Input type="time" value={form.hora_inicio} onChange={e => f('hora_inicio', e.target.value)} className="h-8 text-sm" />
+                    <p className="text-xs text-slate-400 mt-0.5">Hora en que comienzas la intervención (antes de vaciar).</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Partes donde se realiza el tratamiento / medidas correctoras</Label>
+                    <textarea value={form.partes_tratamiento} onChange={e => f('partes_tratamiento', e.target.value)}
+                      className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2}
+                      placeholder="Ej: Tratamiento total. Se han sustituido los paneles de celulosa con signos de biocapa..." />
+                    <p className="text-xs text-slate-400 mt-0.5">Indica si el tratamiento es total o parcial y qué medidas correctoras has aplicado.</p>
+                  </div>
                 </div>
               </div>
             )}
-            <div>
-              <Label>Tiosulfato sódico añadido (g) — hasta 0 ppm Cl</Label>
-              <Input type="number" step="0.01" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)} className="h-8 text-sm"
-                placeholder={metabisulfitoCalculado !== null ? `Calc: ${metabisulfitoCalculado} g` : ''} />
-            </div>
-            <div>
-              <Label>pH final</Label>
-              <Input type="number" step="0.1" value={form.ph_final} onChange={e => f('ph_final', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8" />
-              <AlertaValor valor={form.ph_final} label="pH" min={7.2} max={7.8} />
-            </div>
-            <div>
-              <Label>Cloro libre final (ppm)</Label>
-              <Input type="number" step="0.1" value={form.cloro_libre_final} onChange={e => f('cloro_libre_final', e.target.value)} className="h-8 text-sm" placeholder="0.2 – 1.0" />
-              <AlertaValor valor={form.cloro_libre_final} label="Cl final" min={0.2} max={1.0} />
-            </div>
-            <div>
-              <Label>Temperatura final (°C)</Label>
-              <Input type="number" step="0.1" value={form.temperatura_final} onChange={e => f('temperatura_final', e.target.value)} className="h-8 text-sm" />
-            </div>
 
-            {/* ─ Acciones físicas ─ */}
-            <Section icon="☑" title="Acciones Físicas" color="text-slate-700" />
-            <div>
-              <Label>¿Se ha vaciado previamente?</Label>
-              <SiNoSelect value={form.check_vaciado} onChange={v => f('check_vaciado', v)} incluirParcialmente />
-            </div>
-            <div>
-              <Label>¿Se ha limpiado antes de añadir el biocida?</Label>
-              <SiNoSelect value={form.check_limpieza_antes_biocida} onChange={v => f('check_limpieza_antes_biocida', v)} incluirParcialmente />
-            </div>
+            {/* ── PASO 1: Mediciones iniciales ── */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700">
+                  <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-blue-800 mb-1">📊 Paso 2 — Mediciones iniciales del agua</p>
+                    <p>Antes de añadir ningún producto, mide el agua de la balsa <strong>ya limpia y llena con agua de red</strong>. Estas mediciones son el punto de partida del proceso.</p>
+                    <ul className="mt-1.5 space-y-1 text-slate-600">
+                      <li>• <strong>pH:</strong> El rango óptimo es 7,2–7,8. Si el pH es &gt;8, el hipoclorito pierde más del 70% de eficacia. Añade reductor de pH antes de dosificar el biocida.</li>
+                      <li>• <strong>Cloro libre:</strong> Normalmente será 0 o muy bajo en agua de red recién llenada.</li>
+                      <li>• <strong>Temperatura:</strong> Por encima de 20°C hay riesgo de proliferación de Legionella. Registra siempre.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label>pH inicial</Label>
+                    <Input type="number" step="0.1" value={form.ph_inicial} onChange={e => f('ph_inicial', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8" />
+                    <AlertaValor valor={form.ph_inicial} label="pH" min={7.2} max={7.8} />
+                    {form.ph_inicial !== '' && Number(form.ph_inicial) > 8 && (
+                      <span className="text-xs text-red-600 font-medium block mt-0.5">⛔ pH &gt;8: añade reductor de pH antes de continuar. El cloro no actuará correctamente.</span>
+                    )}
+                    {form.ph_inicial !== '' && Number(form.ph_inicial) >= 7.2 && Number(form.ph_inicial) <= 7.8 && (
+                      <span className="text-xs text-emerald-600 font-medium block mt-0.5">✓ Rango óptimo. Puedes continuar con la dosificación.</span>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Cloro libre inicial (ppm)</Label>
+                    <Input type="number" step="0.1" value={form.cloro_libre_inicial} onChange={e => f('cloro_libre_inicial', e.target.value)} className="h-8 text-sm" placeholder="0 – 0.5 esperado" />
+                    <p className="text-xs text-slate-400 mt-0.5">En agua de red limpia suele ser 0 o &lt;0,5 ppm.</p>
+                  </div>
+                  <div>
+                    <Label>Temperatura inicial (°C)</Label>
+                    <Input type="number" step="0.1" value={form.temperatura_inicial} onChange={e => f('temperatura_inicial', e.target.value)} className="h-8 text-sm" placeholder="ej: 18" />
+                    {form.temperatura_inicial !== '' && Number(form.temperatura_inicial) > 20 && (
+                      <span className="text-xs text-red-600 font-medium mt-0.5 block">⚠ &gt;20°C: riesgo Legionella. Registrar y notificar si persiste.</span>
+                    )}
+                    {form.temperatura_inicial !== '' && Number(form.temperatura_inicial) <= 20 && (
+                      <span className="text-xs text-emerald-600 font-medium mt-0.5 block">✓ Temperatura dentro del rango seguro.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-            <div className="sm:col-span-2">
-              <Label>Partes donde se realiza el tratamiento / medidas correctoras</Label>
-              <textarea value={form.partes_tratamiento} onChange={e => f('partes_tratamiento', e.target.value)}
-                className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2}
-                placeholder="Total / Parcial (especificar). Medidas correctoras realizadas..." />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Observaciones</Label>
-              <textarea value={form.observaciones} onChange={e => f('observaciones', e.target.value)}
-                className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2} />
-            </div>
+            {/* ── PASO 2: Productos y dosificación ── */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-slate-700">
+                  <Info className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-800 mb-1">🧪 Paso 3 — Selección de productos y cálculo de dosis</p>
+                    <p>Selecciona el biocida y su concentración. La herramienta calcula automáticamente la cantidad exacta a añadir según el volumen de la balsa.</p>
+                    <ul className="mt-1.5 space-y-1 text-slate-600">
+                      <li>• <strong>Hipoclorito sódico:</strong> Añádelo con la bomba de agua ya en marcha pero los <span className="text-red-700 font-semibold">ventiladores APAGADOS</span> para evitar aerosoles.</li>
+                      <li>• <strong>Dosis para informe:</strong> La "dosis" es la cantidad en relación al volumen (ej: 0,41 L/m³). Puedes calcularla dividiendo los ml entre el volumen en m³.</li>
+                      <li>• <strong>Tiosulfato sódico:</strong> Neutralizante obligatorio antes del vertido. No usar metabisulfito en vertidos a alcantarillado.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Producto biocida principal</Label>
+                    <Input value={form.producto_principal} onChange={e => f('producto_principal', e.target.value)} className="h-8 text-sm" placeholder="Hipoclorito Sódico Brenntquisan Legionella" />
+                    <p className="text-xs text-slate-400 mt-0.5">Nombre comercial completo del producto tal como aparece en la ficha de seguridad.</p>
+                  </div>
+                  <div>
+                    <Label>Producto neutralizante</Label>
+                    <Input value={form.producto_secundario} onChange={e => f('producto_secundario', e.target.value)} className="h-8 text-sm" placeholder="Tiosulfato Sódico PWG Brenntag" />
+                    <p className="text-xs text-slate-400 mt-0.5">Se añade al final del proceso para eliminar el cloro antes del vertido.</p>
+                  </div>
+                  <div>
+                    <Label>Concentración del hipoclorito disponible</Label>
+                    <select value={form.porcentaje_hipoclorito} onChange={e => f('porcentaje_hipoclorito', Number(e.target.value))}
+                      className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                      {HIPOCLORITO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-0.5">Mira la etiqueta del bidón. El hipoclorito industrial suele ser 15%. Si es lejía comercial, elige 5%.</p>
+                  </div>
+                  <div>
+                    <Label>Concentración objetivo (ppm Cl residual libre)</Label>
+                    <select value={form.ppm_deseadas} onChange={e => f('ppm_deseadas', Number(e.target.value))}
+                      className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                      {PPM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-0.5">Las ppm son la concentración de cloro activo que debe haber en el agua durante la recirculación.</p>
+                  </div>
+                </div>
 
-            {/* ─ Responsable técnico ─ */}
-            <Section icon="👤" title="Responsable Técnico" color="text-indigo-700" />
-            <div>
-              <Label>Nombre completo *</Label>
-              <Input value={form.responsable_tecnico_nombre} onChange={e => f('responsable_tecnico_nombre', e.target.value)} className="h-8 text-sm" placeholder="Nombre y apellidos" />
-            </div>
-            <div>
-              <Label>D.N.I.</Label>
-              <Input value={form.responsable_tecnico_dni} onChange={e => f('responsable_tecnico_dni', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Lugar/fecha del curso</Label>
-              <Input value={form.responsable_tecnico_curso} onChange={e => f('responsable_tecnico_curso', e.target.value)} className="h-8 text-sm" placeholder="Desde dd/mm/aaaa hasta dd/mm/aaaa" />
-            </div>
-            <div>
-              <Label>Cualificación/Titulación</Label>
-              <Input value={form.responsable_tecnico_cualificacion} onChange={e => f('responsable_tecnico_cualificacion', e.target.value)} className="h-8 text-sm" placeholder="Legionella, mantenimiento higiénico-sanitario..." />
-            </div>
+                {balsaLitros && hipocloritoCalculado !== null && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300">
+                    <p className="text-xs text-slate-500 mb-1 font-medium">Cantidad a añadir (calculada automáticamente):</p>
+                    <p className="text-3xl font-bold text-emerald-700">{hipocloritoCalculado} ml</p>
+                    <p className="text-xs text-slate-500 mt-1">Fórmula: ({balsaLitros} L × {form.ppm_deseadas} ppm) ÷ ({form.porcentaje_hipoclorito}% × 10)</p>
+                    <p className="text-xs text-amber-700 mt-1.5 font-medium">→ Añade esta cantidad con la bomba en marcha y ventiladores APAGADOS.</p>
+                  </div>
+                )}
+                {!balsaLitros && (
+                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                    ⚠ El volumen de la balsa no está definido en este equipo. Edita el equipo para activar el cálculo automático.
+                  </div>
+                )}
 
-            {/* ─ Aplicador de tratamiento ─ */}
-            <Section icon="🔧" title="Aplicador de Tratamiento" color="text-cyan-700" />
-            <div className="sm:col-span-2 text-xs text-slate-500 bg-cyan-50 p-2 rounded-lg border border-cyan-100">
-              El aplicador puede ser una persona o empresa diferente al responsable técnico.
-            </div>
-            <div>
-              <Label>Nombre completo</Label>
-              <Input value={form.aplicador_nombre} onChange={e => f('aplicador_nombre', e.target.value)} className="h-8 text-sm" placeholder="Nombre y apellidos" />
-            </div>
-            <div>
-              <Label>D.N.I.</Label>
-              <Input value={form.aplicador_dni} onChange={e => f('aplicador_dni', e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label>Lugar/fecha del curso</Label>
-              <Input value={form.aplicador_curso} onChange={e => f('aplicador_curso', e.target.value)} className="h-8 text-sm" placeholder="Desde dd/mm/aaaa hasta dd/mm/aaaa" />
-            </div>
-            <div>
-              <Label>Cualificaciones</Label>
-              <Input value={form.aplicador_cualificacion} onChange={e => f('aplicador_cualificacion', e.target.value)} className="h-8 text-sm" placeholder="Curso mantenimiento higiénico sanitario..." />
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Hipoclorito sódico añadido realmente (ml)</Label>
+                    <Input type="number" step="0.1" value={form.hipoclorito_ml} onChange={e => f('hipoclorito_ml', e.target.value)} className="h-8 text-sm"
+                      placeholder={hipocloritoCalculado !== null ? `Calculado: ${hipocloritoCalculado} ml` : 'ml añadidos'} />
+                    <p className="text-xs text-slate-400 mt-0.5">Registra la cantidad real añadida (puede diferir ligeramente del cálculo).</p>
+                  </div>
+                  <div>
+                    <Label>Dosis producto principal (para el informe)</Label>
+                    <Input value={form.dosis_producto_principal} onChange={e => f('dosis_producto_principal', e.target.value)} className="h-8 text-sm" placeholder="Ej: 0,41 L/m³" />
+                    <p className="text-xs text-slate-400 mt-0.5">ml añadidos ÷ m³ de balsa = L/m³. Aparece en el certificado.</p>
+                  </div>
+                  <div>
+                    <Label>Dosis neutralizante (para el informe)</Label>
+                    <Input value={form.dosis_producto_secundario} onChange={e => f('dosis_producto_secundario', e.target.value)} className="h-8 text-sm" placeholder="Ej: 0,20 g/m³" />
+                    <p className="text-xs text-slate-400 mt-0.5">Gramos de tiosulfato añadidos ÷ m³ de balsa.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── PASO 3: Desinfección y neutralización ── */}
+            {step === 3 && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700">
+                  <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-blue-800 mb-1">⏱ Paso 4 — Recirculación, controles y neutralización</p>
+                    <p>Esta es la parte más crítica. Debes mantener ≥30 ppm durante todo el tiempo de recirculación con los ventiladores apagados.</p>
+                    <ul className="mt-1.5 space-y-1 text-slate-600">
+                      <li>• <strong>Hora inicio desinfección:</strong> Momento en que terminas de añadir el hipoclorito y arrancas la recirculación.</li>
+                      <li>• <strong>Cloro durante la desinfección:</strong> Mide a los 30, 60 y 90 min. Si baja de 30 ppm, repón hipoclorito. El valor que registras aquí es el mínimo medido.</li>
+                      <li>• <strong>Tiempo de recirculación:</strong> Mínimo 120 min para puesta en marcha. Mínimo 60 min para mantenimiento mensual.</li>
+                      <li>• <strong>Neutralización:</strong> Al acabar la recirculación, antes de vaciar o verter, añade tiosulfato hasta 0 ppm.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Hora inicio desinfección</Label>
+                    <Input type="time" value={form.hora_inicio_desinfeccion} onChange={e => f('hora_inicio_desinfeccion', e.target.value)} className="h-8 text-sm" />
+                    <p className="text-xs text-slate-400 mt-0.5">Hora en que has añadido el hipoclorito y arrancas el contador de 120 min.</p>
+                  </div>
+                  <div>
+                    <Label>Hora fin desinfección</Label>
+                    <Input type="time" value={form.hora_fin_desinfeccion} onChange={e => f('hora_fin_desinfeccion', e.target.value)} className="h-8 text-sm" />
+                    <p className="text-xs text-slate-400 mt-0.5">Hora en que han pasado los 120 min y paras la bomba.</p>
+                  </div>
+                  <div>
+                    <Label>Cloro durante la desinfección — valor mínimo medido (ppm)</Label>
+                    <Input type="number" step="0.1" value={form.cloro_durante_desinfeccion} onChange={e => f('cloro_durante_desinfeccion', e.target.value)} className="h-8 text-sm" placeholder="≥30 ppm" />
+                    <p className="text-xs text-slate-400 mt-0.5">El valor más bajo que hayas medido en los controles a min 30, 60 y 90. Debe ser ≥30 ppm en todo momento.</p>
+                    {form.cloro_durante_desinfeccion !== '' && Number(form.cloro_durante_desinfeccion) < 30 && (
+                      <span className="text-xs text-red-600 font-medium mt-0.5 block">⛔ Bajó de 30 ppm: debiste reponer hipoclorito. El proceso puede no ser válido.</span>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Tiempo de recirculación total (min)</Label>
+                    <Input type="number" value={form.tiempo_recirculacion_min} onChange={e => f('tiempo_recirculacion_min', e.target.value)} className="h-8 text-sm" placeholder="120" />
+                    {form.tiempo_recirculacion_min !== '' && Number(form.tiempo_recirculacion_min) < 120 && (
+                      <span className="text-xs text-red-600 mt-0.5 block">⚠ Mínimo 120 min para puesta en marcha/hibernación. El registro no tendrá validez legal con menos tiempo.</span>
+                    )}
+                    {form.tiempo_recirculacion_min !== '' && Number(form.tiempo_recirculacion_min) >= 120 && (
+                      <span className="text-xs text-emerald-600 font-medium mt-0.5 block">✓ Tiempo correcto.</span>
+                    )}
+                  </div>
+
+                  {/* Neutralización */}
+                  <div className="sm:col-span-2 border-t pt-3 mt-1">
+                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-emerald-700">🔵 Neutralización con tiosulfato sódico</p>
+                  </div>
+                  <div>
+                    <Label>Cloro residual libre al minuto 120 (antes de añadir tiosulfato)</Label>
+                    <Input type="number" step="0.1" value={form.cloro_a_neutralizar}
+                      onChange={e => f('cloro_a_neutralizar', e.target.value)}
+                      className={`h-8 text-sm ${cloroNeutralizarError ? 'border-red-500' : ''}`}
+                      placeholder="≥30 ppm confirma proceso correcto" />
+                    <p className="text-xs text-slate-400 mt-0.5">Esta medida confirma que el proceso fue correcto. Debe ser ≥30 ppm. Si no lo es, el tratamiento no fue eficaz.</p>
+                    {cloroNeutralizarError && <p className="text-xs text-red-600 font-medium mt-0.5">⛔ Valor &gt;60 ppm imposible. Revisa la medición.</p>}
+                    {form.cloro_a_neutralizar !== '' && Number(form.cloro_a_neutralizar) < 30 && !cloroNeutralizarError && (
+                      <span className="text-xs text-amber-600 font-medium mt-0.5 block">⚠ Menor de 30 ppm: proceso posiblemente inválido. Contacta con el responsable técnico.</span>
+                    )}
+                    {form.cloro_a_neutralizar !== '' && Number(form.cloro_a_neutralizar) >= 30 && !cloroNeutralizarError && (
+                      <span className="text-xs text-emerald-600 font-medium mt-0.5 block">✓ Proceso correcto. Ahora añade el tiosulfato para neutralizar.</span>
+                    )}
+                  </div>
+                  {balsaLitros && (
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1 font-medium">Tiosulfato sódico necesario (calculado):</p>
+                      <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                        <p className="text-2xl font-bold text-blue-700">{metabisulfitoCalculado !== null ? `${metabisulfitoCalculado} g` : '—'}</p>
+                        {metabisulfitoCalculado !== null && <p className="text-xs text-slate-400 mt-0.5">Fórmula: {balsaLitros} L × {form.cloro_a_neutralizar} ppm × 0,002</p>}
+                        <p className="text-xs text-slate-500 mt-1">Añade esta cantidad y espera hasta que el cloro llegue a 0 ppm antes de vaciar.</p>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <Label>Tiosulfato sódico añadido realmente (g)</Label>
+                    <Input type="number" step="0.01" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)} className="h-8 text-sm"
+                      placeholder={metabisulfitoCalculado !== null ? `Calculado: ${metabisulfitoCalculado} g` : ''} />
+                    <p className="text-xs text-slate-400 mt-0.5">Registra la cantidad real añadida.</p>
+                  </div>
+                  <div>
+                    <Label>Tiempo de neutralización (min)</Label>
+                    <Input type="number" value={form.tiempo_neutralizacion_min} onChange={e => f('tiempo_neutralizacion_min', e.target.value)} className="h-8 text-sm" placeholder="15" />
+                    <p className="text-xs text-slate-400 mt-0.5">Tiempo desde que añades el tiosulfato hasta que el cloro llega a 0 ppm.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── PASO 4: Mediciones finales y firmas ── */}
+            {step === 4 && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-slate-700">
+                  <Info className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-emerald-800 mb-1">✅ Paso 5 — Mediciones finales y datos del técnico</p>
+                    <p>Tras neutralizar y vaciar, llena la balsa con agua limpia y mide los parámetros finales del agua de servicio. Después completa los datos de los firmantes del certificado.</p>
+                    <ul className="mt-1.5 space-y-1 text-slate-600">
+                      <li>• <strong>pH final:</strong> Rango 7,2–7,8 para el agua de servicio.</li>
+                      <li>• <strong>Cloro libre final:</strong> Debe quedar entre 0,2 y 1,0 ppm en el agua de servicio (tratamiento de agua de red).</li>
+                      <li>• <strong>Responsable técnico:</strong> Persona con titulación que avala el proceso (puede ser el aplicador u otra persona de la empresa).</li>
+                      <li>• <strong>Aplicador:</strong> Persona que físicamente ha realizado el tratamiento en campo. Puede coincidir con el responsable técnico.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2 border-t pt-2">
+                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-emerald-700">Mediciones finales del agua de servicio</p>
+                  </div>
+                  <div>
+                    <Label>pH final</Label>
+                    <Input type="number" step="0.1" value={form.ph_final} onChange={e => f('ph_final', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8" />
+                    <AlertaValor valor={form.ph_final} label="pH" min={7.2} max={7.8} />
+                    <p className="text-xs text-slate-400 mt-0.5">Agua de servicio tras el llenado final con agua de red.</p>
+                  </div>
+                  <div>
+                    <Label>Cloro libre final (ppm)</Label>
+                    <Input type="number" step="0.1" value={form.cloro_libre_final} onChange={e => f('cloro_libre_final', e.target.value)} className="h-8 text-sm" placeholder="0.2 – 1.0" />
+                    <AlertaValor valor={form.cloro_libre_final} label="Cl final" min={0.2} max={1.0} />
+                    <p className="text-xs text-slate-400 mt-0.5">El agua de red en España suele llevar 0,2–1,0 ppm. Valores &gt;1 ppm indican que no se neutralizó bien.</p>
+                  </div>
+                  <div>
+                    <Label>Temperatura final (°C)</Label>
+                    <Input type="number" step="0.1" value={form.temperatura_final} onChange={e => f('temperatura_final', e.target.value)} className="h-8 text-sm" />
+                    <p className="text-xs text-slate-400 mt-0.5">Temperatura del agua de servicio tras el llenado.</p>
+                  </div>
+                  <div>
+                    <Label>Hora fin actuación total</Label>
+                    <Input type="time" value={form.hora_fin} onChange={e => f('hora_fin', e.target.value)} className="h-8 text-sm" />
+                    <p className="text-xs text-slate-400 mt-0.5">Hora en que abandonas la instalación.</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Observaciones</Label>
+                    <textarea value={form.observaciones} onChange={e => f('observaciones', e.target.value)}
+                      className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2}
+                      placeholder="Incidencias, anomalías observadas, acciones pendientes..." />
+                  </div>
+
+                  {/* Responsable técnico */}
+                  <div className="sm:col-span-2 border-t pt-2 mt-1">
+                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-indigo-700">👤 Responsable técnico</p>
+                    <p className="text-xs text-slate-500 mb-2">Persona que avala técnicamente el proceso. Firma el certificado. Debe tener titulación en mantenimiento higiénico-sanitario.</p>
+                  </div>
+                  <div>
+                    <Label>Nombre completo *</Label>
+                    <Input value={form.responsable_tecnico_nombre} onChange={e => f('responsable_tecnico_nombre', e.target.value)} className="h-8 text-sm" placeholder="Nombre y apellidos" />
+                  </div>
+                  <div>
+                    <Label>D.N.I.</Label>
+                    <Input value={form.responsable_tecnico_dni} onChange={e => f('responsable_tecnico_dni', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label>Lugar y fecha del curso de Legionella</Label>
+                    <Input value={form.responsable_tecnico_curso} onChange={e => f('responsable_tecnico_curso', e.target.value)} className="h-8 text-sm" placeholder="Ej: Madrid, desde 01/01/2022 hasta 05/01/2022" />
+                    <p className="text-xs text-slate-400 mt-0.5">Datos del curso homologado de mantenimiento higiénico-sanitario.</p>
+                  </div>
+                  <div>
+                    <Label>Titulación / Cualificación</Label>
+                    <Input value={form.responsable_tecnico_cualificacion} onChange={e => f('responsable_tecnico_cualificacion', e.target.value)} className="h-8 text-sm" placeholder="Ej: Técnico en instalaciones térmicas, curso Legionella 40h" />
+                  </div>
+
+                  {/* Aplicador */}
+                  <div className="sm:col-span-2 border-t pt-2 mt-1">
+                    <p className="text-xs font-semibold mb-1 uppercase tracking-wide text-cyan-700">🔧 Aplicador del tratamiento</p>
+                    <p className="text-xs text-slate-500 mb-2">Persona que ha estado físicamente en la instalación realizando el tratamiento. Puede ser el mismo que el responsable técnico o diferente (empresa subcontratada).</p>
+                  </div>
+                  <div>
+                    <Label>Nombre completo</Label>
+                    <Input value={form.aplicador_nombre} onChange={e => f('aplicador_nombre', e.target.value)} className="h-8 text-sm" placeholder="Nombre y apellidos (o 'Ídem responsable técnico')" />
+                  </div>
+                  <div>
+                    <Label>D.N.I.</Label>
+                    <Input value={form.aplicador_dni} onChange={e => f('aplicador_dni', e.target.value)} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label>Lugar y fecha del curso</Label>
+                    <Input value={form.aplicador_curso} onChange={e => f('aplicador_curso', e.target.value)} className="h-8 text-sm" placeholder="Ej: Barcelona, desde 10/03/2023 hasta 14/03/2023" />
+                  </div>
+                  <div>
+                    <Label>Cualificaciones</Label>
+                    <Input value={form.aplicador_cualificacion} onChange={e => f('aplicador_cualificacion', e.target.value)} className="h-8 text-sm" placeholder="Ej: Curso mantenimiento higiénico-sanitario 20h" />
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <Button size="sm" onClick={() => saveMutation.mutate(form)}
-              disabled={saveMutation.isPending || !form.responsable_tecnico_nombre || !form.fecha || cloroNeutralizarError}
-              className="bg-cyan-600 hover:bg-cyan-700">
-              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Guardar Registro
+          {/* Navegación */}
+          <div className="px-5 pb-4 flex items-center justify-between gap-2 border-t pt-3">
+            <Button size="sm" variant="outline" onClick={() => step > 0 ? setStep(s => s - 1) : (setShowForm(false), setEditingId(null))}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {step === 0 ? 'Cancelar' : 'Anterior'}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Button>
+            <span className="text-xs text-slate-400">Paso {step + 1} de 5</span>
+            {step < 4 ? (
+              <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700" onClick={() => setStep(s => s + 1)}>
+                Siguiente <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => saveMutation.mutate(form)}
+                disabled={saveMutation.isPending || !form.responsable_tecnico_nombre || !form.fecha || cloroNeutralizarError}
+                className="bg-emerald-600 hover:bg-emerald-700">
+                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                Guardar Registro
+              </Button>
+            )}
           </div>
         </Card>
       )}
