@@ -181,22 +181,6 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   const companyPhone = appSettings?.company_phone || '';
   const companyEmail = appSettings?.company_email || '';
 
-  // ── CABECERA EMPRESA (logo + dirección) ──
-  if (appSettings?.logo_url) {
-    try { doc.addImage(appSettings.logo_url, 'JPEG', margin, y, 40, 14); } catch (e) {}
-  }
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(60, 60, 60);
-  const offX = margin + 120;
-  doc.setFont('helvetica', 'bold');
-  doc.text('OFICINAS Y ALMACÉN', offX, y + 3);
-  doc.setFont('helvetica', 'normal');
-  doc.text(companyAddress || '—', offX, y + 7, { maxWidth: 60 });
-  doc.text(companyPhone, offX, y + 13);
-  doc.setTextColor(0, 0, 0);
-  y += 18;
-
   // ── TÍTULO CERTIFICADO ──
   doc.setFillColor(245, 245, 245);
   doc.rect(margin, y, usable, 9, 'F');
@@ -603,14 +587,91 @@ export default function LDTab({ equipment, equipmentId, client }) {
         </Card>
       </div>
 
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700">
-        <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        <span>
-          <strong>Protocolo puesta en marcha / hibernación (RD 487/2022):</strong>{' '}
-          Limpieza previa con pistola a presión → Llenado con agua limpia de red → Ajuste de pH 7,2–7,8 (agua alcalina pierde &gt;70% eficacia del cloro) →
-          Dosificación a <strong>30 ppm</strong> de Cl residual libre → Recirculación <strong>120 min</strong> con ventiladores apagados →
-          Control a min 30, 60 y 90 (reponer si baja de 30 ppm) → Neutralización con tiosulfato sódico hasta 0 ppm → Vaciado + enjuague.
-        </span>
+      {/* ── PANEL EXPLICATIVO TÉCNICO ── */}
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div className="bg-slate-800 px-4 py-2.5 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+          <span className="text-white text-xs font-semibold uppercase tracking-wide">Guía de procedimiento L+D — Equipos evaporativos/adiabáticos (RD 487/2022)</span>
+        </div>
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
+          {/* Columna 1 */}
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">1</span>
+              <div>
+                <p className="font-semibold text-slate-800">Limpieza previa con pistola a presión</p>
+                <p className="text-slate-500 mt-0.5">Vaciado completo de la balsa. Eliminación de suciedad, incrustaciones y biocapa mediante presión. Aclarado con agua limpia.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">2</span>
+              <div>
+                <p className="font-semibold text-slate-800">Llenado y ajuste de pH (7,2–7,8)</p>
+                <p className="text-slate-500 mt-0.5">Llenar con agua limpia de red. Medir pH. Si es <strong>&gt;8</strong>, añadir reductor de pH: por encima de 8 el hipoclorito pierde más del 70% de su eficacia biocida.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">3</span>
+              <div>
+                <p className="font-semibold text-slate-800">Dosificación de hipoclorito sódico</p>
+                <p className="text-slate-500 mt-0.5">
+                  <strong>Puesta en marcha / hibernación:</strong> 30 ppm Cl residual libre.<br />
+                  <strong>Mantenimiento mensual:</strong> 20 ppm.<br />
+                  <strong>Brote/aislamiento:</strong> 50 ppm.<br />
+                  Fórmula: <code className="bg-slate-100 px-1 rounded">ml = (Litros × ppm) / (% × 10)</code>
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">4</span>
+              <div>
+                <p className="font-semibold text-slate-800">Recirculación — ventiladores <span className="text-red-600">APAGADOS</span></p>
+                <p className="text-slate-500 mt-0.5">
+                  <strong>Puesta en marcha:</strong> mínimo <strong>120 min</strong>.<br />
+                  <strong>Mantenimiento:</strong> mínimo 60 min.<br />
+                  Arrancar solo la bomba de agua. Los ventiladores apagados evitan la generación de aerosoles con Legionella.
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Columna 2 */}
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs">5</span>
+              <div>
+                <p className="font-semibold text-slate-800">Controles intermedios obligatorios</p>
+                <p className="text-slate-500 mt-0.5">Medir Cl libre a los <strong>30, 60 y 90 minutos</strong>. Si baja de 30 ppm, reponer hipoclorito hasta recuperar el nivel. Sin este control el proceso no es válido para el Libro de Registro.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs">6</span>
+              <div>
+                <p className="font-semibold text-slate-800">Verificación al minuto 120</p>
+                <p className="text-slate-500 mt-0.5">Medir Cl residual libre. Debe ser <strong>≥30 ppm</strong>. Si es menor, el tratamiento no ha sido eficaz: repetir dosificación y tiempo.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">7</span>
+              <div>
+                <p className="font-semibold text-slate-800">Neutralización con tiosulfato sódico</p>
+                <p className="text-slate-500 mt-0.5">
+                  Añadir tiosulfato sódico para reducir el Cl a <strong>0 ppm</strong> antes del vertido. Obligatorio por normativa medioambiental. No usar metabisulfito en vertidos a alcantarillado.<br />
+                  Fórmula: <code className="bg-slate-100 px-1 rounded">g = Litros × ppm × 0,002</code>
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">8</span>
+              <div>
+                <p className="font-semibold text-slate-800">Vaciado, enjuague y llenado final</p>
+                <p className="text-slate-500 mt-0.5">Vaciar la balsa, enjuagar con agua limpia y llenar para la puesta en servicio. Verificar pH final 7,2–7,8 y Cl libre 0,2–1,0 ppm en agua de servicio.</p>
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+              <strong>⚠ Recuerda:</strong> Registrar horas exactas, ppm medidas en cada control y cantidades reales añadidas. El Libro de Registro debe estar disponible para inspección sanitaria 5 años.
+            </div>
+          </div>
+        </div>
       </div>
 
       {!showForm && (
