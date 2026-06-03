@@ -31,9 +31,9 @@ const ESTADO_CONSERVACION = {
 };
 
 const PPM_OPTIONS = [
-  { value: 5, label: '5 ppm — Mantenimiento' },
-  { value: 20, label: '20 ppm — Choque' },
-  { value: 50, label: '50 ppm — Positivo Legionella' },
+  { value: 30, label: '30 ppm — Puesta en marcha/Hibernación (estándar)' },
+  { value: 20, label: '20 ppm — Mantenimiento programado' },
+  { value: 50, label: '50 ppm — Brote/Aislamiento Legionella' },
 ];
 
 const HIPOCLORITO_OPTIONS = [
@@ -58,7 +58,7 @@ const emptyForm = {
   temperatura_inicial: '',
   producto_principal: 'Hipoclorito Sódico',
   dosis_producto_principal: '',
-  producto_secundario: 'Metabisulfito Sódico',
+  producto_secundario: 'Tiosulfato Sódico',
   dosis_producto_secundario: '',
   hipoclorito_ml: '',
   tiempo_recirculacion_min: '',
@@ -86,7 +86,7 @@ const emptyForm = {
   aplicador_curso: '',
   aplicador_cualificacion: '',
   // Cálculos
-  ppm_deseadas: 5,
+  ppm_deseadas: 30,
   porcentaje_hipoclorito: 15,
   cloro_a_neutralizar: '',
 };
@@ -259,8 +259,8 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
 
   // Protocolo
   const protocolos = {
-    puesta_en_marcha: 'Comprobar la nivelación de la unidad. Limpiar a fondo las superficies y la balsa del evaporativo eliminando las incrustaciones y adherencias. Aclarar con agua. Limpiar los filtros de admisión de aire. Limpiar los paneles enfriadores. Desinfectar los paneles y la balsa con hipoclorito sódico, dejar actuar durante 60 minutos y aclarar con abundante agua. Limpiar y secar la bomba de agua. Verificar la válvula de drenaje. Puesta en marcha y comprobación de buen funcionamiento.',
-    mantenimiento_mensual: 'Mantenimiento higiénico-sanitario programado. Revisión del estado general. Medición y corrección de parámetros fisicoquímicos del agua. Dosificación de biocida según normativa. Tiempo de recirculación mínimo 60 minutos. Neutralización y medición final.',
+    puesta_en_marcha: 'Limpieza previa con pistola a presión. Llenado con agua limpia de red. Ajuste de pH a rango 7,2-7,8 (pH >8 reduce eficacia del cloro >70%). Dosificación de hipoclorito sódico al 15% para alcanzar 30 mg/l (ppm) de cloro residual libre. Encendido de bomba de agua con ventiladores APAGADOS. Recirculación durante 120 minutos manteniendo >30 ppm (controles a min 30, 60 y 90; reponer hipoclorito si baja de 30 ppm). Neutralización con tiosulfato sódico hasta 0 ppm de cloro (cumplimiento normativa de vertidos). Vaciado, enjuague final con agua limpia y llenado para puesta en servicio.',
+    mantenimiento_mensual: 'Mantenimiento higiénico-sanitario programado mensual. Revisión del estado general de la instalación. Medición y corrección de parámetros fisicoquímicos (pH 7,2-7,8). Dosificación de hipoclorito sódico para 20 ppm de cloro residual libre. Recirculación mínima 60 minutos con ventiladores apagados. Neutralización con tiosulfato sódico y medición final. Verificación de todos los parámetros conforme RD 487/2022.',
     tras_averia: 'Tratamiento de limpieza y desinfección tras avería o parada no programada. Vaciado, limpieza mecánica, desinfección con hipoclorito sódico y verificación de parámetros.',
     aislamiento_legionella: 'Tratamiento de choque por aislamiento de Legionella. Dosificación de biocida a concentración de choque (20-50 ppm). Tiempo de recirculación mínimo 60 minutos. Verificación de todos los puntos finales.',
     medida_correctora: 'Tratamiento correctivo por detección de parámetros fuera de rango. Limpieza, desinfección y verificación de parámetros.',
@@ -335,8 +335,9 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   const desinfStr = (r.hora_inicio_desinfeccion && r.hora_fin_desinfeccion)
     ? `${r.hora_inicio_desinfeccion}-${r.hora_fin_desinfeccion}` : '—';
   y = drawRow(y, 'Hora de inicio y fin desinfección', desinfStr);
-  y = drawRow(y, 'Concentraciones de choque de Biocida', r.cloro_durante_desinfeccion ? `${r.cloro_durante_desinfeccion} ppm` : 'Se adjunta tabla');
-  y = drawRow(y, 'Tiempo de recirculación del Biocida', r.tiempo_recirculacion_min ? `${r.tiempo_recirculacion_min} min` : '—');
+  y = drawRow(y, 'Concentración Cl residual libre durante proceso', r.cloro_durante_desinfeccion ? `${r.cloro_durante_desinfeccion} ppm (mín. 30 ppm)` : 'Se adjunta tabla');
+  y = drawRow(y, 'Tiempo de recirculación del Biocida (mín. 120 min)', r.tiempo_recirculacion_min ? `${r.tiempo_recirculacion_min} min` : '—');
+  y = drawRow(y, 'Neutralizante utilizado', r.producto_secundario || 'Tiosulfato Sódico');
   y = drawRow(y, 'Tiempo de neutralización', r.tiempo_neutralizacion_min ? `${r.tiempo_neutralizacion_min} min` : '—');
 
   // Partes tratamiento
@@ -513,7 +514,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
       temperatura_inicial: r.temperatura_inicial ?? '',
       producto_principal: r.producto_principal || 'Hipoclorito Sódico',
       dosis_producto_principal: r.dosis_producto_principal || '',
-      producto_secundario: r.producto_secundario || 'Metabisulfito Sódico',
+      producto_secundario: r.producto_secundario || 'Tiosulfato Sódico',
       dosis_producto_secundario: r.dosis_producto_secundario || '',
       hipoclorito_ml: r.hipoclorito_ml ?? '',
       tiempo_recirculacion_min: r.tiempo_recirculacion_min ?? '',
@@ -538,7 +539,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
       aplicador_dni: r.aplicador_dni || '',
       aplicador_curso: r.aplicador_curso || '',
       aplicador_cualificacion: r.aplicador_cualificacion || '',
-      ppm_deseadas: r.ppm_deseadas || 5,
+      ppm_deseadas: r.ppm_deseadas || 30,
       porcentaje_hipoclorito: r.porcentaje_hipoclorito || 15,
       cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
     });
@@ -583,18 +584,33 @@ export default function LDTab({ equipment, equipmentId, client }) {
           {!balsaLitros && <p className="text-xs text-amber-600 mt-0.5">Edita el equipo para definirlo</p>}
         </Card>
         <Card className="p-3 border-0 bg-blue-50">
-          <p className="text-xs text-blue-600 font-medium mb-1">Hipoclorito mantenimiento (5 ppm/15%)</p>
-          {balsaLitros ? <p className="text-sm font-bold text-slate-800">{calcularHipoclorito(balsaLitros, 5, 15)} ml</p> : <p className="text-sm text-slate-400">—</p>}
+          <p className="text-xs text-blue-600 font-medium mb-1">Dosis puesta en marcha (30 ppm / 15%)</p>
+          {balsaLitros ? (
+            <>
+              <p className="text-sm font-bold text-slate-800">{calcularHipoclorito(balsaLitros, 30, 15)} ml</p>
+              <p className="text-xs text-slate-400">({balsaLitros}L × 30) / (15 × 10)</p>
+            </>
+          ) : <p className="text-sm text-slate-400">—</p>}
         </Card>
         <Card className="p-3 border-0 bg-amber-50">
-          <p className="text-xs text-amber-600 font-medium mb-1">Hipoclorito choque (20 ppm/15%)</p>
-          {balsaLitros ? <p className="text-sm font-bold text-slate-800">{calcularHipoclorito(balsaLitros, 20, 15)} ml</p> : <p className="text-sm text-slate-400">—</p>}
+          <p className="text-xs text-amber-600 font-medium mb-1">Dosis mantenimiento (20 ppm / 15%)</p>
+          {balsaLitros ? (
+            <>
+              <p className="text-sm font-bold text-slate-800">{calcularHipoclorito(balsaLitros, 20, 15)} ml</p>
+              <p className="text-xs text-slate-400">({balsaLitros}L × 20) / (15 × 10)</p>
+            </>
+          ) : <p className="text-sm text-slate-400">—</p>}
         </Card>
       </div>
 
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
-        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-        <span><strong>RD 487/2022:</strong> pH 7.0–8.0 · Cl libre 0.2–1.0 ppm · Tª &lt;20°C · Revisión mensual obligatoria.</span>
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-slate-700">
+        <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+        <span>
+          <strong>Protocolo puesta en marcha / hibernación (RD 487/2022):</strong>{' '}
+          Limpieza previa con pistola a presión → Llenado con agua limpia de red → Ajuste de pH 7,2–7,8 (agua alcalina pierde &gt;70% eficacia del cloro) →
+          Dosificación a <strong>30 ppm</strong> de Cl residual libre → Recirculación <strong>120 min</strong> con ventiladores apagados →
+          Control a min 30, 60 y 90 (reponer si baja de 30 ppm) → Neutralización con tiosulfato sódico hasta 0 ppm → Vaciado + enjuague.
+        </span>
       </div>
 
       {!showForm && (
@@ -654,8 +670,11 @@ export default function LDTab({ equipment, equipmentId, client }) {
             <Section icon="📊" title="Mediciones Iniciales" color="text-blue-700" />
             <div>
               <Label>pH inicial</Label>
-              <Input type="number" step="0.1" value={form.ph_inicial} onChange={e => f('ph_inicial', e.target.value)} className="h-8 text-sm" placeholder="7.0 – 8.0" />
-              <AlertaValor valor={form.ph_inicial} label="pH" min={7.0} max={8.0} />
+              <Input type="number" step="0.1" value={form.ph_inicial} onChange={e => f('ph_inicial', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8 (óptimo)" />
+              <AlertaValor valor={form.ph_inicial} label="pH" min={7.2} max={7.8} />
+              {form.ph_inicial !== '' && Number(form.ph_inicial) > 8 && (
+                <span className="text-xs text-red-600 font-medium block">⚠ pH &gt;8: el cloro pierde &gt;70% de eficacia. Añadir reductor de pH.</span>
+              )}
             </div>
             <div>
               <Label>Cloro libre inicial (ppm)</Label>
@@ -718,9 +737,9 @@ export default function LDTab({ equipment, equipmentId, client }) {
             </div>
             <div>
               <Label>Tiempo de recirculación (min, mín. 60)</Label>
-              <Input type="number" value={form.tiempo_recirculacion_min} onChange={e => f('tiempo_recirculacion_min', e.target.value)} className="h-8 text-sm" placeholder="60" />
-              {form.tiempo_recirculacion_min !== '' && Number(form.tiempo_recirculacion_min) < 60 && (
-                <span className="text-xs text-red-600">⚠ Mínimo recomendado: 60 min</span>
+              <Input type="number" value={form.tiempo_recirculacion_min} onChange={e => f('tiempo_recirculacion_min', e.target.value)} className="h-8 text-sm" placeholder="120" />
+              {form.tiempo_recirculacion_min !== '' && Number(form.tiempo_recirculacion_min) < 120 && (
+                <span className="text-xs text-red-600">⚠ Mínimo requerido: 120 min para validez del Libro de Registro</span>
               )}
             </div>
             <div>
@@ -743,29 +762,34 @@ export default function LDTab({ equipment, equipmentId, client }) {
             {/* ─ Mediciones finales ─ */}
             <Section icon="✅" title="Mediciones Finales" color="text-emerald-700" />
             <div>
-              <Label>Cloro libre a neutralizar (ppm medido antes de metabisulfito)</Label>
+              <Label>Cloro libre a neutralizar (ppm medido al minuto 120, antes de tiosulfato)</Label>
               <Input type="number" step="0.1" value={form.cloro_a_neutralizar}
                 onChange={e => f('cloro_a_neutralizar', e.target.value)}
-                className={`h-8 text-sm ${cloroNeutralizarError ? 'border-red-500' : ''}`} />
+                className={`h-8 text-sm ${cloroNeutralizarError ? 'border-red-500' : ''}`}
+                placeholder="≥30 ppm confirma proceso correcto" />
               {cloroNeutralizarError && <p className="text-xs text-red-600 font-medium">⛔ Valor &gt;60 ppm imposible.</p>}
+              {form.cloro_a_neutralizar !== '' && Number(form.cloro_a_neutralizar) < 30 && !cloroNeutralizarError && (
+                <span className="text-xs text-amber-600 font-medium">⚠ Menor de 30 ppm: el proceso puede no ser válido. Se debió reponer hipoclorito durante el proceso.</span>
+              )}
             </div>
             {balsaLitros && (
               <div>
-                <p className="text-xs text-slate-500 mb-1">Dosis calculada metabisulfito:</p>
+                <p className="text-xs text-slate-500 mb-1">Dosis calculada tiosulfato sódico (neutralización):</p>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200 min-h-[2rem]">
                   <p className="text-lg font-bold text-slate-800">{metabisulfitoCalculado !== null ? `${metabisulfitoCalculado} g` : '—'}</p>
+                  {metabisulfitoCalculado !== null && <p className="text-xs text-slate-400">hasta 0 ppm Cl</p>}
                 </div>
               </div>
             )}
             <div>
-              <Label>Metabisulfito sódico añadido (g)</Label>
+              <Label>Tiosulfato sódico añadido (g) — hasta 0 ppm Cl</Label>
               <Input type="number" step="0.01" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)} className="h-8 text-sm"
                 placeholder={metabisulfitoCalculado !== null ? `Calc: ${metabisulfitoCalculado} g` : ''} />
             </div>
             <div>
               <Label>pH final</Label>
-              <Input type="number" step="0.1" value={form.ph_final} onChange={e => f('ph_final', e.target.value)} className="h-8 text-sm" placeholder="6.5 – 8.5" />
-              <AlertaValor valor={form.ph_final} label="pH" min={6.5} max={8.5} />
+              <Input type="number" step="0.1" value={form.ph_final} onChange={e => f('ph_final', e.target.value)} className="h-8 text-sm" placeholder="7.2 – 7.8" />
+              <AlertaValor valor={form.ph_final} label="pH" min={7.2} max={7.8} />
             </div>
             <div>
               <Label>Cloro libre final (ppm)</Label>
