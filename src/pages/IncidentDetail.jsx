@@ -39,7 +39,10 @@ export default function IncidentDetail() {
   const incidentId = urlParams.get('id');
   const queryClient = useQueryClient();
 
-  const [userRole, setUserRole] = useState(null);
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  const [userRole, setUserRole] = useState(isSessionTech ? 'technician' : null);
   const [currentUser, setCurrentUser] = useState(null);
   const [technicianNotes, setTechnicianNotes] = useState('');
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -50,6 +53,7 @@ export default function IncidentDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
+    if (isSessionTech) return; // técnico de sesión propia: rol ya seteado
     const checkRole = async () => {
       const user = await base44.auth.me();
       setCurrentUser(user);
@@ -59,14 +63,33 @@ export default function IncidentDetail() {
     checkRole();
   }, []);
 
-  const { data: incident, isLoading } = useQuery({
+  // Proxy para técnicos de sesión propia
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-incident-detail', incidentId, sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'incident_detail', incident_id: incidentId,
+      });
+      return res.data?.data || null;
+    },
+    enabled: isSessionTech && !!incidentId,
+  });
+
+  const { data: incidentDirect, isLoading } = useQuery({
     queryKey: ['incident', incidentId],
     queryFn: async () => {
       const items = await base44.entities.Incident.filter({ id: incidentId });
       return items[0] || null;
     },
-    enabled: !!incidentId,
+    enabled: !isSessionTech && !!incidentId,
   });
+
+  // Datos finales según modo
+  const incident = isSessionTech ? proxyData?.incident : incidentDirect;
+  const equipment = isSessionTech ? proxyData?.equipment : undefined;
+  const building = isSessionTech ? proxyData?.building : undefined;
+  const client = isSessionTech ? proxyData?.client : undefined;
+  const isLoadingFinal = isSessionTech ? (!proxyData && !!incidentId) : isLoading;
 
   useEffect(() => {
     if (incident) {
@@ -78,32 +101,36 @@ export default function IncidentDetail() {
     }
   }, [incident]);
 
-  const { data: equipment } = useQuery({
+  const { data: equipmentDirect } = useQuery({
     queryKey: ['equipment-incident', incident?.equipment_id],
     queryFn: async () => {
       const items = await base44.entities.Equipment.filter({ id: incident.equipment_id });
       return items[0] || null;
     },
-    enabled: !!incident?.equipment_id,
+    enabled: !isSessionTech && !!incident?.equipment_id,
   });
 
-  const { data: building } = useQuery({
+  const { data: buildingDirect } = useQuery({
     queryKey: ['building-incident', incident?.building_id],
     queryFn: async () => {
       const items = await base44.entities.Building.filter({ id: incident.building_id });
       return items[0] || null;
     },
-    enabled: !!incident?.building_id,
+    enabled: !isSessionTech && !!incident?.building_id,
   });
 
-  const { data: client } = useQuery({
+  const { data: clientDirect } = useQuery({
     queryKey: ['client-incident', incident?.client_id],
     queryFn: async () => {
       const items = await base44.entities.Client.filter({ id: incident.client_id });
       return items[0] || null;
     },
-    enabled: !!incident?.client_id,
+    enabled: !isSessionTech && !!incident?.client_id,
   });
+
+  const finalEquipment = isSessionTech ? equipment : equipmentDirect;
+  const finalBuilding = isSessionTech ? building : buildingDirect;
+  const finalClient = isSessionTech ? client : clientDirect;
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
@@ -222,7 +249,7 @@ export default function IncidentDetail() {
     irreparable: { label: 'Irreparable', color: 'bg-gray-900 text-white border-gray-700' },
   };
 
-  if (isLoading) {
+  if (isLoadingFinal) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-4xl mx-auto">
@@ -283,9 +310,9 @@ export default function IncidentDetail() {
             <div className="flex gap-2">
               <IncidentReport
                 incident={incident}
-                equipment={equipment}
-                client={client}
-                building={building}
+                equipment={finalEquipment}
+                client={finalClient}
+                building={finalBuilding}
               />
               {userRole === 'technician' && (
                 <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
@@ -312,21 +339,21 @@ export default function IncidentDetail() {
                 </div>
               </div>
             )}
-            {building && (
+            {finalBuilding && (
               <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
                 <Building2 className="h-5 w-5 text-slate-400" />
                 <div>
                   <p className="text-xs text-slate-500">Edificio</p>
-                  <p className="text-sm text-slate-700">{building.name}</p>
+                  <p className="text-sm text-slate-700">{finalBuilding.name}</p>
                 </div>
               </div>
             )}
-            {equipment && (
+            {finalEquipment && (
               <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
                 <Thermometer className="h-5 w-5 text-slate-400" />
                 <div>
                   <p className="text-xs text-slate-500">Equipo</p>
-                  <p className="text-sm text-slate-700">{equipment.brand} {equipment.model}</p>
+                  <p className="text-sm text-slate-700">{finalEquipment.brand} {finalEquipment.model}</p>
                 </div>
               </div>
             )}

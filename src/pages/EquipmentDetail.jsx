@@ -189,13 +189,14 @@ export default function EquipmentDetail() {
   });
 
   const handleEditSpecs = () => {
+    const eq = finalEquipment || equipment || {};
     setSpecs({
-      cooling_power_kw: equipment.cooling_power_kw || '',
-      heating_power_kw: equipment.heating_power_kw || '',
-      refrigerant_type: equipment.refrigerant_type || '',
-      refrigerant_charge_kg: equipment.refrigerant_charge_kg || '',
-      location: equipment.location || '',
-      balsa_litros: equipment.balsa_litros || '',
+      cooling_power_kw: eq.cooling_power_kw || '',
+      heating_power_kw: eq.heating_power_kw || '',
+      refrigerant_type: eq.refrigerant_type || '',
+      refrigerant_charge_kg: eq.refrigerant_charge_kg || '',
+      location: eq.location || '',
+      balsa_litros: eq.balsa_litros || '',
     });
     setEditingSpecs(true);
   };
@@ -420,7 +421,7 @@ export default function EquipmentDetail() {
                       <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-cyan-400" />Carga refrigerante (kg)</p>
                       <Input type="number" value={specs.refrigerant_charge_kg} onChange={e => setSpecs(p => ({...p, refrigerant_charge_kg: e.target.value}))} className="h-8 text-sm" />
                     </div>
-                    {equipment.equipment_type === 'adiabatico' && (
+                    {finalEquipment.equipment_type === 'adiabatico' && (
                       <div>
                         <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Droplet className="h-3 w-3 text-blue-400" />Volumen balsa (L)</p>
                         <Input type="number" value={specs.balsa_litros} onChange={e => setSpecs(p => ({...p, balsa_litros: e.target.value}))} className="h-8 text-sm" placeholder="Ej: 72" />
@@ -565,14 +566,14 @@ export default function EquipmentDetail() {
 
         {/* Observaciones editables */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-          <EditableNotes equipment={equipment} equipmentId={equipmentId} />
+          <EditableNotes equipment={finalEquipment} equipmentId={equipmentId} />
         </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
           <TabsList className={`grid w-full mb-6 ${
-            equipment.refrigerant_type && equipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-9' :
-            (equipment.refrigerant_type || equipment.equipment_type === 'adiabatico') ? 'grid-cols-4 sm:grid-cols-8' :
+            finalEquipment.refrigerant_type && finalEquipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-9' :
+            (finalEquipment.refrigerant_type || finalEquipment.equipment_type === 'adiabatico') ? 'grid-cols-4 sm:grid-cols-8' :
             'grid-cols-4 sm:grid-cols-7'
           }`}>
             <TabsTrigger value="plan">Plan Mant.</TabsTrigger>
@@ -582,10 +583,10 @@ export default function EquipmentDetail() {
             <TabsTrigger value="photos">Imágenes</TabsTrigger>
             <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
-            {equipment.refrigerant_type && (
+            {finalEquipment.refrigerant_type && (
               <TabsTrigger value="fgas" className="text-blue-700 font-semibold">F-Gas 🌿</TabsTrigger>
             )}
-            {equipment.equipment_type === 'adiabatico' && (
+            {finalEquipment.equipment_type === 'adiabatico' && (
               <TabsTrigger value="ld" className="text-cyan-700 font-semibold">L+D 💧</TabsTrigger>
             )}
           </TabsList>
@@ -594,8 +595,8 @@ export default function EquipmentDetail() {
             <Card className="p-6 bg-white border-0 shadow-sm">
               <MaintenancePlan 
                 equipmentId={equipmentId}
-                clientId={equipment.client_id}
-                buildingId={equipment.building_id}
+                clientId={finalEquipment.client_id}
+                buildingId={finalEquipment.building_id}
               />
             </Card>
           </TabsContent>
@@ -623,41 +624,41 @@ export default function EquipmentDetail() {
 
           <TabsContent value="photos">
             <Card className="p-6 bg-white border-0 shadow-sm">
-              <PhotosTab equipment={equipment} equipmentId={equipmentId} />
+              <PhotosTab equipment={finalEquipment} equipmentId={equipmentId} />
             </Card>
           </TabsContent>
 
           <TabsContent value="spareparts">
             <Card className="p-6 bg-white border-0 shadow-sm">
-              <SparePartsTab equipment={equipment} equipmentId={equipmentId} />
+              <SparePartsTab equipment={finalEquipment} equipmentId={equipmentId} />
             </Card>
           </TabsContent>
 
           <TabsContent value="documents">
             <EquipmentDocuments 
-              equipment={equipment} 
+              equipment={finalEquipment} 
               onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })}
             />
           </TabsContent>
 
-          {equipment.refrigerant_type && (
+          {finalEquipment.refrigerant_type && (
             <TabsContent value="fgas">
               <Card className="p-6 bg-white border-0 shadow-sm">
                 <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
                   <Wind className="h-4 w-4 text-blue-600" />Registro F-Gas — Libro de Gases Fluorados
                 </h3>
-                <FGasTab equipment={equipment} equipmentId={equipmentId} />
+                <FGasTab equipment={finalEquipment} equipmentId={equipmentId} />
               </Card>
             </TabsContent>
           )}
 
-          {equipment.equipment_type === 'adiabatico' && (
+          {finalEquipment.equipment_type === 'adiabatico' && (
             <TabsContent value="ld">
               <Card className="p-6 bg-white border-0 shadow-sm">
                 <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
                   <Droplet className="h-4 w-4 text-cyan-600" />Limpieza y Desinfección (L+D) — Legionella
                 </h3>
-                <LDTab equipment={equipment} equipmentId={equipmentId} client={client} />
+                <LDTab equipment={finalEquipment} equipmentId={equipmentId} client={finalClient} />
               </Card>
             </TabsContent>
           )}
@@ -667,7 +668,7 @@ export default function EquipmentDetail() {
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           title="¿Eliminar equipo?"
-          description={`Se eliminará "${equipment.brand} ${equipment.model}". Esta acción no se puede deshacer.`}
+          description={`Se eliminará "${finalEquipment.brand} ${finalEquipment.model}". Esta acción no se puede deshacer.`}
           onConfirm={() => deleteMutation.mutate()}
           isLoading={deleteMutation.isPending}
         />
