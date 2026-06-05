@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2 } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, Edit } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -27,7 +27,7 @@ export default function TechnicianProfile() {
   });
 
   const sessionTechEmailQuery = sessionStorage.getItem('technician_email');
-  const { data: technicians = [] } = useQuery({
+  const { data: technicians = [], isLoading: loadingTechs } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
     enabled: !!currentUser || !!sessionTechEmailQuery,
@@ -79,10 +79,16 @@ export default function TechnicianProfile() {
   // Accesible para admins y para el propio técnico viendo su perfil
   if (!currentUser && !isSessionTech) return null;
   if (currentUser && currentUser.role !== 'admin' && !isSessionTech) return null;
+  // Mientras carga, no mostrar "no encontrado"
+  if (loadingTechs) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+    </div>
+  );
   if (!tech) return (
     <div className="min-h-screen bg-slate-50 p-6">
       <NavHeader title="Perfil técnico" />
-      <p className="text-slate-500 text-center mt-8">Técnico no encontrado</p>
+      <p className="text-slate-500 text-center mt-8">Técnico no encontrado para: {techEmail}</p>
     </div>
   );
 

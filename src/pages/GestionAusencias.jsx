@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Plus, CheckCircle, XCircle, Clock, Calendar, FileText, Loader2 } from 'lucide-react';
-import { format, differenceInCalendarDays, parseISO } from 'date-fns';
+import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, differenceInCalendarDays, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval, getDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const TIPO_LABELS = {
@@ -23,12 +24,115 @@ const TIPO_LABELS = {
   otro: { label: 'Otro', color: 'bg-slate-100 text-slate-700' },
 };
 
+const TIPO_COLORS_CAL = {
+  vacaciones: 'bg-blue-200 text-blue-800',
+  baja_medica: 'bg-red-200 text-red-800',
+  permiso: 'bg-yellow-200 text-yellow-800',
+  asunto_propio: 'bg-purple-200 text-purple-800',
+  maternidad_paternidad: 'bg-pink-200 text-pink-800',
+  otro: 'bg-slate-200 text-slate-700',
+};
+
 const ESTADO_CONFIG = {
   pendiente: { label: 'Pendiente', color: 'bg-amber-100 text-amber-700' },
   aprobada: { label: 'Aprobada', color: 'bg-emerald-100 text-emerald-700' },
   rechazada: { label: 'Rechazada', color: 'bg-red-100 text-red-700' },
 };
 
+// ── Mini-calendario de ausencias ─────────────────────────────────────────────
+function CalendarioAusencias({ ausencias, technicians }) {
+  const [mes, setMes] = useState(new Date());
+
+  const start = startOfMonth(mes);
+  const end = endOfMonth(mes);
+  const days = eachDayOfInterval({ start, end });
+
+  // Calcular offset días de semana (lunes=0)
+  const startDow = (getDay(start) + 6) % 7; // 0=Lun
+
+  // Agrupar ausencias aprobadas por día
+  const aprobadas = ausencias.filter(a => a.estado === 'aprobada');
+
+  const getAusenciasForDay = (day) => {
+    return aprobadas.filter(a => {
+      if (!a.fecha_inicio || !a.fecha_fin) return false;
+      return isWithinInterval(day, { start: parseISO(a.fecha_inicio), end: parseISO(a.fecha_fin) });
+    });
+  };
+
+  const DOW = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Header mes */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setMes(m => subMonths(m, 1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <h3 className="font-semibold text-slate-700 capitalize">
+          {format(mes, 'MMMM yyyy', { locale: es })}
+        </h3>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setMes(m => addMonths(m, 1))}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Grid días de semana */}
+      <div className="grid grid-cols-7 border-b border-slate-100">
+        {DOW.map(d => (
+          <div key={d} className="text-center py-2 text-xs font-semibold text-slate-400">{d}</div>
+        ))}
+      </div>
+
+      {/* Grid días */}
+      <div className="grid grid-cols-7">
+        {/* Offset */}
+        {Array.from({ length: startDow }).map((_, i) => (
+          <div key={`e-${i}`} className="h-16 border-b border-r border-slate-50" />
+        ))}
+        {days.map(day => {
+          const ausenciasDay = getAusenciasForDay(day);
+          const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+          return (
+            <div key={day.toISOString()}
+              className={`h-16 border-b border-r border-slate-50 p-1 ${isToday ? 'bg-blue-50' : ''}`}>
+              <p className={`text-xs font-medium mb-0.5 ${isToday ? 'text-blue-600 font-bold' : 'text-slate-500'}`}>
+                {format(day, 'd')}
+              </p>
+              <div className="space-y-0.5 overflow-hidden">
+                {ausenciasDay.slice(0, 2).map((a, i) => {
+                  const tech = technicians?.find(t => t.email === a.technician_email || t.user_email === a.technician_email);
+                  const nombre = tech?.name || a.technician_name || '?';
+                  return (
+                    <div key={i} className={`text-[10px] px-1 rounded truncate ${TIPO_COLORS_CAL[a.tipo] || TIPO_COLORS_CAL.otro}`}>
+                      {nombre.split(' ')[0]}
+                    </div>
+                  );
+                })}
+                {ausenciasDay.length > 2 && (
+                  <div className="text-[10px] text-slate-400">+{ausenciasDay.length - 2}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Leyenda */}
+      <div className="px-4 py-3 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(TIPO_LABELS).map(([k, v]) => (
+            <div key={k} className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded ${TIPO_COLORS_CAL[k]}`}>
+              {v.label}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 export default function GestionAusencias() {
   const queryClient = useQueryClient();
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -40,6 +144,10 @@ export default function GestionAusencias() {
     motivo: '',
   });
 
+  // Soporte tanto para usuarios Base44 como técnicos de sesión
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const sessionTechName = sessionStorage.getItem('technician_name');
+
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
@@ -48,19 +156,20 @@ export default function GestionAusencias() {
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: !!currentUser,
+    enabled: !!currentUser || !!sessionTechEmail,
   });
 
   const isAdmin = currentUser?.role === 'admin';
+  const myEmail = currentUser?.email || sessionTechEmail;
   const myTechRecord = technicians.find(t =>
-    t.user_email === currentUser?.email || t.email === currentUser?.email
+    t.user_email === myEmail || t.email === myEmail
   );
 
   const { data: ausencias = [], isLoading } = useQuery({
-    queryKey: ['ausencias', currentUser?.email, isAdmin],
+    queryKey: ['ausencias', myEmail, isAdmin],
     queryFn: async () => {
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 200);
-      if (!isAdmin) return all.filter(a => a.technician_email === currentUser?.email);
+      if (!isAdmin) return all.filter(a => a.technician_email === myEmail);
       if (myTechRecord?.company_id) {
         return all.filter(a => {
           const tech = technicians.find(t => t.user_email === a.technician_email || t.email === a.technician_email);
@@ -69,8 +178,15 @@ export default function GestionAusencias() {
       }
       return all;
     },
-    enabled: !!currentUser,
+    enabled: !!myEmail,
   });
+
+  // Calcular días de vacaciones disponibles (para técnicos)
+  const vacacionesConfig = myTechRecord?.vacaciones_anuales ?? 22;
+  const vacacionesUsadas = ausencias
+    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada' && a.technician_email === myEmail)
+    .reduce((acc, a) => acc + (a.dias_totales || 0), 0);
+  const vacacionesDisponibles = vacacionesConfig - vacacionesUsadas;
 
   const pendientes = ausencias.filter(a => a.estado === 'pendiente');
   const aprobadas = ausencias.filter(a => a.estado === 'aprobada');
@@ -79,40 +195,30 @@ export default function GestionAusencias() {
   const handleCreate = async () => {
     if (!newData.fecha_inicio || !newData.fecha_fin) return;
     setSaving(true);
-    try {
-      const dias = differenceInCalendarDays(
-        parseISO(newData.fecha_fin),
-        parseISO(newData.fecha_inicio)
-      ) + 1;
-      await base44.entities.Ausencia.create({
-        technician_email: currentUser.email,
-        technician_name: myTechRecord?.name || currentUser.full_name || currentUser.email,
-        technician_id: myTechRecord?.id || '',
-        company_id: myTechRecord?.company_id || '',
-        ...newData,
-        dias_totales: dias,
-        estado: 'pendiente',
-      });
-      queryClient.invalidateQueries({ queryKey: ['ausencias'] });
-      toast.success('Solicitud enviada');
-      setShowNewDialog(false);
-      setNewData({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
-    } catch (err) {
-      toast.error('Error al enviar la solicitud');
-    } finally {
-      setSaving(false);
-    }
+    const dias = differenceInCalendarDays(parseISO(newData.fecha_fin), parseISO(newData.fecha_inicio)) + 1;
+    await base44.entities.Ausencia.create({
+      technician_email: myEmail,
+      technician_name: myTechRecord?.name || currentUser?.full_name || sessionTechName || myEmail,
+      technician_id: myTechRecord?.id || '',
+      company_id: myTechRecord?.company_id || '',
+      ...newData,
+      dias_totales: dias,
+      estado: 'pendiente',
+    });
+    queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+    toast.success('Solicitud enviada');
+    setShowNewDialog(false);
+    setNewData({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
+    setSaving(false);
   };
 
   const handleEstado = async (ausencia, estado) => {
-    try {
-      await base44.entities.Ausencia.update(ausencia.id, { estado });
-      queryClient.invalidateQueries({ queryKey: ['ausencias'] });
-      toast.success(estado === 'aprobada' ? 'Solicitud aprobada' : 'Solicitud rechazada');
-    } catch {
-      toast.error('Error al actualizar');
-    }
+    await base44.entities.Ausencia.update(ausencia.id, { estado });
+    queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+    toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
   };
+
+  if (!myEmail) return null;
 
   const AusenciaCard = ({ ausencia }) => {
     const tipo = TIPO_LABELS[ausencia.tipo] || TIPO_LABELS.otro;
@@ -138,22 +244,13 @@ export default function GestionAusencias() {
           </div>
           {isAdmin && ausencia.estado === 'pendiente' && (
             <div className="flex gap-2 shrink-0">
-              <Button
-                size="sm"
-                onClick={() => handleEstado(ausencia, 'aprobada')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3"
-              >
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                Aprobar
+              <Button size="sm" onClick={() => handleEstado(ausencia, 'aprobada')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3">
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />Aprobar
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleEstado(ausencia, 'rechazada')}
-                className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3"
-              >
-                <XCircle className="h-3.5 w-3.5 mr-1" />
-                Rechazar
+              <Button size="sm" variant="outline" onClick={() => handleEstado(ausencia, 'rechazada')}
+                className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3">
+                <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
               </Button>
             </div>
           )}
@@ -162,15 +259,13 @@ export default function GestionAusencias() {
     );
   };
 
-  if (!currentUser) return null;
-
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Ausencias y Vacaciones" />
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="p-4 bg-white border-0 shadow-sm text-center">
             <p className="text-2xl font-bold text-amber-600">{pendientes.length}</p>
             <p className="text-xs text-slate-500 mt-0.5">Pendientes</p>
@@ -183,81 +278,100 @@ export default function GestionAusencias() {
             <p className="text-2xl font-bold text-red-500">{rechazadas.length}</p>
             <p className="text-xs text-slate-500 mt-0.5">Rechazadas</p>
           </Card>
+          {!isAdmin && (
+            <Card className="p-4 bg-white border-0 shadow-sm text-center">
+              <p className={`text-2xl font-bold ${vacacionesDisponibles < 5 ? 'text-red-500' : 'text-blue-600'}`}>
+                {vacacionesDisponibles}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">Vacaciones disp.</p>
+              <p className="text-xs text-slate-400">(de {vacacionesConfig})</p>
+            </Card>
+          )}
         </div>
 
-        {/* Action */}
-        {!isAdmin && (
-          <div className="flex justify-end mb-4">
-            <Button
-              onClick={() => setShowNewDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva solicitud
-            </Button>
-          </div>
-        )}
+        {/* Botón nueva solicitud — visible para cualquier usuario (técnico o admin) */}
+        <div className="flex justify-end mb-4">
+          <Button onClick={() => setShowNewDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva solicitud
+          </Button>
+        </div>
 
-        {/* Pendientes */}
-        {pendientes.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-amber-500" />
-              <h3 className="font-semibold text-slate-700">Pendientes de aprobación</h3>
-              <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{pendientes.length}</Badge>
-            </div>
-            <div className="space-y-3">
-              {pendientes.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
-            </div>
-          </div>
-        )}
+        <Tabs defaultValue="lista">
+          <TabsList className="mb-4">
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
+          </TabsList>
 
-        {/* Aprobadas */}
-        {aprobadas.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-              <h3 className="font-semibold text-slate-700">Aprobadas</h3>
-            </div>
-            <div className="space-y-3">
-              {aprobadas.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
-            </div>
-          </div>
-        )}
-
-        {/* Rechazadas */}
-        {rechazadas.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <XCircle className="h-4 w-4 text-red-400" />
-              <h3 className="font-semibold text-slate-700">Rechazadas</h3>
-            </div>
-            <div className="space-y-3">
-              {rechazadas.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
-            </div>
-          </div>
-        )}
-
-        {ausencias.length === 0 && !isLoading && (
-          <Card className="p-8 text-center bg-white border-0 shadow-sm">
-            <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">No hay solicitudes de ausencia</p>
-            {!isAdmin && (
-              <Button onClick={() => setShowNewDialog(true)} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear solicitud
-              </Button>
+          <TabsContent value="lista">
+            {isLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
+            ) : (
+              <>
+                {pendientes.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      <h3 className="font-semibold text-slate-700">Pendientes de aprobación</h3>
+                      <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{pendientes.length}</Badge>
+                    </div>
+                    <div className="space-y-3">
+                      {pendientes.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
+                    </div>
+                  </div>
+                )}
+                {aprobadas.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <h3 className="font-semibold text-slate-700">Aprobadas</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {aprobadas.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
+                    </div>
+                  </div>
+                )}
+                {rechazadas.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <XCircle className="h-4 w-4 text-red-400" />
+                      <h3 className="font-semibold text-slate-700">Rechazadas</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {rechazadas.map(a => <AusenciaCard key={a.id} ausencia={a} />)}
+                    </div>
+                  </div>
+                )}
+                {ausencias.length === 0 && (
+                  <Card className="p-8 text-center bg-white border-0 shadow-sm">
+                    <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">No hay solicitudes de ausencia</p>
+                    <Button onClick={() => setShowNewDialog(true)} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
+                      <Plus className="h-4 w-4 mr-2" />Crear solicitud
+                    </Button>
+                  </Card>
+                )}
+              </>
             )}
-          </Card>
-        )}
+          </TabsContent>
 
-        {/* New dialog */}
+          <TabsContent value="calendario">
+            <CalendarioAusencias ausencias={ausencias} technicians={technicians} />
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialog nueva solicitud */}
         <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Nueva solicitud de ausencia</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
+              {!isAdmin && (
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700">
+                  Tienes <strong>{vacacionesDisponibles} días de vacaciones disponibles</strong> de {vacacionesConfig} totales.
+                </div>
+              )}
               <div>
                 <Label>Tipo de ausencia</Label>
                 <Select value={newData.tipo} onValueChange={v => setNewData(p => ({ ...p, tipo: v }))}>
@@ -274,22 +388,13 @@ export default function GestionAusencias() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Fecha inicio</Label>
-                  <Input
-                    type="date"
-                    value={newData.fecha_inicio}
-                    onChange={e => setNewData(p => ({ ...p, fecha_inicio: e.target.value }))}
-                    className="mt-1"
-                  />
+                  <Input type="date" value={newData.fecha_inicio}
+                    onChange={e => setNewData(p => ({ ...p, fecha_inicio: e.target.value }))} className="mt-1" />
                 </div>
                 <div>
                   <Label>Fecha fin</Label>
-                  <Input
-                    type="date"
-                    value={newData.fecha_fin}
-                    min={newData.fecha_inicio}
-                    onChange={e => setNewData(p => ({ ...p, fecha_fin: e.target.value }))}
-                    className="mt-1"
-                  />
+                  <Input type="date" value={newData.fecha_fin} min={newData.fecha_inicio}
+                    onChange={e => setNewData(p => ({ ...p, fecha_fin: e.target.value }))} className="mt-1" />
                 </div>
               </div>
               {newData.fecha_inicio && newData.fecha_fin && (
@@ -299,20 +404,15 @@ export default function GestionAusencias() {
               )}
               <div>
                 <Label>Motivo / Observaciones</Label>
-                <Input
-                  value={newData.motivo}
+                <Input value={newData.motivo}
                   onChange={e => setNewData(p => ({ ...p, motivo: e.target.value }))}
-                  placeholder="Opcional"
-                  className="mt-1"
-                />
+                  placeholder="Opcional" className="mt-1" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancelar</Button>
-                <Button
-                  onClick={handleCreate}
+                <Button onClick={handleCreate}
                   disabled={!newData.fecha_inicio || !newData.fecha_fin || saving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
+                  className="bg-blue-600 hover:bg-blue-700 text-white">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                   Enviar solicitud
                 </Button>

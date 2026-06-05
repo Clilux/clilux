@@ -3,17 +3,14 @@
   "type": "object",
   "properties": {
     "equipment_id": {
-      "type": "string",
-      "description": "ID del equipo"
+      "type": "string"
     },
     "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "type": "string"
     },
     "fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del tratamiento"
+      "format": "date"
     },
     "tipo_tratamiento": {
       "type": "string",
@@ -24,8 +21,7 @@
         "aislamiento_legionella",
         "medida_correctora",
         "brote_casos"
-      ],
-      "description": "Tipo de tratamiento"
+      ]
     },
     "protocolo_id": {
       "type": "string",
@@ -34,8 +30,7 @@
         "B",
         "C"
       ],
-      "default": "A",
-      "description": "Protocolo: A=5ppm fab., B=20ppm RD est\u00e1ndar, C=50ppm RD r\u00e1pido"
+      "default": "A"
     },
     "nombre_circuito": {
       "type": "string"
@@ -105,7 +100,12 @@
       "type": "number"
     },
     "cloro_libre_final": {
-      "type": "number"
+      "type": "number",
+      "description": "Cloro medido post-neutralizaci\u00f3n (< 1 ppm obligatorio)"
+    },
+    "cloro_objetivo": {
+      "type": "number",
+      "description": "Nivel de cloro residual objetivo al dejar el equipo en servicio (< 1 ppm)"
     },
     "temperatura_final": {
       "type": "number"
@@ -182,8 +182,7 @@
       "type": "string"
     },
     "tecnico_nombre": {
-      "type": "string",
-      "description": "legacy"
+      "type": "string"
     },
     "proxima_revision_fecha": {
       "type": "string",

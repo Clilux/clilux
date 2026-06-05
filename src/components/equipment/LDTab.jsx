@@ -123,6 +123,7 @@ const emptyForm = {
   aplicador_curso: '',
   aplicador_cualificacion: '',
   cloro_a_neutralizar: '',
+  cloro_objetivo: '',
 };
 
 // ─── Componentes auxiliares ───────────────────────────────────────────────────
@@ -382,9 +383,12 @@ export default function LDTab({ equipment, equipmentId, client }) {
   // Validaciones por paso
   const paso0Valido = form.check_epi && form.check_limpieza_mecanica && form.check_llenado_limpio &&
     form.ph_inicial !== '' && Number(form.ph_inicial) >= 7.2 && Number(form.ph_inicial) <= 7.8;
-  // Temporizador es opcional: paso1 válido si marcó bombas OK (timer es ayuda, no requisito)
   const paso1Valido = form.check_bombas_on_ventiladores_off;
-  const paso2Valido = form.check_neutralizado_ok && form.cloro_libre_final !== '' && Number(form.cloro_libre_final) === 0;
+  const cloroFinalNum = form.cloro_libre_final !== '' ? Number(form.cloro_libre_final) : null;
+  const cloroFinalValido = cloroFinalNum !== null && cloroFinalNum >= 0 && cloroFinalNum < 1;
+  const cloroObjetivoNum = form.cloro_objetivo !== '' ? Number(form.cloro_objetivo) : null;
+  const cloroObjetivoValido = cloroObjetivoNum !== null && cloroObjetivoNum >= 0 && cloroObjetivoNum < 1;
+  const paso2Valido = form.check_neutralizado_ok && cloroFinalValido && cloroObjetivoValido;
   const phAlerta = form.ph_inicial !== '' && (Number(form.ph_inicial) < 7.2 || Number(form.ph_inicial) > 7.8);
 
   const saveMutation = useMutation({
@@ -392,10 +396,11 @@ export default function LDTab({ equipment, equipmentId, client }) {
       const p = PROTOCOLOS.find(x => x.id === data.protocolo_id) || PROTOCOLOS[0];
       const proxima = data.tipo_tratamiento === 'mantenimiento_mensual'
         ? addDays(new Date(data.fecha), 30).toISOString().split('T')[0] : null;
+      const clientId = equipment?.client_id || client?.id || '';
       const payload = {
         ...data,
         equipment_id: equipmentId,
-        client_id: equipment.client_id,
+        client_id: clientId,
         balsa_litros: balsaLitros,
         tecnico_nombre: data.responsable_tecnico_nombre || '',
         ppm_deseadas: p.ppm,
@@ -411,6 +416,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
         cloro_libre_final: data.cloro_libre_final !== '' ? Number(data.cloro_libre_final) : null,
         temperatura_final: data.temperatura_final !== '' ? Number(data.temperatura_final) : null,
         cloro_a_neutralizar: data.cloro_a_neutralizar !== '' ? Number(data.cloro_a_neutralizar) : null,
+        cloro_objetivo: data.cloro_objetivo !== '' ? Number(data.cloro_objetivo) : null,
         proxima_revision_fecha: proxima,
       };
       if (editingId) return base44.entities.RegistroLD.update(editingId, payload);
@@ -455,6 +461,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
       aplicador_nombre: r.aplicador_nombre || '', aplicador_dni: r.aplicador_dni || '',
       aplicador_curso: r.aplicador_curso || '', aplicador_cualificacion: r.aplicador_cualificacion || '',
       cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
+      cloro_objetivo: r.cloro_objetivo ?? '',
     });
     setEditingId(r.id); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
   };
@@ -751,17 +758,39 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   <Input type="number" step="0.1" value={form.cloro_a_neutralizar} onChange={e => f('cloro_a_neutralizar', e.target.value)} className="h-8 text-sm w-36" />
                 </div>
 
-                {/* Cloro final — OBLIGATORIO 0 */}
-                <div>
-                  <Label>Cloro libre post-neutralización (ppm) — Debe ser 0 *</Label>
-                  <Input type="number" step="0.1" value={form.cloro_libre_final} onChange={e => f('cloro_libre_final', e.target.value)}
-                    className={`h-8 text-sm w-36 ${form.cloro_libre_final !== '' && Number(form.cloro_libre_final) !== 0 ? 'border-red-400' : ''}`} placeholder="0" />
-                  {form.cloro_libre_final !== '' && Number(form.cloro_libre_final) !== 0 && (
-                    <p className="text-xs text-red-600 font-medium mt-0.5">⛔ Debe ser exactamente 0,0 ppm para poder cerrar el parte (requisito de vertido medioambiental).</p>
+                {/* Nivel objetivo de cloro al dejar en servicio */}
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                  <p className="text-xs font-semibold text-slate-700">Nivel de cloro objetivo al dejar el equipo en servicio *</p>
+                  <p className="text-xs text-slate-500">El equipo <strong>no se vacía</strong>. Indica el nivel de cloro libre residual deseado en el agua de servicio. <strong className="text-red-600">Máximo legal: &lt; 1,0 ppm.</strong></p>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" step="0.01" min="0" max="0.99" value={form.cloro_objetivo}
+                      onChange={e => f('cloro_objetivo', e.target.value)}
+                      className={`h-8 text-sm w-28 ${cloroObjetivoNum !== null && cloroObjetivoNum >= 1 ? 'border-red-400' : ''}`}
+                      placeholder="ej: 0.2" />
+                    <span className="text-sm text-slate-500">ppm</span>
+                  </div>
+                  {cloroObjetivoNum !== null && cloroObjetivoNum >= 1 && (
+                    <p className="text-xs text-red-600 font-medium">⛔ Supera el límite legal de 1 ppm.</p>
                   )}
-                  {form.cloro_libre_final === '0' || Number(form.cloro_libre_final) === 0 && form.cloro_libre_final !== '' ? (
-                    <p className="text-xs text-emerald-600 font-medium mt-0.5">✓ Apto para vertido ecológico</p>
-                  ) : null}
+                  {cloroObjetivoValido && (
+                    <p className="text-xs text-emerald-600 font-medium">✓ Dentro del límite legal</p>
+                  )}
+                </div>
+
+                {/* Cloro medido post-neutralización */}
+                <div>
+                  <Label>Cloro libre medido post-neutralización (ppm) * — debe ser &lt; 1 ppm</Label>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" step="0.01" value={form.cloro_libre_final} onChange={e => f('cloro_libre_final', e.target.value)}
+                      className={`h-8 text-sm w-28 ${cloroFinalNum !== null && cloroFinalNum >= 1 ? 'border-red-400' : ''}`} placeholder="0.0 – 0.99" />
+                    <span className="text-sm text-slate-500">ppm</span>
+                  </div>
+                  {cloroFinalNum !== null && cloroFinalNum >= 1 && (
+                    <p className="text-xs text-red-600 font-medium mt-0.5">⛔ Supera 1 ppm. Añade más neutralizante y vuelve a medir.</p>
+                  )}
+                  {cloroFinalValido && (
+                    <p className="text-xs text-emerald-600 font-medium mt-0.5">✓ Correcto — {cloroFinalNum} ppm registrado</p>
+                  )}
                 </div>
 
                 <div>
@@ -771,7 +800,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
 
                 {!paso2Valido && (
                   <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                    Para continuar: confirma que las bombas están apagadas y registra cloro final = 0,0 ppm.
+                    Para continuar: bombas apagadas, nivel objetivo y cloro final medido (ambos &lt; 1 ppm).
                   </p>
                 )}
               </div>
