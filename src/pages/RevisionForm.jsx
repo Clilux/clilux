@@ -126,12 +126,20 @@ export default function RevisionForm() {
     enabled: !!scheduledRevision?.equipment_id && !!scheduledRevision?.scheduled_date && scheduledRevision?.status === 'pending',
   });
 
-  // Auto-fill technician name from current user
+  // Auto-fill technician name from session or current user
   useEffect(() => {
-    if (!technicianName && (technician?.name || user?.full_name)) {
+    if (technicianName) return; // no sobreescribir si ya hay valor
+
+    if (isTechSession) {
+      // Buscar el técnico en la lista cargada via proxy
+      const matchedTech = technicians.find(t => t.email === sessionTechEmail || t.portal_email === sessionTechEmail);
+      if (matchedTech?.name) {
+        setTechnicianName(matchedTech.name);
+      }
+    } else if (technician?.name || user?.full_name) {
       setTechnicianName(technician?.name || user?.full_name || '');
     }
-  }, [technician, user]);
+  }, [technician, user, technicians, isTechSession, sessionTechEmail]);
 
   useEffect(() => {
     if (!scheduledRevision || scheduledRevision.status === 'completed') return;
@@ -502,7 +510,14 @@ export default function RevisionForm() {
           <div className="space-y-4 mb-6 pb-6 border-b">
             <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
-              {technicians.length > 0 ? (
+              {isTechSession ? (
+                <Input
+                  value={technicianName}
+                  readOnly
+                  className="bg-slate-50 text-slate-700 cursor-default"
+                  placeholder="Cargando técnico..."
+                />
+              ) : technicians.length > 0 ? (
                 <select
                   value={technicianName}
                   onChange={e => setTechnicianName(e.target.value)}
