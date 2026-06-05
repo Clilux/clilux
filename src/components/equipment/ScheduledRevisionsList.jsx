@@ -18,10 +18,23 @@ const revisionTypeLabels = {
 };
 
 export default function ScheduledRevisionsList({ equipmentId }) {
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isTechSession = !!sessionTechEmail;
+
   const { data: scheduledRevisions = [], isLoading } = useQuery({
-    queryKey: ['scheduled-revisions-equipment', equipmentId],
+    queryKey: ['scheduled-revisions-equipment', equipmentId, isTechSession ? 'proxy' : 'direct'],
     queryFn: async () => {
-      const all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
+      let all;
+      if (isTechSession) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_revisions',
+          equipment_id: equipmentId,
+        });
+        all = res.data?.data || [];
+      } else {
+        all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
+      }
       return all.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
     },
     enabled: !!equipmentId,

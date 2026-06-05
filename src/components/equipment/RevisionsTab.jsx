@@ -18,11 +18,21 @@ const revisionTypeLabels = {
 };
 
 export default function RevisionsTab({ equipmentId }) {
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isTechSession = !!sessionTechEmail;
+
   const { data: revisions = [], isLoading } = useQuery({
-    queryKey: ['all-revisions-equipment', equipmentId],
+    queryKey: ['all-revisions-equipment', equipmentId, isTechSession ? 'proxy' : 'direct'],
     queryFn: async () => {
-      const all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
-      return all;
+      if (isTechSession) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_revisions',
+          equipment_id: equipmentId,
+        });
+        return res.data?.data || [];
+      }
+      return base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
     },
     enabled: !!equipmentId,
   });
