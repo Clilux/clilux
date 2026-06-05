@@ -16,7 +16,8 @@ import { toast } from 'sonner';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
-  const techEmail = urlParams.get('email');
+  const sessionEmailFallback = sessionStorage.getItem('technician_email');
+  const techEmail = urlParams.get('email') || sessionEmailFallback;
   const queryClient = useQueryClient();
   const [contactForm, setContactForm] = useState(null); // null = no cargado aún
 
@@ -25,10 +26,11 @@ export default function TechnicianProfile() {
     queryFn: () => base44.auth.me(),
   });
 
+  const sessionTechEmailQuery = sessionStorage.getItem('technician_email');
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: !!currentUser,
+    enabled: !!currentUser || !!sessionTechEmailQuery,
   });
 
   const tech = technicians.find(t => t.user_email === techEmail || t.email === techEmail);
@@ -72,7 +74,11 @@ export default function TechnicianProfile() {
     queryFn: () => base44.entities.Client.list('-created_date'),
   });
 
-  if (!currentUser || currentUser.role !== 'admin') return null;
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+  // Accesible para admins y para el propio técnico viendo su perfil
+  if (!currentUser && !isSessionTech) return null;
+  if (currentUser && currentUser.role !== 'admin' && !isSessionTech) return null;
   if (!tech) return (
     <div className="min-h-screen bg-slate-50 p-6">
       <NavHeader title="Perfil técnico" />

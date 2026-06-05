@@ -357,6 +357,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
   const [generatingPdf, setGeneratingPdf] = useState(null);
   const [step, setStep] = useState(0); // 0=Preparación 1=Dosificación+Timer 2=Neutralización 3=Cierre
   const [timerCompleto, setTimerCompleto] = useState(false);
+  const [timerVisible, setTimerVisible] = useState(false);
 
   const balsaLitros = equipment?.balsa_litros || null;
   const protocolo = PROTOCOLOS.find(p => p.id === form.protocolo_id) || PROTOCOLOS[0];
@@ -381,7 +382,8 @@ export default function LDTab({ equipment, equipmentId, client }) {
   // Validaciones por paso
   const paso0Valido = form.check_epi && form.check_limpieza_mecanica && form.check_llenado_limpio &&
     form.ph_inicial !== '' && Number(form.ph_inicial) >= 7.2 && Number(form.ph_inicial) <= 7.8;
-  const paso1Valido = form.check_bombas_on_ventiladores_off && timerCompleto;
+  // Temporizador es opcional: paso1 válido si marcó bombas OK (timer es ayuda, no requisito)
+  const paso1Valido = form.check_bombas_on_ventiladores_off;
   const paso2Valido = form.check_neutralizado_ok && form.cloro_libre_final !== '' && Number(form.cloro_libre_final) === 0;
   const phAlerta = form.ph_inicial !== '' && (Number(form.ph_inicial) < 7.2 || Number(form.ph_inicial) > 7.8);
 
@@ -454,7 +456,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
       aplicador_curso: r.aplicador_curso || '', aplicador_cualificacion: r.aplicador_cualificacion || '',
       cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
     });
-    setEditingId(r.id); setStep(0); setTimerCompleto(false); setShowForm(true);
+    setEditingId(r.id); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
   };
 
   const generatePDF = async (r) => {
@@ -471,7 +473,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
   const openNewForm = () => {
     const eqName = equipment?.reference_name || `${equipment?.brand || ''} ${equipment?.model || ''}`.trim() || '';
     setForm({ ...emptyForm, nombre_circuito: eqName });
-    setEditingId(null); setStep(0); setTimerCompleto(false); setShowForm(true);
+    setEditingId(null); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
   };
 
   const STEPS = ['Preparación', 'Dosificación', 'Neutralización', 'Cierre'];
@@ -689,8 +691,17 @@ export default function LDTab({ equipment, equipmentId, client }) {
                     className="h-8 text-sm w-36" placeholder={mlHipoclorito || ''} />
                 </div>
 
-                {/* Temporizador */}
-                <Temporizador key={`timer-${form.protocolo_id}`} minutos={protocolo.tiempo_min} onComplete={() => setTimerCompleto(true)} />
+                {/* Temporizador — opcional */}
+                <div>
+                  <button onClick={() => setTimerVisible(v => !v)}
+                    className="text-xs text-blue-600 underline flex items-center gap-1 mb-2">
+                    <Timer className="h-3.5 w-3.5" />
+                    {timerVisible ? 'Ocultar temporizador de ayuda' : 'Mostrar temporizador de ayuda (opcional)'}
+                  </button>
+                  {timerVisible && (
+                    <Temporizador key={`timer-${form.protocolo_id}`} minutos={protocolo.tiempo_min} onComplete={() => setTimerCompleto(true)} />
+                  )}
+                </div>
 
                 {/* Control cloro intermedio */}
                 <div>

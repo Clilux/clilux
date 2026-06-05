@@ -9,9 +9,9 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
 
   const handleBack = () => {
     if (backUrl) {
-      navigate(createPageUrl(backUrl));
+      navigate(backUrl.startsWith('/') ? backUrl : createPageUrl(backUrl));
     } else {
-      navigate(createPageUrl(homeUrl));
+      navigate(-1);
     }
   };
 

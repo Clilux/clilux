@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, FileText, MoreVertical, Wrench } from 'lucide-react';
+import { Shield, LogOut, Home, Clock, Calendar, FileText, MoreVertical, Wrench, User } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
-export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout }) {
+export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout, techEmail }) {
   const navigate = useNavigate();
 
   return (
@@ -31,6 +31,14 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
               <span className="text-[10px]">Agenda</span>
             </button>
           </Link>
+          {techEmail && (
+            <Link to={`/TechnicianProfile?email=${techEmail}`}>
+              <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-3 py-1">
+                <User className="h-5 w-5" />
+                <span className="text-[10px]">Mi Perfil</span>
+              </button>
+            </Link>
+          )}
         </>
       )}
       {isAdmin && (
@@ -91,6 +99,14 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
                 <span className="text-sm">Documentos</span>
               </Button>
             </Link>
+            {techEmail && (
+              <Link to={`/TechnicianProfile?email=${techEmail}`}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-9">
+                  <User className="h-4 w-4 mr-2" />
+                  <span className="text-sm">Mi Perfil</span>
+                </Button>
+              </Link>
+            )}
           </>
         )}
       </nav>

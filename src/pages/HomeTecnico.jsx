@@ -275,7 +275,7 @@ export default function HomeTecnico() {
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar */}
-      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} />
+      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} techEmail={sessionTechEmail || base44User?.email} />
 
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
