@@ -273,7 +273,7 @@ export default function RevisionForm() {
   // --- Loading ---
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="max-w-3xl mx-auto text-center py-12">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
         </div>
@@ -283,7 +283,7 @@ export default function RevisionForm() {
 
   if (!scheduledRevision || !equipment) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="max-w-3xl mx-auto text-center py-12">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-slate-500">Revisión no encontrada</p>
@@ -292,14 +292,14 @@ export default function RevisionForm() {
     );
   }
 
-  const maintenanceConfig = equipment.maintenance_config || {};
-  const fields = maintenanceConfig[`${scheduledRevision.revision_type}_fields`] || [];
+  const maintenanceConfig = equipment?.maintenance_config || {};
+  const fields = maintenanceConfig[`${scheduledRevision?.revision_type}_fields`] || [];
 
   // --- Completed revision view ---
   if (scheduledRevision.status === 'completed') {
-    const { data: appSettings } = { data: null }; // se carga abajo si hace falta; ya tenemos los datos básicos
+    const appSettings = null;
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="max-w-3xl mx-auto">
           <NavHeader title="Revisión Completada" />
 
@@ -338,12 +338,16 @@ export default function RevisionForm() {
                       <div className="space-y-2">
                         {Object.entries(scheduledRevision.revision_data)
                           .filter(([key]) => !key.startsWith('_'))
-                          .map(([key, value]) => (
-                          <div key={key} className="flex justify-between text-sm py-1 border-b border-slate-100">
-                            <span className="text-slate-600">{key}:</span>
-                            <span className="font-medium text-slate-800">{formatFieldValue(value)}</span>
-                          </div>
-                        ))}
+                          .map(([key, value]) => {
+                            const fieldConf = fields.find(f => f.field_key === key);
+                            const label = fieldConf?.field_label || key;
+                            return (
+                              <div key={key} className="flex justify-between text-sm py-1 border-b border-slate-100">
+                                <span className="text-slate-600">{label}:</span>
+                                <span className="font-medium text-slate-800">{formatFieldValue(value)}</span>
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -378,6 +382,7 @@ export default function RevisionForm() {
                     client={client}
                     building={building}
                     appSettings={appSettings}
+                    fields={fields}
                   />
                 </Card>
               </TabsContent>
@@ -445,7 +450,7 @@ export default function RevisionForm() {
 
   // --- Pending revision form ---
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
         <NavHeader title="Realizar Revisión" />
 
@@ -510,14 +515,7 @@ export default function RevisionForm() {
           <div className="space-y-4 mb-6 pb-6 border-b">
             <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
-              {isTechSession ? (
-                <Input
-                  value={technicianName}
-                  readOnly
-                  className="bg-slate-50 text-slate-700 cursor-default"
-                  placeholder="Cargando técnico..."
-                />
-              ) : technicians.length > 0 ? (
+              {technicians.length > 0 ? (
                 <select
                   value={technicianName}
                   onChange={e => setTechnicianName(e.target.value)}

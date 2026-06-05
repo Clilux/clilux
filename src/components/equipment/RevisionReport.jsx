@@ -12,7 +12,7 @@ const formatValue = (value) => {
   return String(value);
 };
 
-export default function RevisionReport({ revision, equipment, client, building, appSettings }) {
+export default function RevisionReport({ revision, equipment, client, building, appSettings, fields = [] }) {
   const handleDownload = () => {
     const doc = buildHtml();
     const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
@@ -51,14 +51,21 @@ export default function RevisionReport({ revision, equipment, client, building, 
 
   const buildHtml = () => {
     const revData = revision.revision_data || {};
+    // Crear mapa key → label desde fields config
+    const fieldLabelMap = {};
+    fields.forEach(f => { if (f.field_key) fieldLabelMap[f.field_key] = f.field_label; });
+
     const dataRows = Object.entries(revData)
       .filter(([key]) => !key.startsWith('_'))
-      .map(([key, val]) => `
+      .map(([key, val]) => {
+        const label = fieldLabelMap[key] || key;
+        return `
         <tr>
-          <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#555;width:50%">${key}</td>
+          <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#555;width:50%">${label}</td>
           <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;font-weight:500;color:#222">${formatValue(val)}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
 
     const completedDate = revision.completed_date
       ? format(new Date(revision.completed_date), "d 'de' MMMM 'de' yyyy", { locale: es })

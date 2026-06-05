@@ -62,7 +62,7 @@ export default function Buildings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-5xl mx-auto">
         <NavHeader title="Edificios" />
 

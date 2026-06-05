@@ -111,7 +111,7 @@ export default function ClientDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="max-w-5xl mx-auto">
           <Skeleton className="h-10 w-64 mb-6" />
           <Skeleton className="h-64 rounded-xl" />
@@ -122,7 +122,7 @@ export default function ClientDetail() {
 
   if (!client) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="max-w-5xl mx-auto text-center py-12">
           <p className="text-slate-500">Cliente no encontrado</p>
         </div>
@@ -131,7 +131,7 @@ export default function ClientDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-5xl mx-auto">
         <NavHeader title={client.name} />
 

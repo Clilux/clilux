@@ -169,8 +169,8 @@ export default function Equipment() {
   }, []);
 
   return (
-    <div className="bg-gray-100 p-6 min-h-screen">
-      <div className="bg-gray-50 mx-auto max-w-7xl">
+    <div className="p-6 min-h-screen">
+      <div className="mx-auto max-w-7xl">
         <NavHeader title="Equipos" />
 
         <div className="mb-6 flex flex-col gap-4">
