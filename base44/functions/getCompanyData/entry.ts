@@ -171,6 +171,22 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Detalle de revisión ──────────────────────────────────────
+    if (entity === 'revision_detail') {
+      if (!permisos.ver_revisiones) return deny('ver_revisiones');
+      const { revision_id } = body;
+      if (!revision_id) return Response.json({ error: 'revision_id requerido' }, { status: 400 });
+      const revList = await base44.asServiceRole.entities.ScheduledRevision.filter({ id: revision_id });
+      const rev = revList[0] || null;
+      if (!rev) return Response.json({ data: null });
+      const [eqList, cliList, bldList] = await Promise.all([
+        rev.equipment_id ? base44.asServiceRole.entities.Equipment.filter({ id: rev.equipment_id }) : Promise.resolve([]),
+        rev.client_id ? base44.asServiceRole.entities.Client.filter({ id: rev.client_id }) : Promise.resolve([]),
+        rev.building_id ? base44.asServiceRole.entities.Building.filter({ id: rev.building_id }) : Promise.resolve([]),
+      ]);
+      return Response.json({ data: { revision: rev, equipment: eqList[0] || null, client: cliList[0] || null, building: bldList[0] || null } });
+    }
+
     // ── Plan de mantenimiento: revisiones por equipo ────────────
     if (entity === 'equipment_revisions') {
       if (!permisos.ver_revisiones) return deny('ver_revisiones');
