@@ -46,8 +46,8 @@ export default function ControlHorario() {
   // Email efectivo: sesión de técnico propio tiene prioridad sobre Base44
   const effectiveEmail = sessionTechEmail || base44User?.email;
 
-  const isAdmin = !isSessionTech && base44User?.role === 'admin';
   const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
+  const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
   const jornadaDiaria = myTechRecord?.horas_jornada_diaria || 8;
 
   // currentUser unificado para compatibilidad con el resto del componente

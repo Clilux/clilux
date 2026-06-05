@@ -19,6 +19,9 @@ export default function IncidentForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const incidentId = urlParams.get('id');
   const isEditing = !!incidentId;
+  const prefilledEquipmentId = urlParams.get('equipment_id') || '';
+  const prefilledClientId = urlParams.get('client_id') || '';
+  const prefilledBuildingId = urlParams.get('building_id') || '';
 
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -26,9 +29,9 @@ export default function IncidentForm() {
   const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
-    client_id: '',
-    building_id: '',
-    equipment_id: '',
+    client_id: prefilledClientId,
+    building_id: prefilledBuildingId,
+    equipment_id: prefilledEquipmentId,
     title: '',
     description: '',
     priority: 'medium',

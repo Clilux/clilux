@@ -159,8 +159,6 @@ export default function HomeTecnico() {
     retry: false,
   });
 
-  const isAdmin = !isSessionTech && base44User?.role === 'admin';
-
   const { data: appSettings } = useQuery({
     queryKey: ['settings', isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
@@ -186,6 +184,8 @@ export default function HomeTecnico() {
     },
     enabled: !!(sessionTechEmail || base44User?.email),
   });
+
+  const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
 
   // Para compatibilidad con FichajeRapido que usa currentUser
   const currentUser = isSessionTech

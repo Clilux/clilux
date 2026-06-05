@@ -380,6 +380,9 @@ export default function LDTab({ equipment, equipmentId, client }) {
     queryKey: ['ld-registros', equipmentId],
     queryFn: () => base44.entities.RegistroLD.filter({ equipment_id: equipmentId }),
     enabled: !!equipmentId,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    refetchInterval: 30000, // refresca cada 30s para garantizar sincronización
   });
   const registrosOrdenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 

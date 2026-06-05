@@ -164,14 +164,14 @@ export default function GestionAusencias() {
     enabled: !!currentUser || !!sessionTechEmail,
   });
 
-  const isAdmin = currentUser?.role === 'admin';
   const myEmail = currentUser?.email || sessionTechEmail;
   const myTechRecord = technicians.find(t =>
     t.user_email === myEmail || t.email === myEmail
   );
+  const isAdmin = currentUser?.role === 'admin' || myTechRecord?.is_admin === true;
 
   const { data: ausencias = [], isLoading } = useQuery({
-    queryKey: ['ausencias', myEmail, isAdmin],
+    queryKey: ['ausencias', myEmail, isAdmin, myTechRecord?.id],
     queryFn: async () => {
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 200);
       if (!isAdmin) return all.filter(a => a.technician_email === myEmail);

@@ -91,9 +91,13 @@ export default function TechnicianProfile() {
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
-  // Accesible para admins y para el propio técnico viendo su perfil
+
+  // Determinar si el usuario actual es admin (Base44 admin O técnico con is_admin=true)
+  const myOwnTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
+  const isAdminUser = currentUser?.role === 'admin' || myOwnTechRecord?.is_admin === true;
+
+  // Accesible para: cualquier usuario autenticado (Base44 o sesión técnico) que sea admin o esté viendo su propio perfil
   if (!currentUser && !isSessionTech) return null;
-  if (currentUser && currentUser.role !== 'admin' && !isSessionTech) return null;
   // Mientras carga, no mostrar "no encontrado"
   if (loadingTechs) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -132,7 +136,7 @@ export default function TechnicianProfile() {
     <div className="h-screen bg-slate-50 flex overflow-hidden">
       <TechnicianSidebar
         isSessionTech={isSessionTechNav}
-        isAdmin={currentUser?.role === 'admin'}
+        isAdmin={isAdminUser}
         isLoading={false}
         onLogout={handleLogout}
         techEmail={sessionTechEmailNav || currentUser?.email}

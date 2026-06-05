@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Clock, Wrench, ExternalLink, Calendar } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle2, Clock, Wrench, ExternalLink, Calendar, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -22,7 +23,7 @@ const statusInfo = {
   closed: { label: 'Cerrada', color: 'bg-slate-100 text-slate-600', icon: CheckCircle2 },
 };
 
-export default function EquipmentIncidents({ equipmentId, isClientView = false }) {
+export default function EquipmentIncidents({ equipmentId, clientId, buildingId, isClientView = false }) {
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['incidents-equipment', equipmentId],
     queryFn: () => base44.entities.Incident.filter({ equipment_id: equipmentId }, '-created_date'),
@@ -33,6 +34,11 @@ export default function EquipmentIncidents({ equipmentId, isClientView = false }
     ? incidents.filter(i => i.status !== 'deleted_by_technician')
     : incidents;
 
+  const newIncidentUrl = createPageUrl('IncidentForm') + 
+    `?equipment_id=${equipmentId}` + 
+    (clientId ? `&client_id=${clientId}` : '') + 
+    (buildingId ? `&building_id=${buildingId}` : '');
+
   if (isLoading) {
     return <p className="text-slate-400 text-sm py-4 text-center">Cargando incidencias...</p>;
   }
@@ -41,13 +47,29 @@ export default function EquipmentIncidents({ equipmentId, isClientView = false }
     return (
       <div className="text-center py-10">
         <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-2" />
-        <p className="text-slate-500">No hay incidencias registradas para este equipo.</p>
+        <p className="text-slate-500 mb-4">No hay incidencias registradas para este equipo.</p>
+        {!isClientView && (
+          <Link to={newIncidentUrl}>
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+              <Plus className="h-4 w-4 mr-2" />Nueva incidencia
+            </Button>
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      {!isClientView && (
+        <div className="flex justify-end mb-2">
+          <Link to={newIncidentUrl}>
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+              <Plus className="h-4 w-4 mr-2" />Nueva incidencia
+            </Button>
+          </Link>
+        </div>
+      )}
       {visibleIncidents.map((incident) => {
         const status = statusInfo[incident.status] || statusInfo.pending;
         const StatusIcon = status.icon;

@@ -630,7 +630,11 @@ export default function EquipmentDetail() {
               <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-500" />Historial de Incidencias
               </h3>
-              <EquipmentIncidents equipmentId={equipmentId} />
+              <EquipmentIncidents 
+                equipmentId={equipmentId} 
+                clientId={finalEquipment?.client_id}
+                buildingId={finalEquipment?.building_id}
+              />
             </Card>
           </TabsContent>
 
