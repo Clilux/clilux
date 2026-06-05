@@ -58,6 +58,7 @@ export default function RevisionForm() {
   const [formData, setFormData] = useState({});
   const [notes, setNotes] = useState('');
   const [technicianName, setTechnicianName] = useState('');
+  const [completionDate, setCompletionDate] = useState(new Date().toISOString().split('T')[0]);
   const [isEditing, setIsEditing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [warningType, setWarningType] = useState('');
@@ -141,6 +142,13 @@ export default function RevisionForm() {
     }
   }, [technician, user, technicians, isTechSession, sessionTechEmail]);
 
+  // Default completionDate to scheduled_date when revision loads
+  useEffect(() => {
+    if (scheduledRevision?.scheduled_date && scheduledRevision.status === 'pending') {
+      setCompletionDate(scheduledRevision.scheduled_date);
+    }
+  }, [scheduledRevision?.scheduled_date]);
+
   useEffect(() => {
     if (!scheduledRevision || scheduledRevision.status === 'completed') return;
     if (previousPendingRevisions.length > 0) {
@@ -159,7 +167,7 @@ export default function RevisionForm() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const completedDate = new Date().toISOString().split('T')[0];
+      const completedDate = completionDate || new Date().toISOString().split('T')[0];
       const updates = {
         status: 'completed',
         completed_date: completedDate,
@@ -514,25 +522,28 @@ export default function RevisionForm() {
 
           <div className="space-y-4 mb-6 pb-6 border-b">
             <div>
+              <Label className="text-slate-700 mb-2">Fecha de realización</Label>
+              <Input
+                type="date"
+                value={completionDate}
+                onChange={(e) => setCompletionDate(e.target.value)}
+              />
+            </div>
+            <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
-              {technicians.length > 0 ? (
-                <select
-                  value={technicianName}
-                  onChange={e => setTechnicianName(e.target.value)}
-                  className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background"
-                >
-                  <option value="">— Seleccionar técnico —</option>
-                  {technicians.map(t => (
-                    <option key={t.id} value={t.name}>{t.name}{t.specialty ? ` · ${t.specialty}` : ''}</option>
-                  ))}
-                </select>
-              ) : (
-                <Input
-                  value={technicianName}
-                  onChange={(e) => setTechnicianName(e.target.value)}
-                  placeholder="Nombre del técnico"
-                />
-              )}
+              <select
+                value={technicianName}
+                onChange={e => setTechnicianName(e.target.value)}
+                className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background"
+              >
+                <option value="">— Seleccionar técnico —</option>
+                {technicians.map(t => (
+                  <option key={t.id} value={t.name}>{t.name}{t.specialty ? ` · ${t.specialty}` : ''}</option>
+                ))}
+                {technicianName && !technicians.find(t => t.name === technicianName) && (
+                  <option value={technicianName}>{technicianName}</option>
+                )}
+              </select>
             </div>
           </div>
 

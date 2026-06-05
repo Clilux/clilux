@@ -169,7 +169,7 @@ export default function Equipment() {
   }, []);
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="bg-slate-50 p-6 min-h-screen">
       <div className="mx-auto max-w-7xl">
         <NavHeader title="Equipos" />
 
