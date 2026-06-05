@@ -130,8 +130,6 @@ function CalendarioAusencias({ ausencias, technicians }) {
           ))}
         </div>
       </div>
-      </div>
-      </div>
     </div>
   );
 }
@@ -440,10 +438,10 @@ export default function GestionAusencias() {
                 </Button>
               </div>
             </div>
-            </DialogContent>
-            </Dialog>
-            </div>
-            </div>
-            </div>
-            );
-            }
+          </DialogContent>
+        </Dialog>
+      </div>
+      </div>
+    </div>
+  );
+}
