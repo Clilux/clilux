@@ -132,6 +132,42 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Plan de mantenimiento: revisiones por equipo ────────────
+    if (entity === 'equipment_revisions') {
+      if (!permisos.ver_revisiones) return deny('ver_revisiones');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id });
+      return Response.json({ data });
+    }
+
+    // ── Plan de mantenimiento: crear revisión ────────────────────
+    if (entity === 'revision_create') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.ScheduledRevision.create(record);
+      return Response.json({ data });
+    }
+
+    // ── Plan de mantenimiento: actualizar revisión ───────────────
+    if (entity === 'revision_update') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { revision_id, updates } = body;
+      if (!revision_id || !updates) return Response.json({ error: 'revision_id y updates requeridos' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.ScheduledRevision.update(revision_id, updates);
+      return Response.json({ data });
+    }
+
+    // ── Plan de mantenimiento: eliminar revisión ─────────────────
+    if (entity === 'revision_delete') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { revision_id } = body;
+      if (!revision_id) return Response.json({ error: 'revision_id requerido' }, { status: 400 });
+      await base44.asServiceRole.entities.ScheduledRevision.delete(revision_id);
+      return Response.json({ success: true });
+    }
+
     // ── Detalle de edificio (para técnicos de sesión propia) ────
     if (entity === 'building_detail') {
       if (!permisos.ver_edificios) return deny('ver_edificios');

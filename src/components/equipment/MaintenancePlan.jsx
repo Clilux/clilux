@@ -24,6 +24,18 @@ const revisionTypeColors = {
   annual: 'bg-green-100 text-green-700'
 };
 
+// Helper: llama al proxy si hay sesión de técnico, o directo si hay sesión Base44
+const techEmail = () => sessionStorage.getItem('technician_email');
+
+const proxyCall = async (entity, extraBody = {}) => {
+  const res = await base44.functions.invoke('getCompanyData', {
+    technician_email: techEmail(),
+    entity,
+    ...extraBody,
+  });
+  return res.data;
+};
+
 export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState(null);
@@ -34,22 +46,38 @@ export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
     scheduled_date: ''
   });
 
+  const isTechSession = !!techEmail();
+
   const { data: revisions = [] } = useQuery({
     queryKey: ['equipment-revisions', equipmentId],
     queryFn: async () => {
-      const all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
+      let all;
+      if (isTechSession) {
+        const res = await proxyCall('equipment_revisions', { equipment_id: equipmentId });
+        all = res.data || [];
+      } else {
+        all = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId });
+      }
       return all.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
     },
     enabled: !!equipmentId,
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['equipment-revisions'] });
+    queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+  };
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, date }) => {
-      await base44.entities.ScheduledRevision.update(id, { scheduled_date: date });
+      if (isTechSession) {
+        await proxyCall('revision_update', { revision_id: id, updates: { scheduled_date: date } });
+      } else {
+        await base44.entities.ScheduledRevision.update(id, { scheduled_date: date });
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-revisions'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      invalidate();
       toast.success('Fecha actualizada');
       setEditingId(null);
       setEditDate('');
@@ -59,17 +87,21 @@ export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      await base44.entities.ScheduledRevision.create({
+      const record = {
         equipment_id: equipmentId,
         client_id: clientId,
         building_id: buildingId,
         ...data,
         status: 'pending'
-      });
+      };
+      if (isTechSession) {
+        await proxyCall('revision_create', { record });
+      } else {
+        await base44.entities.ScheduledRevision.create(record);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-revisions'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      invalidate();
       toast.success('Revisión añadida');
       setShowAddForm(false);
       setNewRevision({ revision_type: 'monthly', scheduled_date: '' });
@@ -79,11 +111,14 @@ export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await base44.entities.ScheduledRevision.delete(id);
+      if (isTechSession) {
+        await proxyCall('revision_delete', { revision_id: id });
+      } else {
+        await base44.entities.ScheduledRevision.delete(id);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-revisions'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      invalidate();
       toast.success('Revisión eliminada');
     },
     onError: () => toast.error('Error al eliminar la revisión'),
