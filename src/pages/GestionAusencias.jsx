@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import NavHeader from '../components/navigation/NavHeader';
+import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, differenceInCalendarDays, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval, getDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -128,6 +130,8 @@ function CalendarioAusencias({ ausencias, technicians }) {
           ))}
         </div>
       </div>
+      </div>
+      </div>
     </div>
   );
 }
@@ -135,6 +139,7 @@ function CalendarioAusencias({ ausencias, technicians }) {
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function GestionAusencias() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newData, setNewData] = useState({
@@ -220,6 +225,15 @@ export default function GestionAusencias() {
 
   if (!myEmail) return null;
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('technician_email');
+    sessionStorage.removeItem('technician_id');
+    sessionStorage.removeItem('technician_name');
+    localStorage.removeItem('clilux_tech_email');
+    localStorage.removeItem('clilux_tech_password');
+    navigate(createPageUrl('MenuInicio'));
+  };
+
   const AusenciaCard = ({ ausencia }) => {
     const tipo = TIPO_LABELS[ausencia.tipo] || TIPO_LABELS.otro;
     const estado = ESTADO_CONFIG[ausencia.estado] || ESTADO_CONFIG.pendiente;
@@ -260,9 +274,17 @@ export default function GestionAusencias() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
+      <TechnicianSidebar
+        isSessionTech={!!sessionTechEmail}
+        isAdmin={isAdmin}
+        isLoading={false}
+        onLogout={handleLogout}
+        techEmail={myEmail}
+      />
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
       <div className="max-w-4xl mx-auto">
-        <NavHeader title="Ausencias y Vacaciones" />
+        <h1 className="text-xl font-bold text-slate-800 mb-5">Ausencias y Vacaciones</h1>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

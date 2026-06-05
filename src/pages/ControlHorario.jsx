@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
+import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
@@ -502,62 +504,26 @@ export default function ControlHorario() {
     </>
   );
 
-  // Admin puro (sin registro de técnico): solo panel de análisis
-  if (isAdmin && !myTechRecord) {
-    return (
-      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-6xl mx-auto">
-            <NavHeader title="Control Horario" />
-            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    sessionStorage.removeItem('technician_email');
+    sessionStorage.removeItem('technician_id');
+    sessionStorage.removeItem('technician_name');
+    localStorage.removeItem('clilux_tech_email');
+    localStorage.removeItem('clilux_tech_password');
+    if (isSessionTech) window.location.href = createPageUrl('MenuInicio');
+    else base44.auth.logout(createPageUrl('MenuInicio'));
+  };
 
-  // Admin que también es técnico: su ficha de técnico arriba + panel admin debajo
-  if (isAdmin && myTechRecord) {
-    return (
-      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-6xl mx-auto space-y-6">
-            <NavHeader title="Control Horario" />
+  const sidebarProps = {
+    isSessionTech,
+    isAdmin,
+    isLoading: false,
+    onLogout: handleLogout,
+    techEmail: effectiveEmail,
+  };
 
-            {/* ── Sección técnico ── */}
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mi jornada</p>
-              {renderTechnicianPanel()}
-            </div>
-
-            {/* ── Sección administración ── */}
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Panel de administración</p>
-              <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
-            </div>
-          </div>
-        </div>
-        {editingRecord && (
-          <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
-            updateRegistro={updateRegistro}
-            onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
-        )}
-        {showAusencia && (
-          <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
-        )}
-      </div>
-    );
-  }
-
-  // Técnico puro
-  return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-3xl mx-auto">
-          <NavHeader title="Mi Control Horario" />
-          {renderTechnicianPanel()}
-        </div>
-      </div>
+  const innerContent = (
+    <>
       {editingRecord && (
         <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
           updateRegistro={updateRegistro}
@@ -566,6 +532,56 @@ export default function ControlHorario() {
       {showAusencia && (
         <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
       )}
+    </>
+  );
+
+  // Admin puro (sin registro de técnico): solo panel de análisis
+  if (isAdmin && !myTechRecord) {
+    return (
+      <div className="h-screen bg-slate-50 flex overflow-hidden">
+        <TechnicianSidebar {...sidebarProps} />
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+          <div className="max-w-6xl mx-auto">
+            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} />
+          </div>
+        </div>
+        {innerContent}
+      </div>
+    );
+  }
+
+  // Admin que también es técnico: su ficha de técnico arriba + panel admin debajo
+  if (isAdmin && myTechRecord) {
+    return (
+      <div className="h-screen bg-slate-50 flex overflow-hidden">
+        <TechnicianSidebar {...sidebarProps} />
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mi jornada</p>
+              {renderTechnicianPanel()}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Panel de administración</p>
+              <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
+            </div>
+          </div>
+        </div>
+        {innerContent}
+      </div>
+    );
+  }
+
+  // Técnico puro
+  return (
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
+      <TechnicianSidebar {...sidebarProps} />
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+        <div className="max-w-3xl mx-auto">
+          {renderTechnicianPanel()}
+        </div>
+      </div>
+      {innerContent}
     </div>
   );
 }

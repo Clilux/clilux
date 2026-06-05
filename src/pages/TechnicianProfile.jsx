@@ -7,19 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, Edit } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, LogOut } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { createPageUrl } from '@/utils';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
   const sessionEmailFallback = sessionStorage.getItem('technician_email');
   const techEmail = urlParams.get('email') || sessionEmailFallback;
   const queryClient = useQueryClient();
-  const [contactForm, setContactForm] = useState(null); // null = no cargado aún
+  const navigate = useNavigate();
+  const [contactForm, setContactForm] = useState(null);
+
+  const sessionTechEmailNav = sessionStorage.getItem('technician_email');
+  const isSessionTechNav = !!sessionTechEmailNav;
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('technician_email');
+    sessionStorage.removeItem('technician_id');
+    sessionStorage.removeItem('technician_name');
+    localStorage.removeItem('clilux_tech_email');
+    localStorage.removeItem('clilux_tech_password');
+    navigate(createPageUrl('MenuInicio'));
+  }; // null = no cargado aún
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -30,7 +45,7 @@ export default function TechnicianProfile() {
   const { data: technicians = [], isLoading: loadingTechs } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: !!currentUser || !!sessionTechEmailQuery,
+    enabled: true, // siempre cargar — técnicos de sesión no tienen currentUser
   });
 
   const tech = technicians.find(t => t.user_email === techEmail || t.email === techEmail);
@@ -106,10 +121,24 @@ export default function TechnicianProfile() {
     otro: 'Otro',
   };
 
+  // Vacaciones
+  const vacacionesAnuales = tech?.vacaciones_anuales ?? 22;
+  const vacacionesUsadas = ausencias
+    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada')
+    .reduce((acc, a) => acc + (a.dias_totales || 0), 0);
+  const vacacionesDisponibles = vacacionesAnuales - vacacionesUsadas;
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
+      <TechnicianSidebar
+        isSessionTech={isSessionTechNav}
+        isAdmin={currentUser?.role === 'admin'}
+        isLoading={false}
+        onLogout={handleLogout}
+        techEmail={sessionTechEmailNav || currentUser?.email}
+      />
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
       <div className="max-w-4xl mx-auto">
-        <NavHeader title="Perfil del técnico" />
 
         {/* Header */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
@@ -231,6 +260,26 @@ export default function TechnicianProfile() {
           </TabsContent>
 
           <TabsContent value="ausencias">
+            {/* Resumen vacaciones */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <Card className="p-3 bg-blue-50 border-0 shadow-sm text-center">
+                <p className="text-xl font-bold text-blue-600">{vacacionesAnuales}</p>
+                <p className="text-xs text-slate-500">Días pactados</p>
+              </Card>
+              <Card className="p-3 bg-slate-50 border-0 shadow-sm text-center">
+                <p className="text-xl font-bold text-slate-600">{vacacionesUsadas}</p>
+                <p className="text-xs text-slate-500">Días usados</p>
+              </Card>
+              <Card className={`p-3 border-0 shadow-sm text-center ${vacacionesDisponibles < 5 ? 'bg-red-50' : 'bg-emerald-50'}`}>
+                <p className={`text-xl font-bold ${vacacionesDisponibles < 5 ? 'text-red-600' : 'text-emerald-600'}`}>{vacacionesDisponibles}</p>
+                <p className="text-xs text-slate-500">Días disponibles</p>
+              </Card>
+            </div>
+            <Link to="/GestionAusencias">
+              <Button size="sm" className="mb-4 bg-blue-600 hover:bg-blue-700 text-white">
+                <Calendar className="h-4 w-4 mr-2" />Gestionar ausencias
+              </Button>
+            </Link>
             {ausencias.length === 0 ? (
               <Card className="p-6 text-center text-slate-400 text-sm">Sin ausencias registradas</Card>
             ) : (
@@ -244,6 +293,7 @@ export default function TechnicianProfile() {
                           {a.fecha_inicio && format(parseISO(a.fecha_inicio), "d MMM", { locale: es })}
                           {' — '}
                           {a.fecha_fin && format(parseISO(a.fecha_fin), "d MMM yyyy", { locale: es })}
+                          {a.dias_totales && <span className="ml-1">({a.dias_totales}d)</span>}
                         </span>
                       </div>
                       <Badge className={
@@ -288,6 +338,7 @@ export default function TechnicianProfile() {
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </div>
   );

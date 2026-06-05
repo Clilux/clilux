@@ -753,28 +753,55 @@ export default function LDTab({ equipment, equipmentId, client }) {
                     className="h-8 text-sm w-36" placeholder={gTiosulfato || ''} />
                 </div>
 
-                <div>
-                  <Label>Cloro residual antes de neutralizar (ppm)</Label>
-                  <Input type="number" step="0.1" value={form.cloro_a_neutralizar} onChange={e => f('cloro_a_neutralizar', e.target.value)} className="h-8 text-sm w-36" />
-                </div>
-
-                {/* Nivel objetivo de cloro al dejar en servicio */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-                  <p className="text-xs font-semibold text-slate-700">Nivel de cloro objetivo al dejar el equipo en servicio *</p>
-                  <p className="text-xs text-slate-500">El equipo <strong>no se vacía</strong>. Indica el nivel de cloro libre residual deseado en el agua de servicio. <strong className="text-red-600">Máximo legal: &lt; 1,0 ppm.</strong></p>
-                  <div className="flex items-center gap-2">
-                    <Input type="number" step="0.01" min="0" max="0.99" value={form.cloro_objetivo}
-                      onChange={e => f('cloro_objetivo', e.target.value)}
-                      className={`h-8 text-sm w-28 ${cloroObjetivoNum !== null && cloroObjetivoNum >= 1 ? 'border-red-400' : ''}`}
-                      placeholder="ej: 0.2" />
-                    <span className="text-sm text-slate-500">ppm</span>
+                {/* Cloro actual + objetivo → cálculo automático de tiosulfato */}
+                <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200 space-y-3">
+                  <p className="text-xs font-semibold text-blue-800">Cálculo automático de neutralizante</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Cloro actual en balsa (ppm) *</Label>
+                      <Input type="number" step="0.1" min="0" value={form.cloro_a_neutralizar}
+                        onChange={e => f('cloro_a_neutralizar', e.target.value)} className="h-8 text-sm" placeholder="ej: 18" />
+                    </div>
+                    <div>
+                      <Label>Cloro objetivo en servicio (ppm) *</Label>
+                      <Input type="number" step="0.01" min="0" max="0.99" value={form.cloro_objetivo}
+                        onChange={e => f('cloro_objetivo', e.target.value)}
+                        className={`h-8 text-sm ${cloroObjetivoNum !== null && cloroObjetivoNum >= 1 ? 'border-red-400' : ''}`}
+                        placeholder="ej: 0.2" />
+                      {cloroObjetivoNum !== null && cloroObjetivoNum >= 1 && (
+                        <p className="text-xs text-red-600 mt-0.5">⛔ Máximo legal &lt; 1 ppm</p>
+                      )}
+                    </div>
                   </div>
-                  {cloroObjetivoNum !== null && cloroObjetivoNum >= 1 && (
-                    <p className="text-xs text-red-600 font-medium">⛔ Supera el límite legal de 1 ppm.</p>
-                  )}
-                  {cloroObjetivoValido && (
-                    <p className="text-xs text-emerald-600 font-medium">✓ Dentro del límite legal</p>
-                  )}
+                  {/* Resultado cálculo: g tiosulfato = (cloro_actual - cloro_objetivo) * litros * 7.05 */}
+                  {(() => {
+                    const cActual = form.cloro_a_neutralizar !== '' ? Number(form.cloro_a_neutralizar) : null;
+                    const cObj = form.cloro_objetivo !== '' ? Number(form.cloro_objetivo) : null;
+                    if (cActual !== null && cObj !== null && balsaLitros && cActual > cObj && cObj >= 0 && cObj < 1) {
+                      // Factor: 7.05 g tiosulfato sódico pentahidratado por ppm·L para neutralizar 1 ppm de cloro libre en 1000L
+                      // => g = (ppm_a_neutralizar) * litros * 0.00705
+                      const ppmANeutralizar = cActual - cObj;
+                      const gCalculados = +(ppmANeutralizar * balsaLitros * 0.00705).toFixed(1);
+                      return (
+                        <div className="p-3 rounded-lg bg-white border border-blue-300 text-center">
+                          <p className="text-xs text-slate-500 mb-1">Añade exactamente:</p>
+                          <p className="text-3xl font-bold text-blue-700">{gCalculados} g</p>
+                          <p className="text-sm text-slate-600">de <strong>Tiosulfato Sódico Pentahidratado</strong></p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            ({cActual} - {cObj}) ppm × {balsaLitros} L × 0,00705 = {gCalculados} g
+                          </p>
+                          <button className="text-xs text-blue-600 underline mt-2"
+                            onClick={() => f('metabisulfito_g', gCalculados)}>
+                            ← Usar este valor
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (cActual !== null && cObj !== null && cActual <= cObj) {
+                      return <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded">ℹ El cloro actual ya está por debajo del objetivo. Verifica las medidas.</p>;
+                    }
+                    return <p className="text-xs text-slate-400">Introduce el cloro actual y el nivel objetivo para calcular automáticamente.</p>;
+                  })()}
                 </div>
 
                 {/* Cloro medido post-neutralización */}
