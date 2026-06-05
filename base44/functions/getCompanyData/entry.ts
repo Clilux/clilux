@@ -132,6 +132,45 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Actualizar equipo ────────────────────────────────────────
+    if (entity === 'equipment_update') {
+      if (!permisos.editar_equipos) return deny('editar_equipos');
+      const { equipment_id, updates } = body;
+      if (!equipment_id || !updates) return Response.json({ error: 'equipment_id y updates requeridos' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, updates);
+      return Response.json({ data });
+    }
+
+    // ── Crear equipo ─────────────────────────────────────────────
+    if (entity === 'equipment_create') {
+      if (!permisos.editar_equipos) return deny('editar_equipos');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Equipment.create(record);
+      return Response.json({ data });
+    }
+
+    // ── Bulk create revisiones ───────────────────────────────────
+    if (entity === 'revisions_bulk_create') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { records } = body;
+      if (!records?.length) return Response.json({ error: 'records requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.ScheduledRevision.bulkCreate(records);
+      return Response.json({ data });
+    }
+
+    // ── Eliminar revisiones pendientes de un equipo ──────────────
+    if (entity === 'revisions_delete_pending') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id, status: 'pending' });
+      for (const rev of existing) {
+        await base44.asServiceRole.entities.ScheduledRevision.delete(rev.id);
+      }
+      return Response.json({ success: true });
+    }
+
     // ── Plan de mantenimiento: revisiones por equipo ────────────
     if (entity === 'equipment_revisions') {
       if (!permisos.ver_revisiones) return deny('ver_revisiones');

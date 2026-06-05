@@ -221,12 +221,24 @@ export default function EquipmentForm() {
 
   // Técnico en sesión (para auto-registro)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isTechSession = !!sessionTechEmail;
+
+  const proxyCall = async (entity, extra = {}) => {
+    const res = await base44.functions.invoke('getCompanyData', {
+      technician_email: sessionTechEmail,
+      entity,
+      ...extra,
+    });
+    return res.data;
+  };
+
   const { data: sessionTechRecord } = useQuery({
     queryKey: ['session-tech-record', sessionTechEmail],
     queryFn: async () => {
       if (!sessionTechEmail) return null;
-      const techs = await base44.entities.Technician.filter({ email: sessionTechEmail });
-      return techs[0] || null;
+      const r = await proxyCall('all');
+      // buscar técnico en la lista completa no disponible por proxy; usar datos mínimos
+      return { name: sessionTechEmail };
     },
     enabled: !!sessionTechEmail,
   });
@@ -273,8 +285,12 @@ export default function EquipmentForm() {
 
   // Cargar equipo existente si estamos editando
   const { data: existingEquipment } = useQuery({
-    queryKey: ['equipment-edit', equipmentId],
+    queryKey: ['equipment-edit', equipmentId, sessionTechEmail],
     queryFn: async () => {
+      if (isTechSession) {
+        const r = await proxyCall('equipment_detail', { equipment_id: equipmentId });
+        return r.data?.equipment || null;
+      }
       const items = await base44.entities.Equipment.filter({ id: equipmentId });
       return items[0] || null;
     },
@@ -321,26 +337,45 @@ export default function EquipmentForm() {
   }, [existingEquipment]);
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list(),
+    queryKey: ['clients', sessionTechEmail],
+    queryFn: async () => {
+      if (isTechSession) {
+        const r = await proxyCall('clients');
+        return r.data || [];
+      }
+      return base44.entities.Client.list();
+    },
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list(),
+    queryKey: ['buildings', sessionTechEmail],
+    queryFn: async () => {
+      if (isTechSession) {
+        const r = await proxyCall('buildings');
+        return r.data || [];
+      }
+      return base44.entities.Building.list();
+    },
   });
 
   const { data: suggestions } = useQuery({
     queryKey: ['equipment-suggestions'],
     queryFn: async () => {
+      if (isTechSession) return { brands: [], refrigerants: [], models: [] };
       const items = await base44.entities.EquipmentSuggestions.filter({ setting_key: 'suggestions' });
       return items[0] || { brands: [], refrigerants: [], models: [] };
     },
   });
 
   const { data: allEquipment = [] } = useQuery({
-    queryKey: ['all-equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
+    queryKey: ['all-equipment', sessionTechEmail],
+    queryFn: async () => {
+      if (isTechSession) {
+        const r = await proxyCall('equipment');
+        return r.data || [];
+      }
+      return base44.entities.Equipment.list();
+    },
   });
 
   const filteredBuildings = formData.client_id 
@@ -369,94 +404,101 @@ export default function EquipmentForm() {
     },
   });
 
+  const doUpdate = async (id, updates) => {
+    if (isTechSession) {
+      await proxyCall('equipment_update', { equipment_id: id, updates });
+    } else {
+      await base44.entities.Equipment.update(id, updates);
+    }
+  };
+
+  const buildEquipmentPayload = (data) => ({
+    reference_name: data.reference_name,
+    client_id: data.client_id,
+    building_id: data.building_id,
+    equipment_type: data.equipment_type,
+    brand: data.technical_data.marca || '',
+    model: data.technical_data.modelo || '',
+    serial_number: data.technical_data.numero_serie || '',
+    location: data.technical_data.ubicacion || '',
+    cooling_power_kw: data.technical_data.potencia_frigorifica || data.technical_data.potencia_nominal || null,
+    heating_power_kw: data.technical_data.potencia_calorifica || null,
+    refrigerant_type: data.technical_data.tipo_refrigerante || '',
+    refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+    balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
+    technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
+    registration_date: data.registration_date,
+    installation_date: data.installation_date || null,
+    warranty_end: data.warranty_end || null,
+    notes: data.notes || '',
+    status: data.status,
+    photo_url: data.photo_url || existingEquipment?.photo_url || null,
+    photos: data.photos || existingEquipment?.photos || [],
+    first_revision_date: data.first_revision_date,
+    last_revision_date: data.last_revision_date || null,
+    unit_type: data.unit_type || 'standalone',
+    parent_equipment_id: data.parent_equipment_id || null,
+    maintenance_config: {
+      monthly_enabled: data.selected_periods.includes('mensual'),
+      monthly_fields: data.maintenance_fields.filter(f => f.periods.includes('mensual')),
+      quarterly_enabled: data.selected_periods.includes('trimestral'),
+      quarterly_fields: data.maintenance_fields.filter(f => f.periods.includes('trimestral')),
+      biannual_enabled: data.selected_periods.includes('semestral'),
+      biannual_fields: data.maintenance_fields.filter(f => f.periods.includes('semestral')),
+      annual_enabled: data.selected_periods.includes('anual'),
+      annual_fields: data.maintenance_fields.filter(f => f.periods.includes('anual')),
+    }
+  });
+
+  const generateRevisionDates = (data, eqId) => {
+    const periodConfig = {
+      'mensual':    { type: 'monthly',   interval: 1,  priority: 1 },
+      'trimestral': { type: 'quarterly', interval: 3,  priority: 2 },
+      'semestral':  { type: 'biannual',  interval: 6,  priority: 3 },
+      'anual':      { type: 'annual',    interval: 12, priority: 4 },
+    };
+    const firstDate = new Date(data.first_revision_date);
+    const endDate = data.last_revision_date ? new Date(data.last_revision_date) : null;
+    const allRevisionDates = new Map();
+    data.selected_periods.forEach(period => {
+      const config = periodConfig[period];
+      if (!config) return;
+      const maxMonths = endDate ? Math.ceil((endDate - firstDate) / (1000 * 60 * 60 * 24 * 30.44)) : 12;
+      const count = Math.max(1, Math.ceil(maxMonths / config.interval));
+      for (let i = 0; i < count; i++) {
+        const revisionDate = new Date(firstDate);
+        revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
+        if (endDate && revisionDate > endDate) break;
+        const dateKey = format(revisionDate, 'yyyy-MM-dd');
+        const existing = allRevisionDates.get(dateKey);
+        if (!existing || config.priority > existing.priority) {
+          allRevisionDates.set(dateKey, { date: dateKey, type: config.type, priority: config.priority });
+        }
+      }
+    });
+    const records = [];
+    allRevisionDates.forEach(revision => {
+      records.push({ equipment_id: eqId, client_id: data.client_id, building_id: data.building_id, scheduled_date: revision.date, revision_type: revision.type, status: 'pending' });
+    });
+    return records;
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      await base44.entities.Equipment.update(equipmentId, {
-        reference_name: data.reference_name,
-        client_id: data.client_id,
-        building_id: data.building_id,
-        equipment_type: data.equipment_type,
-        brand: data.technical_data.marca || '',
-        model: data.technical_data.modelo || '',
-        serial_number: data.technical_data.numero_serie || '',
-        location: data.technical_data.ubicacion || '',
-        cooling_power_kw: data.technical_data.potencia_frigorifica || data.technical_data.potencia_nominal || null,
-        heating_power_kw: data.technical_data.potencia_calorifica || null,
-        refrigerant_type: data.technical_data.tipo_refrigerante || '',
-        refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
-        balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
-        technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
-        registration_date: data.registration_date,
-        installation_date: data.installation_date || null,
-        warranty_end: data.warranty_end || null,
-        notes: data.notes || '',
-        status: data.status,
-        photo_url: data.photo_url || existingEquipment?.photo_url || null,
-        photos: data.photos || existingEquipment?.photos || [],
-        first_revision_date: data.first_revision_date,
-        last_revision_date: data.last_revision_date || null,
-        unit_type: data.unit_type || 'standalone',
-        parent_equipment_id: data.parent_equipment_id || null,
-        maintenance_config: {
-          monthly_enabled: data.selected_periods.includes('mensual'),
-          monthly_fields: data.maintenance_fields.filter(f => f.periods.includes('mensual')),
-          quarterly_enabled: data.selected_periods.includes('trimestral'),
-          quarterly_fields: data.maintenance_fields.filter(f => f.periods.includes('trimestral')),
-          biannual_enabled: data.selected_periods.includes('semestral'),
-          biannual_fields: data.maintenance_fields.filter(f => f.periods.includes('semestral')),
-          annual_enabled: data.selected_periods.includes('anual'),
-          annual_fields: data.maintenance_fields.filter(f => f.periods.includes('anual')),
-        }
-      });
+      const updates = buildEquipmentPayload(data);
+      await doUpdate(equipmentId, updates);
 
       // Regenerar revisiones programadas si hay periodicidades y fecha
       if (data.requires_maintenance !== false && data.selected_periods.length > 0 && data.first_revision_date) {
-        // Borrar revisiones pendientes existentes de este equipo
-        const existingRevisions = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'pending' });
-        for (const rev of existingRevisions) {
-          await base44.entities.ScheduledRevision.delete(rev.id);
-        }
-
-        const periodConfig = {
-          'mensual':    { type: 'monthly',   interval: 1,  priority: 1 },
-          'trimestral': { type: 'quarterly', interval: 3,  priority: 2 },
-          'semestral':  { type: 'biannual',  interval: 6,  priority: 3 },
-          'anual':      { type: 'annual',    interval: 12, priority: 4 },
-        };
-        const firstDate = new Date(data.first_revision_date);
-        const endDate = data.last_revision_date ? new Date(data.last_revision_date) : null;
-        const allRevisionDates = new Map();
-        data.selected_periods.forEach(period => {
-          const config = periodConfig[period];
-          if (!config) return;
-          const maxMonths = endDate
-            ? Math.ceil((endDate - firstDate) / (1000 * 60 * 60 * 24 * 30.44))
-            : 12;
-          const count = Math.max(1, Math.ceil(maxMonths / config.interval));
-          for (let i = 0; i < count; i++) {
-            const revisionDate = new Date(firstDate);
-            revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
-            if (endDate && revisionDate > endDate) break;
-            const dateKey = format(revisionDate, 'yyyy-MM-dd');
-            const existing = allRevisionDates.get(dateKey);
-            if (!existing || config.priority > existing.priority) {
-              allRevisionDates.set(dateKey, { date: dateKey, type: config.type, priority: config.priority });
-            }
-          }
-        });
-        const scheduledRevisions = [];
-        allRevisionDates.forEach(revision => {
-          scheduledRevisions.push({
-            equipment_id: equipmentId,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: revision.date,
-            revision_type: revision.type,
-            status: 'pending',
-          });
-        });
-        if (scheduledRevisions.length > 0) {
-          await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
+        if (isTechSession) {
+          await proxyCall('revisions_delete_pending', { equipment_id: equipmentId });
+          const records = generateRevisionDates(data, equipmentId);
+          if (records.length > 0) await proxyCall('revisions_bulk_create', { records });
+        } else {
+          const existingRevisions = await base44.entities.ScheduledRevision.filter({ equipment_id: equipmentId, status: 'pending' });
+          for (const rev of existingRevisions) await base44.entities.ScheduledRevision.delete(rev.id);
+          const records = generateRevisionDates(data, equipmentId);
+          if (records.length > 0) await base44.entities.ScheduledRevision.bulkCreate(records);
         }
       }
 
@@ -539,56 +581,23 @@ export default function EquipmentForm() {
         }
       };
 
-      const equipment = await base44.entities.Equipment.create(equipmentData);
+      let equipment;
+      if (isTechSession) {
+        const r = await proxyCall('equipment_create', { record: equipmentData });
+        equipment = r.data;
+      } else {
+        equipment = await base44.entities.Equipment.create(equipmentData);
+      }
 
       // Generar revisiones programadas solo si requiere mantenimiento
       if (data.requires_maintenance !== false && data.first_revision_date) {
-        const scheduledRevisions = [];
-        const firstDate = new Date(data.first_revision_date);
-        const endDate = data.last_revision_date ? new Date(data.last_revision_date) : null;
-        
-        const periodConfig = {
-          'mensual':    { type: 'monthly',   interval: 1,  priority: 1 },
-          'trimestral': { type: 'quarterly', interval: 3,  priority: 2 },
-          'semestral':  { type: 'biannual',  interval: 6,  priority: 3 },
-          'anual':      { type: 'annual',    interval: 12, priority: 4 },
-        };
-        
-        const allRevisionDates = new Map();
-        
-        data.selected_periods.forEach(period => {
-          const config = periodConfig[period];
-          if (!config) return;
-          // Si hay fecha fin, generar hasta ella; si no, 1 año (12 meses / interval)
-          const maxMonths = endDate
-            ? Math.ceil((endDate - firstDate) / (1000 * 60 * 60 * 24 * 30.44))
-            : 12;
-          const count = Math.max(1, Math.ceil(maxMonths / config.interval));
-          for (let i = 0; i < count; i++) {
-            const revisionDate = new Date(firstDate);
-            revisionDate.setMonth(firstDate.getMonth() + i * config.interval);
-            if (endDate && revisionDate > endDate) break;
-            const dateKey = format(revisionDate, 'yyyy-MM-dd');
-            const existing = allRevisionDates.get(dateKey);
-            if (!existing || config.priority > existing.priority) {
-              allRevisionDates.set(dateKey, { date: dateKey, type: config.type, priority: config.priority });
-            }
+        const records = generateRevisionDates(data, equipment.id);
+        if (records.length > 0) {
+          if (isTechSession) {
+            await proxyCall('revisions_bulk_create', { records });
+          } else {
+            await base44.entities.ScheduledRevision.bulkCreate(records);
           }
-        });
-        
-        allRevisionDates.forEach(revision => {
-          scheduledRevisions.push({
-            equipment_id: equipment.id,
-            client_id: data.client_id,
-            building_id: data.building_id,
-            scheduled_date: revision.date,
-            revision_type: revision.type,
-            status: 'pending'
-          });
-        });
-        
-        if (scheduledRevisions.length > 0) {
-          await base44.entities.ScheduledRevision.bulkCreate(scheduledRevisions);
         }
       }
 
@@ -645,39 +654,8 @@ export default function EquipmentForm() {
   // Guarda parcialmente en modo edición al avanzar paso
   const savePartial = async () => {
     if (!equipmentId) return;
-    await base44.entities.Equipment.update(equipmentId, {
-      reference_name: formData.reference_name,
-      client_id: formData.client_id,
-      building_id: formData.building_id,
-      equipment_type: formData.equipment_type,
-      brand: formData.technical_data.marca || '',
-      model: formData.technical_data.modelo || '',
-      serial_number: formData.technical_data.numero_serie || '',
-      location: formData.technical_data.ubicacion || '',
-      cooling_power_kw: formData.technical_data.potencia_frigorifica || formData.technical_data.potencia_nominal || null,
-      heating_power_kw: formData.technical_data.potencia_calorifica || null,
-      refrigerant_type: formData.technical_data.tipo_refrigerante || '',
-      refrigerant_charge_kg: formData.technical_data.carga_refrigerante || null,
-      balsa_litros: formData.technical_data.balsa_litros ? Number(formData.technical_data.balsa_litros) : null,
-      technical_data: { ...formData.technical_data, custom_fields: formData.custom_fields },
-      registration_date: formData.registration_date,
-      status: formData.status,
-      photo_url: formData.photo_url || existingEquipment?.photo_url || null,
-      photos: formData.photos || existingEquipment?.photos || [],
-      first_revision_date: formData.first_revision_date,
-      unit_type: formData.unit_type || 'standalone',
-      parent_equipment_id: formData.parent_equipment_id || null,
-      maintenance_config: {
-        monthly_enabled: formData.selected_periods.includes('mensual'),
-        monthly_fields: formData.maintenance_fields.filter(f => f.periods.includes('mensual')),
-        quarterly_enabled: formData.selected_periods.includes('trimestral'),
-        quarterly_fields: formData.maintenance_fields.filter(f => f.periods.includes('trimestral')),
-        biannual_enabled: formData.selected_periods.includes('semestral'),
-        biannual_fields: formData.maintenance_fields.filter(f => f.periods.includes('semestral')),
-        annual_enabled: formData.selected_periods.includes('anual'),
-        annual_fields: formData.maintenance_fields.filter(f => f.periods.includes('anual')),
-      }
-    });
+    const updates = buildEquipmentPayload(formData);
+    await doUpdate(equipmentId, updates);
     toast.success('Cambios guardados');
     queryClient.invalidateQueries({ queryKey: ['equipment-edit', equipmentId] });
   };

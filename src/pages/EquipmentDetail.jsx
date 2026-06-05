@@ -307,6 +307,12 @@ export default function EquipmentDetail() {
                     client={finalClient}
                     revisions={scheduledRevisions}
                   />
+                  <Link to={createPageUrl(`EquipmentForm?id=${finalEquipment.id}`)}>
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                  </Link>
                   {!isSessionTech && <>
                   <Button
                     variant="outline"
@@ -320,12 +326,6 @@ export default function EquipmentDetail() {
                       : <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
                     }
                   </Button>
-                  <Link to={createPageUrl(`EquipmentForm?id=${finalEquipment.id}`)}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
-                  </Link>
                   <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
                     <Trash2 className="h-4 w-4" />
                   </Button>
