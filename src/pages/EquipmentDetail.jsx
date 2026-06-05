@@ -179,9 +179,21 @@ export default function EquipmentDetail() {
   });
 
   const updateSpecsMutation = useMutation({
-    mutationFn: (data) => base44.entities.Equipment.update(equipmentId, data),
+    mutationFn: async (data) => {
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_update',
+          equipment_id: equipmentId,
+          updates: data,
+        });
+      } else {
+        await base44.entities.Equipment.update(equipmentId, data);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
       setEditingSpecs(false);
       toast.success('Datos actualizados');
     },
@@ -383,7 +395,7 @@ export default function EquipmentDetail() {
                 </div>
               </div>
 
-              {editingSpecs && !isSessionTech ? (
+              {editingSpecs ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -516,9 +528,9 @@ export default function EquipmentDetail() {
                       </div>
                     )}
                   </div>
-                  {!isSessionTech && <Button size="sm" variant="outline" onClick={handleEditSpecs} className="mt-2 text-xs">
+                  <Button size="sm" variant="outline" onClick={handleEditSpecs} className="mt-2 text-xs">
                     <Edit className="h-3 w-3 mr-1" />Editar datos técnicos
-                  </Button>}
+                  </Button>
                 </div>
               )}
             </div>
