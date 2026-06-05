@@ -27,9 +27,18 @@
       ],
       "description": "Tipo de tratamiento"
     },
-    "nombre_circuito": {
+    "protocolo_id": {
       "type": "string",
-      "description": "Nombre del circuito / equipo adiab\u00e1tico"
+      "enum": [
+        "A",
+        "B",
+        "C"
+      ],
+      "default": "A",
+      "description": "Protocolo: A=5ppm fab., B=20ppm RD est\u00e1ndar, C=50ppm RD r\u00e1pido"
+    },
+    "nombre_circuito": {
+      "type": "string"
     },
     "estado_conservacion": {
       "type": "string",
@@ -39,36 +48,29 @@
         "con_incrustaciones",
         "biocapa",
         "algas"
-      ],
-      "description": "Estado de conservaci\u00f3n de la instalaci\u00f3n"
+      ]
     },
     "plano_hidraulico": {
       "type": "string",
       "enum": [
         "si",
         "no"
-      ],
-      "description": "Plano actualizado del esquema hidr\u00e1ulico"
+      ]
     },
     "hora_inicio": {
-      "type": "string",
-      "description": "Hora de inicio HH:MM"
+      "type": "string"
     },
     "hora_fin": {
-      "type": "string",
-      "description": "Hora de fin HH:MM"
+      "type": "string"
     },
     "hora_inicio_desinfeccion": {
-      "type": "string",
-      "description": "Hora inicio desinfecci\u00f3n HH:MM"
+      "type": "string"
     },
     "hora_fin_desinfeccion": {
-      "type": "string",
-      "description": "Hora fin desinfecci\u00f3n HH:MM"
+      "type": "string"
     },
     "balsa_litros": {
-      "type": "number",
-      "description": "Volumen de la balsa (litros)"
+      "type": "number"
     },
     "ph_inicial": {
       "type": "number"
@@ -81,31 +83,17 @@
     },
     "producto_principal": {
       "type": "string",
-      "description": "Nombre del producto biocida principal (ej: Hipoclorito S\u00f3dico Brenntquisan Legionella)"
-    },
-    "dosis_producto_principal": {
-      "type": "string",
-      "description": "Dosis del producto principal (ej: 0,41)"
+      "default": "Hipoclorito S\u00f3dico Comercial 15%"
     },
     "producto_secundario": {
       "type": "string",
-      "description": "Nombre del producto secundario (ej: Metabisulfito S\u00f3dico PWG Brenntag)"
-    },
-    "dosis_producto_secundario": {
-      "type": "string",
-      "description": "Dosis del producto secundario (ej: 0,11)"
+      "default": "Tiosulfato S\u00f3dico Pentahidratado"
     },
     "hipoclorito_ml": {
-      "type": "number",
-      "description": "Cantidad de hipoclorito s\u00f3dico a\u00f1adido (ml)"
+      "type": "number"
     },
     "tiempo_recirculacion_min": {
-      "type": "number",
-      "description": "Tiempo de recirculaci\u00f3n (minutos)"
-    },
-    "tiempo_neutralizacion_min": {
-      "type": "number",
-      "description": "Tiempo de neutralizaci\u00f3n (minutos)"
+      "type": "number"
     },
     "cloro_durante_desinfeccion": {
       "type": "number"
@@ -129,72 +117,73 @@
         "no",
         "parcialmente"
       ],
-      "default": "no"
+      "default": "si"
     },
-    "check_limpieza_antes_biocida": {
-      "type": "string",
-      "enum": [
-        "si",
-        "no",
-        "parcialmente"
-      ],
-      "default": "no",
-      "description": "\u00bfSe han limpiado antes de a\u00f1adir el biocida?"
-    },
-    "check_limpieza_balsa": {
+    "check_epi": {
       "type": "boolean",
       "default": false
     },
-    "check_paneles_celulosa": {
+    "check_limpieza_mecanica": {
       "type": "boolean",
       "default": false
     },
-    "check_valvula_vaciado": {
+    "check_llenado_limpio": {
+      "type": "boolean",
+      "default": false
+    },
+    "check_bombas_on_ventiladores_off": {
+      "type": "boolean",
+      "default": false
+    },
+    "check_neutralizado_ok": {
+      "type": "boolean",
+      "default": false
+    },
+    "bp_cepillo_suave": {
+      "type": "boolean",
+      "default": false
+    },
+    "bp_secado_diario": {
+      "type": "boolean",
+      "default": false
+    },
+    "bp_purga_sales": {
       "type": "boolean",
       "default": false
     },
     "partes_tratamiento": {
-      "type": "string",
-      "description": "Partes donde se realiza el tratamiento (total/parcial) y medidas correctoras"
+      "type": "string"
     },
     "observaciones": {
       "type": "string"
     },
     "responsable_tecnico_nombre": {
-      "type": "string",
-      "description": "Nombre del responsable t\u00e9cnico"
+      "type": "string"
     },
     "responsable_tecnico_dni": {
-      "type": "string",
-      "description": "DNI del responsable t\u00e9cnico"
+      "type": "string"
     },
     "responsable_tecnico_curso": {
-      "type": "string",
-      "description": "Lugar/fecha del curso del responsable t\u00e9cnico"
+      "type": "string"
     },
     "responsable_tecnico_cualificacion": {
-      "type": "string",
-      "description": "Cualificaci\u00f3n/titulaci\u00f3n del responsable t\u00e9cnico"
+      "type": "string"
     },
     "aplicador_nombre": {
-      "type": "string",
-      "description": "Nombre del aplicador de tratamiento"
+      "type": "string"
     },
     "aplicador_dni": {
-      "type": "string",
-      "description": "DNI del aplicador"
+      "type": "string"
     },
     "aplicador_curso": {
-      "type": "string",
-      "description": "Lugar/fecha del curso del aplicador"
+      "type": "string"
     },
     "aplicador_cualificacion": {
-      "type": "string",
-      "description": "Cualificaciones del aplicador"
+      "type": "string"
     },
     "tecnico_nombre": {
       "type": "string",
-      "description": "Nombre del t\u00e9cnico (legacy/compatibilidad)"
+      "description": "legacy"
     },
     "proxima_revision_fecha": {
       "type": "string",
