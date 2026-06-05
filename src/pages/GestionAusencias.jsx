@@ -140,6 +140,8 @@ export default function GestionAusencias() {
   const navigate = useNavigate();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedTechForNew, setSelectedTechForNew] = useState('');
+  const [editingVacDias, setEditingVacDias] = useState(null); // { techId, dias }
   const [newData, setNewData] = useState({
     tipo: 'vacaciones',
     fecha_inicio: '',
@@ -195,22 +197,40 @@ export default function GestionAusencias() {
   const aprobadas = ausencias.filter(a => a.estado === 'aprobada');
   const rechazadas = ausencias.filter(a => a.estado === 'rechazada');
 
+  const updateVacDiasMutation = useMutation({
+    mutationFn: ({ techId, dias }) => base44.entities.Technician.update(techId, { vacaciones_anuales: Number(dias) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      setEditingVacDias(null);
+      toast.success('Días de vacaciones actualizados');
+    },
+  });
+
   const handleCreate = async () => {
     if (!newData.fecha_inicio || !newData.fecha_fin) return;
     setSaving(true);
     const dias = differenceInCalendarDays(parseISO(newData.fecha_fin), parseISO(newData.fecha_inicio)) + 1;
+
+    let targetTech = myTechRecord;
+    let targetEmail = myEmail;
+    if (isAdmin && selectedTechForNew) {
+      const t = technicians.find(x => x.id === selectedTechForNew);
+      if (t) { targetTech = t; targetEmail = t.email || t.user_email || ''; }
+    }
+
     await base44.entities.Ausencia.create({
-      technician_email: myEmail,
-      technician_name: myTechRecord?.name || currentUser?.full_name || sessionTechName || myEmail,
-      technician_id: myTechRecord?.id || '',
-      company_id: myTechRecord?.company_id || '',
+      technician_email: targetEmail,
+      technician_name: targetTech?.name || currentUser?.full_name || sessionTechName || targetEmail,
+      technician_id: targetTech?.id || '',
+      company_id: targetTech?.company_id || myTechRecord?.company_id || '',
       ...newData,
       dias_totales: dias,
-      estado: 'pendiente',
+      estado: isAdmin ? 'aprobada' : 'pendiente',
     });
     queryClient.invalidateQueries({ queryKey: ['ausencias'] });
-    toast.success('Solicitud enviada');
+    toast.success(isAdmin ? 'Ausencia registrada' : 'Solicitud enviada');
     setShowNewDialog(false);
+    setSelectedTechForNew('');
     setNewData({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
     setSaving(false);
   };
@@ -309,6 +329,51 @@ export default function GestionAusencias() {
           )}
         </div>
 
+        {/* Resumen vacaciones por técnico — solo admin */}
+        {isAdmin && technicians.length > 0 && (
+          <Card className="mb-4 p-4 bg-white border-0 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Días de vacaciones por técnico</h3>
+            <div className="space-y-2">
+              {technicians.filter(t => t.status !== 'inactive').map(t => {
+                const email = t.email || t.user_email || '';
+                const vacUsadas = ausencias.filter(a => a.technician_email === email && a.tipo === 'vacaciones' && a.estado === 'aprobada').reduce((s, a) => s + (a.dias_totales || 0), 0);
+                const vacTotal = t.vacaciones_anuales ?? 22;
+                const vacDisp = vacTotal - vacUsadas;
+                const isEd = editingVacDias?.techId === t.id;
+                return (
+                  <div key={t.id} className="flex items-center gap-3 py-1.5 border-b border-slate-100 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{t.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-blue-400 rounded-full transition-all" style={{ width: `${Math.min(100, (vacUsadas / vacTotal) * 100)}%` }} />
+                        </div>
+                        <span className={`text-xs font-medium whitespace-nowrap ${vacDisp < 3 ? 'text-red-500' : 'text-slate-500'}`}>{vacDisp}/{vacTotal} días disp.</span>
+                      </div>
+                    </div>
+                    {isEd ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Input type="number" min="0" max="60" value={editingVacDias.dias}
+                          onChange={e => setEditingVacDias(p => ({ ...p, dias: e.target.value }))}
+                          className="h-7 w-16 text-xs px-1" />
+                        <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 px-2"
+                          onClick={() => updateVacDiasMutation.mutate({ techId: t.id, dias: editingVacDias.dias })}>✓</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2"
+                          onClick={() => setEditingVacDias(null)}>✕</Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-400 hover:text-slate-600 px-2 shrink-0"
+                        onClick={() => setEditingVacDias({ techId: t.id, dias: vacTotal })}>
+                        Editar
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
         {/* Botón nueva solicitud — visible para cualquier usuario (técnico o admin) */}
         <div className="flex justify-end mb-4">
           <Button onClick={() => setShowNewDialog(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -387,6 +452,21 @@ export default function GestionAusencias() {
               <DialogTitle>Nueva solicitud de ausencia</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
+              {isAdmin && (
+                <div>
+                  <Label>Técnico (opcional — para registrar a otro técnico)</Label>
+                  <select value={selectedTechForNew} onChange={e => setSelectedTechForNew(e.target.value)}
+                    className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background mt-1">
+                    <option value="">— Mi propia ausencia —</option>
+                    {technicians.map(t => {
+                      const email = t.email || t.user_email || '';
+                      const vacUsadas = ausencias.filter(a => a.technician_email === email && a.tipo === 'vacaciones' && a.estado === 'aprobada').reduce((s, a) => s + (a.dias_totales || 0), 0);
+                      const vacTotal = t.vacaciones_anuales ?? 22;
+                      return <option key={t.id} value={t.id}>{t.name} · {vacTotal - vacUsadas}/{vacTotal} días vac. disp.</option>;
+                    })}
+                  </select>
+                </div>
+              )}
               {!isAdmin && (
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700">
                   Tienes <strong>{vacacionesDisponibles} días de vacaciones disponibles</strong> de {vacacionesConfig} totales.

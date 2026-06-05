@@ -364,6 +364,11 @@ export default function LDTab({ equipment, equipmentId, client }) {
   const protocolo = PROTOCOLOS.find(p => p.id === form.protocolo_id) || PROTOCOLOS[0];
   const mlHipoclorito = balsaLitros ? +(balsaLitros * protocolo.factor_hipoclorito).toFixed(1) : null;
   const gTiosulfato = balsaLitros ? +(balsaLitros * protocolo.factor_tiosulfato).toFixed(1) : null;
+  // Cálculo ajustado: descuenta el cloro ya existente en la balsa
+  const cloroActual = form.cloro_libre_inicial !== '' ? Number(form.cloro_libre_inicial) : 0;
+  const mlPerPpmPerLiter = protocolo.factor_hipoclorito / protocolo.ppm;
+  const ppmFaltantes = Math.max(0, protocolo.ppm - cloroActual);
+  const mlAjustados = balsaLitros ? +(ppmFaltantes * balsaLitros * mlPerPpmPerLiter).toFixed(1) : null;
 
   const { data: settings = [] } = useQuery({
     queryKey: ['app-settings-ld'],
@@ -377,6 +382,15 @@ export default function LDTab({ equipment, equipmentId, client }) {
     enabled: !!equipmentId,
   });
   const registrosOrdenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  // Sincronización en tiempo real entre navegadores/pestañas
+  useEffect(() => {
+    if (!equipmentId) return;
+    const unsub = base44.entities.RegistroLD.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['ld-registros', equipmentId] });
+    });
+    return unsub;
+  }, [equipmentId]);
 
   const f = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
@@ -668,10 +682,33 @@ export default function LDTab({ equipment, equipmentId, client }) {
                 {/* Resultado cálculo */}
                 {balsaLitros && (
                   <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300">
-                    <p className="text-xs text-slate-500 mb-1 font-medium">Añada exactamente:</p>
-                    <p className="text-3xl font-bold text-emerald-700">{mlHipoclorito} ml</p>
-                    <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong> en la balsa</p>
-                    <p className="text-xs text-slate-400 mt-1">{balsaLitros} L × {protocolo.factor_hipoclorito} = {mlHipoclorito} ml</p>
+                    {cloroActual > 0 && ppmFaltantes > 0 ? (
+                      <>
+                        <p className="text-xs text-slate-500 mb-1 font-medium">
+                          Añada (ajustado: cloro actual {cloroActual} ppm → objetivo {protocolo.ppm} ppm):
+                        </p>
+                        <p className="text-3xl font-bold text-emerald-700">{mlAjustados} ml</p>
+                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong> en la balsa</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          ({protocolo.ppm} - {cloroActual}) ppm × {balsaLitros} L × {mlPerPpmPerLiter.toFixed(5)} = {mlAjustados} ml
+                        </p>
+                        <p className="text-xs text-blue-500 mt-1 border-t border-emerald-200 pt-1">
+                          Si partiera de 0 ppm: {mlHipoclorito} ml totales
+                        </p>
+                      </>
+                    ) : cloroActual > 0 && ppmFaltantes === 0 ? (
+                      <>
+                        <p className="text-xs text-emerald-700 font-medium mb-1">✓ El cloro actual ya alcanza el objetivo del protocolo</p>
+                        <p className="text-xs text-slate-500">No es necesario añadir hipoclorito. Cloro actual: {cloroActual} ppm ≥ {protocolo.ppm} ppm</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-500 mb-1 font-medium">Añada exactamente (partiendo de 0 ppm):</p>
+                        <p className="text-3xl font-bold text-emerald-700">{mlHipoclorito} ml</p>
+                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong> en la balsa</p>
+                        <p className="text-xs text-slate-400 mt-1">{balsaLitros} L × {protocolo.factor_hipoclorito} = {mlHipoclorito} ml</p>
+                      </>
+                    )}
                   </div>
                 )}
                 {!balsaLitros && (
