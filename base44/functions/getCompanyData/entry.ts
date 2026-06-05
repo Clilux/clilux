@@ -132,6 +132,51 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Detalle de edificio (para técnicos de sesión propia) ────
+    if (entity === 'building_detail') {
+      if (!permisos.ver_edificios) return deny('ver_edificios');
+      const { building_id } = body;
+      if (!building_id) return Response.json({ error: 'building_id requerido' }, { status: 400 });
+      const [buildings, equipmentList, revisionsList] = await Promise.all([
+        base44.asServiceRole.entities.Building.filter({ id: building_id }),
+        permisos.ver_equipos ? base44.asServiceRole.entities.Equipment.filter({ building_id }) : Promise.resolve([]),
+        permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ building_id }) : Promise.resolve([]),
+      ]);
+      const bld = buildings[0] || null;
+      const clientList = bld?.client_id ? await base44.asServiceRole.entities.Client.filter({ id: bld.client_id }) : [];
+      return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList } });
+    }
+
+    // ── Detalle de equipo (para técnicos de sesión propia) ──────
+    if (entity === 'equipment_detail') {
+      if (!permisos.ver_equipos) return deny('ver_equipos');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0] || null;
+      const [clientList, buildingList, revisionsList] = eq ? await Promise.all([
+        base44.asServiceRole.entities.Client.filter({ id: eq.client_id }),
+        base44.asServiceRole.entities.Building.filter({ id: eq.building_id }),
+        permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id }) : Promise.resolve([]),
+      ]) : [[], [], []];
+      return Response.json({ data: { equipment: eq, client: clientList[0] || null, building: buildingList[0] || null, revisions: revisionsList } });
+    }
+
+    // ── Detalle de incidencia (para técnicos de sesión propia) ──
+    if (entity === 'incident_detail') {
+      if (!permisos.ver_incidencias) return deny('ver_incidencias');
+      const { incident_id } = body;
+      if (!incident_id) return Response.json({ error: 'incident_id requerido' }, { status: 400 });
+      const incList = await base44.asServiceRole.entities.Incident.filter({ id: incident_id });
+      const inc = incList[0] || null;
+      const [clientList, buildingList, equipmentList] = inc ? await Promise.all([
+        inc.client_id ? base44.asServiceRole.entities.Client.filter({ id: inc.client_id }) : Promise.resolve([]),
+        inc.building_id ? base44.asServiceRole.entities.Building.filter({ id: inc.building_id }) : Promise.resolve([]),
+        inc.equipment_id ? base44.asServiceRole.entities.Equipment.filter({ id: inc.equipment_id }) : Promise.resolve([]),
+      ]) : [[], [], []];
+      return Response.json({ data: { incident: inc, client: clientList[0] || null, building: buildingList[0] || null, equipment: equipmentList[0] || null } });
+    }
+
     return Response.json({ error: 'entity no válida' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

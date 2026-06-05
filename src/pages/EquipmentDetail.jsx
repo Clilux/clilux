@@ -79,6 +79,9 @@ export default function EquipmentDetail() {
   const [specs, setSpecs] = useState({});
   const queryClient = useQueryClient();
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const deleteMutation = useMutation({
     mutationFn: () => base44.entities.Equipment.delete(equipmentId),
     onSuccess: () => {
@@ -103,13 +106,25 @@ export default function EquipmentDetail() {
     },
   });
 
+  // Proxy para técnicos de sesión propia
+  const { data: proxyData } = useQuery({
+    queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'equipment_detail', equipment_id: equipmentId,
+      });
+      return res.data?.data || null;
+    },
+    enabled: isSessionTech && !!equipmentId,
+  });
+
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
     queryFn: async () => {
       const items = await base44.entities.Equipment.filter({ id: equipmentId });
       return items[0] || null;
     },
-    enabled: !!equipmentId,
+    enabled: !isSessionTech && !!equipmentId,
   });
 
   const { data: building } = useQuery({
@@ -118,7 +133,7 @@ export default function EquipmentDetail() {
       const buildings = await base44.entities.Building.filter({ id: equipment.building_id });
       return buildings[0] || null;
     },
-    enabled: !!equipment?.building_id,
+    enabled: !isSessionTech && !!equipment?.building_id,
   });
 
   const { data: client } = useQuery({
@@ -127,8 +142,14 @@ export default function EquipmentDetail() {
       const clients = await base44.entities.Client.filter({ id: equipment.client_id });
       return clients[0] || null;
     },
-    enabled: !!equipment?.client_id,
+    enabled: !isSessionTech && !!equipment?.client_id,
   });
+
+  // Datos finales
+  const finalEquipment = isSessionTech ? proxyData?.equipment : equipment;
+  const finalBuilding = isSessionTech ? proxyData?.building : building;
+  const finalClient = isSessionTech ? proxyData?.client : client;
+  const isLoadingFinal = isSessionTech ? (!proxyData && !!equipmentId) : isLoading;
 
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduled-revisions', equipmentId],
@@ -204,7 +225,7 @@ export default function EquipmentDetail() {
 
 
 
-  if (isLoading) {
+  if (isLoadingFinal) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-5xl mx-auto">
@@ -215,7 +236,7 @@ export default function EquipmentDetail() {
     );
   }
 
-  if (!equipment) {
+  if (!finalEquipment) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-5xl mx-auto text-center py-12">
@@ -228,21 +249,21 @@ export default function EquipmentDetail() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
-        <NavHeader title={equipment.reference_name || `${equipment.brand} ${equipment.model}`} />
+        <NavHeader title={finalEquipment.reference_name || `${finalEquipment.brand} ${finalEquipment.model}`} />
 
         {/* Status Overview Card */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
           <div className="flex flex-col md:flex-row gap-6">
-            {equipment.photo_url && (
+            {finalEquipment.photo_url && (
               <div className="flex flex-col gap-2 flex-shrink-0">
                 <div className="w-full md:w-48 h-48 rounded-xl overflow-hidden bg-slate-100">
                   <img 
-                    src={equipment.photo_url} 
-                    alt={`${equipment.brand} ${equipment.model}`}
+                    src={finalEquipment.photo_url} 
+                    alt={`${finalEquipment.brand} ${finalEquipment.model}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <COPCalculator equipment={equipment} />
+                <COPCalculator equipment={finalEquipment} />
               </div>
             )}
             
@@ -251,53 +272,54 @@ export default function EquipmentDetail() {
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h2 className="text-2xl font-bold text-slate-800">
-                      {equipment.reference_name || `${equipment.brand} ${equipment.model}`}
+                      {finalEquipment.reference_name || `${finalEquipment.brand} ${finalEquipment.model}`}
                     </h2>
-                    <StatusBadge status={equipment.status || 'operational'} />
+                    <StatusBadge status={finalEquipment.status || 'operational'} />
                   </div>
-                  {equipment.reference_name && (
+                  {finalEquipment.reference_name && (
                     <p className="text-base text-slate-600 font-medium mb-1">
-                      {equipment.brand} {equipment.model}
+                      {finalEquipment.brand} {finalEquipment.model}
                     </p>
                   )}
                   <p className="text-slate-500 text-sm">
-                    {equipmentTypeLabels[equipment.equipment_type] || equipment.equipment_type}
-                    {equipment.serial_number && ` · S/N: ${equipment.serial_number}`}
+                    {equipmentTypeLabels[finalEquipment.equipment_type] || finalEquipment.equipment_type}
+                    {finalEquipment.serial_number && ` · S/N: ${finalEquipment.serial_number}`}
                   </p>
-                  {building && (
+                  {finalBuilding && (
                     <Link 
-                      to={createPageUrl(`BuildingDetail?id=${building.id}`)}
+                      to={createPageUrl(`BuildingDetail?id=${finalBuilding.id}`)}
                       className="text-sm text-blue-600 hover:underline"
                     >
-                      {building.name}
+                      {finalBuilding.name}
                     </Link>
                   )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <EquipmentReport
-                    equipment={equipment}
-                    building={building}
-                    client={client}
+                    equipment={finalEquipment}
+                    building={finalBuilding}
+                    client={finalClient}
                   />
                   <RevisionsReport
-                    equipment={equipment}
-                    building={building}
-                    client={client}
+                    equipment={finalEquipment}
+                    building={finalBuilding}
+                    client={finalClient}
                     revisions={scheduledRevisions}
                   />
+                  {!isSessionTech && <>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleEquipmentStatusMutation.mutate(equipment.status || 'operational')}
+                    onClick={() => toggleEquipmentStatusMutation.mutate(finalEquipment.status || 'operational')}
                     disabled={toggleEquipmentStatusMutation.isPending}
-                    className={equipment.status === 'out_of_service' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}
+                    className={finalEquipment.status === 'out_of_service' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}
                   >
-                    {equipment.status === 'out_of_service'
+                    {finalEquipment.status === 'out_of_service'
                       ? <><ToggleRight className="h-4 w-4 mr-2" />Activar</>
                       : <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
                     }
                   </Button>
-                  <Link to={createPageUrl(`EquipmentForm?id=${equipment.id}`)}>
+                  <Link to={createPageUrl(`EquipmentForm?id=${finalEquipment.id}`)}>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
                       Editar
@@ -306,6 +328,7 @@ export default function EquipmentDetail() {
                   <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  </> }
                 </div>
               </div>
 
@@ -313,17 +336,17 @@ export default function EquipmentDetail() {
               <div className="grid grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-slate-50">
                 <div className="text-center">
                   <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
-                    equipment.status === 'operational' ? 'bg-emerald-100' :
-                    equipment.status === 'maintenance_needed' ? 'bg-amber-100' : 'bg-red-100'
+                    finalEquipment.status === 'operational' ? 'bg-emerald-100' :
+                    finalEquipment.status === 'maintenance_needed' ? 'bg-amber-100' : 'bg-red-100'
                   }`}>
                     <Shield className={`h-5 w-5 ${
-                      equipment.status === 'operational' ? 'text-emerald-600' :
-                      equipment.status === 'maintenance_needed' ? 'text-amber-600' : 'text-red-600'
+                      finalEquipment.status === 'operational' ? 'text-emerald-600' :
+                      finalEquipment.status === 'maintenance_needed' ? 'text-amber-600' : 'text-red-600'
                     }`} />
                   </div>
                   <p className="text-xs text-slate-500">Estado</p>
                   <p className="text-sm font-medium text-slate-700">
-                    {statusInfo[equipment.status]?.label || 'Operativo'}
+                    {statusInfo[finalEquipment.status]?.label || 'Operativo'}
                   </p>
                 </div>
                 <div className="text-center">
@@ -359,7 +382,7 @@ export default function EquipmentDetail() {
                 </div>
               </div>
 
-              {editingSpecs ? (
+              {editingSpecs && !isSessionTech ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -416,52 +439,52 @@ export default function EquipmentDetail() {
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {equipment.location && (
+                    {finalEquipment.location && (
                       <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Ubicación</p>
-                          <p className="text-sm text-slate-700">{equipment.location}</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.location}</p>
                         </div>
                       </div>
                     )}
-                    {equipment.cooling_power_kw && (
+                    {finalEquipment.cooling_power_kw && (
                       <div className="flex items-start gap-2">
                         <Snowflake className="h-4 w-4 text-blue-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Pot. Frigorífica</p>
-                          <p className="text-sm text-slate-700">{equipment.cooling_power_kw} kW</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.cooling_power_kw} kW</p>
                         </div>
                       </div>
                     )}
-                    {equipment.heating_power_kw && (
+                    {finalEquipment.heating_power_kw && (
                       <div className="flex items-start gap-2">
                         <Flame className="h-4 w-4 text-orange-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Pot. Calorífica</p>
-                          <p className="text-sm text-slate-700">{equipment.heating_power_kw} kW</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.heating_power_kw} kW</p>
                         </div>
                       </div>
                     )}
-                    {equipment.refrigerant_type && (
+                    {finalEquipment.refrigerant_type && (
                       <div className="flex items-start gap-2">
                         <Wind className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Refrigerante</p>
-                          <p className="text-sm text-slate-700">{equipment.refrigerant_type}</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.refrigerant_type}</p>
                         </div>
                       </div>
                     )}
-                    {equipment.refrigerant_charge_kg && (
+                    {finalEquipment.refrigerant_charge_kg && (
                       <div className="flex items-start gap-2">
                         <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Carga</p>
-                          <p className="text-sm text-slate-700">{equipment.refrigerant_charge_kg} kg</p>
-                          {equipment.refrigerant_type && (() => {
-                            const gwpVal = GWP_TABLE_INLINE[equipment.refrigerant_type] ?? equipment.gwp;
+                          <p className="text-sm text-slate-700">{finalEquipment.refrigerant_charge_kg} kg</p>
+                          {finalEquipment.refrigerant_type && (() => {
+                            const gwpVal = GWP_TABLE_INLINE[finalEquipment.refrigerant_type] ?? finalEquipment.gwp;
                             if (!gwpVal && gwpVal !== 0) return null;
-                            const tco2 = (equipment.refrigerant_charge_kg * gwpVal) / 1000;
+                            const tco2 = (finalEquipment.refrigerant_charge_kg * gwpVal) / 1000;
                             return (
                               <p className="text-xs text-slate-400">
                                 GWP {gwpVal} · <span className={tco2 >= 5 ? 'text-amber-600 font-medium' : 'text-slate-400'}>{tco2.toFixed(3)} tCO₂eq</span>
@@ -471,30 +494,30 @@ export default function EquipmentDetail() {
                         </div>
                       </div>
                     )}
-                    {equipment.balsa_litros && (
+                    {finalEquipment.balsa_litros && (
                       <div className="flex items-start gap-2">
                         <Droplet className="h-4 w-4 text-cyan-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Volumen balsa</p>
-                          <p className="text-sm text-slate-700">{equipment.balsa_litros} L</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.balsa_litros} L</p>
                         </div>
                       </div>
                     )}
-                    {equipment.installation_date && (
+                    {finalEquipment.installation_date && (
                       <div className="flex items-start gap-2">
                         <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-slate-500">Instalación</p>
                           <p className="text-sm text-slate-700">
-                            {format(new Date(equipment.installation_date), 'dd/MM/yyyy')}
+                            {format(new Date(finalEquipment.installation_date), 'dd/MM/yyyy')}
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={handleEditSpecs} className="mt-2 text-xs">
+                  {!isSessionTech && <Button size="sm" variant="outline" onClick={handleEditSpecs} className="mt-2 text-xs">
                     <Edit className="h-3 w-3 mr-1" />Editar datos técnicos
-                  </Button>
+                  </Button>}
                 </div>
               )}
             </div>
