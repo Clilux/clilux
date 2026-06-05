@@ -96,9 +96,7 @@ export default function TechnicianProfile() {
   const myOwnTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
   const isAdminUser = currentUser?.role === 'admin' || myOwnTechRecord?.is_admin === true;
 
-  // Accesible para: cualquier usuario autenticado (Base44 o sesión técnico) que sea admin o esté viendo su propio perfil
-  if (!currentUser && !isSessionTech) return null;
-  // Mientras carga, no mostrar "no encontrado"
+  // Mientras carga la lista de técnicos, mostrar spinner
   if (loadingTechs) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <Loader2 className="h-6 w-6 animate-spin text-slate-400" />

@@ -174,14 +174,19 @@ export default function GestionAusencias() {
     queryKey: ['ausencias', myEmail, isAdmin, myTechRecord?.id],
     queryFn: async () => {
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 200);
+      // Técnico normal: solo sus propias ausencias
       if (!isAdmin) return all.filter(a => a.technician_email === myEmail);
+      // Admin con company_id (técnico con is_admin=true): solo su empresa
       if (myTechRecord?.company_id) {
         return all.filter(a => {
           const tech = technicians.find(t => t.user_email === a.technician_email || t.email === a.technician_email);
           return tech?.company_id === myTechRecord.company_id;
         });
       }
-      return all;
+      // Admin Base44 sin company_id: ve todo
+      if (currentUser?.role === 'admin') return all;
+      // Fallback: solo las propias
+      return all.filter(a => a.technician_email === myEmail);
     },
     enabled: !!myEmail,
   });
@@ -318,15 +323,13 @@ export default function GestionAusencias() {
             <p className="text-2xl font-bold text-red-500">{rechazadas.length}</p>
             <p className="text-xs text-slate-500 mt-0.5">Rechazadas</p>
           </Card>
-          {!isAdmin && (
-            <Card className="p-4 bg-white border-0 shadow-sm text-center">
-              <p className={`text-2xl font-bold ${vacacionesDisponibles < 5 ? 'text-red-500' : 'text-blue-600'}`}>
-                {vacacionesDisponibles}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">Vacaciones disp.</p>
-              <p className="text-xs text-slate-400">(de {vacacionesConfig})</p>
-            </Card>
-          )}
+          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+            <p className={`text-2xl font-bold ${vacacionesDisponibles < 5 ? 'text-red-500' : 'text-blue-600'}`}>
+              {vacacionesDisponibles}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Mis vac. disp.</p>
+            <p className="text-xs text-slate-400">(de {vacacionesConfig})</p>
+          </Card>
         </div>
 
         {/* Resumen vacaciones por técnico — solo admin */}
