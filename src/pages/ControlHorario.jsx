@@ -15,6 +15,7 @@ import { calcularHoras, getGeoLocation, formatHoras } from '@/lib/horario-utils'
 import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
+import MapaTrayecto from '@/components/horario/MapaTrayecto';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
@@ -22,6 +23,7 @@ export default function ControlHorario() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [showAusencia, setShowAusencia] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [expandedMapId, setExpandedMapId] = useState(null);
 
   // Detectar si hay sesión de técnico propio (no Base44)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -471,9 +473,21 @@ export default function ControlHorario() {
                         {horasEfectivas > 0 && <span className="text-blue-600 font-semibold">{formatHoras(horasEfectivas)}</span>}
                         {r.minutos_pausa > 0 && <span>{r.minutos_pausa}m pausa</span>}
                       </div>
+                      {/* Mapa trayecto expandible */}
+                      {expandedMapId === r.id && (
+                        <div className="mt-2">
+                          <MapaTrayecto geopoints={r.geopoints || []} />
+                        </div>
+                      )}
                     </div>
                     {/* Acciones */}
                     <div className="flex items-center gap-0.5 flex-shrink-0 ml-1 pt-0.5">
+                      {(r.geopoints?.length > 0 || r.ubicacion_entrada) && (
+                        <Button variant="ghost" size="icon" className={`h-7 w-7 ${expandedMapId === r.id ? 'text-blue-500' : 'text-emerald-300 hover:text-emerald-600'}`}
+                          onClick={() => setExpandedMapId(expandedMapId === r.id ? null : r.id)} title="Ver trayecto">
+                          <MapPin className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="PDF jornada"><FileDown className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-blue-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
                     </div>

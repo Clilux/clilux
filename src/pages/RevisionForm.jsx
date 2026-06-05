@@ -531,19 +531,34 @@ export default function RevisionForm() {
             </div>
             <div>
               <Label className="text-slate-700 mb-2">Técnico que realiza la revisión</Label>
-              <select
-                value={technicianName}
-                onChange={e => setTechnicianName(e.target.value)}
-                className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background"
-              >
-                <option value="">— Seleccionar técnico —</option>
-                {technicians.map(t => (
-                  <option key={t.id} value={t.name}>{t.name}{t.specialty ? ` · ${t.specialty}` : ''}</option>
-                ))}
-                {technicianName && !technicians.find(t => t.name === technicianName) && (
-                  <option value={technicianName}>{technicianName}</option>
-                )}
-              </select>
+              {technicians.length > 0 ? (
+                <div className="space-y-2">
+                  <select
+                    value={technicians.find(t => t.name === technicianName) ? technicianName : '__manual__'}
+                    onChange={e => { if (e.target.value !== '__manual__') setTechnicianName(e.target.value); else setTechnicianName(''); }}
+                    className="w-full h-9 text-sm border border-input rounded-md px-2 bg-background"
+                  >
+                    <option value="">— Seleccionar técnico —</option>
+                    {technicians.map(t => (
+                      <option key={t.id} value={t.name}>{t.name}{t.specialty ? ` · ${t.specialty}` : ''}</option>
+                    ))}
+                    <option value="__manual__">✏️ Escribir manualmente...</option>
+                  </select>
+                  {(!technicianName || !technicians.find(t => t.name === technicianName)) && (
+                    <Input
+                      value={technicianName}
+                      onChange={e => setTechnicianName(e.target.value)}
+                      placeholder="Nombre del técnico"
+                    />
+                  )}
+                </div>
+              ) : (
+                <Input
+                  value={technicianName}
+                  onChange={e => setTechnicianName(e.target.value)}
+                  placeholder="Nombre del técnico"
+                />
+              )}
             </div>
           </div>
 

@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
   const techEmail = urlParams.get('email');
+  const queryClient = useQueryClient();
+  const [contactForm, setContactForm] = useState(null); // null = no cargado aún
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -26,6 +32,19 @@ export default function TechnicianProfile() {
   });
 
   const tech = technicians.find(t => t.user_email === techEmail || t.email === techEmail);
+
+  // Inicializar contactForm cuando se carga tech
+  React.useEffect(() => {
+    if (tech && contactForm === null) {
+      setContactForm({ name: tech.name || '', phone: tech.phone || '', email: tech.email || '' });
+    }
+  }, [tech]);
+
+  const saveContactMutation = useMutation({
+    mutationFn: () => base44.entities.Technician.update(tech.id, { name: contactForm.name, phone: contactForm.phone, email: contactForm.email }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['technicians'] }); toast.success('Datos guardados'); },
+    onError: () => toast.error('Error al guardar'),
+  });
 
   const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const currentMonthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
@@ -166,60 +185,97 @@ export default function TechnicianProfile() {
           </Link>
         </div>
 
-        {/* Recent registros */}
-        <Card className="bg-white border-0 shadow-sm overflow-hidden mb-6">
-          <div className="p-4 border-b border-slate-50 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-700">Últimos registros de jornada</h3>
-          </div>
-          {registros.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center p-6">Sin registros</p>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {registros.slice(0, 10).map(r => (
-                <div key={r.id} className="px-4 py-3 flex items-center justify-between text-sm">
-                  <span className="text-slate-600">
-                    {r.fecha && format(parseISO(r.fecha), "EEE d MMM", { locale: es })}
-                  </span>
-                  <div className="flex gap-4">
-                    <span className="text-emerald-600">{r.hora_entrada || '—'}</span>
-                    <span className="text-red-500">{r.hora_salida || '—'}</span>
-                    <span className="font-medium text-slate-700">{r.horas_totales ? `${r.horas_totales}h` : '—'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <Tabs defaultValue="registros">
+          <TabsList className="mb-4">
+            <TabsTrigger value="registros">Registros</TabsTrigger>
+            <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
+            <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
+          </TabsList>
 
-        {/* Ausencias */}
-        {ausencias.length > 0 && (
-          <Card className="bg-white border-0 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-50">
-              <h3 className="font-semibold text-slate-700">Ausencias y vacaciones</h3>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {ausencias.slice(0, 8).map(a => (
-                <div key={a.id} className="px-4 py-3 flex items-center justify-between text-sm">
-                  <div>
-                    <span className="text-slate-700 font-medium">{TIPO_LABELS[a.tipo] || a.tipo}</span>
-                    <span className="text-slate-400 ml-2 text-xs">
-                      {a.fecha_inicio && format(parseISO(a.fecha_inicio), "d MMM", { locale: es })}
-                      {' — '}
-                      {a.fecha_fin && format(parseISO(a.fecha_fin), "d MMM yyyy", { locale: es })}
-                    </span>
-                  </div>
-                  <Badge className={
-                    a.estado === 'aprobada' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' :
-                    a.estado === 'rechazada' ? 'bg-red-100 text-red-700 border-0 text-xs' :
-                    'bg-amber-100 text-amber-700 border-0 text-xs'
-                  }>
-                    {a.estado}
-                  </Badge>
+          <TabsContent value="registros">
+            <Card className="bg-white border-0 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-50">
+                <h3 className="font-semibold text-slate-700">Últimos registros de jornada</h3>
+              </div>
+              {registros.length === 0 ? (
+                <p className="text-slate-400 text-sm text-center p-6">Sin registros</p>
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {registros.slice(0, 10).map(r => (
+                    <div key={r.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                      <span className="text-slate-600">
+                        {r.fecha && format(parseISO(r.fecha), "EEE d MMM", { locale: es })}
+                      </span>
+                      <div className="flex gap-4">
+                        <span className="text-emerald-600">{r.hora_entrada || '—'}</span>
+                        <span className="text-red-500">{r.hora_salida || '—'}</span>
+                        <span className="font-medium text-slate-700">{r.horas_totales ? `${r.horas_totales}h` : '—'}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Card>
-        )}
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ausencias">
+            {ausencias.length === 0 ? (
+              <Card className="p-6 text-center text-slate-400 text-sm">Sin ausencias registradas</Card>
+            ) : (
+              <Card className="bg-white border-0 shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-50">
+                  {ausencias.slice(0, 8).map(a => (
+                    <div key={a.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-slate-700 font-medium">{TIPO_LABELS[a.tipo] || a.tipo}</span>
+                        <span className="text-slate-400 ml-2 text-xs">
+                          {a.fecha_inicio && format(parseISO(a.fecha_inicio), "d MMM", { locale: es })}
+                          {' — '}
+                          {a.fecha_fin && format(parseISO(a.fecha_fin), "d MMM yyyy", { locale: es })}
+                        </span>
+                      </div>
+                      <Badge className={
+                        a.estado === 'aprobada' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' :
+                        a.estado === 'rechazada' ? 'bg-red-100 text-red-700 border-0 text-xs' :
+                        'bg-amber-100 text-amber-700 border-0 text-xs'
+                      }>
+                        {a.estado}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="contacto">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-1">Datos de contacto</h3>
+              <p className="text-xs text-slate-400 mb-5">Usados para envíos de documentación (control horario, nóminas, etc.)</p>
+              {contactForm && (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-600 mb-1">Nombre completo</Label>
+                    <Input value={contactForm.name} onChange={e => setContactForm(p => ({ ...p, name: e.target.value }))} placeholder="Nombre" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Teléfono</Label>
+                    <Input value={contactForm.phone} onChange={e => setContactForm(p => ({ ...p, phone: e.target.value }))} placeholder="+34 600 000 000" type="tel" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Correo electrónico</Label>
+                    <Input value={contactForm.email} onChange={e => setContactForm(p => ({ ...p, email: e.target.value }))} placeholder="correo@empresa.com" type="email" />
+                  </div>
+                  <div className="pt-2">
+                    <Button onClick={() => saveContactMutation.mutate()} disabled={saveContactMutation.isPending} className="bg-blue-600">
+                      {saveContactMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar cambios</>}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -10,8 +10,6 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
   const handleBack = () => {
     if (backUrl) {
       navigate(createPageUrl(backUrl));
-    } else if (window.history.length > 1) {
-      navigate(-1);
     } else {
       navigate(createPageUrl(homeUrl));
     }
