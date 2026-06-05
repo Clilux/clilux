@@ -440,9 +440,10 @@ export default function GestionAusencias() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
-}
+            </DialogContent>
+            </Dialog>
+            </div>
+            </div>
+            </div>
+            );
+            }
