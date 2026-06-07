@@ -18,6 +18,8 @@ import StelClientes from './pages/StelClientes';
 import StelClientosTab from './pages/StelClientosTab';
 import ClientScada from './pages/ClientScada';
 import ImportEquipment from './pages/ImportEquipment';
+import ControlObras from './pages/ControlObras';
+import ObraDetail from './pages/ObraDetail';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -88,6 +90,8 @@ const AuthenticatedApp = () => {
       <Route path="/StelClientosTab" element={<LayoutWrapper currentPageName="StelClientosTab"><StelClientosTab /></LayoutWrapper>} />
       <Route path="/ClientScada" element={<LayoutWrapper currentPageName="ClientScada"><ClientScada /></LayoutWrapper>} />
       <Route path="/ImportEquipment" element={<LayoutWrapper currentPageName="ImportEquipment"><ImportEquipment /></LayoutWrapper>} />
+      <Route path="/ControlObras" element={<LayoutWrapper currentPageName="ControlObras"><ControlObras /></LayoutWrapper>} />
+      <Route path="/ObraDetail" element={<LayoutWrapper currentPageName="ObraDetail"><ObraDetail /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

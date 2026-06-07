@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, FileText, MoreVertical, Wrench, User } from 'lucide-react';
+import { Shield, LogOut, Home, Clock, Calendar, FileText, MoreVertical, Wrench, User, HardHat } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
 export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout, techEmail }) {
@@ -97,6 +97,12 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
               <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-9">
                 <FileText className="h-4 w-4 mr-2" />
                 <span className="text-sm">Documentos</span>
+              </Button>
+            </Link>
+            <Link to="/ControlObras">
+              <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-9">
+                <HardHat className="h-4 w-4 mr-2" />
+                <span className="text-sm">Obras</span>
               </Button>
             </Link>
             {techEmail && (

@@ -1,0 +1,92 @@
+{
+  "name": "AlbaranObra",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra"
+    },
+    "obra_nombre": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "numero": {
+      "type": "string",
+      "description": "N\u00famero de albar\u00e1n (auto-generado)"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date"
+    },
+    "tecnico_id": {
+      "type": "string"
+    },
+    "tecnico_nombre": {
+      "type": "string"
+    },
+    "tecnico_email": {
+      "type": "string"
+    },
+    "hora_inicio": {
+      "type": "string",
+      "description": "HH:MM"
+    },
+    "hora_fin": {
+      "type": "string",
+      "description": "HH:MM"
+    },
+    "horas_trabajadas": {
+      "type": "number"
+    },
+    "descripcion_trabajos": {
+      "type": "string"
+    },
+    "materiales_usados": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "precio_unitario": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "firmado"
+      ],
+      "default": "borrador"
+    },
+    "registro_horario_id": {
+      "type": "string",
+      "description": "ID del RegistroHorario del que se gener\u00f3 (opcional)"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "obra_id",
+    "fecha",
+    "tecnico_nombre",
+    "descripcion_trabajos"
+  ]
+}

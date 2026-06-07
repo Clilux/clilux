@@ -1,0 +1,149 @@
+{
+  "name": "Obra",
+  "type": "object",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre o referencia de la obra"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n de los trabajos"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio"
+    },
+    "building_name": {
+      "type": "string",
+      "description": "Nombre del edificio (desnormalizado)"
+    },
+    "building_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la obra (si edificio nuevo)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "activa",
+        "pausada",
+        "finalizada",
+        "presupuestada"
+      ],
+      "default": "activa"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "fecha_fin_prevista": {
+      "type": "string",
+      "format": "date"
+    },
+    "fecha_fin_real": {
+      "type": "string",
+      "format": "date"
+    },
+    "responsable_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico responsable"
+    },
+    "responsable_nombre": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "presupuesto_inicial": {
+      "type": "number",
+      "default": 0,
+      "description": "Presupuesto aprobado para la obra"
+    },
+    "costo_trabajadores": {
+      "type": "number",
+      "default": 0,
+      "description": "Coste total de mano de obra"
+    },
+    "costo_materiales": {
+      "type": "number",
+      "default": 0,
+      "description": "Coste total de materiales"
+    },
+    "total_facturado": {
+      "type": "number",
+      "default": 0,
+      "description": "Total facturado al cliente"
+    },
+    "facturas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "importe": {
+            "type": "number"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "cobrada"
+            ]
+          },
+          "notas": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "documentos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "fotos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nombre",
+    "client_id"
+  ]
+}

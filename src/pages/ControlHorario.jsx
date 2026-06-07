@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat } from 'lucide-react';
+import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -26,6 +27,8 @@ export default function ControlHorario() {
   const [showAusencia, setShowAusencia] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [expandedMapId, setExpandedMapId] = useState(null);
+  const [showAlbaranObra, setShowAlbaranObra] = useState(false);
+  const [albaranRegistro, setAlbaranRegistro] = useState(null);
 
   // Detectar si hay sesión de técnico propio (no Base44)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -367,6 +370,9 @@ export default function ControlHorario() {
                 <Pencil className="h-3.5 w-3.5" />Corregir fichaje
               </Button>
             )}
+            <Button variant="ghost" size="sm" className="text-xs text-orange-600 gap-1.5" onClick={() => { setAlbaranRegistro(todayRecord || null); setShowAlbaranObra(true); }}>
+              <HardHat className="h-3.5 w-3.5" />Albarán de obra
+            </Button>
             <Button variant="ghost" size="sm" className="text-xs text-purple-600 gap-1.5 ml-auto" onClick={() => setShowAusencia(true)}>
               <Calendar className="h-3.5 w-3.5" />Solicitar ausencia
             </Button>
@@ -490,6 +496,7 @@ export default function ControlHorario() {
                           <MapPin className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-orange-500" onClick={() => { setAlbaranRegistro(r); setShowAlbaranObra(true); }} title="Albarán de obra"><HardHat className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="PDF jornada"><FileDown className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-blue-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
                     </div>
@@ -531,6 +538,14 @@ export default function ControlHorario() {
       )}
       {showAusencia && (
         <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
+      )}
+      {showAlbaranObra && (
+        <AlbaranObraModal
+          open={showAlbaranObra}
+          onClose={() => { setShowAlbaranObra(false); setAlbaranRegistro(null); }}
+          techRecord={myTechRecord}
+          registroHorario={albaranRegistro}
+        />
       )}
     </>
   );
