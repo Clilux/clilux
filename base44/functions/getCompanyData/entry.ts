@@ -268,6 +268,42 @@ Deno.serve(async (req) => {
       return Response.json({ data: { incident: inc, client: clientList[0] || null, building: buildingList[0] || null, equipment: equipmentList[0] || null } });
     }
 
+    // ── Registros L+D: leer por equipo ──────────────────────────
+    if (entity === 'ld_registros') {
+      if (!permisos.ver_equipos) return deny('ver_equipos');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.RegistroLD.filter({ equipment_id });
+      return Response.json({ data });
+    }
+
+    // ── Registros L+D: crear ─────────────────────────────────────
+    if (entity === 'ld_create') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.RegistroLD.create(record);
+      return Response.json({ data });
+    }
+
+    // ── Registros L+D: actualizar ────────────────────────────────
+    if (entity === 'ld_update') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.RegistroLD.update(record_id, updates);
+      return Response.json({ data });
+    }
+
+    // ── Registros L+D: eliminar ──────────────────────────────────
+    if (entity === 'ld_delete') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      await base44.asServiceRole.entities.RegistroLD.delete(record_id);
+      return Response.json({ success: true });
+    }
+
     return Response.json({ error: 'entity no válida' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

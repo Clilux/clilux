@@ -22,6 +22,8 @@ export default function Incidents() {
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
+  const queryClient = useQueryClient();
+
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['incidents', isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
@@ -43,8 +45,6 @@ export default function Incidents() {
     });
     return unsub;
   }, [isSessionTech]);
-
-  const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Incident.update(id, { status: 'deleted_by_technician' }),

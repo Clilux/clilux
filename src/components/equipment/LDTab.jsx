@@ -370,6 +370,8 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function LDTab({ equipment, equipmentId, client }) {
   const queryClient = useQueryClient();
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -403,22 +405,30 @@ export default function LDTab({ equipment, equipmentId, client }) {
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ['ld-registros', equipmentId],
-    queryFn: () => base44.entities.RegistroLD.filter({ equipment_id: equipmentId }),
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'ld_registros', equipment_id: equipmentId
+        });
+        return res.data?.data || [];
+      }
+      return base44.entities.RegistroLD.filter({ equipment_id: equipmentId });
+    },
     enabled: !!equipmentId,
     refetchOnWindowFocus: true,
     staleTime: 0,
-    refetchInterval: 30000, // refresca cada 30s para garantizar sincronización
+    refetchInterval: 30000,
   });
   const registrosOrdenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-  // Sincronización en tiempo real entre navegadores/pestañas
+  // Sincronización en tiempo real (solo en modo directo, no en proxy de sesión técnico)
   useEffect(() => {
-    if (!equipmentId) return;
+    if (!equipmentId || isSessionTech) return;
     const unsub = base44.entities.RegistroLD.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['ld-registros', equipmentId] });
     });
     return unsub;
-  }, [equipmentId]);
+  }, [equipmentId, isSessionTech]);
 
   const f = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
@@ -462,6 +472,18 @@ export default function LDTab({ equipment, equipmentId, client }) {
         cloro_objetivo: data.cloro_objetivo !== '' ? Number(data.cloro_objetivo) : null,
         proxima_revision_fecha: proxima,
       };
+      if (isSessionTech) {
+        if (editingId) {
+          const res = await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'ld_update', record_id: editingId, updates: payload
+          });
+          return res.data?.data;
+        }
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'ld_create', record: payload
+        });
+        return res.data?.data;
+      }
       if (editingId) return base44.entities.RegistroLD.update(editingId, payload);
       return base44.entities.RegistroLD.create(payload);
     },
@@ -474,7 +496,14 @@ export default function LDTab({ equipment, equipmentId, client }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RegistroLD.delete(id),
+    mutationFn: async (id) => {
+      if (isSessionTech) {
+        return base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'ld_delete', record_id: id
+        });
+      }
+      return base44.entities.RegistroLD.delete(id);
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ld-registros', equipmentId] }); toast.success('Registro eliminado'); },
   });
 
