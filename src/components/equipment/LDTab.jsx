@@ -567,9 +567,19 @@ export default function LDTab({ equipment, equipmentId, client }) {
     finally { setGeneratingPdf(null); }
   };
 
+  const sessionTechName = sessionStorage.getItem('technician_name') || '';
+  const sessionTechCompany = sessionStorage.getItem('technician_company') || '';
+
   const openNewForm = () => {
     const eqName = equipment?.reference_name || `${equipment?.brand || ''} ${equipment?.model || ''}`.trim() || '';
-    setForm({ ...emptyForm, nombre_circuito: eqName });
+    setForm({
+      ...emptyForm,
+      nombre_circuito: eqName,
+      responsable_tecnico_nombre: sessionTechName,
+      responsable_tecnico_empresa: sessionTechCompany,
+      aplicador_nombre: sessionTechName,
+      aplicador_empresa: sessionTechCompany,
+    });
     setEditingId(null); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
   };
 

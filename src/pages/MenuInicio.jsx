@@ -35,6 +35,11 @@ export default function MenuInicio() {
       const activeTechSession = sessionStorage.getItem('technician_email') || localStorage.getItem('clilux_tech_email');
       if (activeTechSession) {
         sessionStorage.setItem('technician_email', activeTechSession);
+        // Restaurar nombre y empresa desde localStorage si no están en sessionStorage
+        if (!sessionStorage.getItem('technician_name') && localStorage.getItem('clilux_tech_name'))
+          sessionStorage.setItem('technician_name', localStorage.getItem('clilux_tech_name'));
+        if (!sessionStorage.getItem('technician_company') && localStorage.getItem('clilux_tech_company'))
+          sessionStorage.setItem('technician_company', localStorage.getItem('clilux_tech_company'));
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
@@ -108,6 +113,8 @@ export default function MenuInicio() {
         sessionStorage.setItem('technician_email', data.email);
         localStorage.setItem('clilux_tech_email', data.email);
         if (data.id) sessionStorage.setItem('technician_id', data.id);
+        if (data.name) { sessionStorage.setItem('technician_name', data.name); localStorage.setItem('clilux_tech_name', data.name); }
+        if (data.company_name) { sessionStorage.setItem('technician_company', data.company_name); localStorage.setItem('clilux_tech_company', data.company_name); }
         navigate(createPageUrl('HomeTecnico'));
       } else {
         setTechLoginError(data?.error || 'Email o contraseña incorrectos');
