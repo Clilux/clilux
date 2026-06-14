@@ -83,6 +83,7 @@ const emptyForm = {
   fecha: new Date().toISOString().split('T')[0],
   tipo_tratamiento: 'mantenimiento_mensual',
   protocolo_id: 'A',
+  ppm_personalizada: '',  // PPM definida por el usuario (opcional, anula la del protocolo)
   nombre_circuito: '',
   estado_conservacion: 'correcto',
   plano_hidraulico: 'no',
@@ -267,7 +268,9 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   checkNewPage(40);
   y = drawSectionTitle(y, '2. Protocolo de desinfección aplicado');
   y = drawRow(y, 'Tipo tratamiento:', TIPO_LABELS[r.tipo_tratamiento] || r.tipo_tratamiento);
-  y = drawRow(y, 'Protocolo:', `${protocolo.label} — ${protocolo.ppm} ppm`);
+  const ppmUsadas = r.ppm_personalizada || r.ppm_deseadas || protocolo.ppm;
+  const labelPpm = r.ppm_personalizada ? `${ppmUsadas} ppm (personalizado por criterio técnico)` : `${protocolo.label} — ${ppmUsadas} ppm`;
+  y = drawRow(y, 'Protocolo / PPM:', labelPpm);
   y = drawRow(y, 'Tiempo recirculación:', `${protocolo.tiempo_min} min (bloqueado normativamente)`);
   y = drawRow(y, 'Fecha:', fechaFmt);
   const horaStr = r.hora_inicio && r.hora_fin ? `${r.hora_inicio} – ${r.hora_fin}` : r.hora_inicio || '—';
@@ -310,16 +313,30 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
     y += lineH;
   }); y += 3;
 
+  // Sección: Trabajos realizados
+  checkNewPage(50);
+  y = drawSectionTitle(y, '6. Trabajos realizados');
+  const trabajosText = 'Comprobar la nivelación de la unidad. Limpiar a fondo las superficies y la balsa del evaporativo eliminando las incrustaciones y adherencias. Aclarar con agua. En caso de realizar esta operación con biocidas, aclarar con abundante agua asegurándose de que no quedan restos de biocida. Limpiar los filtros de admisión de aire. Limpiar los paneles enfriadores y comprobar que no están saturados de cal. Desinfectar los paneles y la balsa con hipoclorito sódico, dejar actuar durante 60 minutos y aclarar con abundante agua, neutralizar y vaciar. Limpiar y secar la bomba de agua. Limpiar tuberías desmontables como la tubería de elevación y distribución, sumergir en agua con un limpiador adecuado, comprobar las superficies eliminando las incrustaciones y adherencias. En caso de realizar esta operación con biocidas, aclarar con abundante agua asegurándose de que no quedan restos de biocida. Limpiar y secar la válvula de drenaje. Comprobar el estado del retén de la válvula de drenaje. Limpiar el ventilador, poleas de transmisión y correas de transmisión (si se detectan roturas o grietas cambiar). Llenar la balsa para la puesta en marcha del equipo, verificación y comprobación de buen funcionamiento de la instalación.';
+  const trabajosLines = doc.splitTextToSize(trabajosText, usable - 4);
+  const trabajosH = Math.max(lineH * 2, trabajosLines.length * 4.5 + 4);
+  checkNewPage(trabajosH + 5);
+  drawCell(margin, y, usable, trabajosH, '', false, [250, 250, 252], 8);
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+  doc.text(trabajosLines, margin + cellPad, y + 4);
+  y += trabajosH + 3;
+
+  // Sección: Observaciones del técnico
   checkNewPage(20);
-  y = drawSectionTitle(y, '6. Observaciones');
-  const obsLines = doc.splitTextToSize(r.observaciones || r.partes_tratamiento || '—', usable - 4);
+  y = drawSectionTitle(y, '7. Observaciones del técnico');
+  const obsText = r.observaciones || r.partes_tratamiento || '—';
+  const obsLines = doc.splitTextToSize(obsText, usable - 4);
   const obsH = Math.max(lineH * 2, obsLines.length * 5 + 4);
   drawCell(margin, y, usable, obsH, '', false, null, 8);
   if (obsLines.length) { doc.setFontSize(8); doc.text(obsLines, margin + cellPad, y + 4); }
   y += obsH + 3;
 
   checkNewPage(40);
-  y = drawSectionTitle(y, '7. Responsable técnico y aplicador');
+  y = drawSectionTitle(y, '8. Responsable técnico y aplicador');
   y = drawRow(y, 'Empresa:', appSettings?.company_name || '—');
   y = drawRow(y, 'Responsable:', r.responsable_tecnico_nombre || '—');
   y = drawRow(y, 'D.N.I. responsable:', r.responsable_tecnico_dni || '—');
@@ -362,13 +379,19 @@ export default function LDTab({ equipment, equipmentId, client }) {
 
   const balsaLitros = equipment?.balsa_litros || null;
   const protocolo = PROTOCOLOS.find(p => p.id === form.protocolo_id) || PROTOCOLOS[0];
-  const mlHipoclorito = balsaLitros ? +(balsaLitros * protocolo.factor_hipoclorito).toFixed(1) : null;
-  const gTiosulfato = balsaLitros ? +(balsaLitros * protocolo.factor_tiosulfato).toFixed(1) : null;
+  // PPM efectivas: personalizadas si el usuario las definió, si no las del protocolo
+  const ppmPersonalizada = form.ppm_personalizada !== '' ? Number(form.ppm_personalizada) : null;
+  const ppmEfectivas = ppmPersonalizada || protocolo.ppm;
+  // ml por ppm por litro (factor basado en hipoclorito al 15%)
+  const mlPerPpmPerLiter = protocolo.factor_hipoclorito / protocolo.ppm;
   // Cálculo ajustado: descuenta el cloro ya existente en la balsa
   const cloroActual = form.cloro_libre_inicial !== '' ? Number(form.cloro_libre_inicial) : 0;
-  const mlPerPpmPerLiter = protocolo.factor_hipoclorito / protocolo.ppm;
-  const ppmFaltantes = Math.max(0, protocolo.ppm - cloroActual);
+  const ppmFaltantes = Math.max(0, ppmEfectivas - cloroActual);
   const mlAjustados = balsaLitros ? +(ppmFaltantes * balsaLitros * mlPerPpmPerLiter).toFixed(1) : null;
+  const mlHipoclorito = balsaLitros ? +(ppmEfectivas * balsaLitros * mlPerPpmPerLiter).toFixed(1) : null;
+  // Factor tiosulfato proporcional a PPM efectivas
+  const factorTiosulfatoEfectivo = protocolo.factor_tiosulfato * (ppmEfectivas / protocolo.ppm);
+  const gTiosulfato = balsaLitros ? +(balsaLitros * factorTiosulfatoEfectivo).toFixed(1) : null;
 
   const { data: settings = [] } = useQuery({
     queryKey: ['app-settings-ld'],
@@ -420,7 +443,8 @@ export default function LDTab({ equipment, equipmentId, client }) {
         client_id: clientId,
         balsa_litros: balsaLitros,
         tecnico_nombre: data.responsable_tecnico_nombre || '',
-        ppm_deseadas: p.ppm,
+        ppm_deseadas: data.ppm_personalizada !== '' ? Number(data.ppm_personalizada) : p.ppm,
+        ppm_personalizada: data.ppm_personalizada !== '' ? Number(data.ppm_personalizada) : null,
         porcentaje_hipoclorito: 15,
         hipoclorito_ml: data.hipoclorito_ml !== '' ? Number(data.hipoclorito_ml) : (balsaLitros ? +(balsaLitros * p.factor_hipoclorito).toFixed(1) : null),
         metabisulfito_g: data.metabisulfito_g !== '' ? Number(data.metabisulfito_g) : (balsaLitros ? +(balsaLitros * p.factor_tiosulfato).toFixed(1) : null),
@@ -456,7 +480,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
     setForm({
       ...emptyForm,
       fecha: r.fecha || '', tipo_tratamiento: r.tipo_tratamiento || 'mantenimiento_mensual',
-      protocolo_id: r.protocolo_id || 'A', nombre_circuito: r.nombre_circuito || '',
+      protocolo_id: r.protocolo_id || 'A', ppm_personalizada: r.ppm_personalizada ?? '', nombre_circuito: r.nombre_circuito || '',
       estado_conservacion: r.estado_conservacion || 'correcto', plano_hidraulico: r.plano_hidraulico || 'no',
       hora_inicio: r.hora_inicio || '', hora_fin: r.hora_fin || '',
       hora_inicio_desinfeccion: r.hora_inicio_desinfeccion || '', hora_fin_desinfeccion: r.hora_fin_desinfeccion || '',
@@ -665,7 +689,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   {PROTOCOLOS.map(p => (
                     <label key={p.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.protocolo_id === p.id ? p.bgClass : 'bg-white border-slate-200 hover:border-slate-300'}`}>
                       <input type="radio" name="protocolo" value={p.id} checked={form.protocolo_id === p.id}
-                        onChange={() => f('protocolo_id', p.id)} className="mt-1 flex-shrink-0" />
+                        onChange={() => { f('protocolo_id', p.id); f('ppm_personalizada', ''); }} className="mt-1 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-slate-800">{p.label}</p>
                         <p className="text-xs text-slate-500">{p.sublabel} · Temporizador: {p.timerLabel}</p>
@@ -682,34 +706,54 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   ))}
                 </div>
 
+                {/* PPM personalizada */}
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                  <p className="text-xs font-semibold text-slate-600 mb-1">PPM personalizadas (opcional)</p>
+                  <p className="text-xs text-slate-400 mb-2">Si el fabricante u otro criterio técnico indica una concentración distinta, introdúcela aquí. Anula la PPM del protocolo para el cálculo.</p>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" step="0.5" min="0" value={form.ppm_personalizada}
+                      onChange={e => f('ppm_personalizada', e.target.value)}
+                      className="h-8 text-sm w-28" placeholder={`${protocolo.ppm} ppm`} />
+                    <span className="text-sm text-slate-500">ppm</span>
+                    {ppmPersonalizada && (
+                      <button className="text-xs text-red-500 underline" onClick={() => f('ppm_personalizada', '')}>✕ Usar protocolo</button>
+                    )}
+                  </div>
+                  {ppmPersonalizada && (
+                    <p className="text-xs text-amber-700 mt-1 font-medium">⚠ Usando {ppmPersonalizada} ppm (personalizado) en lugar de {protocolo.ppm} ppm del protocolo</p>
+                  )}
+                </div>
+
                 {/* Resultado cálculo */}
                 {balsaLitros && (
                   <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300">
+                    <p className="text-xs text-slate-500 mb-2 font-medium">
+                      🧪 Objetivo: <strong>{ppmEfectivas} ppm</strong>{ppmPersonalizada ? ' (personalizado)' : ` — Opción ${protocolo.id}`}
+                      {cloroActual > 0 && ` · Cloro actual en balsa: ${cloroActual} ppm`}
+                    </p>
                     {cloroActual > 0 && ppmFaltantes > 0 ? (
                       <>
-                        <p className="text-xs text-slate-500 mb-1 font-medium">
-                          Añada (ajustado: cloro actual {cloroActual} ppm → objetivo {protocolo.ppm} ppm):
-                        </p>
+                        <p className="text-xs text-slate-500 mb-1">Dosis a incorporar (ajustada descontando cloro existente):</p>
                         <p className="text-3xl font-bold text-emerald-700">{mlAjustados} ml</p>
-                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong> en la balsa</p>
+                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong></p>
                         <p className="text-xs text-slate-400 mt-1">
-                          ({protocolo.ppm} - {cloroActual}) ppm × {balsaLitros} L × {mlPerPpmPerLiter.toFixed(5)} = {mlAjustados} ml
+                          ({ppmEfectivas} - {cloroActual}) ppm × {balsaLitros} L × {mlPerPpmPerLiter.toFixed(5)} ml/ppm/L = {mlAjustados} ml
                         </p>
                         <p className="text-xs text-blue-500 mt-1 border-t border-emerald-200 pt-1">
-                          Si partiera de 0 ppm: {mlHipoclorito} ml totales
+                          Desde 0 ppm serían: {mlHipoclorito} ml totales
                         </p>
                       </>
                     ) : cloroActual > 0 && ppmFaltantes === 0 ? (
                       <>
-                        <p className="text-xs text-emerald-700 font-medium mb-1">✓ El cloro actual ya alcanza el objetivo del protocolo</p>
-                        <p className="text-xs text-slate-500">No es necesario añadir hipoclorito. Cloro actual: {cloroActual} ppm ≥ {protocolo.ppm} ppm</p>
+                        <p className="text-xs text-emerald-700 font-medium mb-1">✓ El cloro actual ya alcanza el objetivo</p>
+                        <p className="text-xs text-slate-500">No es necesario añadir hipoclorito. Cloro actual: {cloroActual} ppm ≥ {ppmEfectivas} ppm</p>
                       </>
                     ) : (
                       <>
-                        <p className="text-xs text-slate-500 mb-1 font-medium">Añada exactamente (partiendo de 0 ppm):</p>
+                        <p className="text-xs text-slate-500 mb-1">Dosis a incorporar (desde 0 ppm):</p>
                         <p className="text-3xl font-bold text-emerald-700">{mlHipoclorito} ml</p>
-                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong> en la balsa</p>
-                        <p className="text-xs text-slate-400 mt-1">{balsaLitros} L × {protocolo.factor_hipoclorito} = {mlHipoclorito} ml</p>
+                        <p className="text-sm text-slate-600">de <strong>Hipoclorito Sódico al 15%</strong></p>
+                        <p className="text-xs text-slate-400 mt-1">{ppmEfectivas} ppm × {balsaLitros} L × {mlPerPpmPerLiter.toFixed(5)} ml/ppm/L = {mlHipoclorito} ml</p>
                       </>
                     )}
                   </div>
@@ -750,6 +794,14 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   )}
                 </div>
 
+                {/* Observaciones del técnico */}
+                <div>
+                  <Label>Observaciones del técnico</Label>
+                  <textarea value={form.observaciones} onChange={e => f('observaciones', e.target.value)}
+                    className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2}
+                    placeholder="Incidencias, anomalías o información adicional relevante..." />
+                </div>
+
                 {/* Control cloro intermedio */}
                 <div>
                   <Label>Cloro libre mínimo medido durante el proceso (ppm)</Label>
@@ -777,33 +829,19 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   Bombas de recirculación <strong>APAGADAS</strong>
                 </CheckItem>
 
-                {/* Instrucción tiosulfato */}
-                {balsaLitros && (
-                  <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
-                    <p className="text-xs text-slate-500 mb-1 font-medium">Añada para neutralizar antes de evacuar:</p>
-                    <p className="text-3xl font-bold text-blue-700">{gTiosulfato} g</p>
-                    <p className="text-sm text-slate-600">de <strong>Tiosulfato Sódico Pentahidratado (sólido)</strong></p>
-                    <p className="text-xs text-slate-400 mt-1">{balsaLitros} L × {protocolo.factor_tiosulfato} = {gTiosulfato} g</p>
-                  </div>
-                )}
-
-                <div>
-                  <Label>Tiosulfato sódico añadido realmente (g)</Label>
-                  <Input type="number" step="0.1" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)}
-                    className="h-8 text-sm w-36" placeholder={gTiosulfato || ''} />
-                </div>
-
-                {/* Cloro actual + objetivo → cálculo automático de tiosulfato */}
+                {/* Cálculo de neutralización basado en PPM reales medidas */}
                 <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200 space-y-3">
-                  <p className="text-xs font-semibold text-blue-800">Cálculo automático de neutralizante</p>
+                  <p className="text-xs font-semibold text-blue-800">📐 Cálculo de tiosulfato a añadir</p>
+                  <p className="text-xs text-slate-500">Introduce el cloro medido actualmente en la balsa y el nivel objetivo para calcular la dosis exacta.</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label>Cloro actual en balsa (ppm) *</Label>
+                      <Label>Cloro actual medido en balsa (ppm) *</Label>
                       <Input type="number" step="0.1" min="0" value={form.cloro_a_neutralizar}
                         onChange={e => f('cloro_a_neutralizar', e.target.value)} className="h-8 text-sm" placeholder="ej: 18" />
+                      <p className="text-xs text-slate-400 mt-0.5">Mide con el medidor de campo ahora</p>
                     </div>
                     <div>
-                      <Label>Cloro objetivo en servicio (ppm) *</Label>
+                      <Label>Cloro objetivo al dejar en servicio (ppm) *</Label>
                       <Input type="number" step="0.01" min="0" max="0.99" value={form.cloro_objetivo}
                         onChange={e => f('cloro_objetivo', e.target.value)}
                         className={`h-8 text-sm ${cloroObjetivoNum !== null && cloroObjetivoNum >= 1 ? 'border-red-400' : ''}`}
@@ -813,35 +851,38 @@ export default function LDTab({ equipment, equipmentId, client }) {
                       )}
                     </div>
                   </div>
-                  {/* Resultado cálculo: g tiosulfato = (cloro_actual - cloro_objetivo) * litros * 7.05 */}
+                  {/* Resultado cálculo: g = (ppm_actual - ppm_objetivo) * litros * 0.00705 */}
                   {(() => {
                     const cActual = form.cloro_a_neutralizar !== '' ? Number(form.cloro_a_neutralizar) : null;
                     const cObj = form.cloro_objetivo !== '' ? Number(form.cloro_objetivo) : null;
                     if (cActual !== null && cObj !== null && balsaLitros && cActual > cObj && cObj >= 0 && cObj < 1) {
-                      // Factor: 7.05 g tiosulfato sódico pentahidratado por ppm·L para neutralizar 1 ppm de cloro libre en 1000L
-                      // => g = (ppm_a_neutralizar) * litros * 0.00705
                       const ppmANeutralizar = cActual - cObj;
                       const gCalculados = +(ppmANeutralizar * balsaLitros * 0.00705).toFixed(1);
                       return (
                         <div className="p-3 rounded-lg bg-white border border-blue-300 text-center">
-                          <p className="text-xs text-slate-500 mb-1">Añade exactamente:</p>
+                          <p className="text-xs text-slate-500 mb-1">Dosis calculada a incorporar:</p>
                           <p className="text-3xl font-bold text-blue-700">{gCalculados} g</p>
                           <p className="text-sm text-slate-600">de <strong>Tiosulfato Sódico Pentahidratado</strong></p>
                           <p className="text-xs text-slate-400 mt-1">
                             ({cActual} - {cObj}) ppm × {balsaLitros} L × 0,00705 = {gCalculados} g
                           </p>
-                          <button className="text-xs text-blue-600 underline mt-2"
-                            onClick={() => f('metabisulfito_g', gCalculados)}>
-                            ← Usar este valor
-                          </button>
                         </div>
                       );
                     }
                     if (cActual !== null && cObj !== null && cActual <= cObj) {
                       return <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded">ℹ El cloro actual ya está por debajo del objetivo. Verifica las medidas.</p>;
                     }
+                    if (!balsaLitros) return <p className="text-xs text-amber-700">⚠ Define el volumen de la balsa en el equipo para activar el cálculo.</p>;
                     return <p className="text-xs text-slate-400">Introduce el cloro actual y el nivel objetivo para calcular automáticamente.</p>;
                   })()}
+                </div>
+
+                {/* Tiosulfato realmente añadido */}
+                <div>
+                  <Label>Tiosulfato sódico añadido realmente (g)</Label>
+                  <Input type="number" step="0.1" value={form.metabisulfito_g} onChange={e => f('metabisulfito_g', e.target.value)}
+                    className="h-8 text-sm w-36" placeholder={gTiosulfato ? `calc: ${gTiosulfato}` : 'g'} />
+                  <p className="text-xs text-slate-400 mt-0.5">Registra la cantidad que has añadido realmente.</p>
                 </div>
 
                 {/* Cloro medido post-neutralización */}
