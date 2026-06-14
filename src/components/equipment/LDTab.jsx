@@ -77,6 +77,20 @@ const PROTOCOLOS = [
     badgeClass: 'bg-red-100 text-red-800',
     timerLabel: '1 hora',
   },
+  {
+    id: 'E',
+    label: 'Opción E — Tratamiento personalizado',
+    sublabel: 'Biocida y dosis definidos por el técnico',
+    ppm: null,
+    factor_hipoclorito: null,
+    factor_tiosulfato: null,
+    tiempo_min: 60,
+    color: 'purple',
+    alerta: null,
+    bgClass: 'bg-purple-50 border-purple-300',
+    badgeClass: 'bg-purple-100 text-purple-800',
+    timerLabel: 'Variable',
+  },
 ];
 
 const BIOCIDAS_OPCIONES = [
@@ -93,10 +107,11 @@ const emptyForm = {
   tipo_tratamiento: 'mantenimiento_mensual',
   protocolo_id: 'A',
   ppm_personalizada: '',
+  protocolo_e_nombre: '',      // nombre libre para Opción E (ej: "Choque según fabricante")
   biocida_select: 'Hipoclorito Sódico Comercial 15%',
-  biocida_nombre_custom: '',   // nombre si selecciona "Otros"
-  biocida_ppm_custom: '',      // ppm del biocida personalizado
-  biocida_motivo: '',          // motivo de uso de biocida distinto
+  biocida_nombre_custom: '',
+  biocida_ppm_custom: '',
+  biocida_motivo: '',
   nombre_circuito: '',
   estado_conservacion: 'correcto',
   plano_hidraulico: 'no',
@@ -332,7 +347,10 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   y = drawSectionTitle(y, '2. Protocolo de desinfección aplicado');
   y = drawRow(y, 'Tipo de actuación:', TIPO_LABELS[r.tipo_tratamiento] || r.tipo_tratamiento);
   const ppmUsadas = r.ppm_personalizada || r.ppm_deseadas || protocolo.ppm;
-  const labelPpm = r.ppm_personalizada ? `${ppmUsadas} ppm (personalizado por criterio técnico)` : `${protocolo.label} — ${ppmUsadas} ppm`;
+  const eNombre = r.protocolo_e_nombre ? ` — ${r.protocolo_e_nombre}` : '';
+  const labelPpm = r.protocolo_id === 'E'
+    ? `Opción E (Personalizado)${eNombre}${ppmUsadas ? ` · ${ppmUsadas} ppm` : ''}`
+    : (r.ppm_personalizada ? `${ppmUsadas} ppm (personalizado por criterio técnico)` : `${protocolo.label} — ${ppmUsadas} ppm`);
   y = drawRow(y, 'Protocolo / PPM:', labelPpm);
   y = drawRow(y, 'Tiempo recirculación:', `${r.tiempo_recirculacion_min || protocolo.tiempo_min} min`);
   y = drawRow(y, 'Fecha intervención:', fechaFmt);
@@ -399,18 +417,7 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
     doc.setTextColor(30, 30, 30); doc.setFont('helvetica', 'normal');
     y += motivoH;
   }
-  // Observaciones del técnico en dosificación
-  if (r.observaciones) {
-    const obsLines2 = doc.splitTextToSize(`Observaciones técnico: ${r.observaciones}`, usable - 6);
-    const obsH2 = Math.max(lineH, obsLines2.length * 4.5 + 4);
-    doc.setFillColor(255, 250, 240); doc.rect(margin, y, usable, obsH2, 'F');
-    doc.setDrawColor(220, 190, 140); doc.rect(margin, y, usable, obsH2, 'S');
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 50, 20);
-    doc.text(obsLines2, margin + cellPad, y + 4.5);
-    doc.setTextColor(30, 30, 30);
-    y += obsH2;
-  }
-  y += 4;
+  y += 6;
 
   // ── 5. CHECKLIST ─────────────────────────────────────────────────────────────
   checkNewPage(60);
@@ -712,6 +719,7 @@ export default function LDTab({ equipment, equipmentId, client }) {
       biocida_select: r.biocida_select || 'Hipoclorito Sódico Comercial 15%',
       biocida_nombre_custom: r.biocida_nombre_custom || '',
       biocida_motivo: r.biocida_motivo || '',
+      protocolo_e_nombre: r.protocolo_e_nombre || '',
     });
     setEditingId(r.id); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
   };
@@ -912,13 +920,53 @@ export default function LDTab({ equipment, equipmentId, client }) {
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-slate-800">{p.label}</p>
                         <p className="text-xs text-slate-500">{p.sublabel} · Temporizador: {p.timerLabel}</p>
-                        {balsaLitros && (
+                        {balsaLitros && p.factor_hipoclorito && (
                           <p className="text-xs font-mono font-bold mt-1 text-slate-700">
                             → {+(balsaLitros * p.factor_hipoclorito).toFixed(1)} ml hipoclorito · {+(balsaLitros * p.factor_tiosulfato).toFixed(1)} g tiosulfato
                           </p>
                         )}
                         {p.alerta && form.protocolo_id === p.id && (
                           <p className="text-xs mt-1 text-amber-700 font-medium">{p.alerta}</p>
+                        )}
+                        {/* Campos internos solo para Opción E */}
+                        {p.id === 'E' && form.protocolo_id === 'E' && (
+                          <div className="mt-3 space-y-3" onClick={e => e.stopPropagation()}>
+                            <div>
+                              <Label>Nombre del tratamiento *</Label>
+                              <Input value={form.protocolo_e_nombre} onChange={e => f('protocolo_e_nombre', e.target.value)}
+                                className="h-8 text-sm" placeholder="Ej: Choque según fabricante, Tratamiento preventivo..." />
+                            </div>
+                            <div>
+                              <Label>Tipo de biocida usado</Label>
+                              <select value={form.biocida_select} onChange={e => {
+                                f('biocida_select', e.target.value);
+                                if (e.target.value !== 'Otros (especificar)') f('producto_principal', e.target.value);
+                              }} className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
+                                {BIOCIDAS_OPCIONES.map(b => <option key={b} value={b}>{b}</option>)}
+                              </select>
+                            </div>
+                            {form.biocida_select === 'Otros (especificar)' && (
+                              <div>
+                                <Label>Nombre del biocida (especificar)</Label>
+                                <Input value={form.biocida_nombre_custom} onChange={e => { f('biocida_nombre_custom', e.target.value); f('producto_principal', e.target.value); }}
+                                  className="h-8 text-sm" placeholder="Ej: Diclorisocianurato sódico" />
+                              </div>
+                            )}
+                            <div>
+                              <Label>Motivo / justificación técnica</Label>
+                              <Input value={form.biocida_motivo} onChange={e => f('biocida_motivo', e.target.value)}
+                                className="h-8 text-sm" placeholder="Ej: Indicación del fabricante del equipo" />
+                            </div>
+                            <div>
+                              <Label>PPM objetivo</Label>
+                              <div className="flex items-center gap-2">
+                                <Input type="number" step="0.5" min="0" value={form.ppm_personalizada}
+                                  onChange={e => f('ppm_personalizada', e.target.value)}
+                                  className="h-8 text-sm w-28" placeholder="ppm" />
+                                <span className="text-sm text-slate-500">ppm</span>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </label>
@@ -938,55 +986,6 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   <Label>Cloro libre mínimo medido durante el proceso (ppm)</Label>
                   <Input type="number" step="0.1" value={form.cloro_durante_desinfeccion} onChange={e => f('cloro_durante_desinfeccion', e.target.value)} className="h-8 text-sm w-36" />
                   <p className="text-xs text-slate-400 mt-0.5">Verifica cada 30 min que el nivel se mantiene estable.</p>
-                </div>
-
-                {/* Biocida y PPM personalizada */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
-                  <p className="text-xs font-semibold text-slate-600">Biocida / PPM personalizados (opcional)</p>
-                  <p className="text-xs text-slate-400">Si usas un biocida distinto al hipoclorito o una concentración diferente a la del protocolo, indícalo aquí.</p>
-
-                  <div>
-                    <Label>Tipo de biocida usado</Label>
-                    <select value={form.biocida_select} onChange={e => {
-                      f('biocida_select', e.target.value);
-                      if (e.target.value !== 'Otros (especificar)') f('producto_principal', e.target.value);
-                    }} className="w-full h-8 text-sm border border-input rounded-md px-2 bg-background">
-                      {BIOCIDAS_OPCIONES.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                  </div>
-
-                  {form.biocida_select === 'Otros (especificar)' && (
-                    <>
-                      <div>
-                        <Label>Nombre del biocida *</Label>
-                        <Input value={form.biocida_nombre_custom} onChange={e => { f('biocida_nombre_custom', e.target.value); f('producto_principal', e.target.value); }}
-                          className="h-8 text-sm" placeholder="Ej: Diclorisocianurato sódico" />
-                      </div>
-                      <div>
-                        <Label>Motivo de uso de biocida alternativo</Label>
-                        <Input value={form.biocida_motivo} onChange={e => f('biocida_motivo', e.target.value)}
-                          className="h-8 text-sm" placeholder="Ej: Indicación del fabricante del equipo" />
-                      </div>
-                    </>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <Label>PPM objetivo (personalizado)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input type="number" step="0.5" min="0" value={form.ppm_personalizada}
-                          onChange={e => f('ppm_personalizada', e.target.value)}
-                          className="h-8 text-sm w-28" placeholder={`${protocolo.ppm} ppm (protocolo)`} />
-                        <span className="text-sm text-slate-500">ppm</span>
-                        {ppmPersonalizada && (
-                          <button className="text-xs text-red-500 underline" onClick={() => f('ppm_personalizada', '')}>✕ Usar protocolo</button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {ppmPersonalizada && (
-                    <p className="text-xs text-amber-700 font-medium">⚠ Usando {ppmPersonalizada} ppm (personalizado) en lugar de {protocolo.ppm} ppm del protocolo</p>
-                  )}
                 </div>
 
                 {/* Resultado cálculo */}
