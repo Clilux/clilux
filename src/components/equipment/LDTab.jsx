@@ -212,35 +212,71 @@ function Temporizador({ minutos, onComplete }) {
   );
 }
 
+const DEFAULT_TRABAJOS = `Comprobar la nivelación de la unidad. Limpiar a fondo las superficies y la balsa del evaporativo eliminando las incrustaciones y adherencias.Limpiar los filtros de admisión de aire, limpiar el ventilador, poleas o correas de transmisión (si se detectan roturas o grietas cambiar),limpiar los paneles enfriadores y comprobar que no están saturados de cal, limpiar y secar la válvula de drenaje.
+Apagar los ventiladores y llenar la balsa de agua añadiendo la cantidad de biocida según actuación. Poner a recircular el agua por el circuito del equipo para que actúe durante el tiempo que indica la normativa.
+Se realizará mediciones para mantener la dosis de biocida durante el proceso. Al finalizar la dosis si fuera necesario será neutralizada.
+Verificación y comprobación de buen funcionamiento de la instalación.`;
+
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 function generatePDFFromTemplate(r, equipment, client, appSettings) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const W = 210; const margin = 14; const usable = W - margin * 2;
-  let y = 12;
-  const lineH = 6; const cellPad = 2;
+  const W = 210; const margin = 12; const usable = W - margin * 2;
+  let y = 10;
+  const lineH = 6.5; const cellPad = 2.5;
 
-  const drawCell = (x, cy, w, h, text, bold = false, fillRGB = null, fontSize = 8, align = 'left') => {
+  // ─ Helpers ─
+  const drawCell = (x, cy, w, h, text, bold = false, fillRGB = null, fontSize = 8, align = 'left', textColorRGB = null) => {
     if (fillRGB) { doc.setFillColor(...fillRGB); doc.rect(x, cy, w, h, 'F'); }
-    doc.setDrawColor(180, 180, 180); doc.rect(x, cy, w, h, 'S');
+    doc.setDrawColor(200, 210, 220); doc.rect(x, cy, w, h, 'S');
+    if (textColorRGB) doc.setTextColor(...textColorRGB); else doc.setTextColor(30, 30, 30);
     doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(fontSize);
     if (align === 'center') {
       doc.text(text || '', x + w / 2, cy + h / 2 + fontSize * 0.18, { align: 'center' });
     } else {
       const lines = doc.splitTextToSize(text || '', w - cellPad * 2);
-      doc.text(lines, x + cellPad, cy + cellPad + fontSize * 0.35);
+      doc.text(lines, x + cellPad, cy + cellPad + fontSize * 0.38);
     }
+    doc.setTextColor(30, 30, 30);
   };
-  const drawRow = (cy, label, value, labelW = 60) => {
-    drawCell(margin, cy, labelW, lineH, label, false, [240, 240, 240]);
-    drawCell(margin + labelW, cy, usable - labelW, lineH, value || '—');
+
+  const drawRow = (cy, label, value, labelW = 58) => {
+    drawCell(margin, cy, labelW, lineH, label, true, [235, 240, 248], 7.5);
+    drawCell(margin + labelW, cy, usable - labelW, lineH, value || '—', false, [252, 252, 252], 8);
     return cy + lineH;
   };
-  const drawSectionTitle = (cy, title) => {
-    doc.setFillColor(25, 55, 90); doc.rect(margin, cy, usable, 7, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(255, 255, 255);
-    doc.text(title.toUpperCase(), margin + cellPad, cy + 4.8);
-    doc.setTextColor(0, 0, 0); return cy + 7;
+
+  const drawSectionTitle = (cy, title, rgb = [15, 52, 96]) => {
+    doc.setFillColor(...rgb); doc.rect(margin, cy, usable, 7.5, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), margin + cellPad, cy + 5.2);
+    doc.setTextColor(30, 30, 30); return cy + 7.5;
   };
+
+  const drawBigValue = (x, cy, w, h, label, value, unit = '', bgRGB = [235, 248, 240], textRGB = [14, 100, 60]) => {
+    doc.setFillColor(...bgRGB); doc.rect(x, cy, w, h, 'F');
+    doc.setDrawColor(180, 200, 180); doc.rect(x, cy, w, h, 'S');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(80, 100, 90);
+    doc.text(label, x + w / 2, cy + 4.5, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(...textRGB);
+    doc.text(`${value}`, x + w / 2, cy + 12, { align: 'center' });
+    if (unit) { doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.text(unit, x + w / 2, cy + 16, { align: 'center' }); }
+    doc.setTextColor(30, 30, 30);
+  };
+
+  const drawCheckRow = (cy, label, checked, w1 = 14, totalW = usable) => {
+    const check = checked ? '✓' : '✗';
+    const bgFill = checked ? [236, 253, 245] : [255, 245, 245];
+    const borderC = checked ? [134, 204, 166] : [252, 165, 165];
+    doc.setFillColor(...bgFill); doc.rect(margin, cy, totalW, lineH, 'F');
+    doc.setDrawColor(...borderC); doc.rect(margin, cy, totalW, lineH, 'S');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    doc.setTextColor(checked ? 22 : 185, checked ? 163 : 28, checked ? 74 : 26);
+    doc.text(check, margin + w1 / 2, cy + lineH / 2 + 1.2, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+    doc.text(label, margin + w1 + 2, cy + lineH / 2 + 1.2);
+    return cy + lineH;
+  };
+
   const checkNewPage = (n = 30) => { if (y + n > 282) { doc.addPage(); y = 12; } };
 
   const eqName = equipment?.reference_name || `${equipment?.brand || ''} ${equipment?.model || ''}`.trim();
@@ -248,121 +284,204 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   const fechaEmision = format(new Date(), 'dd/MM/yyyy');
   const protocolo = PROTOCOLOS.find(p => p.id === r.protocolo_id) || PROTOCOLOS[0];
 
-  // Título
-  doc.setFillColor(25, 55, 90); doc.rect(margin, y, usable, 11, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(255, 255, 255);
-  doc.text('CERTIFICADO DE LIMPIEZA Y DESINFECCIÓN', W / 2, y + 4.5, { align: 'center' });
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
-  doc.text('Equipos de Enfriamiento Evaporativo / Adiabáticos  ·  RD 487/2022 · RD 614/2024', W / 2, y + 8.5, { align: 'center' });
-  doc.setTextColor(0, 0, 0); y += 13;
-  doc.setFontSize(7.5); doc.setTextColor(100, 100, 100);
+  // ── CABECERA ─────────────────────────────────────────────────────────────────
+  doc.setFillColor(10, 42, 80); doc.rect(margin, y, usable, 14, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
+  doc.text('CERTIFICADO DE LIMPIEZA Y DESINFECCIÓN', W / 2, y + 5.5, { align: 'center' });
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(180, 210, 255);
+  doc.text('Equipos de Enfriamiento Evaporativo / Adiabáticos  ·  RD 487/2022 · RD 614/2024', W / 2, y + 10.5, { align: 'center' });
+  doc.setTextColor(30, 30, 30); y += 16;
+
+  // Fecha emisión
+  doc.setFontSize(7); doc.setTextColor(120, 120, 120);
   doc.text(`Fecha de emisión: ${fechaEmision}`, W - margin, y, { align: 'right' });
-  doc.setTextColor(0, 0, 0); y += 5;
+  doc.setTextColor(30, 30, 30); y += 5;
 
-  y = drawSectionTitle(y, '1. Datos del cliente e instalación');
+  // ── 1. IDENTIFICACIÓN ────────────────────────────────────────────────────────
+  y = drawSectionTitle(y, '1. Identificación del cliente e instalación');
   const addr = [client?.address, client?.city, client?.postal_code, client?.province].filter(Boolean).join(', ');
-  y = drawRow(y, 'Cliente:', client?.name || ''); y = drawRow(y, 'Domicilio:', addr);
-  y = drawRow(y, 'N.I.F./C.I.F.:', client?.cif || ''); y = drawRow(y, 'Instalación:', eqName);
-  y = drawRow(y, 'Circuito:', r.nombre_circuito || eqName);
-  y = drawRow(y, 'Volumen balsa (L):', r.balsa_litros ? `${r.balsa_litros} L` : '—'); y += 3;
+  y = drawRow(y, 'Cliente:', client?.name || '');
+  y = drawRow(y, 'Domicilio:', addr);
+  y = drawRow(y, 'N.I.F./C.I.F.:', client?.cif || '');
 
-  checkNewPage(40);
+  // Equipo destacado
+  doc.setFillColor(224, 242, 254); doc.rect(margin, y, usable, lineH + 1, 'F');
+  doc.setDrawColor(125, 190, 235); doc.rect(margin, y, usable, lineH + 1, 'S');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(14, 80, 140);
+  doc.text(`Equipo: ${eqName}`, margin + cellPad, y + (lineH + 1) / 2 + 1.5);
+  doc.setTextColor(30, 30, 30); y += lineH + 1;
+
+  y = drawRow(y, 'Circuito:', r.nombre_circuito || eqName);
+  y = drawRow(y, 'Volumen balsa:', r.balsa_litros ? `${r.balsa_litros} L` : '—');
+  y += 4;
+
+  // ── 2. PROTOCOLO ─────────────────────────────────────────────────────────────
+  checkNewPage(35);
   y = drawSectionTitle(y, '2. Protocolo de desinfección aplicado');
-  y = drawRow(y, 'Tipo tratamiento:', TIPO_LABELS[r.tipo_tratamiento] || r.tipo_tratamiento);
+  y = drawRow(y, 'Tipo de actuación:', TIPO_LABELS[r.tipo_tratamiento] || r.tipo_tratamiento);
   const ppmUsadas = r.ppm_personalizada || r.ppm_deseadas || protocolo.ppm;
   const labelPpm = r.ppm_personalizada ? `${ppmUsadas} ppm (personalizado por criterio técnico)` : `${protocolo.label} — ${ppmUsadas} ppm`;
   y = drawRow(y, 'Protocolo / PPM:', labelPpm);
-  y = drawRow(y, 'Tiempo recirculación:', `${protocolo.tiempo_min} min (bloqueado normativamente)`);
-  y = drawRow(y, 'Fecha:', fechaFmt);
+  y = drawRow(y, 'Tiempo recirculación:', `${r.tiempo_recirculacion_min || protocolo.tiempo_min} min`);
+  y = drawRow(y, 'Fecha intervención:', fechaFmt);
   const horaStr = r.hora_inicio && r.hora_fin ? `${r.hora_inicio} – ${r.hora_fin}` : r.hora_inicio || '—';
-  y = drawRow(y, 'Hora actuación:', horaStr); y += 3;
-
-  checkNewPage(35);
-  y = drawSectionTitle(y, '3. Mediciones iniciales');
-  const c3w = usable / 3;
-  drawCell(margin, y, c3w, lineH, 'PARÁMETRO', true, [220, 225, 235], 7.5, 'center');
-  drawCell(margin + c3w, y, c3w, lineH, 'VALOR', true, [220, 225, 235], 7.5, 'center');
-  drawCell(margin + c3w * 2, y, c3w, lineH, 'RANGO', true, [220, 225, 235], 7.5, 'center');
-  y += lineH;
-  [['pH inicial', r.ph_inicial != null ? `${r.ph_inicial}` : '—', '7,2 – 7,8'],
-   ['Cloro libre (ppm)', r.cloro_libre_inicial != null ? `${r.cloro_libre_inicial}` : '—', '0 – 0,5'],
-   ['Temperatura (°C)', r.temperatura_inicial != null ? `${r.temperatura_inicial}` : '—', '≤ 20°C']
-  ].forEach(([p, v, rng]) => {
-    drawCell(margin, y, c3w, lineH, p, false, null, 7.5);
-    drawCell(margin + c3w, y, c3w, lineH, v, true, null, 7.5, 'center');
-    drawCell(margin + c3w * 2, y, c3w, lineH, rng, false, [248, 252, 248], 7.5, 'center');
-    y += lineH;
-  }); y += 3;
-
-  checkNewPage(30);
-  y = drawSectionTitle(y, '4. Dosificación aplicada');
-  y = drawRow(y, 'Biocida:', `${r.producto_principal || 'Hipoclorito Sódico 15%'}`);
-  y = drawRow(y, 'Cantidad hipoclorito:', r.hipoclorito_ml != null ? `${r.hipoclorito_ml} ml` : '—');
-  y = drawRow(y, 'Neutralizante:', `${r.producto_secundario || 'Tiosulfato Sódico Pentahidratado'}`);
-  y = drawRow(y, 'Cantidad tiosulfato:', r.metabisulfito_g != null ? `${r.metabisulfito_g} g` : '—');
-  y = drawRow(y, 'Cl residual mínimo durante proceso:', r.cloro_durante_desinfeccion != null ? `${r.cloro_durante_desinfeccion} ppm` : '—'); y += 3;
-
-  checkNewPage(30);
-  y = drawSectionTitle(y, '5. Mediciones finales');
-  [['pH final', r.ph_final != null ? `${r.ph_final}` : '—', '7,2 – 7,8'],
-   ['Cloro libre post-neutralización (ppm)', r.cloro_libre_final != null ? `${r.cloro_libre_final}` : '—', '0,0 ppm (obligatorio)'],
-   ['Temperatura final (°C)', r.temperatura_final != null ? `${r.temperatura_final}` : '—', '≤ 20°C']
-  ].forEach(([p, v, rng]) => {
-    drawCell(margin, y, c3w, lineH, p, false, null, 7.5);
-    drawCell(margin + c3w, y, c3w, lineH, v, true, null, 7.5, 'center');
-    drawCell(margin + c3w * 2, y, c3w, lineH, rng, false, [248, 252, 248], 7.5, 'center');
-    y += lineH;
-  }); y += 3;
-
-  // Sección: Trabajos realizados
-  checkNewPage(50);
-  y = drawSectionTitle(y, '6. Trabajos realizados');
-  const trabajosText = 'Comprobar la nivelación de la unidad. Limpiar a fondo las superficies y la balsa del evaporativo eliminando las incrustaciones y adherencias. Aclarar con agua. En caso de realizar esta operación con biocidas, aclarar con abundante agua asegurándose de que no quedan restos de biocida. Limpiar los filtros de admisión de aire. Limpiar los paneles enfriadores y comprobar que no están saturados de cal. Desinfectar los paneles y la balsa con hipoclorito sódico, dejar actuar durante 60 minutos y aclarar con abundante agua, neutralizar y vaciar. Limpiar y secar la bomba de agua. Limpiar tuberías desmontables como la tubería de elevación y distribución, sumergir en agua con un limpiador adecuado, comprobar las superficies eliminando las incrustaciones y adherencias. En caso de realizar esta operación con biocidas, aclarar con abundante agua asegurándose de que no quedan restos de biocida. Limpiar y secar la válvula de drenaje. Comprobar el estado del retén de la válvula de drenaje. Limpiar el ventilador, poleas de transmisión y correas de transmisión (si se detectan roturas o grietas cambiar). Llenar la balsa para la puesta en marcha del equipo, verificación y comprobación de buen funcionamiento de la instalación.';
-  const trabajosLines = doc.splitTextToSize(trabajosText, usable - 4);
-  const trabajosH = Math.max(lineH * 2, trabajosLines.length * 4.5 + 4);
-  checkNewPage(trabajosH + 5);
-  drawCell(margin, y, usable, trabajosH, '', false, [250, 250, 252], 8);
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
-  doc.text(trabajosLines, margin + cellPad, y + 4);
-  y += trabajosH + 3;
-
-  // Sección: Observaciones del técnico
-  checkNewPage(20);
-  y = drawSectionTitle(y, '7. Observaciones del técnico');
-  const obsText = r.observaciones || r.partes_tratamiento || '—';
-  const obsLines = doc.splitTextToSize(obsText, usable - 4);
-  const obsH = Math.max(lineH * 2, obsLines.length * 5 + 4);
-  drawCell(margin, y, usable, obsH, '', false, null, 8);
-  if (obsLines.length) { doc.setFontSize(8); doc.text(obsLines, margin + cellPad, y + 4); }
-  y += obsH + 3;
-
-  checkNewPage(40);
-  y = drawSectionTitle(y, '8. Responsable técnico y aplicador');
-  y = drawRow(y, 'Responsable:', r.responsable_tecnico_nombre || '—');
-  y = drawRow(y, 'Empresa responsable:', r.responsable_tecnico_empresa || appSettings?.company_name || '—');
-  y = drawRow(y, 'D.N.I. responsable:', r.responsable_tecnico_dni || '—');
-  y = drawRow(y, 'Curso Legionella:', r.responsable_tecnico_curso || '—');
-  y = drawRow(y, 'Aplicador:', r.aplicador_nombre || r.responsable_tecnico_nombre || '—');
-  y = drawRow(y, 'Empresa aplicador:', r.aplicador_empresa || appSettings?.company_name || '—');
-  y = drawRow(y, 'D.N.I. aplicador:', r.aplicador_dni || '—'); y += 6;
-
-  // Firmas
-  checkNewPage(40);
-  const firmaW = (usable - 10) / 2;
-  doc.setDrawColor(120, 120, 120);
-  doc.line(margin, y + 18, margin + firmaW, y + 18);
-  doc.setFontSize(7.5); doc.text('Firma responsable técnico', margin, y + 22);
-  doc.rect(margin + firmaW + 10, y, firmaW, 28, 'S');
-  doc.setFontSize(7.5); doc.text('Conformidad del cliente:', margin + firmaW + 12, y + 6);
-  y += 32;
-
-  // Aviso laboratorio
+  const horaDesStr = r.hora_inicio_desinfeccion && r.hora_fin_desinfeccion ? `${r.hora_inicio_desinfeccion} – ${r.hora_fin_desinfeccion}` : '—';
+  y = drawRow(y, 'Hora actuación total:', horaStr);
+  y = drawRow(y, 'Hora desinfección:', horaDesStr);
+  y = drawRow(y, 'Estado conservación:', ESTADO_CONSERVACION[r.estado_conservacion] || r.estado_conservacion || '—');
   y += 4;
-  doc.setFillColor(255, 243, 205); doc.rect(margin, y, usable, 14, 'F');
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
-  doc.text('⚠ AVISO LEGAL: Recogida de muestras por laboratorio acreditado ISO 17025', margin + 2, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Plazo: entre 15 y 30 días tras este tratamiento. Conservar este certificado 5 años.', margin + 2, y + 10);
+
+  // ── 3. MEDICIONES DESTACADAS (big values) ────────────────────────────────────
+  checkNewPage(40);
+  y = drawSectionTitle(y, '3. Mediciones analíticas');
+
+  const bigH = 20; const bigW = usable / 6;
+  const mediciones = [
+    { label: 'pH inicial', value: r.ph_inicial != null ? r.ph_inicial : '—', unit: '7,2–7,8', bg: r.ph_inicial != null && (r.ph_inicial < 7.2 || r.ph_inicial > 7.8) ? [255, 243, 205] : [235, 248, 240], tc: r.ph_inicial != null && (r.ph_inicial < 7.2 || r.ph_inicial > 7.8) ? [180, 100, 0] : [14, 100, 60] },
+    { label: 'Cl inicial (ppm)', value: r.cloro_libre_inicial != null ? r.cloro_libre_inicial : '—', unit: '0–0,5 ppm', bg: [235, 248, 240], tc: [14, 100, 60] },
+    { label: 'Tª inicial (°C)', value: r.temperatura_inicial != null ? r.temperatura_inicial : '—', unit: '≤ 20°C', bg: r.temperatura_inicial > 20 ? [255, 243, 205] : [235, 248, 240], tc: r.temperatura_inicial > 20 ? [180, 100, 0] : [14, 100, 60] },
+    { label: 'pH final', value: r.ph_final != null ? r.ph_final : '—', unit: '7,2–7,8', bg: r.ph_final != null && (r.ph_final < 7.2 || r.ph_final > 7.8) ? [255, 220, 220] : [235, 248, 240], tc: r.ph_final != null && (r.ph_final < 7.2 || r.ph_final > 7.8) ? [160, 30, 30] : [14, 100, 60] },
+    { label: 'Cl proceso (ppm)', value: r.cloro_durante_desinfeccion != null ? r.cloro_durante_desinfeccion : '—', unit: 'mín. proceso', bg: [224, 235, 255], tc: [20, 60, 160] },
+    { label: 'Cl final (ppm)', value: r.cloro_libre_final != null ? r.cloro_libre_final : '—', unit: '< 1 ppm', bg: r.cloro_libre_final != null && r.cloro_libre_final >= 1 ? [255, 220, 220] : [235, 248, 240], tc: r.cloro_libre_final != null && r.cloro_libre_final >= 1 ? [160, 30, 30] : [14, 100, 60] },
+  ];
+  mediciones.forEach((m, i) => {
+    drawBigValue(margin + i * bigW, y, bigW, bigH, m.label, m.value, m.unit, m.bg, m.tc);
+  });
+  y += bigH + 3;
+
+  // Fila temperatura final
+  const bigW2 = usable / 3;
+  const med2 = [
+    { label: 'Tª final (°C)', value: r.temperatura_final != null ? r.temperatura_final : '—', unit: '≤ 20°C', bg: [235, 248, 240], tc: [14, 100, 60] },
+    { label: 'Cl a neutralizar (ppm)', value: r.cloro_a_neutralizar != null ? r.cloro_a_neutralizar : '—', unit: 'antes de neutralizar', bg: [224, 235, 255], tc: [20, 60, 160] },
+    { label: 'Cl objetivo servicio (ppm)', value: r.cloro_objetivo != null ? r.cloro_objetivo : '—', unit: '< 1 ppm', bg: [235, 248, 240], tc: [14, 100, 60] },
+  ];
+  med2.forEach((m, i) => {
+    drawBigValue(margin + i * bigW2, y, bigW2, bigH, m.label, m.value, m.unit, m.bg, m.tc);
+  });
+  y += bigH + 4;
+
+  // ── 4. DOSIFICACIÓN ──────────────────────────────────────────────────────────
+  checkNewPage(28);
+  y = drawSectionTitle(y, '4. Dosificación aplicada', [30, 100, 60]);
+  const dosW = usable / 2;
+  drawCell(margin, y, dosW, lineH, 'PRODUCTO', true, [200, 240, 215], 8, 'center', [20, 80, 40]);
+  drawCell(margin + dosW, y, dosW, lineH, 'CANTIDAD APLICADA', true, [200, 240, 215], 8, 'center', [20, 80, 40]);
+  y += lineH;
+  [
+    [r.producto_principal || 'Hipoclorito Sódico Comercial 15%', r.hipoclorito_ml != null ? `${r.hipoclorito_ml} ml` : '—'],
+    [r.producto_secundario || 'Tiosulfato Sódico Pentahidratado', r.metabisulfito_g != null ? `${r.metabisulfito_g} g` : '—'],
+  ].forEach(([prod, cant]) => {
+    drawCell(margin, y, dosW, lineH, prod, false, [245, 255, 250], 8);
+    drawCell(margin + dosW, y, dosW, lineH, cant, true, [245, 255, 250], 9, 'center', [14, 100, 60]);
+    y += lineH;
+  });
+  y += 4;
+
+  // ── 5. CHECKLIST ─────────────────────────────────────────────────────────────
+  checkNewPage(60);
+  y = drawSectionTitle(y, '5. Verificaciones de seguridad y proceso', [80, 50, 130]);
+
+  const checks = [
+    { label: 'EPIs verificados (Mascarilla FFP3, gafas de protección y guantes)', checked: !!r.check_epi },
+    { label: 'Limpieza mecánica realizada (cepillo suave o manguera)', checked: !!r.check_limpieza_mecanica },
+    { label: 'Vaciado de agua sucia y llenado con agua limpia de red', checked: !!r.check_llenado_limpio },
+    { label: 'Bombas de agua ENCENDIDAS y ventiladores APAGADOS durante tratamiento', checked: !!r.check_bombas_on_ventiladores_off },
+    { label: 'Bombas de recirculación APAGADAS antes de neutralización/vertido', checked: !!r.check_neutralizado_ok },
+  ];
+  checks.forEach(c => { y = drawCheckRow(y, c.label, c.checked); });
+  y += 3;
+
+  // Buenas prácticas
+  const bpChecks = [
+    { label: 'Limpieza física: cepillo suave o manguera (PROHIBIDO pistola a presión sobre el panel)', checked: !!r.bp_cepillo_suave },
+    { label: 'Secado diario: parada de bomba 1h antes que ventiladores programada', checked: !!r.bp_secado_diario },
+    { label: 'Purga de sales: purga semanal automática o manual verificada', checked: !!r.bp_purga_sales },
+  ];
+  doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(100, 80, 160);
+  doc.text('Buenas prácticas del fabricante:', margin, y + 4); y += 5;
+  bpChecks.forEach(c => { y = drawCheckRow(y, c.label, c.checked); });
+  y += 4;
+
+  // ── 6. TRABAJOS REALIZADOS ───────────────────────────────────────────────────
+  checkNewPage(40);
+  y = drawSectionTitle(y, '6. Descripción de trabajos realizados');
+  const trabajosText = r.partes_tratamiento || DEFAULT_TRABAJOS;
+  const trabajosLines = doc.splitTextToSize(trabajosText, usable - 6);
+  const trabajosH = Math.max(lineH * 2, trabajosLines.length * 4.6 + 6);
+  checkNewPage(trabajosH + 5);
+  doc.setFillColor(248, 250, 255); doc.rect(margin, y, usable, trabajosH, 'F');
+  doc.setDrawColor(180, 190, 220); doc.rect(margin, y, usable, trabajosH, 'S');
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(40, 40, 60);
+  doc.text(trabajosLines, margin + cellPad, y + 5);
+  doc.setTextColor(30, 30, 30); y += trabajosH + 3;
+
+  // ── 7. OBSERVACIONES ─────────────────────────────────────────────────────────
+  if (r.observaciones) {
+    checkNewPage(20);
+    y = drawSectionTitle(y, '7. Observaciones del técnico', [160, 90, 30]);
+    const obsLines = doc.splitTextToSize(r.observaciones, usable - 6);
+    const obsH = Math.max(lineH * 2, obsLines.length * 4.8 + 6);
+    doc.setFillColor(255, 250, 240); doc.rect(margin, y, usable, obsH, 'F');
+    doc.setDrawColor(220, 190, 140); doc.rect(margin, y, usable, obsH, 'S');
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 50, 20);
+    doc.text(obsLines, margin + cellPad, y + 5);
+    doc.setTextColor(30, 30, 30); y += obsH + 3;
+  }
+
+  // ── 8. RESPONSABLE Y APLICADOR ───────────────────────────────────────────────
+  checkNewPage(45);
+  y = drawSectionTitle(y, '8. Responsable técnico y aplicador');
+  const colW = usable / 2;
+
+  // Cabecera columnas
+  drawCell(margin, y, colW, lineH, '👤 RESPONSABLE TÉCNICO', true, [215, 225, 245], 8, 'center');
+  drawCell(margin + colW, y, colW, lineH, '🔧 APLICADOR DEL TRATAMIENTO', true, [215, 225, 245], 8, 'center');
+  y += lineH;
+
+  const respRows = [
+    ['Nombre', r.responsable_tecnico_nombre || '—'],
+    ['Empresa', r.responsable_tecnico_empresa || appSettings?.company_name || '—'],
+    ['D.N.I.', r.responsable_tecnico_dni || '—'],
+    ['Curso Legionella', r.responsable_tecnico_curso || '—'],
+  ];
+  const aplRows = [
+    ['Nombre', r.aplicador_nombre || r.responsable_tecnico_nombre || '—'],
+    ['Empresa', r.aplicador_empresa || appSettings?.company_name || '—'],
+    ['D.N.I.', r.aplicador_dni || '—'],
+    ['Curso', r.aplicador_curso || '—'],
+  ];
+  const halfLabel = 28;
+  respRows.forEach((row, i) => {
+    drawCell(margin, y, halfLabel, lineH, row[0], true, [235, 240, 250], 7.5);
+    drawCell(margin + halfLabel, y, colW - halfLabel, lineH, row[1], false, [250, 252, 255], 8);
+    drawCell(margin + colW, y, halfLabel, lineH, aplRows[i][0], true, [235, 240, 250], 7.5);
+    drawCell(margin + colW + halfLabel, y, colW - halfLabel, lineH, aplRows[i][1], false, [250, 252, 255], 8);
+    y += lineH;
+  });
+  y += 6;
+
+  // ── FIRMAS ───────────────────────────────────────────────────────────────────
+  checkNewPage(35);
+  const firmaW = (usable - 8) / 2;
+  doc.setDrawColor(100, 100, 100);
+  doc.setFillColor(250, 250, 250); doc.rect(margin, y, firmaW, 24, 'F'); doc.rect(margin, y, firmaW, 24, 'S');
+  doc.setFillColor(250, 250, 250); doc.rect(margin + firmaW + 8, y, firmaW, 24, 'F'); doc.rect(margin + firmaW + 8, y, firmaW, 24, 'S');
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(80, 80, 80);
+  doc.text('Firma responsable técnico:', margin + 2, y + 4);
+  doc.text('Conformidad del cliente:', margin + firmaW + 10, y + 4);
+  y += 28;
+
+  // ── AVISO LEGAL ──────────────────────────────────────────────────────────────
+  y += 3;
+  checkNewPage(16);
+  doc.setFillColor(255, 243, 205); doc.rect(margin, y, usable, 15, 'F');
+  doc.setDrawColor(220, 180, 80); doc.rect(margin, y, usable, 15, 'S');
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(120, 80, 0);
+  doc.text('⚠ AVISO LEGAL — Recogida de muestras por laboratorio acreditado ISO 17025', margin + 3, y + 5.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(100, 70, 0);
+  doc.text('Plazo: entre 15 y 30 días tras este tratamiento.  Conservar este certificado durante 5 años.', margin + 3, y + 10.5);
+  doc.setTextColor(30, 30, 30);
 
   return doc;
 }
@@ -1018,9 +1137,16 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   </div>
                 </div>
 
+                {/* Trabajos realizados */}
+                <div>
+                  <Label>Descripción de trabajos realizados (editable para el informe)</Label>
+                  <textarea value={form.partes_tratamiento || DEFAULT_TRABAJOS} onChange={e => f('partes_tratamiento', e.target.value)}
+                    className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-y" rows={5} />
+                </div>
+
                 {/* Observaciones */}
                 <div>
-                  <Label>Observaciones / Partes tratadas / Medidas correctoras</Label>
+                  <Label>Observaciones adicionales / Medidas correctoras</Label>
                   <textarea value={form.observaciones} onChange={e => f('observaciones', e.target.value)}
                     className="w-full text-sm border border-input rounded-md px-2 py-1 bg-background resize-none" rows={2}
                     placeholder="Anomalías, incidencias, acciones pendientes..." />
