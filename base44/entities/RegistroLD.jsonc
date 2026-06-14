@@ -163,6 +163,9 @@
     "responsable_tecnico_dni": {
       "type": "string"
     },
+    "responsable_tecnico_empresa": {
+      "type": "string"
+    },
     "responsable_tecnico_curso": {
       "type": "string"
     },
@@ -173,6 +176,9 @@
       "type": "string"
     },
     "aplicador_dni": {
+      "type": "string"
+    },
+    "aplicador_empresa": {
       "type": "string"
     },
     "aplicador_curso": {

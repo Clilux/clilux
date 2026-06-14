@@ -343,8 +343,8 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
   y = drawRow(y, 'D.N.I. responsable:', r.responsable_tecnico_dni || '—');
   y = drawRow(y, 'Curso Legionella:', r.responsable_tecnico_curso || '—');
   y = drawRow(y, 'Aplicador:', r.aplicador_nombre || r.responsable_tecnico_nombre || '—');
-  y = drawRow(y, 'Empresa aplicador:', r.aplicador_empresa || r.responsable_tecnico_empresa || appSettings?.company_name || '—');
-  y = drawRow(y, 'D.N.I. aplicador:', r.aplicador_dni || r.responsable_tecnico_dni || '—'); y += 6;
+  y = drawRow(y, 'Empresa aplicador:', r.aplicador_empresa || appSettings?.company_name || '—');
+  y = drawRow(y, 'D.N.I. aplicador:', r.aplicador_dni || '—'); y += 6;
 
   // Firmas
   checkNewPage(40);
