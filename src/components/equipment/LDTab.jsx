@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   Plus, Droplets, AlertTriangle, CheckCircle2, Clock,
   Trash2, Edit, ChevronDown, ChevronUp, FileText, Loader2,
-  ChevronRight, ChevronLeft, Info, Timer, AlertCircle
+  ChevronRight, ChevronLeft, Info, Timer, AlertCircle, Copy
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -121,8 +121,9 @@ const emptyForm = {
   responsable_tecnico_cualificacion: '',
   aplicador_nombre: '',
   aplicador_dni: '',
+  aplicador_empresa: '',
   aplicador_curso: '',
-  aplicador_cualificacion: '',
+  responsable_tecnico_empresa: '',
   cloro_a_neutralizar: '',
   cloro_objetivo: '',
 };
@@ -337,11 +338,12 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
 
   checkNewPage(40);
   y = drawSectionTitle(y, '8. Responsable técnico y aplicador');
-  y = drawRow(y, 'Empresa:', appSettings?.company_name || '—');
   y = drawRow(y, 'Responsable:', r.responsable_tecnico_nombre || '—');
+  y = drawRow(y, 'Empresa responsable:', r.responsable_tecnico_empresa || appSettings?.company_name || '—');
   y = drawRow(y, 'D.N.I. responsable:', r.responsable_tecnico_dni || '—');
   y = drawRow(y, 'Curso Legionella:', r.responsable_tecnico_curso || '—');
   y = drawRow(y, 'Aplicador:', r.aplicador_nombre || r.responsable_tecnico_nombre || '—');
+  y = drawRow(y, 'Empresa aplicador:', r.aplicador_empresa || r.responsable_tecnico_empresa || appSettings?.company_name || '—');
   y = drawRow(y, 'D.N.I. aplicador:', r.aplicador_dni || r.responsable_tecnico_dni || '—'); y += 6;
 
   // Firmas
@@ -476,6 +478,24 @@ export default function LDTab({ equipment, equipmentId, client }) {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ld-registros', equipmentId] }); toast.success('Registro eliminado'); },
   });
 
+  const handleDuplicate = (r) => {
+    const { id, created_date, updated_date, created_by_id, proxima_revision_fecha, documento_url, ...rest } = r;
+    setForm({
+      ...emptyForm,
+      ...rest,
+      fecha: new Date().toISOString().split('T')[0],
+      ppm_personalizada: r.ppm_personalizada ?? '',
+      ph_inicial: r.ph_inicial ?? '', cloro_libre_inicial: r.cloro_libre_inicial ?? '',
+      temperatura_inicial: r.temperatura_inicial ?? '', hipoclorito_ml: r.hipoclorito_ml ?? '',
+      metabisulfito_g: r.metabisulfito_g ?? '', cloro_durante_desinfeccion: r.cloro_durante_desinfeccion ?? '',
+      ph_final: r.ph_final ?? '', cloro_libre_final: r.cloro_libre_final ?? '',
+      temperatura_final: r.temperatura_final ?? '', cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
+      cloro_objetivo: r.cloro_objetivo ?? '',
+    });
+    setEditingId(null); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
+    toast.success('Registro duplicado — edita los datos y guarda');
+  };
+
   const handleEdit = (r) => {
     setForm({
       ...emptyForm,
@@ -498,9 +518,9 @@ export default function LDTab({ equipment, equipmentId, client }) {
       bp_purga_sales: r.bp_purga_sales || false,
       partes_tratamiento: r.partes_tratamiento || '', observaciones: r.observaciones || '',
       responsable_tecnico_nombre: r.responsable_tecnico_nombre || '', responsable_tecnico_dni: r.responsable_tecnico_dni || '',
-      responsable_tecnico_curso: r.responsable_tecnico_curso || '', responsable_tecnico_cualificacion: r.responsable_tecnico_cualificacion || '',
+      responsable_tecnico_empresa: r.responsable_tecnico_empresa || '', responsable_tecnico_curso: r.responsable_tecnico_curso || '',
       aplicador_nombre: r.aplicador_nombre || '', aplicador_dni: r.aplicador_dni || '',
-      aplicador_curso: r.aplicador_curso || '', aplicador_cualificacion: r.aplicador_cualificacion || '',
+      aplicador_empresa: r.aplicador_empresa || '', aplicador_curso: r.aplicador_curso || '',
       cloro_a_neutralizar: r.cloro_a_neutralizar ?? '',
       cloro_objetivo: r.cloro_objetivo ?? '',
     });
@@ -973,8 +993,8 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Nombre completo *</Label><Input value={form.responsable_tecnico_nombre} onChange={e => f('responsable_tecnico_nombre', e.target.value)} className="h-8 text-sm" /></div>
                     <div><Label>D.N.I.</Label><Input value={form.responsable_tecnico_dni} onChange={e => f('responsable_tecnico_dni', e.target.value)} className="h-8 text-sm" /></div>
+                    <div><Label>Empresa</Label><Input value={form.responsable_tecnico_empresa} onChange={e => f('responsable_tecnico_empresa', e.target.value)} className="h-8 text-sm" /></div>
                     <div><Label>Curso Legionella (lugar/fecha)</Label><Input value={form.responsable_tecnico_curso} onChange={e => f('responsable_tecnico_curso', e.target.value)} className="h-8 text-sm" /></div>
-                    <div><Label>Cualificación</Label><Input value={form.responsable_tecnico_cualificacion} onChange={e => f('responsable_tecnico_cualificacion', e.target.value)} className="h-8 text-sm" /></div>
                   </div>
                 </div>
 
@@ -983,8 +1003,8 @@ export default function LDTab({ equipment, equipmentId, client }) {
                   <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Nombre</Label><Input value={form.aplicador_nombre} onChange={e => f('aplicador_nombre', e.target.value)} className="h-8 text-sm" placeholder="O 'Ídem responsable'" /></div>
                     <div><Label>D.N.I.</Label><Input value={form.aplicador_dni} onChange={e => f('aplicador_dni', e.target.value)} className="h-8 text-sm" /></div>
+                    <div><Label>Empresa</Label><Input value={form.aplicador_empresa} onChange={e => f('aplicador_empresa', e.target.value)} className="h-8 text-sm" /></div>
                     <div><Label>Curso</Label><Input value={form.aplicador_curso} onChange={e => f('aplicador_curso', e.target.value)} className="h-8 text-sm" /></div>
-                    <div><Label>Cualificación</Label><Input value={form.aplicador_cualificacion} onChange={e => f('aplicador_cualificacion', e.target.value)} className="h-8 text-sm" /></div>
                   </div>
                 </div>
 
@@ -1068,6 +1088,9 @@ export default function LDTab({ equipment, equipmentId, client }) {
                         <Button size="icon" variant="ghost" className="h-7 w-7"
                           onClick={e => { e.stopPropagation(); generatePDF(r); }} disabled={generatingPdf === r.id}>
                           {generatingPdf === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-blue-500" />}
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicar registro" onClick={e => { e.stopPropagation(); handleDuplicate(r); }}>
+                          <Copy className="h-3.5 w-3.5 text-cyan-500" />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); handleEdit(r); }}>
                           <Edit className="h-3.5 w-3.5 text-slate-400" />

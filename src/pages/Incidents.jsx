@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,6 @@ import IncidentCard from '../components/incidents/IncidentCard';
 import { toast } from 'sonner';
 
 export default function Incidents() {
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
@@ -32,7 +31,20 @@ export default function Incidents() {
       }
       return base44.entities.Incident.list('-created_date');
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
+
+  // Sincronización en tiempo real
+  useEffect(() => {
+    if (isSessionTech) return; // proxy mode no soporta subscribe
+    const unsub = base44.entities.Incident.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    });
+    return unsub;
+  }, [isSessionTech]);
+
+  const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Incident.update(id, { status: 'deleted_by_technician' }),

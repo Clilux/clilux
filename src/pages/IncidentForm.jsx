@@ -106,17 +106,26 @@ export default function IncidentForm() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      const { equipment_status, ...incidentData } = data;
+      let result;
       if (isEditing) {
-        return base44.entities.Incident.update(incidentId, data);
+        result = await base44.entities.Incident.update(incidentId, incidentData);
+      } else {
+        result = await base44.entities.Incident.create({
+          ...incidentData,
+          reported_by: user?.email,
+          reported_by_name: user?.full_name || '',
+        });
       }
-      return base44.entities.Incident.create({
-        ...data,
-        reported_by: user?.email,
-        reported_by_name: user?.full_name || '',
-      });
+      // Actualizar estado del equipo si se seleccionó uno
+      if (equipment_status && incidentData.equipment_id) {
+        await base44.entities.Equipment.update(incidentData.equipment_id, { status: equipment_status });
+      }
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
       toast.success(isEditing ? 'Incidencia actualizada' : 'Incidencia creada');
       navigate(createPageUrl('Incidents'));
     },
@@ -224,6 +233,23 @@ export default function IncidentForm() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {formData.equipment_id && (
+                    <div>
+                      <Label>Estado de la máquina</Label>
+                      <Select value={formData.equipment_status || ''} onValueChange={(v) => handleChange('equipment_status', v)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sin cambio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={null}>Sin cambio</SelectItem>
+                          <SelectItem value="operational">Operativo</SelectItem>
+                          <SelectItem value="maintenance_needed">Requiere mantenimiento</SelectItem>
+                          <SelectItem value="out_of_service">Fuera de servicio</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-400 mt-1">Actualiza el estado del equipo al guardar esta incidencia.</p>
+                    </div>
+                  )}
                   <div>
                     <Label>Asignar Técnico</Label>
                     <Select value={formData.assigned_technician_id} onValueChange={(v) => handleChange('assigned_technician_id', v)}>
