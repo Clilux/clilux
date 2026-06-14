@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2, Tag, MessageSquare, Clock } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2, Tag, MessageSquare, Clock, ExternalLink } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import IncidentReport from '../components/reports/IncidentReport';
@@ -349,13 +349,17 @@ export default function IncidentDetail() {
               </div>
             )}
             {finalEquipment && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
-                <Thermometer className="h-5 w-5 text-slate-400" />
-                <div>
-                  <p className="text-xs text-slate-500">Equipo</p>
-                  <p className="text-sm text-slate-700">{finalEquipment.brand} {finalEquipment.model}</p>
+              <Link to={createPageUrl(`EquipmentDetail?id=${incident.equipment_id}`)} className="block">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-teal-50 border border-teal-100 hover:bg-teal-100 transition-colors cursor-pointer">
+                  <Thermometer className="h-5 w-5 text-teal-500" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-teal-600">Equipo afectado</p>
+                    <p className="text-sm text-teal-800 font-medium">{finalEquipment.reference_name || `${finalEquipment.brand} ${finalEquipment.model}`}</p>
+                    {finalEquipment.location && <p className="text-xs text-teal-600 truncate">{finalEquipment.location}</p>}
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-teal-400 flex-shrink-0 mt-0.5" />
                 </div>
-              </div>
+              </Link>
             )}
           </div>
 

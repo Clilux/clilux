@@ -268,6 +268,15 @@ Deno.serve(async (req) => {
       return Response.json({ data: { incident: inc, client: clientList[0] || null, building: buildingList[0] || null, equipment: equipmentList[0] || null } });
     }
 
+    // ── Incidencias por equipo ───────────────────────────────────
+    if (entity === 'incidents_by_equipment') {
+      if (!permisos.ver_incidencias) return deny('ver_incidencias');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Incident.filter({ equipment_id }, '-created_date');
+      return Response.json({ data });
+    }
+
     // ── Registros L+D: leer por equipo ──────────────────────────
     if (entity === 'ld_registros') {
       if (!permisos.ver_equipos) return deny('ver_equipos');

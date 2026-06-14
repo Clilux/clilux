@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Search, Plus, Thermometer, MapPin,
-  Building2, LayoutGrid, List, LayoutList, Copy, Loader2 } from 'lucide-react';
+  Building2, LayoutGrid, List, LayoutList, Copy, Loader2, CalendarCheck, CalendarX } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
@@ -95,10 +95,29 @@ export default function Equipment() {
     enabled: !isSessionTech,
   });
 
+  const { data: revisionsDirect = [] } = useQuery({
+    queryKey: ['revisions', 'direct'],
+    queryFn: () => base44.entities.ScheduledRevision.list(),
+    enabled: !isSessionTech,
+  });
+
   const equipment = isSessionTech ? (proxyData?.equipment || []) : equipmentDirect;
   const buildings = isSessionTech ? (proxyData?.buildings || []) : buildingsDirect;
   const clients   = isSessionTech ? (proxyData?.clients   || []) : clientsDirect;
+  const revisions = isSessionTech ? (proxyData?.revisions || []) : revisionsDirect;
   const isLoading = isSessionTech ? !proxyData : loadingDirect;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Para cada equipo: buscar su próxima revisión pendiente más cercana
+  const getRevisionStatus = (eqId) => {
+    const eqRevisions = revisions.filter(r => r.equipment_id === eqId && r.status === 'pending');
+    if (eqRevisions.length === 0) return null;
+    const next = eqRevisions.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))[0];
+    const date = new Date(next.scheduled_date);
+    return { date, overdue: date < today };
+  };
 
   const filteredEquipment = equipment.filter((eq) => {
     if (!searchTerm) return true;
@@ -255,6 +274,7 @@ export default function Equipment() {
               {filteredEquipment.map((eq) => {
                 const building = buildings.find((b) => b.id === eq.building_id);
                 const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                const revStatus = getRevisionStatus(eq.id);
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
@@ -274,6 +294,12 @@ export default function Equipment() {
                           {building && <div className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-3.5 w-3.5 text-slate-400" />{building.name}</div>}
                           {eq.location && <div className="flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{eq.location}</div>}
                           {eq.serial_number && <div className="text-xs text-slate-400">S/N: {eq.serial_number}</div>}
+                          {revStatus && (
+                            <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full w-fit ${revStatus.overdue ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {revStatus.overdue ? <CalendarX className="h-3 w-3" /> : <CalendarCheck className="h-3 w-3" />}
+                              {revStatus.overdue ? 'Revisión caducada' : `Revisión: ${revStatus.date.toLocaleDateString('es-ES')}`}
+                            </div>
+                          )}
                         </div>
                       </Card>
                     </Link>
@@ -288,6 +314,7 @@ export default function Equipment() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filteredEquipment.map((eq) => {
                 const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                const revStatus = getRevisionStatus(eq.id);
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
@@ -300,6 +327,12 @@ export default function Equipment() {
                         <p className="text-xs text-slate-500">{eq.brand} {eq.model}</p>
                         <p className="text-xs text-slate-400">{eq.equipment_type}</p>
                         {eq.location && <p className="text-xs text-slate-500 truncate">{eq.location}</p>}
+                        {revStatus && (
+                          <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full w-fit mt-0.5 ${revStatus.overdue ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {revStatus.overdue ? <CalendarX className="h-2.5 w-2.5" /> : <CalendarCheck className="h-2.5 w-2.5" />}
+                            {revStatus.overdue ? 'Caducada' : revStatus.date.toLocaleDateString('es-ES')}
+                          </div>
+                        )}
                       </Card>
                     </Link>
                   </div>
@@ -315,6 +348,7 @@ export default function Equipment() {
                 const building = buildings.find((b) => b.id === eq.building_id);
                 const client = clients.find((c) => c.id === eq.client_id);
                 const statusInfo = statusLabels[eq.status] || statusLabels.operational;
+                const revStatus = getRevisionStatus(eq.id);
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
@@ -336,7 +370,15 @@ export default function Equipment() {
                             {eq.serial_number && <span>S/N: {eq.serial_number}</span>}
                           </div>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {revStatus && (
+                            <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap ${revStatus.overdue ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {revStatus.overdue ? <CalendarX className="h-3 w-3" /> : <CalendarCheck className="h-3 w-3" />}
+                              {revStatus.overdue ? 'Revisión caducada' : revStatus.date.toLocaleDateString('es-ES')}
+                            </span>
+                          )}
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
+                        </div>
                       </Card>
                     </Link>
                   </div>

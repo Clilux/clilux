@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,24 @@ const statusInfo = {
 };
 
 export default function EquipmentIncidents({ equipmentId, clientId, buildingId, isClientView = false }) {
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+  const queryClient = useQueryClient();
+
   const { data: incidents = [], isLoading } = useQuery({
-    queryKey: ['incidents-equipment', equipmentId],
-    queryFn: () => base44.entities.Incident.filter({ equipment_id: equipmentId }, '-created_date'),
+    queryKey: ['incidents-equipment', equipmentId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'incidents_by_equipment', equipment_id: equipmentId,
+        });
+        return res.data?.data || [];
+      }
+      return base44.entities.Incident.filter({ equipment_id: equipmentId }, '-created_date');
+    },
     enabled: !!equipmentId,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const visibleIncidents = isClientView
