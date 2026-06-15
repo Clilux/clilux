@@ -82,6 +82,13 @@ export default function EquipmentDetail() {
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user-detail'],
+    queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech,
+  });
+  const isAdminUser = !isSessionTech && (currentUser?.role === 'admin');
+
   const deleteMutation = useMutation({
     mutationFn: () => base44.entities.Equipment.delete(equipmentId),
     onSuccess: () => {
@@ -674,7 +681,7 @@ export default function EquipmentDetail() {
                 <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
                   <Droplet className="h-4 w-4 text-cyan-600" />Limpieza y Desinfección (L+D) — Legionella
                 </h3>
-                <LDTab equipment={finalEquipment} equipmentId={equipmentId} client={finalClient} />
+                <LDTab equipment={finalEquipment} equipmentId={equipmentId} client={finalClient} isAdmin={isAdminUser} />
               </Card>
             </TabsContent>
           )}

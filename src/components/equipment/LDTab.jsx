@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   Plus, Droplets, AlertTriangle, CheckCircle2, Clock,
   Trash2, Edit, ChevronDown, ChevronUp, FileText, Loader2,
-  ChevronRight, ChevronLeft, Info, Timer, AlertCircle, Copy
+  ChevronRight, ChevronLeft, Info, Timer, AlertCircle, Copy, Building2
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -532,7 +532,7 @@ function generatePDFFromTemplate(r, equipment, client, appSettings) {
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function LDTab({ equipment, equipmentId, client }) {
+export default function LDTab({ equipment, equipmentId, client, isAdmin = false }) {
   const queryClient = useQueryClient();
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
@@ -544,6 +544,10 @@ export default function LDTab({ equipment, equipmentId, client }) {
   const [step, setStep] = useState(0); // 0=Preparación 1=Dosificación+Timer 2=Neutralización 3=Cierre
   const [timerCompleto, setTimerCompleto] = useState(false);
   const [timerVisible, setTimerVisible] = useState(false);
+  const [duplicatingToBuilding, setDuplicatingToBuilding] = useState(null); // registroLD que se va a duplicar
+  const [buildingEquipments, setBuildingEquipments] = useState([]); // equipos del mismo modelo en el edificio
+  const [loadingBuildingEq, setLoadingBuildingEq] = useState(false);
+  const [duplicatingIds, setDuplicatingIds] = useState(new Set());
 
   const balsaLitros = equipment?.balsa_litros || null;
   const protocolo = PROTOCOLOS.find(p => p.id === form.protocolo_id) || PROTOCOLOS[0];
@@ -687,6 +691,49 @@ export default function LDTab({ equipment, equipmentId, client }) {
     });
     setEditingId(null); setStep(0); setTimerCompleto(false); setTimerVisible(false); setShowForm(true);
     toast.success('Registro duplicado — edita los datos y guarda');
+  };
+
+  const handleOpenDuplicateToBuilding = async (r) => {
+    setLoadingBuildingEq(true);
+    setDuplicatingToBuilding(r);
+    try {
+      // Buscar equipos del mismo building_id y equipment_type/model (mismo modelo)
+      const allEq = await base44.entities.Equipment.filter({ building_id: equipment.building_id });
+      const sameModel = allEq.filter(eq =>
+        eq.id !== equipmentId &&
+        eq.equipment_type === equipment.equipment_type &&
+        eq.brand === equipment.brand &&
+        eq.model === equipment.model
+      );
+      setBuildingEquipments(sameModel);
+    } catch {
+      toast.error('Error al buscar equipos del edificio');
+      setDuplicatingToBuilding(null);
+    }
+    setLoadingBuildingEq(false);
+  };
+
+  const handleDuplicateToEquipment = async (targetEquipmentId, targetEquipment) => {
+    if (duplicatingIds.has(targetEquipmentId)) return;
+    setDuplicatingIds(prev => new Set([...prev, targetEquipmentId]));
+    try {
+      const { id, created_date, updated_date, created_by_id, proxima_revision_fecha, documento_url, ...rest } = duplicatingToBuilding;
+      const p = PROTOCOLOS.find(x => x.id === rest.protocolo_id) || PROTOCOLOS[0];
+      const proxima = rest.tipo_tratamiento === 'mantenimiento_mensual'
+        ? addDays(new Date(rest.fecha), 30).toISOString().split('T')[0] : null;
+      const payload = {
+        ...rest,
+        equipment_id: targetEquipmentId,
+        client_id: equipment.client_id,
+        balsa_litros: targetEquipment.balsa_litros || rest.balsa_litros,
+        proxima_revision_fecha: proxima,
+      };
+      await base44.entities.RegistroLD.create(payload);
+      toast.success(`L+D duplicado en "${targetEquipment.reference_name || targetEquipment.model}"`);
+    } catch {
+      toast.error('Error al duplicar');
+      setDuplicatingIds(prev => { const n = new Set(prev); n.delete(targetEquipmentId); return n; });
+    }
   };
 
   const handleEdit = (r) => {
@@ -1328,6 +1375,11 @@ export default function LDTab({ equipment, equipmentId, client }) {
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicar registro" onClick={e => { e.stopPropagation(); handleDuplicate(r); }}>
                           <Copy className="h-3.5 w-3.5 text-cyan-500" />
                         </Button>
+                        {isAdmin && equipment?.building_id && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Duplicar en otros equipos del edificio" onClick={e => { e.stopPropagation(); handleOpenDuplicateToBuilding(r); }}>
+                            <Building2 className="h-3.5 w-3.5 text-purple-500" />
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); handleEdit(r); }}>
                           <Edit className="h-3.5 w-3.5 text-slate-400" />
                         </Button>
@@ -1357,6 +1409,66 @@ export default function LDTab({ equipment, equipmentId, client }) {
             </div>
           )}
       </div>
+
+      {/* ── MODAL: Duplicar en edificio ── */}
+      {duplicatingToBuilding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <Building2 className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-800">Duplicar L+D en el edificio</h3>
+                <p className="text-xs text-slate-500">
+                  Registro del {format(new Date(duplicatingToBuilding.fecha), 'dd/MM/yyyy')} · {TIPO_LABELS[duplicatingToBuilding.tipo_tratamiento]}
+                </p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 text-xs text-purple-800">
+              <strong>Equipos del mismo modelo</strong> ({equipment?.brand} {equipment?.model}) en este edificio:
+            </div>
+            {loadingBuildingEq ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+                <span className="ml-2 text-sm text-slate-500">Buscando equipos...</span>
+              </div>
+            ) : buildingEquipments.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-sm">
+                <Building2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                No hay otros equipos del mismo modelo ({equipment?.brand} {equipment?.model}) en este edificio.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {buildingEquipments.map(eq => {
+                  const done = duplicatingIds.has(eq.id);
+                  return (
+                    <div key={eq.id} className={`flex items-center justify-between p-3 rounded-lg border ${done ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{eq.reference_name || `${eq.brand} ${eq.model}`}</p>
+                        <p className="text-xs text-slate-400">{eq.location || 'Sin ubicación'}{eq.balsa_litros ? ` · ${eq.balsa_litros}L balsa` : ''}</p>
+                      </div>
+                      {done ? (
+                        <span className="text-xs text-emerald-700 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Duplicado</span>
+                      ) : (
+                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs h-7"
+                          onClick={() => handleDuplicateToEquipment(eq.id, eq)}>
+                          <Copy className="h-3 w-3 mr-1" />Duplicar
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex justify-end pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => { setDuplicatingToBuilding(null); setBuildingEquipments([]); setDuplicatingIds(new Set()); }}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
