@@ -18,6 +18,7 @@ import { es } from 'date-fns/locale';
 import { playFuturisticSound } from '@/lib/futuristicSound';
 import FichajeRapido from '@/components/horario/FichajeRapido';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
+import FGasAlertas from '@/components/dashboard/FGasAlertas';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -397,6 +398,11 @@ export default function HomeTecnico() {
                   </div>
                 )}
               </div>
+
+              {/* Alertas F-Gas / RSIF — solo admins */}
+              {isAdmin && !isSessionTech && (
+                <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
+              )}
 
               {/* Incidencias pendientes */}
               {pendingIncidents.length > 0 && (

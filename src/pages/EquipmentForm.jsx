@@ -384,6 +384,12 @@ export default function EquipmentForm() {
 
   const equipmentFields = formData.equipment_type ? camposIDAE[formData.equipment_type] : null;
 
+  // Cámara frigorífica: cálculo automático tCO2eq
+  const camaraCargaKg = formData.technical_data?.carga_refrigerante || 0;
+  const GWP_CAMARA = { 'R290': 0, 'R744': 1, 'R717': 0, 'R404A': 3922, 'R407C': 1774, 'R448A': 1387, 'R449A': 1397, 'R452A': 2140, 'R134a': 1430, 'R410A': 2088, 'R507A': 3985 };
+  const camaraGwp = GWP_CAMARA[formData.technical_data?.tipo_refrigerante] || 0;
+  const camaraTco2eq = camaraGwp && camaraCargaKg ? +((Number(camaraCargaKg) * camaraGwp) / 1000).toFixed(3) : null;
+
   const createClientMutation = useMutation({
     mutationFn: (data) => base44.entities.Client.create(data),
     onSuccess: (data) => {
@@ -892,6 +898,7 @@ export default function EquipmentForm() {
                     <SelectItem value="rooftop">Rooftop</SelectItem>
                     <SelectItem value="adiabatico">Enfriamiento Adiabático / Evaporativo</SelectItem>
                     <SelectItem value="produccion_acs">Producción ACS</SelectItem>
+                    <SelectItem value="camara_frigorifica">Cámara Frigorífica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -952,6 +959,108 @@ export default function EquipmentForm() {
                   placeholder="Notas adicionales del equipo..."
                 />
               </div>
+
+              {/* ── Campos específicos Cámara Frigorífica ── */}
+              {formData.equipment_type === 'camara_frigorifica' && (
+                <div className="mt-6 p-4 rounded-xl border-2 border-blue-300 bg-blue-50 space-y-4">
+                  <p className="text-sm font-bold text-blue-800 flex items-center gap-2">❄️ Datos específicos — Cámara Frigorífica</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-700">Marca *</Label>
+                      <Input value={formData.technical_data.marca || ''} onChange={e => handleTechnicalDataChange('marca', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Modelo *</Label>
+                      <Input value={formData.technical_data.modelo || ''} onChange={e => handleTechnicalDataChange('modelo', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Nº de serie</Label>
+                      <Input value={formData.technical_data.numero_serie || ''} onChange={e => handleTechnicalDataChange('numero_serie', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Ubicación</Label>
+                      <Input value={formData.technical_data.ubicacion || ''} onChange={e => handleTechnicalDataChange('ubicacion', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Tipo de refrigerante</Label>
+                      <Input value={formData.technical_data.tipo_refrigerante || ''} onChange={e => handleTechnicalDataChange('tipo_refrigerante', e.target.value)} className="bg-white" list="camara-ref-list" placeholder="R290, R744, R404A..." />
+                      <datalist id="camara-ref-list">
+                        {Object.keys(GWP_CAMARA).map(r => <option key={r} value={r} />)}
+                      </datalist>
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Clasificación de Seguridad</Label>
+                      <Select value={formData.technical_data.clasificacion_seguridad || ''} onValueChange={v => handleTechnicalDataChange('clasificacion_seguridad', v)}>
+                        <SelectTrigger className="bg-white"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A1">A1 — Alta seguridad (no inflamable, baja toxicidad)</SelectItem>
+                          <SelectItem value="A2L">A2L — Baja inflamabilidad (R32, R1234yf…)</SelectItem>
+                          <SelectItem value="A2">A2 — Inflamable</SelectItem>
+                          <SelectItem value="A3">A3 — Altamente inflamable (R290, R600a…)</SelectItem>
+                          <SelectItem value="B1">B1 — Baja toxicidad, no inflamable</SelectItem>
+                          <SelectItem value="B2L">B2L — Baja toxicidad, baja inflamabilidad</SelectItem>
+                          <SelectItem value="B2">B2 — Baja toxicidad, inflamable</SelectItem>
+                          <SelectItem value="B3">B3 — Baja toxicidad, altamente inflamable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Carga de refrigerante (kg)</Label>
+                      <Input type="number" value={formData.technical_data.carga_refrigerante || ''} onChange={e => handleTechnicalDataChange('carga_refrigerante', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">tCO₂eq (calculado automáticamente)</Label>
+                      <div className={`h-9 px-3 flex items-center rounded-md border text-sm font-semibold ${camaraTco2eq !== null && camaraTco2eq >= 5 ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                        {camaraTco2eq !== null ? `${camaraTco2eq} tCO₂eq` : 'Introduce carga y refrigerante'}
+                      </div>
+                      {camaraTco2eq !== null && (
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {camaraCargaKg} kg × GWP {camaraGwp} / 1000 = {camaraTco2eq} tCO₂eq
+                          {camaraTco2eq >= 500 ? ' · Control fugas cada 3 meses' : camaraTco2eq >= 50 ? ' · Control fugas cada 6 meses' : camaraTco2eq >= 5 ? ' · Control fugas anual' : ''}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Temperatura mínima permitida (°C) — APPCC</Label>
+                      <Input type="number" value={formData.technical_data.temp_min_appcc || ''} onChange={e => handleTechnicalDataChange('temp_min_appcc', e.target.value)} className="bg-white" placeholder="ej: -25" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Temperatura máxima permitida (°C) — APPCC</Label>
+                      <Input type="number" value={formData.technical_data.temp_max_appcc || ''} onChange={e => handleTechnicalDataChange('temp_max_appcc', e.target.value)} className="bg-white" placeholder="ej: 4" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Espesor aislamiento (mm)</Label>
+                      <Input type="number" value={formData.technical_data.espesor_aislamiento_mm || ''} onChange={e => handleTechnicalDataChange('espesor_aislamiento_mm', e.target.value)} className="bg-white" placeholder="ej: 100" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Tipo de panel (opcional)</Label>
+                      <Select value={formData.technical_data.tipo_panel || ''} onValueChange={v => handleTechnicalDataChange('tipo_panel', v)}>
+                        <SelectTrigger className="bg-white"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="poliuretano">Poliuretano (PUR)</SelectItem>
+                          <SelectItem value="poliisocianurato">Poliisocianurato (PIR)</SelectItem>
+                          <SelectItem value="lana_roca">Lana de roca</SelectItem>
+                          <SelectItem value="eps">EPS (Poliestireno expandido)</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Detector de fugas instalado</Label>
+                      <Select value={formData.technical_data.detector_fugas || ''} onValueChange={v => handleTechnicalDataChange('detector_fugas', v)}>
+                        <SelectTrigger className="bg-white"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="si">Sí — con detector</SelectItem>
+                          <SelectItem value="no">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formData.technical_data.detector_fugas === 'si' && camaraTco2eq !== null && camaraTco2eq >= 5 && (
+                        <p className="text-xs text-emerald-700 mt-0.5">✓ Con detector: el intervalo de control de fugas se duplica</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {equipmentFields && (
                 <>

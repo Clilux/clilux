@@ -30,6 +30,7 @@ import SparePartsTab from '../components/equipment/SparePartsTab';
 import EquipmentIncidents from '../components/equipment/EquipmentIncidents';
 import FGasTab from '../components/equipment/FGasTab';
 import LDTab from '../components/equipment/LDTab';
+import LibroRegistroTab from '../components/equipment/LibroRegistroTab';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -523,6 +524,33 @@ export default function EquipmentDetail() {
                         </div>
                       </div>
                     )}
+                    {finalEquipment.equipment_type === 'camara_frigorifica' && finalEquipment.technical_data?.clasificacion_seguridad && (
+                      <div className="flex items-start gap-2">
+                        <Shield className="h-4 w-4 text-blue-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Clasificación seguridad</p>
+                          <p className="text-sm font-semibold text-blue-700">{finalEquipment.technical_data.clasificacion_seguridad}</p>
+                        </div>
+                      </div>
+                    )}
+                    {finalEquipment.equipment_type === 'camara_frigorifica' && (finalEquipment.technical_data?.temp_min_appcc != null || finalEquipment.technical_data?.temp_max_appcc != null) && (
+                      <div className="flex items-start gap-2">
+                        <Snowflake className="h-4 w-4 text-blue-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Rango Tª APPCC</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.technical_data.temp_min_appcc ?? '?'}°C / {finalEquipment.technical_data.temp_max_appcc ?? '?'}°C</p>
+                        </div>
+                      </div>
+                    )}
+                    {finalEquipment.equipment_type === 'camara_frigorifica' && finalEquipment.technical_data?.espesor_aislamiento_mm && (
+                      <div className="flex items-start gap-2">
+                        <Wrench className="h-4 w-4 text-slate-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Aislamiento</p>
+                          <p className="text-sm text-slate-700">{finalEquipment.technical_data.espesor_aislamiento_mm} mm{finalEquipment.technical_data.tipo_panel ? ` · ${finalEquipment.technical_data.tipo_panel}` : ''}</p>
+                        </div>
+                      </div>
+                    )}
                     {finalEquipment.installation_date && (
                       <div className="flex items-start gap-2">
                         <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
@@ -591,6 +619,7 @@ export default function EquipmentDetail() {
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
           <TabsList className={`grid w-full mb-6 ${
+            finalEquipment.equipment_type === 'camara_frigorifica' ? 'grid-cols-4 sm:grid-cols-9' :
             finalEquipment.refrigerant_type && finalEquipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-9' :
             (finalEquipment.refrigerant_type || finalEquipment.equipment_type === 'adiabatico') ? 'grid-cols-4 sm:grid-cols-8' :
             'grid-cols-4 sm:grid-cols-7'
@@ -607,6 +636,9 @@ export default function EquipmentDetail() {
             )}
             {finalEquipment.equipment_type === 'adiabatico' && (
               <TabsTrigger value="ld" className="text-cyan-700 font-semibold">L+D 💧</TabsTrigger>
+            )}
+            {finalEquipment.equipment_type === 'camara_frigorifica' && (
+              <TabsTrigger value="libro" className="text-blue-700 font-semibold">Libro 📋</TabsTrigger>
             )}
           </TabsList>
 
@@ -682,6 +714,16 @@ export default function EquipmentDetail() {
                   <Droplet className="h-4 w-4 text-cyan-600" />Limpieza y Desinfección (L+D) — Legionella
                 </h3>
                 <LDTab equipment={finalEquipment} equipmentId={equipmentId} client={finalClient} isAdmin={isAdminUser} />
+              </Card>
+            </TabsContent>
+          )}
+          {finalEquipment.equipment_type === 'camara_frigorifica' && (
+            <TabsContent value="libro">
+              <Card className="p-6 bg-white border-0 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-blue-700" />Libro de Registro del Instalador — RSIF
+                </h3>
+                <LibroRegistroTab equipment={finalEquipment} equipmentId={equipmentId} />
               </Card>
             </TabsContent>
           )}

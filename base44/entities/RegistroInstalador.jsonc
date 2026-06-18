@@ -1,0 +1,103 @@
+{
+  "name": "RegistroInstalador",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "fecha_intervencion": {
+      "type": "string",
+      "format": "date"
+    },
+    "tipo_intervencion": {
+      "type": "string",
+      "enum": [
+        "instalacion",
+        "control_fugas",
+        "carga_gas",
+        "recuperacion_gas",
+        "reparacion",
+        "inspeccion_oca",
+        "revision_frigorista",
+        "subsanacion_fuga"
+      ]
+    },
+    "tecnico_nombre": {
+      "type": "string"
+    },
+    "tecnico_cert_num": {
+      "type": "string",
+      "description": "N\u00ba carn\u00e9/certificado frigorista"
+    },
+    "empresa_nombre": {
+      "type": "string"
+    },
+    "empresa_cert_num": {
+      "type": "string"
+    },
+    "refrigerante_tipo": {
+      "type": "string"
+    },
+    "gas_cargado_kg": {
+      "type": "number",
+      "default": 0
+    },
+    "gas_recuperado_kg": {
+      "type": "number",
+      "default": 0
+    },
+    "control_fugas_resultado": {
+      "type": "string",
+      "enum": [
+        "pasa",
+        "no_pasa",
+        "no_aplica"
+      ],
+      "default": "no_aplica"
+    },
+    "fuga_ubicacion": {
+      "type": "string"
+    },
+    "fuga_plazo_subsanacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha l\u00edmite de subsanaci\u00f3n (30 d\u00edas)"
+    },
+    "fuga_subsanada": {
+      "type": "boolean",
+      "default": false
+    },
+    "inspeccion_nivel": {
+      "type": "string",
+      "enum": [
+        "nivel_1",
+        "nivel_2"
+      ],
+      "description": "Nivel de instalaci\u00f3n RSIF"
+    },
+    "proxima_inspeccion_oca_fecha": {
+      "type": "string",
+      "format": "date"
+    },
+    "proxima_revision_frigorista_fecha": {
+      "type": "string",
+      "format": "date"
+    },
+    "observaciones": {
+      "type": "string"
+    },
+    "documento_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "equipment_id",
+    "client_id",
+    "fecha_intervencion",
+    "tipo_intervencion",
+    "tecnico_nombre"
+  ]
+}
