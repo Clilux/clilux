@@ -817,7 +817,7 @@ export default function EquipmentForm() {
         {/* Step 1: Datos Técnicos */}
         {step === 1 &&
         <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6 bg-[#5976b1]">Datos Técnicos del Equipo</h3>
+            <h3 className="text-xl font-semibold text-white mb-6 bg-[#236470]">Datos Técnicos del Equipo</h3>
 
             {/* Scan/Photo section */}
             <div className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
