@@ -794,34 +794,40 @@ export default function EquipmentForm() {
   const canProceedStep4 = formData.first_revision_date && formData.starting_period;
 
   return (
-    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-[#bac7de]">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gray-100">
+      {/* Blue corporate header with progress */}
+      <div className="bg-blue-700 px-4 pt-4 pb-6">
         <NavHeader title={equipmentId ? "Editar Equipo" : "Crear Equipo"} />
 
-        {/* Progress */}
-        <Card className="p-4 backdrop-blur-sm border-white/20 mb-6 text-[#1f9335] bg-[#ffffff]/[0.1]">
-          <div className="flex items-center justify-between">
-            {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) =>
-            <div key={idx} className="flex items-center gap-2 text-[#9d4343]">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[hsl(var(--foreground))] ${
-              step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : ""}`
-              }>
-                  <span className="text-white text-sm font-medium">{idx + 1}</span>
+        {/* Progress stepper */}
+        <div className="mt-4 flex items-center justify-between max-w-lg mx-auto">
+          {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) => (
+            <React.Fragment key={idx}>
+              <div className="flex flex-col items-center gap-1">
+                <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm font-bold
+                  ${step > idx + 1 ? 'bg-white border-white text-blue-700' :
+                    step === idx + 1 ? 'bg-white border-white text-blue-700' :
+                    'bg-transparent border-blue-300 text-blue-200'}`}>
+                  {idx + 1}
                 </div>
-                <span className="text-sm hidden md:block text-gray-950">{label}</span>
+                <span className={`text-xs font-medium hidden sm:block ${step === idx + 1 ? 'text-white font-bold' : 'text-blue-200'}`}>{label}</span>
               </div>
-            )}
-          </div>
-        </Card>
+              {idx < 3 && <div className={`flex-1 h-0.5 mx-1 mb-4 ${step > idx + 1 ? 'bg-white' : 'bg-blue-400/50'}`} />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Step 1: Datos Técnicos */}
         {step === 1 &&
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6 bg-[#236470]">Datos Técnicos del Equipo</h3>
+        <Card className="p-6 bg-white shadow-md rounded-2xl border-0">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Datos Técnicos del Equipo</h3>
 
             {/* Scan/Photo section */}
-            <div className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-              <h4 className="text-white font-medium mb-3">Capturar datos con la cámara</h4>
+            <div className="mb-6 p-4 rounded-xl border border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-600 font-medium mb-3">Capturar datos con la cámara</p>
               <div className="flex gap-3">
                 <label className="flex-1">
                   <input
@@ -834,13 +840,12 @@ export default function EquipmentForm() {
                 
                   <Button
                   type="button"
-                  className="w-full bg-blue-600"
+                  className="w-full bg-blue-700 hover:bg-blue-800 text-white"
                   disabled={uploadingPhoto}
                   onClick={() => document.querySelector('input[capture="environment"]')?.click()}>
                   
                     {uploadingPhoto ?
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</> :
-
                   <><Scan className="h-4 w-4 mr-2" /> Escanear placa</>
                   }
                   </Button>
@@ -856,7 +861,7 @@ export default function EquipmentForm() {
                   <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-white/20 bg-gray-950/[0.05] text-gray-50"
+                  className="w-full border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                   disabled={uploadingPhoto}
                   onClick={() => document.querySelector('input[type="file"]:not([capture])')?.click()}>
                   
@@ -874,19 +879,18 @@ export default function EquipmentForm() {
             
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Referencia del Equipo (Nombre) *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Referencia del Equipo (Nombre) *</Label>
                 <Input
                 value={formData.reference_name}
                 onChange={(e) => handleChange('reference_name', e.target.value)}
-                className="bg-white/5 border-white/20 text-white"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                 placeholder="Ej: Climatizador Planta 2 / Split Oficina Principal" />
-              
               </div>
 
               <div>
-                <Label className="text-slate-300">Tipo de Equipo según RITE *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Tipo de Equipo según RITE *</Label>
                 <Select value={formData.equipment_type} onValueChange={(v) => handleChange('equipment_type', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -905,19 +909,18 @@ export default function EquipmentForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-300">Fecha de Registro *</Label>
+                  <Label className="text-gray-700 font-medium mb-1 block">Fecha de Registro *</Label>
                   <Input
                   type="date"
                   value={formData.registration_date}
                   onChange={(e) => handleChange('registration_date', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white" />
-                
+                  className="bg-white border-gray-300 text-gray-900" />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Estado del Equipo *</Label>
+                  <Label className="text-gray-700 font-medium mb-1 block">Estado del Equipo *</Label>
                   <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -929,35 +932,32 @@ export default function EquipmentForm() {
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Fecha de Instalación</Label>
+                  <Label className="text-gray-700 font-medium mb-1 block">Fecha de Instalación</Label>
                   <Input
                   type="date"
                   value={formData.installation_date}
                   onChange={(e) => handleChange('installation_date', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white" />
-                
+                  className="bg-white border-gray-300 text-gray-900" />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300">Fin de Garantía</Label>
+                  <Label className="text-gray-700 font-medium mb-1 block">Fin de Garantía</Label>
                   <Input
                   type="date"
                   value={formData.warranty_end}
                   onChange={(e) => handleChange('warranty_end', e.target.value)}
-                  className="bg-white/5 border-white/20 text-white" />
-                
+                  className="bg-white border-gray-300 text-gray-900" />
                 </div>
               </div>
 
               <div>
-                <Label className="text-slate-300">Observaciones</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Observaciones</Label>
                 <Textarea
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
-                className="bg-white/5 border-white/20 text-white"
+                className="bg-white border-gray-300 text-gray-900"
                 rows={3}
                 placeholder="Notas adicionales del equipo..." />
-              
               </div>
 
               {/* ── Campos específicos Cámara Frigorífica ── */}
@@ -1067,13 +1067,13 @@ export default function EquipmentForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {equipmentFields.identificacion.map((field) =>
                 <div key={field.key}>
-                        <Label className="text-slate-300">{field.label}</Label>
+                        <Label className="text-gray-700 font-medium mb-1 block">{field.label}</Label>
                         {field.type === 'select' ?
                   <Select
                     value={formData.technical_data[field.key] || ''}
                     onValueChange={(v) => handleTechnicalDataChange(field.key, v)}>
                     
-                            <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                               <SelectValue placeholder="Seleccionar" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1089,7 +1089,7 @@ export default function EquipmentForm() {
                       value={formData.technical_data[field.key] || ''}
                       onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
                       list="brands-list"
-                      className="bg-white/5 border-white/20 text-white"
+                      className="bg-white border-gray-300 text-gray-900"
                       required={field.required} />
                     
                             <datalist id="brands-list">
@@ -1105,7 +1105,7 @@ export default function EquipmentForm() {
                       value={formData.technical_data[field.key] || ''}
                       onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
                       list="refrigerants-list"
-                      className="bg-white/5 border-white/20 text-white"
+                      className="bg-white border-gray-300 text-gray-900"
                       required={field.required} />
                     
                             <datalist id="refrigerants-list">
@@ -1119,7 +1119,7 @@ export default function EquipmentForm() {
                     type={field.type}
                     value={formData.technical_data[field.key] || ''}
                     onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
+                    className="bg-white border-gray-300 text-gray-900"
                     required={field.required} />
 
                   }
@@ -1128,9 +1128,9 @@ export default function EquipmentForm() {
                   </div>
 
                   {/* Custom Fields */}
-                  <div className="mt-6 p-4 rounded-lg bg-white/5 border border-white/20">
+                  <div className="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
-                      <Label className="text-slate-300">Datos Adicionales Personalizados</Label>
+                      <Label className="text-gray-700 font-medium">Datos Adicionales Personalizados</Label>
                       <Button
                     type="button"
                     size="sm"
@@ -1145,7 +1145,7 @@ export default function EquipmentForm() {
                         custom_fields: [...(prev.custom_fields || []), { name: fieldName, value: fieldValue }]
                       }));
                     }}
-                    className="bg-white/5 border-white/20 text-white">
+                    className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
                     
                         + Añadir campo
                       </Button>
@@ -1153,8 +1153,8 @@ export default function EquipmentForm() {
                     {formData.custom_fields?.length > 0 &&
                 <div className="space-y-2">
                         {formData.custom_fields.map((field, idx) =>
-                  <div key={idx} className="flex items-center gap-2 p-2 rounded bg-white/5">
-                            <span className="text-slate-300 text-sm flex-1">{field.name}: {field.value}</span>
+                  <div key={idx} className="flex items-center gap-2 p-2 rounded bg-white border border-gray-200">
+                            <span className="text-gray-700 text-sm flex-1">{field.name}: {field.value}</span>
                             <Button
                       type="button"
                       size="sm"
@@ -1181,13 +1181,13 @@ export default function EquipmentForm() {
             <div className="flex justify-between mt-6">
               <div>
                 {equipmentId &&
-              <Button onClick={savePartial} variant="outline" className="bg-green-600/20 border-green-500/40 text-green-300 hover:bg-green-600/30">
+              <Button onClick={savePartial} variant="outline" className="bg-emerald-50 border-emerald-400 text-emerald-700 hover:bg-emerald-100">
                     <Save className="h-4 w-4 mr-2" />
                     Guardar cambios
                   </Button>
               }
               </div>
-              <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-600">
+              <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-700 hover:bg-blue-800 text-white">
                 <ArrowRight className="h-4 w-4 mr-2" />
                 Siguiente
               </Button>
@@ -1197,18 +1197,18 @@ export default function EquipmentForm() {
 
         {/* Step 2: Cliente, Edificio y Relaciones */}
         {step === 2 &&
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Cliente, Edificio y Relaciones</h3>
+        <Card className="p-6 bg-white shadow-md rounded-2xl border-0">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Cliente, Edificio y Relaciones</h3>
             
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Cliente *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Cliente *</Label>
                 <div className="flex gap-2">
                   <Select value={formData.client_id} onValueChange={(v) => {
                   handleChange('client_id', v);
                   handleChange('building_id', '');
                 }}>
-                    <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="flex-1 bg-white border-gray-300 text-gray-900">
                       <SelectValue placeholder="Seleccionar cliente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1224,10 +1224,10 @@ export default function EquipmentForm() {
               </div>
 
               <div>
-                <Label className="text-slate-300">Edificio *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Edificio *</Label>
                 <div className="flex gap-2">
                   <Select value={formData.building_id} onValueChange={(v) => handleChange('building_id', v)} disabled={!formData.client_id}>
-                    <SelectTrigger className="flex-1 bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="flex-1 bg-white border-gray-300 text-gray-900">
                       <SelectValue placeholder="Seleccionar edificio" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1244,13 +1244,13 @@ export default function EquipmentForm() {
 
               {/* Unit Type and Relations - Solo para Split y VRF */}
               {(formData.equipment_type === 'split' || formData.equipment_type === 'vrf') &&
-            <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <Label className="text-slate-300 mb-3 block">¿Es unidad exterior o interior?</Label>
+            <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <Label className="text-gray-700 font-medium mb-3 block">¿Es unidad exterior o interior?</Label>
                   <Select value={formData.unit_type} onValueChange={(v) => {
                 handleChange('unit_type', v);
                 handleChange('parent_equipment_id', '');
               }}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white mb-4">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900 mb-4">
                       <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1262,9 +1262,9 @@ export default function EquipmentForm() {
 
                   {formData.unit_type === 'interior' && formData.building_id &&
               <div className="space-y-3">
-                      <Label className="text-slate-300">¿Está relacionada con una unidad exterior existente?</Label>
+                      <Label className="text-gray-700 font-medium">¿Está relacionada con una unidad exterior existente?</Label>
                       <Select value={formData.parent_equipment_id} onValueChange={(v) => handleChange('parent_equipment_id', v)}>
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                           <SelectValue placeholder="No / Crear nueva unidad exterior" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1292,18 +1292,18 @@ export default function EquipmentForm() {
             </div>
 
             <div className="flex justify-between mt-6">
-              <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
+              <Button onClick={handleBack} variant="outline" className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
               <div className="flex gap-2">
                 {equipmentId &&
-              <Button onClick={savePartial} variant="outline" className="bg-green-600/20 border-green-500/40 text-green-300 hover:bg-green-600/30">
+              <Button onClick={savePartial} variant="outline" className="bg-emerald-50 border-emerald-400 text-emerald-700 hover:bg-emerald-100">
                     <Save className="h-4 w-4 mr-2" />
                     Guardar
                   </Button>
               }
-                <Button onClick={handleNext} disabled={!canProceedStep2} className="bg-blue-600">
+                <Button onClick={handleNext} disabled={!canProceedStep2} className="bg-blue-700 hover:bg-blue-800 text-white">
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Siguiente
                 </Button>
@@ -1314,26 +1314,24 @@ export default function EquipmentForm() {
 
         {/* Step 3: Configuración de Mantenimiento */}
         {step === 3 && equipmentFields &&
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Configurar Mantenimiento</h3>
+        <Card className="p-6 bg-white shadow-md rounded-2xl border-0">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Configurar Mantenimiento</h3>
 
             <div className="space-y-6">
               {/* Pregunta si requiere mantenimiento */}
-              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <Label className="text-slate-300 mb-3 block text-lg">¿Este equipo requiere mantenimiento periódico?</Label>
+              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <Label className="text-gray-800 mb-3 block text-base font-medium">¿Este equipo requiere mantenimiento periódico?</Label>
                 <div className="flex gap-4">
                   <Button
                   type="button"
                   onClick={() => handleChange('requires_maintenance', true)}
-                  className={formData.requires_maintenance === true ? 'bg-blue-600' : 'bg-white/5'}>
-                  
+                  className={formData.requires_maintenance === true ? 'bg-blue-700 text-white' : 'bg-white border border-gray-300 text-gray-700'}>
                     Sí
                   </Button>
                   <Button
                   type="button"
                   onClick={() => handleChange('requires_maintenance', false)}
-                  className={formData.requires_maintenance === false ? 'bg-blue-600' : 'bg-white/5'}>
-                  
+                  className={formData.requires_maintenance === false ? 'bg-blue-700 text-white' : 'bg-white border border-gray-300 text-gray-700'}>
                     No
                   </Button>
                 </div>
@@ -1343,22 +1341,22 @@ export default function EquipmentForm() {
             <>
                   {/* Requisitos RITE según potencia */}
                   {getTotalPower() > 0 && getRiteRequirements() &&
-              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                      <h4 className="text-white font-semibold mb-2">📋 Requisitos RITE según Potencia</h4>
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                      <h4 className="text-blue-900 font-semibold mb-2">📋 Requisitos RITE según Potencia</h4>
                       <div className="space-y-1 text-sm">
-                        <p className="text-blue-200">
+                        <p className="text-blue-800">
                           <strong>Categoría:</strong> {getRiteRequirements().category}
                         </p>
-                        <p className="text-blue-200">
+                        <p className="text-blue-800">
                           <strong>Potencia Total:</strong> {getTotalPower()} kW
                         </p>
-                        <p className="text-blue-200">
+                        <p className="text-blue-800">
                           <strong>Mantenimiento:</strong> {getRiteRequirements().maintenance}
                         </p>
-                        <p className="text-blue-200">
+                        <p className="text-blue-800">
                           <strong>Frecuencia:</strong> {getRiteRequirements().frequency}
                         </p>
-                        <p className="text-blue-300 text-xs mt-2 italic">
+                        <p className="text-blue-600 text-xs mt-2 italic">
                           {getRiteRequirements().note}
                         </p>
                       </div>
@@ -1366,7 +1364,7 @@ export default function EquipmentForm() {
               }
 
                   <div>
-                <Label className="text-slate-300 mb-3 block">Selecciona las periodicidades *</Label>
+                <Label className="text-gray-700 font-medium mb-3 block">Selecciona las periodicidades *</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {periodicidades.map((p) =>
                   <div key={p.value} className="flex items-center gap-2">
@@ -1380,9 +1378,9 @@ export default function EquipmentForm() {
                           handleChange('selected_periods', formData.selected_periods.filter((v) => v !== p.value));
                         }
                       }}
-                      className="border-white/30" />
+                      className="border-gray-400" />
                     
-                      <Label htmlFor={p.value} className="text-slate-300">{p.label}</Label>
+                      <Label htmlFor={p.value} className="text-gray-700">{p.label}</Label>
                     </div>
                   )}
                 </div>
@@ -1391,7 +1389,7 @@ export default function EquipmentForm() {
               {formData.selected_periods.length > 0 &&
               <div>
                   <div className="flex items-center justify-between mb-3">
-                    <Label className="text-slate-300">Datos a recoger según RITE-IT3 *</Label>
+                    <Label className="text-gray-700 font-medium">Datos a recoger según RITE-IT3 *</Label>
                     <Button
                     type="button"
                     variant="outline"
@@ -1429,7 +1427,7 @@ export default function EquipmentForm() {
                       }));
                       toast.success('Campo añadido');
                     }}
-                    className="bg-white/5 border-white/20 text-white">
+                    className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
                     
                       + Añadir campo manual
                     </Button>
@@ -1442,20 +1440,20 @@ export default function EquipmentForm() {
                     const isSelected = formData.maintenance_fields.find((f) => f.field_key === param.key);
 
                     return (
-                      <div key={param.key} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div key={param.key} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors">
                           <Checkbox
                           id={param.key}
                           checked={!!isSelected}
                           onCheckedChange={() => handleToggleField(param)}
-                          className="border-white/30" />
+                          className="border-gray-400" />
                         
                           <div className="flex-1">
-                            <Label htmlFor={param.key} className="text-slate-300 cursor-pointer">
+                            <Label htmlFor={param.key} className="text-gray-700 cursor-pointer">
                               {param.label}
                             </Label>
                             <div className="flex gap-2 mt-1">
                               {availablePeriods.map((p) =>
-                            <span key={p} className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-300">
+                            <span key={p} className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
                                   {periodicidades.find((per) => per.value === p)?.label}
                                 </span>
                             )}
@@ -1468,8 +1466,8 @@ export default function EquipmentForm() {
                 </div>
               }
 
-                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                    <p className="text-slate-300 text-sm">
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                    <p className="text-blue-800 text-sm">
                       <strong>{formData.maintenance_fields.length}</strong> datos seleccionados para las revisiones
                     </p>
                   </div>
@@ -1477,8 +1475,8 @@ export default function EquipmentForm() {
             }
 
               {formData.requires_maintenance === false &&
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                  <p className="text-green-300 text-sm">
+            <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                  <p className="text-green-700 text-sm">
                     El equipo se creará sin programación de mantenimiento. Puedes configurarlo más tarde si es necesario.
                   </p>
                 </div>
@@ -1486,13 +1484,13 @@ export default function EquipmentForm() {
             </div>
 
             <div className="flex justify-between mt-6">
-              <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
+              <Button onClick={handleBack} variant="outline" className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
               <div className="flex gap-2">
               {equipmentId &&
-              <Button onClick={savePartial} variant="outline" className="bg-green-600/20 border-green-500/40 text-green-300 hover:bg-green-600/30">
+              <Button onClick={savePartial} variant="outline" className="bg-emerald-50 border-emerald-400 text-emerald-700 hover:bg-emerald-100">
                   <Save className="h-4 w-4 mr-2" />
                   Guardar
                 </Button>
@@ -1510,7 +1508,7 @@ export default function EquipmentForm() {
                   saveMutation.mutate(dataToSubmit);
                 }}
                 disabled={saveMutation.isPending}
-                className="bg-green-600">
+                className="bg-blue-700 hover:bg-blue-800 text-white">
                 
                   {saveMutation.isPending ?
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> :
@@ -1519,7 +1517,7 @@ export default function EquipmentForm() {
                 }
                 </Button> :
 
-              <Button onClick={handleNext} disabled={!canProceedStep3} className="bg-blue-600">
+              <Button onClick={handleNext} disabled={!canProceedStep3} className="bg-blue-700 hover:bg-blue-800 text-white">
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Siguiente
                 </Button>
@@ -1531,36 +1529,34 @@ export default function EquipmentForm() {
 
         {/* Step 4: Programar Primera Revisión */}
         {step === 4 &&
-        <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-6">Programar Revisiones</h3>
+        <Card className="p-6 bg-white shadow-md rounded-2xl border-0">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Programar Revisiones</h3>
 
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Fecha de Primera Revisión *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Fecha de Primera Revisión *</Label>
                 <Input
                 type="date"
                 value={formData.first_revision_date}
                 onChange={(e) => handleChange('first_revision_date', e.target.value)}
-                className="bg-white/5 border-white/20 text-white" />
-              
+                className="bg-white border-gray-300 text-gray-900" />
               </div>
 
               <div>
-                <Label className="text-slate-300">Fecha Fin de Revisiones (opcional)</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Fecha Fin de Revisiones (opcional)</Label>
                 <Input
                 type="date"
                 value={formData.last_revision_date}
                 min={formData.first_revision_date}
                 onChange={(e) => handleChange('last_revision_date', e.target.value)}
-                className="bg-white/5 border-white/20 text-white" />
-              
-                <p className="text-xs text-slate-400 mt-1">Si no se indica, se generará 1 año de revisiones</p>
+                className="bg-white border-gray-300 text-gray-900" />
+                <p className="text-xs text-gray-400 mt-1">Si no se indica, se generará 1 año de revisiones</p>
               </div>
 
               <div>
-                <Label className="text-slate-300">Tipo de Primera Revisión *</Label>
+                <Label className="text-gray-700 font-medium mb-1 block">Tipo de Primera Revisión *</Label>
                 <Select value={formData.starting_period} onValueChange={(v) => handleChange('starting_period', v)}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1580,17 +1576,17 @@ export default function EquipmentForm() {
               </div>
 
               {formData.starting_period &&
-            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <h4 className="text-white font-medium mb-2">Plan de Mantenimiento</h4>
-                  <p className="text-slate-300 text-sm">
+            <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <h4 className="text-blue-900 font-semibold mb-2">Plan de Mantenimiento</h4>
+                  <p className="text-blue-800 text-sm">
                     Se crearán revisiones para: {formData.selected_periods.map((p) =>
                 periodicidades.find((per) => per.value === p)?.label
                 ).join(', ')}
                   </p>
-                  <p className="text-slate-300 text-sm mt-1">
+                  <p className="text-blue-800 text-sm mt-1">
                     <strong>Primera revisión:</strong> {periodicidades.find((p) => p.value === formData.starting_period)?.label} - {formData.first_revision_date && format(new Date(formData.first_revision_date), 'dd/MM/yyyy')}
                   </p>
-                  <p className="text-slate-400 text-xs mt-2">
+                  <p className="text-blue-600 text-xs mt-2">
                     Las revisiones aparecerán en el calendario y podrás realizarlas desde allí
                   </p>
                 </div>
@@ -1598,14 +1594,14 @@ export default function EquipmentForm() {
             </div>
 
             <div className="flex justify-between mt-6">
-              <Button onClick={handleBack} variant="outline" className="bg-white/5 border-white/20 text-white">
+              <Button onClick={handleBack} variant="outline" className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Atrás
               </Button>
               <Button
               onClick={handleSubmit}
               disabled={(equipmentId ? updateMutation.isPending : saveMutation.isPending) || !canProceedStep4}
-              className="bg-green-600">
+              className="bg-blue-700 hover:bg-blue-800 text-white">
               
                 {(equipmentId ? updateMutation.isPending : saveMutation.isPending) ?
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {equipmentId ? 'Actualizando...' : 'Creando...'}</> :
@@ -1619,33 +1615,32 @@ export default function EquipmentForm() {
 
         {/* Dialogs */}
         <Dialog open={showNewClientDialog} onOpenChange={setShowNewClientDialog}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-white border-gray-200">
             <DialogHeader>
-              <DialogTitle className="text-white">Nuevo Cliente</DialogTitle>
+              <DialogTitle className="text-gray-900">Nuevo Cliente</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Nombre *</Label>
+                <Label className="text-gray-700">Nombre *</Label>
                 <Input
                   value={newClient.name}
                   onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                  className="bg-white/5 border-white/20 text-white" />
+                  className="bg-white border-gray-300 text-gray-900" />
                 
               </div>
               <div>
-                <Label className="text-slate-300">CIF *</Label>
+                <Label className="text-gray-700">CIF *</Label>
                 <Input
                   value={newClient.cif}
                   onChange={(e) => setNewClient({ ...newClient, cif: e.target.value })}
-                  className="bg-white/5 border-white/20 text-white" />
-                
+                  className="bg-white border-gray-300 text-gray-900" />
               </div>
               <div>
-                <Label className="text-slate-300">Ciudad</Label>
+                <Label className="text-gray-700">Ciudad</Label>
                 <Input
                   value={newClient.city}
                   onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
-                  className="bg-white/5 border-white/20 text-white" />
+                  className="bg-white border-gray-300 text-gray-900" />
                 
               </div>
               <Button
@@ -1660,25 +1655,24 @@ export default function EquipmentForm() {
         </Dialog>
 
         <Dialog open={showNewBuildingDialog} onOpenChange={setShowNewBuildingDialog}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-white border-gray-200">
             <DialogHeader>
-              <DialogTitle className="text-white">Nuevo Edificio</DialogTitle>
+              <DialogTitle className="text-gray-900">Nuevo Edificio</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-slate-300">Nombre *</Label>
+                <Label className="text-gray-700">Nombre *</Label>
                 <Input
                   value={newBuilding.name}
                   onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
-                  className="bg-white/5 border-white/20 text-white" />
-                
+                  className="bg-white border-gray-300 text-gray-900" />
               </div>
               <div>
-                <Label className="text-slate-300">Dirección *</Label>
+                <Label className="text-gray-700">Dirección *</Label>
                 <Input
                   value={newBuilding.address}
                   onChange={(e) => setNewBuilding({ ...newBuilding, address: e.target.value })}
-                  className="bg-white/5 border-white/20 text-white" />
+                  className="bg-white border-gray-300 text-gray-900" />
                 
               </div>
               <Button
