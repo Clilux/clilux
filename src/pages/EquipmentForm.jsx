@@ -799,7 +799,7 @@ export default function EquipmentForm() {
         <NavHeader title={equipmentId ? "Editar Equipo" : "Crear Equipo"} />
 
         {/* Progress */}
-        <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 mb-6 text-[#1f9335]">
+        <Card className="p-4 backdrop-blur-sm border-white/20 mb-6 text-[#1f9335] bg-[#ffffff]/[0.1]">
           <div className="flex items-center justify-between">
             {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) =>
             <div key={idx} className="flex items-center gap-2 text-[#9d4343]">
