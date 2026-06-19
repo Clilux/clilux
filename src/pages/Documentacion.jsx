@@ -7,69 +7,69 @@ import NavHeader from '../components/navigation/NavHeader';
 
 export default function Documentacion() {
   const documentos = [
-    {
-      id: 'certificado-rite',
-      title: 'Certificado RITE',
-      description: 'Certificado anual de mantenimiento (Art. 28 RITE)',
-      icon: FileCheck,
-      page: 'CertificadoRITE',
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/20'
-    },
-    {
-      id: 'libro-mantenimiento-rite',
-      title: 'Libro de Mantenimiento RITE',
-      description: 'Registro completo anual: fichas técnicas, plan preventivo, consumos e incidencias',
-      icon: Book,
-      page: 'LibroMantenimientoRITE',
-      color: 'text-teal-400',
-      bgColor: 'bg-teal-500/20'
-    },
-    {
-      id: 'memoria-tecnica-rite',
-      title: 'Memoria Técnica RITE',
-      description: 'Memoria técnica de instalación para registro ante la administración',
-      icon: FileSpreadsheet,
-      page: 'MemoriaTecnicaRITE',
-      color: 'text-orange-400',
-      bgColor: 'bg-orange-500/20'
-    },
-    {
-      id: 'informes',
-      title: 'Informes de Revisión',
-      description: 'Reportes de mantenimiento',
-      icon: FileText,
-      page: 'Reports',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/20'
-    },
-    {
-      id: 'informes-equipos',
-      title: 'Informes de Equipos',
-      description: 'Reportes de equipos instalados',
-      icon: FileText,
-      page: 'Equipment',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/20'
-    },
-    {
-      id: 'informes-incidencias',
-      title: 'Informes de Incidencias',
-      description: 'Reportes de incidencias',
-      icon: FileText,
-      page: 'Incidents',
-      color: 'text-amber-400',
-      bgColor: 'bg-amber-500/20'
-    }
-  ];
+  {
+    id: 'certificado-rite',
+    title: 'Certificado RITE',
+    description: 'Certificado anual de mantenimiento (Art. 28 RITE)',
+    icon: FileCheck,
+    page: 'CertificadoRITE',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20'
+  },
+  {
+    id: 'libro-mantenimiento-rite',
+    title: 'Libro de Mantenimiento RITE',
+    description: 'Registro completo anual: fichas técnicas, plan preventivo, consumos e incidencias',
+    icon: Book,
+    page: 'LibroMantenimientoRITE',
+    color: 'text-teal-400',
+    bgColor: 'bg-teal-500/20'
+  },
+  {
+    id: 'memoria-tecnica-rite',
+    title: 'Memoria Técnica RITE',
+    description: 'Memoria técnica de instalación para registro ante la administración',
+    icon: FileSpreadsheet,
+    page: 'MemoriaTecnicaRITE',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20'
+  },
+  {
+    id: 'informes',
+    title: 'Informes de Revisión',
+    description: 'Reportes de mantenimiento',
+    icon: FileText,
+    page: 'Reports',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20'
+  },
+  {
+    id: 'informes-equipos',
+    title: 'Informes de Equipos',
+    description: 'Reportes de equipos instalados',
+    icon: FileText,
+    page: 'Equipment',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20'
+  },
+  {
+    id: 'informes-incidencias',
+    title: 'Informes de Incidencias',
+    description: 'Reportes de incidencias',
+    icon: FileText,
+    page: 'Incidents',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20'
+  }];
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-[#3b2b2b]">
       <div className="max-w-5xl mx-auto">
         <NavHeader title="Documentación" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {documentos.map(doc => {
+          {documentos.map((doc) => {
             const Icon = doc.icon;
             return (
               <Link key={doc.id} to={createPageUrl(doc.page)}>
@@ -84,8 +84,8 @@ export default function Documentacion() {
                     </div>
                   </div>
                 </Card>
-              </Link>
-            );
+              </Link>);
+
           })}
         </div>
 
@@ -102,6 +102,6 @@ export default function Documentacion() {
           </div>
         </Card>
       </div>
-    </div>
-  );
+    </div>);
+
 }
