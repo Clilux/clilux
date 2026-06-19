@@ -802,7 +802,7 @@ export default function EquipmentForm() {
         <Card className="p-4 bg-white/10 backdrop-blur-sm border-white/20 mb-6 text-[#1f9335]">
           <div className="flex items-center justify-between">
             {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) =>
-            <div key={idx} className="flex items-center gap-2">
+            <div key={idx} className="flex items-center gap-2 text-[#9d4343]">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
               step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : 'bg-white/20'}`
               }>
