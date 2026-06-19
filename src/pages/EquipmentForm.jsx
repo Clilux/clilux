@@ -803,7 +803,7 @@ export default function EquipmentForm() {
           <div className="flex items-center justify-between">
             {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) =>
             <div key={idx} className="flex items-center gap-2 text-[#9d4343]">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[hsl(var(--foreground))] ${
               step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : ""}`
               }>
                   <span className="text-white text-sm font-medium">{idx + 1}</span>
