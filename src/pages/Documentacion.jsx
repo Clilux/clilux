@@ -64,7 +64,7 @@ export default function Documentacion() {
 
 
   return (
-    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-[#3b2b2b]">
+    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-[#273490]">
       <div className="max-w-5xl mx-auto">
         <NavHeader title="Documentación" />
 
