@@ -804,11 +804,11 @@ export default function EquipmentForm() {
             {['Datos Técnicos', 'Cliente y Edificio', 'Periodicidad', 'Programar'].map((label, idx) =>
             <div key={idx} className="flex items-center gap-2 text-[#9d4343]">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : 'bg-white/20'}`
+              step > idx + 1 ? 'bg-green-500' : step === idx + 1 ? 'bg-blue-500' : ""}`
               }>
                   <span className="text-white text-sm font-medium">{idx + 1}</span>
                 </div>
-                <span className="text-white text-sm hidden md:block">{label}</span>
+                <span className="text-sm hidden md:block text-gray-950">{label}</span>
               </div>
             )}
           </div>
