@@ -618,29 +618,35 @@ export default function EquipmentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="plan" className="mb-6">
-          <TabsList className={`grid w-full mb-6 ${
-          finalEquipment.equipment_type === 'camara_frigorifica' ? 'grid-cols-4 sm:grid-cols-9' :
-          finalEquipment.refrigerant_type && finalEquipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-9' :
-          finalEquipment.refrigerant_type || finalEquipment.equipment_type === 'adiabatico' ? 'grid-cols-4 sm:grid-cols-8' :
-          'grid-cols-4 sm:grid-cols-7'}`
-          }>
-            <TabsTrigger value="plan" className="bg-[#b58e73] text-[#aeb55e]">Plan Mant.</TabsTrigger>
-            <TabsTrigger value="revisions">Revisiones</TabsTrigger>
-            <TabsTrigger value="interventions">Intervenciones</TabsTrigger>
-            <TabsTrigger value="incidents">Incidencias</TabsTrigger>
-            <TabsTrigger value="photos">Imágenes</TabsTrigger>
-            <TabsTrigger value="spareparts">Repuestos</TabsTrigger>
-            <TabsTrigger value="documents">Documentos</TabsTrigger>
-            {finalEquipment.refrigerant_type &&
-            <TabsTrigger value="fgas" className="text-blue-700 font-semibold">F-Gas 🌿</TabsTrigger>
-            }
-            {finalEquipment.equipment_type === 'adiabatico' &&
-            <TabsTrigger value="ld" className="text-cyan-700 font-semibold">L+D 💧</TabsTrigger>
-            }
-            {finalEquipment.equipment_type === 'camara_frigorifica' &&
-            <TabsTrigger value="libro" className="text-blue-700 font-semibold">Libro 📋</TabsTrigger>
-            }
-          </TabsList>
+          <div className="bg-white border-b border-gray-200 mb-6 overflow-x-auto">
+            <TabsList className="flex w-max min-w-full h-auto bg-transparent p-0 gap-0 rounded-none">
+              {[
+                { value: 'plan', label: 'Plan Mant.' },
+                { value: 'revisions', label: 'Revisiones' },
+                { value: 'interventions', label: 'Intervenciones' },
+                { value: 'incidents', label: 'Incidencias' },
+                { value: 'photos', label: 'Imágenes' },
+                { value: 'spareparts', label: 'Repuestos' },
+                { value: 'documents', label: 'Documentos' },
+                ...(finalEquipment.refrigerant_type ? [{ value: 'fgas', label: 'F-Gas 🌿' }] : []),
+                ...(finalEquipment.equipment_type === 'adiabatico' ? [{ value: 'ld', label: 'L+D 💧' }] : []),
+                ...(finalEquipment.equipment_type === 'camara_frigorifica' ? [{ value: 'libro', label: 'Libro 📋' }] : []),
+              ].map(tab => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="md-tab relative h-12 px-4 text-sm font-medium rounded-none border-0 bg-transparent shadow-none text-gray-500 hover:bg-blue-50 transition-colors whitespace-nowrap"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          <style>{`
+            .md-tab { border-bottom: 3px solid transparent; }
+            .md-tab[data-state="active"] { color: #1565C0; font-weight: 600; border-bottom: 3px solid #1565C0; }
+            .md-tab:hover { color: #1565C0; }
+          `}</style>
 
           <TabsContent value="plan">
             <Card className="p-6 bg-white border-0 shadow-sm">
