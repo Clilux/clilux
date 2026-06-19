@@ -794,7 +794,7 @@ export default function EquipmentForm() {
   const canProceedStep4 = formData.first_revision_date && formData.starting_period;
 
   return (
-    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-[hsl(var(--card))]">
+    <div className="min-h-screen from-slate-900 via-slate-800 to-slate-900 p-6 bg-gray-100">
       <div className="max-w-5xl mx-auto">
         <NavHeader title={equipmentId ? "Editar Equipo" : "Crear Equipo"} />
 
