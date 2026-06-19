@@ -35,7 +35,7 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
           <Button
           variant="ghost"
           size="icon"
-          className="rounded-full hover:bg-white/10 text-gray-900 bg-[#ffffff]">
+          className="rounded-full hover:bg-white/10 text-gray-900 bg-[#ffffff] mx-1">
           
             <Home className="h-5 w-5" />
           </Button>
