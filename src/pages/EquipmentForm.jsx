@@ -856,7 +856,7 @@ export default function EquipmentForm() {
                   <Button
                   type="button"
                   variant="outline"
-                  className="w-full bg-white/5 border-white/20 text-white"
+                  className="w-full border-white/20 bg-gray-950/[0.05] text-gray-50"
                   disabled={uploadingPhoto}
                   onClick={() => document.querySelector('input[type="file"]:not([capture])')?.click()}>
                   
