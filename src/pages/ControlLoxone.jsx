@@ -7,7 +7,7 @@ import {
   Plus, Pencil, Trash2, RefreshCw, Wifi, WifiOff,
   ArrowLeft, Home, Zap, ToggleLeft, Blinds, Thermometer,
   Lightbulb, CheckCircle, XCircle, Loader2, ChevronRight,
-  AlertTriangle, Info
+  AlertTriangle, Info, Radio, Copy, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -200,6 +200,15 @@ export default function ControlLoxone() {
   const [testResult, setTestResult]       = useState(null);
   const [sendingCmd, setSendingCmd]       = useState({});
   const [wizardStep, setWizardStep]       = useState(1);
+  const [showWebhookInfo, setShowWebhookInfo] = useState(false);
+  const [copiedUrl, setCopiedUrl]         = useState(false);
+
+  const WEBHOOK_URL = `${window.location.origin}/api/functions/loxoneWebhook`;
+  const copyUrl = () => {
+    navigator.clipboard.writeText(WEBHOOK_URL);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
 
   useEffect(() => { loadDevices(); }, []);
 
@@ -316,6 +325,88 @@ export default function ControlLoxone() {
             <span className="font-mono mx-1 text-xs bg-amber-100 px-1 py-0.5 rounded">https://XXXXXXXX.dns.loxonecloud.com</span>
             o una IP pública con reenvío de puerto. Las IPs locales (192.168.x.x) no funcionarán.
           </p>
+        </div>
+
+        {/* Webhook Info Panel */}
+        <div className="mb-4 rounded-2xl overflow-hidden border" style={{ borderColor: '#B2DFDB', background: MD.surface }}>
+          <button
+            onClick={() => setShowWebhookInfo(v => !v)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-teal-50">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: MD.secondarySurface }}>
+              <Radio size={16} style={{ color: MD.secondary }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm" style={{ color: MD.onSurface }}>Recibir señales desde Loxone (Webhook)</p>
+              <p className="text-xs" style={{ color: MD.onSurfaceMid }}>Configura Loxone para que envíe alertas y eventos a esta aplicación</p>
+            </div>
+            {showWebhookInfo ? <ChevronUp size={16} style={{ color: MD.onSurfaceLow }} /> : <ChevronDown size={16} style={{ color: MD.onSurfaceLow }} />}
+          </button>
+
+          {showWebhookInfo && (
+            <div className="px-4 pb-5 space-y-4 border-t" style={{ borderColor: '#E0F2F1' }}>
+              <div className="pt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: MD.onSurfaceLow }}>1. URL del Webhook</p>
+                <p className="text-xs mb-2" style={{ color: MD.onSurfaceMid }}>Copia esta URL y pégala en el bloque <strong>Virtual HTTP Request</strong> de Loxone Config:</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs px-3 py-2 rounded-xl font-mono break-all" style={{ background: '#F3F4F6', color: MD.onSurface }}>
+                    {WEBHOOK_URL}
+                  </code>
+                  <button onClick={copyUrl} className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+                    style={{ background: copiedUrl ? '#E8F5E9' : MD.secondarySurface, color: copiedUrl ? '#2E7D32' : MD.secondary }}>
+                    {copiedUrl ? <CheckCircle size={13} /> : <Copy size={13} />}
+                    {copiedUrl ? '¡Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: MD.onSurfaceLow }}>2. Parámetros de la URL</p>
+                <p className="text-xs mb-2" style={{ color: MD.onSurfaceMid }}>Añade estos parámetros en Loxone Config (los valores entre <code className="bg-gray-100 px-1 rounded">&lt; &gt;</code> los define Loxone con variables del Miniserver):</p>
+                <div className="rounded-xl overflow-hidden border text-xs font-mono" style={{ borderColor: MD.outline }}>
+                  <div className="px-3 py-2" style={{ background: '#F8F9FA', borderBottom: `1px solid ${MD.outline}` }}>
+                    <span style={{ color: MD.secondary }}>GET</span> {WEBHOOK_URL}
+                  </div>
+                  {[
+                    { param: 'secret', ejemplo: 'TU_CLAVE_SECRETA', desc: 'Obligatorio. La clave configurada en los secretos de la app.' },
+                    { param: 'signal', ejemplo: 'averia | alerta | estado | temperatura', desc: 'Tipo de señal. Determina qué acción se ejecuta.' },
+                    { param: 'device', ejemplo: 'Oficina Principal', desc: 'Nombre del Miniserver (igual que en esta app).' },
+                    { param: 'room', ejemplo: 'Sala de servidores', desc: 'Habitación o zona (opcional).' },
+                    { param: 'value', ejemplo: '<VI_temperatura>', desc: 'Valor numérico o texto. Puede ser una variable Loxone.' },
+                    { param: 'description', ejemplo: 'Sensor de humo activado', desc: 'Descripción adicional (opcional).' },
+                  ].map(({ param, ejemplo, desc }) => (
+                    <div key={param} className="px-3 py-2 flex gap-3 items-start border-b last:border-b-0" style={{ borderColor: MD.outline }}>
+                      <span className="w-24 flex-shrink-0" style={{ color: MD.primary }}>?{param}=</span>
+                      <div className="flex-1 min-w-0">
+                        <span style={{ color: '#E65100' }}>{ejemplo}</span>
+                        <p className="text-xs mt-0.5 font-sans" style={{ color: MD.onSurfaceMid }}>{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: MD.onSurfaceLow }}>3. Señales disponibles y su efecto</p>
+                <div className="space-y-1.5">
+                  {[
+                    { signal: 'averia', color: '#C62828', bg: '#FFEBEE', label: 'Avería', desc: 'Crea una Incidencia urgente en la app automáticamente.' },
+                    { signal: 'alerta', color: '#E65100', bg: '#FFF3E0', label: 'Alerta', desc: 'Crea una Incidencia de prioridad alta.' },
+                    { signal: 'estado', color: '#1565C0', bg: '#E3F2FD', label: 'Estado', desc: 'Registra un cambio de estado en los logs.' },
+                    { signal: 'temperatura', color: '#00897B', bg: '#E0F2F1', label: 'Temperatura', desc: 'Registra una lectura de temperatura.' },
+                  ].map(({ signal, color, bg, label, desc }) => (
+                    <div key={signal} className="flex items-start gap-2 px-3 py-2 rounded-xl text-xs" style={{ background: bg }}>
+                      <span className="font-mono font-bold flex-shrink-0" style={{ color }}>{signal}</span>
+                      <span style={{ color: '#37474F' }}>— {desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl text-xs" style={{ background: '#FFF8E1', border: '1px solid #FFE082', color: '#795548' }}>
+                🔐 <strong>Seguridad:</strong> El parámetro <code className="bg-amber-100 px-1 rounded">secret</code> debe coincidir exactamente con el valor de <code className="bg-amber-100 px-1 rounded">LOXONE_WEBHOOK_SECRET</code> configurado en los ajustes de la app. Si no coincide, la petición se rechaza con error 401.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
