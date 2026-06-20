@@ -121,7 +121,21 @@ Deno.serve(async (req) => {
 
     // ── GET STRUCTURE ────────────────────────────────────────
     if (action === 'get_structure') {
-      const data = await lxJson(base, usuario, password, '/data/LoxAPP3.json');
+      let data = null;
+      const structureEndpoints = ['/data/LoxAPP3.json', '/jdev/sps/LoxAPPversion3'];
+      let lastStructErr = '';
+      for (const ep of structureEndpoints) {
+        try {
+          const r = await lxFetch(base, usuario, password, ep, 'GET', 15000);
+          if (r.ok && r.text.includes('"controls"')) {
+            data = JSON.parse(r.text);
+            console.log(`[LX] Structure loaded from ${ep}`);
+            break;
+          }
+          lastStructErr = `${ep} → HTTP ${r.status}`;
+        } catch(e) { lastStructErr = `${ep} → ${e.message}`; }
+      }
+      if (!data) throw new Error(`No se pudo obtener la estructura del Miniserver. ${lastStructErr}`);
       const controls = [];
       for (const [uuid, ctrl] of Object.entries(data.controls || {})) {
         controls.push({
@@ -169,7 +183,21 @@ Deno.serve(async (req) => {
 
     // ── GET VIRTUAL INPUTS LIST ──────────────────────────────
     if (action === 'get_virtual_inputs') {
-      const data = await lxJson(base, usuario, password, '/data/LoxAPP3.json');
+      let data = null;
+      const viEndpoints = ['/data/LoxAPP3.json', '/jdev/sps/LoxAPPversion3'];
+      let lastViErr = '';
+      for (const ep of viEndpoints) {
+        try {
+          const r = await lxFetch(base, usuario, password, ep, 'GET', 15000);
+          if (r.ok && r.text.includes('"controls"')) {
+            data = JSON.parse(r.text);
+            console.log(`[LX] VirtualInputs loaded from ${ep}`);
+            break;
+          }
+          lastViErr = `${ep} → HTTP ${r.status}`;
+        } catch(e) { lastViErr = `${ep} → ${e.message}`; }
+      }
+      if (!data) throw new Error(`No se pudo obtener la lista de variables. ${lastViErr}`);
       const VIRTUAL_TYPES = ['Pushbutton', 'Switch', 'TimedSwitch', 'VirtualInput', 'VirtualInputSwitch'];
       const virtualInputs = [];
       for (const [uuid, ctrl] of Object.entries(data.controls || {})) {
