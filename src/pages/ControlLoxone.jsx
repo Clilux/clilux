@@ -60,6 +60,33 @@ const COMMANDS = {
 
 const EMPTY_FORM = { nombre_referencia: '', miniserver_ip: '', puerto: '80', usuario: '', password: '', location: '', notas: '' };
 
+const STEPS = [
+  {
+    id: 1,
+    title: 'Nombre y ubicación',
+    subtitle: 'Identifica tu Miniserver',
+    icon: '🏷️',
+  },
+  {
+    id: 2,
+    title: 'Dirección de red',
+    subtitle: 'Dónde está el Miniserver',
+    icon: '🌐',
+  },
+  {
+    id: 3,
+    title: 'Credenciales',
+    subtitle: 'Usuario y contraseña',
+    icon: '🔐',
+  },
+  {
+    id: 4,
+    title: 'Prueba de conexión',
+    subtitle: 'Verifica que todo funciona',
+    icon: '✅',
+  },
+];
+
 // ─── Sub-components ───────────────────────────────────────────
 
 function MdButton({ children, onClick, disabled, variant = 'filled', color = MD.primary, size = 'md', className = '' }) {
@@ -172,6 +199,7 @@ export default function ControlLoxone() {
   const [testingConn, setTestingConn]     = useState(false);
   const [testResult, setTestResult]       = useState(null);
   const [sendingCmd, setSendingCmd]       = useState({});
+  const [wizardStep, setWizardStep]       = useState(1);
 
   useEffect(() => { loadDevices(); }, []);
 
@@ -249,7 +277,8 @@ export default function ControlLoxone() {
     setTestResult(null); setShowForm(true);
   };
 
-  const openNew = () => { setEditingDevice(null); setFormData(EMPTY_FORM); setTestResult(null); setShowForm(true); };
+  const openNew = () => { setEditingDevice(null); setFormData(EMPTY_FORM); setTestResult(null); setWizardStep(1); setShowForm(true); };
+  const openEditDevice = (device) => { openEdit(device); setWizardStep(1); };
 
   const filteredControls = selectedRoom === 'all' ? controls : controls.filter(c => c.room === selectedRoom);
 
@@ -408,82 +437,185 @@ export default function ControlLoxone() {
         </div>
       </div>
 
-      {/* ─ Form Dialog ─────────────────────────────────────── */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-lg rounded-3xl" style={{ background: MD.surface }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: MD.onSurface }}>
+      {/* ─ Wizard Dialog ───────────────────────────────────── */}
+      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) setWizardStep(1); }}>
+        <DialogContent className="max-w-lg rounded-3xl p-0 overflow-hidden" style={{ background: MD.surface }}>
+
+          {/* Header with step indicator */}
+          <div className="px-6 pt-6 pb-4" style={{ background: MD.primarySurface }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: MD.primary }}>
               {editingDevice ? 'Editar Miniserver' : 'Nuevo Miniserver Loxone'}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <MdInput label="Nombre de referencia *" placeholder="Ej: Oficina Principal"
-              value={formData.nombre_referencia} onChange={e => setFormData({ ...formData, nombre_referencia: e.target.value })} />
-
-            {/* Cloud DNS hint */}
-            <div className="p-3 rounded-xl text-xs" style={{ background: MD.primarySurface, color: MD.primary }}>
-              <strong>Dirección del Miniserver:</strong> Usa la URL Cloud DNS de Loxone para acceso remoto:<br />
-              <span className="font-mono">https://XXXXXXXX.dns.loxonecloud.com</span><br />
-              (el serial de 8 caracteres está en la etiqueta del Miniserver)
+            </p>
+            <div className="flex items-center gap-2">
+              {STEPS.map((s, i) => (
+                <React.Fragment key={s.id}>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all"
+                      style={{
+                        background: wizardStep > s.id ? '#2E7D32' : wizardStep === s.id ? MD.primary : '#E0E0E0',
+                        color: wizardStep >= s.id ? '#fff' : MD.onSurfaceLow,
+                      }}>
+                      {wizardStep > s.id ? '✓' : s.id}
+                    </div>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className="flex-1 h-0.5 rounded-full transition-all"
+                      style={{ background: wizardStep > s.id ? '#2E7D32' : '#E0E0E0' }} />
+                  )}
+                </React.Fragment>
+              ))}
             </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <MdInput label="IP / URL / Cloud DNS *" placeholder="https://XXXXXXXX.dns.loxonecloud.com"
-                  value={formData.miniserver_ip} onChange={e => setFormData({ ...formData, miniserver_ip: e.target.value })} />
-              </div>
-              <MdInput label="Puerto" placeholder="80"
-                value={formData.puerto} onChange={e => setFormData({ ...formData, puerto: e.target.value })} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <MdInput label="Usuario *" placeholder="admin"
-                value={formData.usuario} onChange={e => setFormData({ ...formData, usuario: e.target.value })} />
-              <MdInput label="Contraseña *" type="password" placeholder="••••••••"
-                value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
-            </div>
-
-            <MdInput label="Ubicación" placeholder="Ej: Planta 1 - Nave A"
-              value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
-
-            {/* Test connection */}
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                disabled={testingConn || !formData.miniserver_ip || !formData.usuario || !formData.password}
-                onClick={testConnection}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-all"
-                style={{ borderColor: MD.primary, color: MD.primary, background: 'transparent' }}>
-                {testingConn ? <Loader2 size={14} className="animate-spin" /> : <Wifi size={14} />}
-                Probar conexión
-              </button>
-
-              {testResult && (
-                <div className="flex items-start gap-2 text-sm flex-1 min-w-0">
-                  {testResult.ok
-                    ? <CheckCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: '#2E7D32' }} />
-                    : <XCircle size={16} className="flex-shrink-0 mt-0.5" style={{ color: MD.error }} />}
-                  <span className="text-xs leading-snug" style={{ color: testResult.ok ? '#2E7D32' : MD.error }}>
-                    {testResult.msg}
-                  </span>
-                </div>
-              )}
+            <div className="mt-3">
+              <p className="font-semibold text-base" style={{ color: MD.onSurface }}>
+                {STEPS[wizardStep - 1].icon} {STEPS[wizardStep - 1].title}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: MD.onSurfaceMid }}>
+                Paso {wizardStep} de {STEPS.length} — {STEPS[wizardStep - 1].subtitle}
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <button onClick={() => setShowForm(false)}
-              className="px-5 py-2.5 rounded-full text-sm font-medium border"
+          {/* Step content */}
+          <div className="px-6 py-5 space-y-4">
+
+            {/* STEP 1: Nombre y ubicación */}
+            {wizardStep === 1 && (
+              <>
+                <div className="p-3 rounded-xl text-sm" style={{ background: '#F3F4F6', color: MD.onSurfaceMid }}>
+                  💡 <strong>¿Qué es esto?</strong> Ponle un nombre fácil de identificar a tu Miniserver Loxone. Si tienes varios (una instalación por planta o edificio), el nombre te ayudará a distinguirlos.
+                </div>
+                <MdInput label="Nombre de referencia *" placeholder="Ej: Oficina Principal, Nave A, Apartamento 3B..."
+                  value={formData.nombre_referencia} onChange={e => setFormData({ ...formData, nombre_referencia: e.target.value })} />
+                <MdInput label="Ubicación física (opcional)" placeholder="Ej: Planta 2 – Cuarto técnico"
+                  value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+              </>
+            )}
+
+            {/* STEP 2: Dirección de red */}
+            {wizardStep === 2 && (
+              <>
+                <div className="p-3 rounded-xl text-sm" style={{ background: MD.primarySurface, color: MD.primary }}>
+                  🌐 <strong>¿Cómo encontrar la dirección?</strong><br />
+                  <ol className="list-decimal ml-4 mt-1 space-y-1 text-xs">
+                    <li>Abre <strong>Loxone Config</strong> en tu ordenador.</li>
+                    <li>Ve a <strong>Miniserver → General → Cloud DNS</strong>.</li>
+                    <li>Copia la URL con formato <span className="font-mono bg-blue-100 px-1 rounded">https://XXXXXXXX.dns.loxonecloud.com</span></li>
+                    <li>Pégala abajo. <strong>No uses la IP local</strong> (192.168.x.x) porque solo funciona en tu red WiFi.</li>
+                  </ol>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <MdInput label="IP / URL Cloud DNS *" placeholder="https://XXXXXXXX.dns.loxonecloud.com"
+                      value={formData.miniserver_ip} onChange={e => setFormData({ ...formData, miniserver_ip: e.target.value })} />
+                  </div>
+                  <MdInput label="Puerto" placeholder="80"
+                    value={formData.puerto} onChange={e => setFormData({ ...formData, puerto: e.target.value })} />
+                </div>
+                <div className="p-3 rounded-xl text-xs" style={{ background: '#FFF8E1', color: '#795548', border: '1px solid #FFE082' }}>
+                  ⚠️ Si usas IP pública, asegúrate de tener el <strong>reenvío de puerto</strong> configurado en tu router hacia el Miniserver.
+                </div>
+              </>
+            )}
+
+            {/* STEP 3: Credenciales */}
+            {wizardStep === 3 && (
+              <>
+                <div className="p-3 rounded-xl text-sm" style={{ background: '#F3F4F6', color: MD.onSurfaceMid }}>
+                  🔐 <strong>¿Qué credenciales usar?</strong><br />
+                  <ol className="list-decimal ml-4 mt-1 space-y-1 text-xs">
+                    <li>En <strong>Loxone Config</strong>, ve a <strong>Miniserver → Usuarios</strong>.</li>
+                    <li>Usa el usuario <strong>admin</strong> o crea uno específico para la integración.</li>
+                    <li>Se recomienda crear un usuario con permisos de solo lectura/control si es posible.</li>
+                  </ol>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <MdInput label="Usuario *" placeholder="admin"
+                    value={formData.usuario} onChange={e => setFormData({ ...formData, usuario: e.target.value })} />
+                  <MdInput label="Contraseña *" type="password" placeholder="••••••••"
+                    value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                </div>
+                <MdInput label="Notas internas (opcional)" placeholder="Ej: Credenciales de mantenimiento..."
+                  value={formData.notas} onChange={e => setFormData({ ...formData, notas: e.target.value })} />
+              </>
+            )}
+
+            {/* STEP 4: Test de conexión */}
+            {wizardStep === 4 && (
+              <>
+                <div className="p-3 rounded-xl text-sm" style={{ background: '#F3F4F6', color: MD.onSurfaceMid }}>
+                  ✅ <strong>Último paso:</strong> Verifica que la conexión funciona antes de guardar. Pulsa el botón para que el sistema compruebe que puede comunicarse con tu Miniserver.
+                </div>
+
+                {/* Resumen de datos */}
+                <div className="rounded-xl border p-4 space-y-2 text-sm" style={{ borderColor: MD.outline }}>
+                  <p className="font-semibold text-xs uppercase tracking-wide mb-2" style={{ color: MD.onSurfaceLow }}>Resumen de configuración</p>
+                  <div className="flex justify-between"><span style={{ color: MD.onSurfaceMid }}>Nombre</span><span className="font-medium">{formData.nombre_referencia}</span></div>
+                  <div className="flex justify-between"><span style={{ color: MD.onSurfaceMid }}>Dirección</span><span className="font-mono text-xs truncate max-w-48">{formData.miniserver_ip}</span></div>
+                  <div className="flex justify-between"><span style={{ color: MD.onSurfaceMid }}>Puerto</span><span className="font-medium">{formData.puerto || '80'}</span></div>
+                  <div className="flex justify-between"><span style={{ color: MD.onSurfaceMid }}>Usuario</span><span className="font-medium">{formData.usuario}</span></div>
+                  {formData.location && <div className="flex justify-between"><span style={{ color: MD.onSurfaceMid }}>Ubicación</span><span className="font-medium">{formData.location}</span></div>}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    disabled={testingConn}
+                    onClick={testConnection}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all"
+                    style={{ borderColor: MD.primary, color: MD.primary, background: 'transparent' }}>
+                    {testingConn ? <Loader2 size={14} className="animate-spin" /> : <Wifi size={14} />}
+                    {testingConn ? 'Probando...' : 'Probar conexión'}
+                  </button>
+                </div>
+
+                {testResult && (
+                  <div className="rounded-xl p-4 flex items-start gap-3"
+                    style={{ background: testResult.ok ? '#E8F5E9' : MD.errorSurface, border: `1px solid ${testResult.ok ? '#A5D6A7' : '#EF9A9A'}` }}>
+                    {testResult.ok
+                      ? <CheckCircle size={20} className="flex-shrink-0 mt-0.5" style={{ color: '#2E7D32' }} />
+                      : <XCircle size={20} className="flex-shrink-0 mt-0.5" style={{ color: MD.error }} />}
+                    <div>
+                      <p className="font-semibold text-sm" style={{ color: testResult.ok ? '#2E7D32' : MD.error }}>
+                        {testResult.ok ? '¡Conexión exitosa!' : 'No se pudo conectar'}
+                      </p>
+                      {!testResult.ok && <p className="text-xs mt-1" style={{ color: '#B71C1C' }}>{testResult.msg}</p>}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer navigation */}
+          <div className="px-6 py-4 flex justify-between items-center border-t" style={{ borderColor: MD.outline }}>
+            <button
+              onClick={() => wizardStep === 1 ? setShowForm(false) : setWizardStep(s => s - 1)}
+              className="px-5 py-2.5 rounded-full text-sm font-medium border transition-all"
               style={{ borderColor: MD.outline, color: MD.onSurfaceMid }}>
-              Cancelar
+              {wizardStep === 1 ? 'Cancelar' : '← Atrás'}
             </button>
-            <button onClick={saveDevice}
-              disabled={saving || !formData.nombre_referencia || !formData.miniserver_ip || !formData.usuario || !formData.password}
-              className="px-5 py-2.5 rounded-full text-sm font-medium text-white transition-all"
-              style={{ background: saving ? '#BDBDBD' : MD.primary, boxShadow: '0 2px 4px rgba(0,0,0,.2)' }}>
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
-          </DialogFooter>
+
+            {wizardStep < STEPS.length ? (
+              <button
+                disabled={
+                  (wizardStep === 1 && !formData.nombre_referencia) ||
+                  (wizardStep === 2 && !formData.miniserver_ip) ||
+                  (wizardStep === 3 && (!formData.usuario || !formData.password))
+                }
+                onClick={() => setWizardStep(s => s + 1)}
+                className="px-5 py-2.5 rounded-full text-sm font-medium text-white transition-all"
+                style={{ background: MD.primary, boxShadow: '0 2px 4px rgba(0,0,0,.2)' }}>
+                Siguiente →
+              </button>
+            ) : (
+              <button
+                onClick={saveDevice}
+                disabled={saving}
+                className="px-5 py-2.5 rounded-full text-sm font-medium text-white transition-all"
+                style={{ background: saving ? '#BDBDBD' : '#2E7D32', boxShadow: '0 2px 4px rgba(0,0,0,.2)' }}>
+                {saving ? 'Guardando...' : '✓ Guardar Miniserver'}
+              </button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
