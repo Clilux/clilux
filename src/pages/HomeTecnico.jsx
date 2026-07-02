@@ -330,6 +330,26 @@ export default function HomeTecnico() {
                 </div>
               )}
 
+              {/* Panel de edificios */}
+              <div className="mb-4">
+                <Link to={createPageUrl('PanelEdificios')}>
+                  <Card className="bg-gradient-to-r from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
+                          <Building2 className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold text-sm">Panel de Edificios</p>
+                          <p className="text-blue-100 text-xs">Estado global, alertas y revisiones por edificio</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/70" />
+                    </div>
+                  </Card>
+                </Link>
+              </div>
+
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
