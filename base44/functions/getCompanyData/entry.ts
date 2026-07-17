@@ -268,6 +268,24 @@ Deno.serve(async (req) => {
       return Response.json({ data: { incident: inc, client: clientList[0] || null, building: buildingList[0] || null, equipment: equipmentList[0] || null } });
     }
 
+    // ── Actualizar incidencia (para técnicos de sesión propia) ──
+    if (entity === 'incident_update') {
+      if (!permisos.editar_incidencias) return deny('editar_incidencias');
+      const { incident_id, updates } = body;
+      if (!incident_id || !updates) return Response.json({ error: 'incident_id y updates requeridos' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Incident.update(incident_id, updates);
+      return Response.json({ data });
+    }
+
+    // ── Eliminar incidencia (para técnicos de sesión propia) ─────
+    if (entity === 'incident_delete') {
+      if (!permisos.editar_incidencias) return deny('editar_incidencias');
+      const { incident_id } = body;
+      if (!incident_id) return Response.json({ error: 'incident_id requerido' }, { status: 400 });
+      await base44.asServiceRole.entities.Incident.delete(incident_id);
+      return Response.json({ success: true });
+    }
+
     // ── Incidencias por equipo ───────────────────────────────────
     if (entity === 'incidents_by_equipment') {
       if (!permisos.ver_incidencias) return deny('ver_incidencias');

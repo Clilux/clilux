@@ -132,9 +132,42 @@ export default function IncidentDetail() {
   const finalBuilding = isSessionTech ? building : buildingDirect;
   const finalClient = isSessionTech ? client : clientDirect;
 
+  // Helper: resolver usuario actual (sesión técnica o Base44)
+  const resolveUser = async () => {
+    if (isSessionTech) {
+      return {
+        email: sessionTechEmail,
+        full_name: sessionStorage.getItem('technician_name') || sessionTechEmail,
+      };
+    }
+    return currentUser || await base44.auth.me();
+  };
+
+  // Helper: actualizar incidencia vía proxy (técnicos) o directo (admins)
+  const updateIncident = async (id, updateData) => {
+    if (isSessionTech) {
+      await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'incident_update',
+        incident_id: id, updates: updateData,
+      });
+    } else {
+      await base44.entities.Incident.update(id, updateData);
+    }
+  };
+
+  const invalidateIncidentQueries = () => {
+    if (isSessionTech) {
+      queryClient.invalidateQueries({ queryKey: ['proxy-incident-detail', incidentId, sessionTechEmail] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-all', sessionTechEmail] });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
+    }
+    queryClient.invalidateQueries({ queryKey: ['incidents'] });
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
+      const user = await resolveUser();
       const prevStatus = incident.status;
       const updateData = {
         ...data,
@@ -144,7 +177,7 @@ export default function IncidentDetail() {
       if (data.status === 'resolved' || data.status === 'closed') {
         updateData.resolution_date = new Date().toISOString().split('T')[0];
       }
-      await base44.entities.Incident.update(incidentId, updateData);
+      await updateIncident(incidentId, updateData);
 
       // Notify client if status changed
       if (data.status && data.status !== prevStatus) {
@@ -167,15 +200,15 @@ export default function IncidentDetail() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      invalidateIncidentQueries();
       toast.success('Incidencia actualizada');
     },
+    onError: () => toast.error('Error al actualizar la incidencia'),
   });
 
   const addCommentMutation = useMutation({
     mutationFn: async () => {
-      const user = currentUser || await base44.auth.me();
+      const user = await resolveUser();
       const prevStatus = incident.status;
       const historyEntry = {
         date: new Date().toISOString(),
@@ -198,10 +231,17 @@ export default function IncidentDetail() {
       }
       // Si etiqueta es irreparable, marcar equipo como fuera de servicio
       if (newLabel === 'irreparable' && incident.equipment_id) {
-        await base44.entities.Equipment.update(incident.equipment_id, { status: 'out_of_service' });
+        if (isSessionTech) {
+          await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'equipment_update',
+            equipment_id: incident.equipment_id, updates: { status: 'out_of_service' },
+          });
+        } else {
+          await base44.entities.Equipment.update(incident.equipment_id, { status: 'out_of_service' });
+        }
         queryClient.invalidateQueries({ queryKey: ['equipment-incident', incident.equipment_id] });
       }
-      await base44.entities.Incident.update(incidentId, updateData);
+      await updateIncident(incidentId, updateData);
 
       // Notify client if status changed
       if (newStatus && newStatus !== prevStatus) {
@@ -214,19 +254,27 @@ export default function IncidentDetail() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      invalidateIncidentQueries();
       setNewComment('');
       toast.success('Comentario añadido');
     },
+    onError: () => toast.error('Error al añadir el comentario'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.Incident.delete(incidentId);
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'incident_delete',
+          incident_id: incidentId,
+        });
+      } else {
+        await base44.entities.Incident.delete(incidentId);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-all', sessionTechEmail] });
       toast.success('Incidencia eliminada');
       navigate(-1);
     },
