@@ -146,13 +146,14 @@ export default function IncidentDetail() {
   // Helper: actualizar incidencia vía proxy (técnicos) o directo (admins)
   const updateIncident = async (id, updateData) => {
     if (isSessionTech) {
-      await base44.functions.invoke('getCompanyData', {
+      const res = await base44.functions.invoke('getCompanyData', {
         technician_email: sessionTechEmail, entity: 'incident_update',
         incident_id: id, updates: updateData,
       });
-    } else {
-      await base44.entities.Incident.update(id, updateData);
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data?.data;
     }
+    return await base44.entities.Incident.update(id, updateData);
   };
 
   const invalidateIncidentQueries = () => {
@@ -232,10 +233,11 @@ export default function IncidentDetail() {
       // Si etiqueta es irreparable, marcar equipo como fuera de servicio
       if (newLabel === 'irreparable' && incident.equipment_id) {
         if (isSessionTech) {
-          await base44.functions.invoke('getCompanyData', {
+          const eqRes = await base44.functions.invoke('getCompanyData', {
             technician_email: sessionTechEmail, entity: 'equipment_update',
             equipment_id: incident.equipment_id, updates: { status: 'out_of_service' },
           });
+          if (eqRes.data?.error) throw new Error(eqRes.data.error);
         } else {
           await base44.entities.Equipment.update(incident.equipment_id, { status: 'out_of_service' });
         }
@@ -264,10 +266,11 @@ export default function IncidentDetail() {
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (isSessionTech) {
-        await base44.functions.invoke('getCompanyData', {
+        const res = await base44.functions.invoke('getCompanyData', {
           technician_email: sessionTechEmail, entity: 'incident_delete',
           incident_id: incidentId,
         });
+        if (res.data?.error) throw new Error(res.data.error);
       } else {
         await base44.entities.Incident.delete(incidentId);
       }
