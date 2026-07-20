@@ -145,15 +145,27 @@ export default function IncidentDetail() {
 
   // Helper: actualizar incidencia vía proxy (técnicos) o directo (admins)
   const updateIncident = async (id, updateData) => {
+    // Limpiar campos vacíos/inválidos que violan el enum del esquema
+    const cleaned = { ...updateData };
+    if (cleaned.label === '' || cleaned.label === null) {
+      cleaned.label = null; // null es válido para campo opcional, '' no lo es
+    }
     if (isSessionTech) {
-      const res = await base44.functions.invoke('getCompanyData', {
-        technician_email: sessionTechEmail, entity: 'incident_update',
-        incident_id: id, updates: updateData,
-      });
+      let res;
+      try {
+        res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'incident_update',
+          incident_id: id, updates: cleaned,
+        });
+      } catch (err) {
+        // axios lanza en 4xx/5xx; extraer mensaje del cuerpo
+        const msg = err?.response?.data?.error || err?.message || 'Error de red';
+        throw new Error(msg);
+      }
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.data;
     }
-    return await base44.entities.Incident.update(id, updateData);
+    return await base44.entities.Incident.update(id, cleaned);
   };
 
   const invalidateIncidentQueries = () => {
@@ -173,7 +185,6 @@ export default function IncidentDetail() {
       const updateData = {
         ...data,
         assigned_technician: user.email,
-        assigned_technician_name: user.full_name || '',
       };
       if (data.status === 'resolved' || data.status === 'closed') {
         updateData.resolution_date = new Date().toISOString().split('T')[0];
@@ -204,7 +215,7 @@ export default function IncidentDetail() {
       invalidateIncidentQueries();
       toast.success('Incidencia actualizada');
     },
-    onError: () => toast.error('Error al actualizar la incidencia'),
+    onError: (err) => toast.error('Error al actualizar: ' + (err?.message || 'desconocido')),
   });
 
   const addCommentMutation = useMutation({
@@ -221,11 +232,10 @@ export default function IncidentDetail() {
       const updatedHistory = [...(incident.history || []), historyEntry];
       const updateData = {
         history: updatedHistory,
-        label: newLabel || incident.label,
+        label: newLabel || incident.label || null,
         status: newStatus,
         technician_notes: technicianNotes,
         resolution_notes: resolutionNotes,
-        assigned_technician: user.email,
       };
       if (newStatus === 'resolved' || newStatus === 'closed') {
         updateData.resolution_date = new Date().toISOString().split('T')[0];
@@ -260,7 +270,7 @@ export default function IncidentDetail() {
       setNewComment('');
       toast.success('Comentario añadido');
     },
-    onError: () => toast.error('Error al añadir el comentario'),
+    onError: (err) => toast.error('Error al añadir comentario: ' + (err?.message || 'desconocido')),
   });
 
   const deleteMutation = useMutation({
@@ -281,7 +291,7 @@ export default function IncidentDetail() {
       toast.success('Incidencia eliminada');
       navigate(-1);
     },
-    onError: () => toast.error('Error al eliminar la incidencia'),
+    onError: (err) => toast.error('Error al eliminar: ' + (err?.message || 'desconocido')),
   });
 
   const handleUpdate = () => {
@@ -457,10 +467,10 @@ export default function IncidentDetail() {
                   className="text-red-500 hover:text-red-600 text-xs"
                   onClick={() => {
                     if (confirm('¿Eliminar todo el historial de esta incidencia?')) {
-                      base44.entities.Incident.update(incidentId, { history: [] }).then(() => {
-                        queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
+                      updateIncident(incidentId, { history: [] }).then(() => {
+                        invalidateIncidentQueries();
                         toast.success('Historial eliminado');
-                      });
+                      }).catch((err) => toast.error('Error: ' + (err?.message || 'desconocido')));
                     }
                   }}
                 >
