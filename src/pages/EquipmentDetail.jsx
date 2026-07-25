@@ -31,6 +31,7 @@ import EquipmentIncidents from '../components/equipment/EquipmentIncidents';
 import FGasTab from '../components/equipment/FGasTab';
 import LDTab from '../components/equipment/LDTab';
 import LibroRegistroTab from '../components/equipment/LibroRegistroTab';
+import NfcAssignButton from '../components/equipment/NfcAssignButton';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -327,6 +328,15 @@ export default function EquipmentDetail() {
                     client={finalClient}
                     revisions={scheduledRevisions} />
                   
+                  <NfcAssignButton
+                    equipmentId={finalEquipment.id}
+                    isSessionTech={isSessionTech}
+                    sessionTechEmail={sessionTechEmail}
+                    onAssigned={() => {
+                      queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+                      queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
+                    }}
+                  />
                   <Link to={createPageUrl(`EquipmentForm?id=${finalEquipment.id}`)}>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />

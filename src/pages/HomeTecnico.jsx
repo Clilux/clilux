@@ -10,7 +10,7 @@ import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine,
-  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat
+  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -31,6 +31,7 @@ const TABS = [
 // ── Quick actions (sin Nuevo Cliente, Incidencias, Climatización, Loxone) ──
 const FUNCIONES = [
   { id: '1',  label: 'Escanear',         page: 'ScanEquipmentTech',    icon: ScanLine,  color: 'from-blue-500/30 to-purple-500/30',  iconCls: 'text-blue-300' },
+  { id: '2',  label: 'Leer NFC',         page: 'NfcReader',            icon: Nfc,       color: 'from-teal-500/30 to-cyan-500/30',    iconCls: 'text-teal-300' },
   { id: '3',  label: 'Formulario Equipos',page: 'EquipmentForm',        icon: FileCheck, color: 'from-cyan-500/30 to-teal-500/30',    iconCls: 'text-cyan-300' },
   { id: '8',  label: 'Documentación',    page: 'Documentacion',         icon: FileText,  color: 'from-indigo-500/30 to-blue-500/30',  iconCls: 'text-indigo-300' },
   { id: '10', label: 'Asistencia Virtual',page: 'AIConsulta',           icon: Bot,       color: 'from-purple-500/30 to-pink-500/30',  iconCls: 'text-purple-300' },

@@ -175,7 +175,7 @@
     },
     "technical_data": {
       "type": "object",
-      "description": "Datos t\u00e9cnicos espec\u00edficos del equipo"
+      "description": "Datos t\u00e9cnicos espec\u00edf\u00edficos del equipo"
     },
     "parent_equipment_id": {
       "type": "string",
@@ -224,6 +224,10 @@
     },
     "fgas_tech_cert_num": {
       "type": "string"
+    },
+    "nfc_tag_id": {
+      "type": "string",
+      "description": "Identificador de etiqueta NFC asociada al equipo"
     }
   },
   "required": [

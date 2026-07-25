@@ -22,6 +22,7 @@ import ImportEquipment from './pages/ImportEquipment';
 import ControlObras from './pages/ControlObras';
 import ObraDetail from './pages/ObraDetail';
 import PanelEdificios from './pages/PanelEdificios';
+import NfcReader from './pages/NfcReader';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -95,6 +96,7 @@ const AuthenticatedApp = () => {
       <Route path="/ControlObras" element={<LayoutWrapper currentPageName="ControlObras"><ControlObras /></LayoutWrapper>} />
       <Route path="/ObraDetail" element={<LayoutWrapper currentPageName="ObraDetail"><ObraDetail /></LayoutWrapper>} />
       <Route path="/PanelEdificios" element={<LayoutWrapper currentPageName="PanelEdificios"><PanelEdificios /></LayoutWrapper>} />
+      <Route path="/NfcReader" element={<LayoutWrapper currentPageName="NfcReader"><NfcReader /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
