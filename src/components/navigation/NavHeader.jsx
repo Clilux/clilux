@@ -20,12 +20,9 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
       <div className="flex items-center gap-3">
         {showBack &&
         <Button
-          variant="ghost"
-          size="icon"
           onClick={handleBack}
-          className="rounded-full hover:bg-white/10 text-[hsl(var(--foreground))]">
-          
-            <ArrowLeft className="h-5 w-5" />
+          className="rounded-full h-11 w-11 p-0 bg-[#1E40AF] text-white hover:bg-[#1E3A8A] shadow-md">
+            <ArrowLeft className="h-6 w-6" />
           </Button>
         }
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">{title}</h1>
@@ -33,11 +30,8 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
       {showHome &&
       <Link to={createPageUrl(homeUrl)}>
           <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-white/10 text-gray-900 bg-[#ffffff] mx-1">
-          
-            <Home className="h-5 w-5" />
+          className="rounded-full h-11 w-11 p-0 bg-[#1E40AF] text-white hover:bg-[#1E3A8A] shadow-md">
+            <Home className="h-6 w-6" />
           </Button>
         </Link>
       }
