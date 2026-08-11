@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
-  Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine,
+  Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine, BarChart3,
   Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
@@ -19,6 +19,7 @@ import { playFuturisticSound } from '@/lib/futuristicSound';
 import FichajeRapido from '@/components/horario/FichajeRapido';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
+import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'calendario',    label: 'Calendario',    icon: Calendar },
   { id: 'funciones',     label: 'Funciones',     icon: Sparkles },
   { id: 'automatizacion',label: 'Automatización',icon: Zap },
+  { id: 'estadisticas', label: 'Estadísticas',   icon: BarChart3 },
 ];
 
 // ── Quick actions (sin Nuevo Cliente, Incidencias, Climatización, Loxone) ──
@@ -594,17 +596,26 @@ export default function HomeTecnico() {
 
                 {/* Si no hay integraciones activas y STEL está desactivado */}
                 {!stelEnabled && AUTOMATIZACION.length === 0 && (
-                  <div className="col-span-2 text-center py-10 text-slate-400">
-                    <Plug className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No hay integraciones activas.</p>
-                    <p className="text-xs mt-1">Actívalas en Configuración → Integraciones</p>
-                  </div>
+                <div className="col-span-2 text-center py-10 text-slate-400">
+                  <Plug className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No hay integraciones activas.</p>
+                  <p className="text-xs mt-1">Actívalas en Configuración → Integraciones</p>
+                </div>
                 )}
-              </div>
-            </div>
-          )}
+                </div>
+                </div>
+                )}
 
-        </div>
+                {/* ── ESTADÍSTICAS ── */}
+                {activeTab === 'estadisticas' && (
+                <EstadisticasTab
+                incidents={finalIncidents}
+                revisions={finalRevisions}
+                isLoading={isLoadingData}
+                />
+                )}
+
+                </div>
       </div>
     </div>
   );
