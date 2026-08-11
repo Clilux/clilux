@@ -16,7 +16,7 @@ import {
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { playFuturisticSound } from '@/lib/futuristicSound';
+
 import FichajeRapido from '@/components/horario/FichajeRapido';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
@@ -332,7 +332,8 @@ export default function HomeTecnico() {
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' && (
-            <div className="space-y-5 max-w-2xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="space-y-5">
               {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
               {isSessionTech && (
                 <div className="mb-6">
@@ -368,7 +369,7 @@ export default function HomeTecnico() {
                   { label: 'Equipos',     value: finalEquipment.length,   icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',   iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment', loading: isLoadingData },
                   { label: 'Incidencias', value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: isLoadingData },
                 ].map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) => (
-                  <Link key={label} to={createPageUrl(page)} onClick={playFuturisticSound}>
+                  <Link key={label} to={createPageUrl(page)}>
                     <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
                       <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center mb-3`}>
                         <Icon className={`h-7 w-7 ${iconCls}`} />
@@ -429,6 +430,8 @@ export default function HomeTecnico() {
                 )}
               </div>
 
+              </div>
+              <div className="space-y-5">
               {/* Alertas F-Gas / RSIF — solo admins */}
               {isAdmin && !isSessionTech && (
                 <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
@@ -492,7 +495,7 @@ export default function HomeTecnico() {
                 ) : (
                 <div className="space-y-2">
                   {finalClients.slice(0, 5).map(client => (
-                    <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`} onClick={playFuturisticSound}>
+                    <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
                       <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -515,10 +518,11 @@ export default function HomeTecnico() {
                 )}
               </div>
             </div>
-          )}
+            </div>
+            )}
 
-          {/* ── CALENDARIO ── */}
-          {activeTab === 'calendario' && (
+            {/* ── CALENDARIO ── */}
+            {activeTab === 'calendario' && (
             <div className="h-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-semibold text-lg flex items-center gap-2">
@@ -549,7 +553,7 @@ export default function HomeTecnico() {
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {FUNCIONES.map(({ id, label, page, icon: Icon, color, iconCls }) => (
-                  <Link key={id} to={createPageUrl(page)} onClick={playFuturisticSound}>
+                  <Link key={id} to={createPageUrl(page)}>
                     <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
                         <Icon className={`h-9 w-9 ${iconCls}`} />
@@ -571,7 +575,7 @@ export default function HomeTecnico() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {AUTOMATIZACION.map(({ id, label, page, icon: Icon, color, iconCls, desc }) => (
-                  <Link key={id} to={createPageUrl(page)} onClick={playFuturisticSound}>
+                  <Link key={id} to={createPageUrl(page)}>
                     <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
                         <Icon className={`h-9 w-9 ${iconCls}`} />
@@ -587,7 +591,7 @@ export default function HomeTecnico() {
 
                 {/* STEL Order — solo si está habilitado */}
                 {stelEnabled && (
-                  <Link to="/StelClientes" onClick={playFuturisticSound}>
+                  <Link to="/StelClientes">
                     <Card className="bg-gradient-to-br from-blue-500/30 to-indigo-500/30 border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm">
                       <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
                         <Plug className="h-9 w-9 text-blue-500" />
