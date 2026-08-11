@@ -38,6 +38,15 @@
       "type": "boolean",
       "default": false
     },
+    "worker_type": {
+      "type": "string",
+      "enum": [
+        "tecnico",
+        "administracion"
+      ],
+      "default": "tecnico",
+      "description": "Tipo de trabajador: t\u00e9cnico de campo o personal de administraci\u00f3n"
+    },
     "portal_email": {
       "type": "string"
     },
@@ -46,7 +55,7 @@
     },
     "pin": {
       "type": "string",
-      "description": "PIN num\u00e9rico personal para fichar en el kiosko (4-6 d\u00edgitos)"
+      "description": "PIN num\u00e9rico personal para fichar en el kiosko (4-6 d\u00edgitos). Lo crea el propio trabajador desde su perfil."
     },
     "invited_at": {
       "type": "string"

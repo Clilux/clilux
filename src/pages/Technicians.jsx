@@ -11,7 +11,7 @@ import { Plus, User, Mail, Phone, Edit, Trash2, UserCheck, Send, Loader2, Info, 
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
-const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_name: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', pin: '' };
+const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', worker_type: 'tecnico', company_name: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', pin: '' };
 
 export default function Technicians() {
   const queryClient = useQueryClient();
@@ -75,7 +75,7 @@ export default function Technicians() {
 
   const handleOpenDialog = (tech = null) => {
     setEditingTech(tech);
-    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active', company_name: tech.company_name || '', fgas_cert_num: tech.fgas_cert_num || '', rite_cert_num: tech.rite_cert_num || '', empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '', pin: tech.pin || '' } : emptyForm);
+    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active', worker_type: tech.worker_type || 'tecnico', company_name: tech.company_name || '', fgas_cert_num: tech.fgas_cert_num || '', rite_cert_num: tech.rite_cert_num || '', empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '', pin: tech.pin || '' } : emptyForm);
     setShowDialog(true);
   };
 
@@ -120,9 +120,14 @@ export default function Technicians() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-800">{tech.name}</h3>
-                    <Badge variant={tech.status === 'active' ? 'default' : 'secondary'} className="mt-1 text-xs">
-                      {tech.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Badge variant={tech.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                        {tech.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                      <Badge className={tech.worker_type === 'administracion' ? 'bg-purple-100 text-purple-700 border-0 text-xs' : 'bg-blue-100 text-blue-700 border-0 text-xs'}>
+                        {tech.worker_type === 'administracion' ? 'Admin.' : 'Técnico'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -261,6 +266,17 @@ export default function Technicians() {
                 >
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
+                </select>
+              </div>
+              <div>
+                <Label>Tipo de trabajador</Label>
+                <select
+                  value={formData.worker_type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, worker_type: e.target.value }))}
+                  className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
+                >
+                  <option value="tecnico">Técnico (campo)</option>
+                  <option value="administracion">Administración (oficina)</option>
                 </select>
               </div>
 

@@ -23,6 +23,8 @@ export default function TechnicianProfile() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [contactForm, setContactForm] = useState(null);
+  const [pinForm, setPinForm] = useState({ pin: '', confirm: '' });
+  const [pinSaving, setPinSaving] = useState(false);
 
   const sessionTechEmailNav = sessionStorage.getItem('technician_email');
   const isSessionTechNav = !!sessionTechEmailNav;
@@ -62,6 +64,23 @@ export default function TechnicianProfile() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['technicians'] }); toast.success('Datos guardados'); },
     onError: () => toast.error('Error al guardar'),
   });
+
+  const savePin = async () => {
+    if (!tech) return;
+    if (!/^\d{4,6}$/.test(pinForm.pin)) { toast.error('El PIN debe tener 4-6 dígitos numéricos'); return; }
+    if (pinForm.pin !== pinForm.confirm) { toast.error('Los PIN no coinciden'); return; }
+    setPinSaving(true);
+    try {
+      await base44.entities.Technician.update(tech.id, { pin: pinForm.pin });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('PIN actualizado');
+      setPinForm({ pin: '', confirm: '' });
+    } catch (err) {
+      toast.error('Error al guardar el PIN');
+    } finally {
+      setPinSaving(false);
+    }
+  };
 
   const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const currentMonthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
@@ -157,6 +176,11 @@ export default function TechnicianProfile() {
                     <Shield className="h-3 w-3 mr-1" />Admin
                   </Badge>
                 )}
+                {tech.worker_type && (
+                  <Badge className={tech.worker_type === 'tecnico' ? 'bg-blue-100 text-blue-700 border-0 text-xs' : 'bg-purple-100 text-purple-700 border-0 text-xs'}>
+                    {tech.worker_type === 'tecnico' ? 'Técnico' : 'Administración'}
+                  </Badge>
+                )}
                 <Badge className={tech.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' : 'bg-slate-100 text-slate-500 border-0 text-xs'}>
                   {tech.status === 'active' ? 'Activo' : 'Inactivo'}
                 </Badge>
@@ -233,6 +257,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="registros">Registros</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
+            <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
           </TabsList>
 
           <TabsContent value="registros">
@@ -337,6 +362,37 @@ export default function TechnicianProfile() {
                   </div>
                 </div>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pin">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-1">PIN de Kiosko</h3>
+              <p className="text-xs text-slate-400 mb-5">PIN personal (4-6 dígitos) para fichar en el kiosko de la oficina. Cada trabajador gestiona el suyo.</p>
+              <div className="flex items-center gap-2 mb-5">
+                <Badge className={tech.pin ? 'bg-emerald-100 text-emerald-700 border-0' : 'bg-slate-100 text-slate-500 border-0'}>
+                  {tech.pin ? 'PIN configurado' : 'Sin PIN configurado'}
+                </Badge>
+              </div>
+              <div className="space-y-4 max-w-xs">
+                <div>
+                  <Label className="text-slate-600 mb-1">Nuevo PIN (4-6 dígitos)</Label>
+                  <Input type="password" inputMode="numeric" value={pinForm.pin}
+                    onChange={e => setPinForm(p => ({ ...p, pin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                    placeholder="••••" className="tracking-widest text-lg" />
+                </div>
+                <div>
+                  <Label className="text-slate-600 mb-1">Confirmar PIN</Label>
+                  <Input type="password" inputMode="numeric" value={pinForm.confirm}
+                    onChange={e => setPinForm(p => ({ ...p, confirm: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                    placeholder="••••" className="tracking-widest text-lg" />
+                </div>
+                <div className="pt-2">
+                  <Button onClick={savePin} disabled={pinSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {pinSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar PIN</>}
+                  </Button>
+                </div>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>

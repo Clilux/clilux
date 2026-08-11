@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const INACTIVITY_MS = 12000; // auto-reset a la pantalla PIN tras 12s sin tocar
 
 export default function KioskoFichaje() {
+  const navigate = useNavigate();
   const [pin, setPin] = useState('');
   const [sessionPin, setSessionPin] = useState(''); // PIN validado, en memoria durante la sesión
   const [technician, setTechnician] = useState(null);
@@ -189,6 +191,9 @@ export default function KioskoFichaje() {
   // ── Pantalla de PIN ───────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
+      <button onClick={() => navigate('/MenuInicio')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors z-10">
+        <ArrowLeft className="h-4 w-4" /> Volver
+      </button>
       <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
         <Clock className="h-4 w-4" />
         <span className="text-sm font-mono">{timeStr}</span>

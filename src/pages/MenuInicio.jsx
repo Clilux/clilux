@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight, Monitor } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -204,6 +204,20 @@ export default function MenuInicio() {
                 <div className="flex-1">
                   <p className="text-white font-bold text-lg">Cliente</p>
                   <p className="text-slate-400 text-sm mt-0.5">Portal de seguimiento</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/KioskoFichaje')}
+                className="w-full flex items-center gap-5 p-5 rounded-2xl bg-slate-700/60 border border-slate-600/50 hover:bg-slate-700 hover:border-slate-500 transition-all text-left group"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center shrink-0 group-hover:bg-cyan-500/30 transition-colors">
+                  <Monitor className="h-7 w-7 text-cyan-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-bold text-lg">Kiosko de Fichaje</p>
+                  <p className="text-slate-400 text-sm mt-0.5">Fichar con PIN en la oficina</p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
               </button>
