@@ -25,7 +25,7 @@ const WMO = {
   99: { label: 'Tormenta severa', icon: Zap, color: 'text-yellow-200' },
 };
 
-export default function WeatherWidget() {
+export default function WeatherWidget({ size = 'sm' }) {
   const [city, setCity] = useState(() => localStorage.getItem('kiosko_city') || 'Madrid');
   const [weather, setWeather] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -73,6 +73,75 @@ export default function WeatherWidget() {
   const info = WMO[code] || WMO[0];
   const Icon = info.icon;
 
+  const picker = (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setPickerOpen(false)}>
+      <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-slate-800">Elige tu ciudad</h3>
+          <button onClick={() => setPickerOpen(false)} className="text-slate-400 hover:text-slate-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex gap-2 mb-4">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && doSearch()}
+            placeholder="Buscar ciudad..."
+            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm"
+            autoFocus
+          />
+          <button onClick={doSearch} className="bg-blue-600 text-white px-3 rounded-lg">
+            <Search className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="space-y-1 max-h-64 overflow-y-auto">
+          {searching && (
+            <p className="text-center text-slate-400 text-sm py-4 flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Buscando...
+            </p>
+          )}
+          {!searching && results.map(c => (
+            <button key={c.id} onClick={() => pickCity(c)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-slate-400" />
+              <span>{c.name}{c.country ? `, ${c.country}` : ''}</span>
+            </button>
+          ))}
+          {!searching && results.length === 0 && (
+            <p className="text-center text-slate-400 text-sm py-4">Busca tu ciudad para ver el tiempo</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (size === 'lg') {
+    return (
+      <>
+        <div className="flex flex-col items-center gap-3 text-center" onClick={e => e.stopPropagation()}>
+          {loading ? (
+            <Loader2 className="h-20 w-20 text-white/60 animate-spin" />
+          ) : (
+            <Icon className={`h-24 w-24 ${info.color}`} />
+          )}
+          <p className="text-8xl font-bold text-white leading-none">
+            {weather?.current?.temperature_2m != null ? `${Math.round(weather.current.temperature_2m)}°` : '--°'}
+          </p>
+          <p className="text-3xl text-white/80 font-medium">{info.label}</p>
+          <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 text-white/70 hover:text-white text-2xl mt-1 transition-colors">
+            <MapPin className="h-5 w-5" />{weather?.name || city}
+          </button>
+          {weather?.daily && (
+            <p className="text-white/50 text-xl">
+              {Math.round(weather.daily.temperature_2m_max[0])}° / {Math.round(weather.daily.temperature_2m_min[0])}°
+            </p>
+          )}
+        </div>
+        {pickerOpen && picker}
+      </>
+    );
+  }
+
   return (
     <>
       <button
@@ -99,48 +168,7 @@ export default function WeatherWidget() {
           </div>
         )}
       </button>
-
-      {pickerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setPickerOpen(false)}>
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Elige tu ciudad</h3>
-              <button onClick={() => setPickerOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doSearch()}
-                placeholder="Buscar ciudad..."
-                className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-slate-800 text-sm"
-                autoFocus
-              />
-              <button onClick={doSearch} className="bg-blue-600 text-white px-3 rounded-lg">
-                <Search className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="space-y-1 max-h-64 overflow-y-auto">
-              {searching && (
-                <p className="text-center text-slate-400 text-sm py-4 flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Buscando...
-                </p>
-              )}
-              {!searching && results.map(c => (
-                <button key={c.id} onClick={() => pickCity(c)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-slate-400" />
-                  <span>{c.name}{c.country ? `, ${c.country}` : ''}</span>
-                </button>
-              ))}
-              {!searching && results.length === 0 && (
-                <p className="text-center text-slate-400 text-sm py-4">Busca tu ciudad para ver el tiempo</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {pickerOpen && picker}
     </>
   );
 }

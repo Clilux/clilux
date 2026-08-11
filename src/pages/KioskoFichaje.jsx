@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, X } from 'lucide-react';
+import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WeatherWidget from '@/components/kiosko/WeatherWidget';
 
-const INACTIVITY_MS = 15000; // auto-reset a la pantalla PIN tras 15s sin tocar
+const INACTIVITY_MS = 15000; // auto-reset al salvapantallas tras 15s sin tocar
 
 export default function KioskoFichaje() {
   const navigate = useNavigate();
+  const [screen, setScreen] = useState('screensaver'); // screensaver | pin | tech
   const [pin, setPin] = useState('');
   const [sessionPin, setSessionPin] = useState('');
   const [technician, setTechnician] = useState(null);
@@ -34,15 +35,16 @@ export default function KioskoFichaje() {
     setSessionPin('');
     setError('');
     setLastAction(null);
+    setScreen('screensaver');
   };
 
-  // Auto-reset por inactividad cuando hay sesión abierta
+  // Auto-reset por inactividad cuando hay sesión de técnico abierta
   useEffect(() => {
-    if (technician) {
+    if (screen === 'tech') {
       inactivityTimer.current = setTimeout(resetSession, INACTIVITY_MS);
     }
     return () => { if (inactivityTimer.current) clearTimeout(inactivityTimer.current); };
-  }, [technician, showSummary, lastAction]);
+  }, [screen, showSummary, lastAction]);
 
   const pressDigit = (d) => { setError(''); setPin(p => (p.length < 6 ? p + d : p)); };
   const pressDelete = () => { setError(''); setPin(p => p.slice(0, -1)); };
@@ -59,6 +61,7 @@ export default function KioskoFichaje() {
       setSessionPin(pinToTry);
       setPin('');
       setShowSummary(false);
+      setScreen('tech');
     } catch (err) {
       setError('PIN no válido');
       setPin('');
@@ -92,6 +95,7 @@ export default function KioskoFichaje() {
   const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const timeNoSeconds = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const fmtFecha = (f) => {
@@ -102,8 +106,30 @@ export default function KioskoFichaje() {
 
   const todayHours = todayRecord?.horas_efectivas || 0;
 
+  // ── Salvapantallas: reloj + tiempo grandes. Tocar para entrar ──
+  if (screen === 'screensaver') {
+    return (
+      <div
+        onClick={() => setScreen('pin')}
+        className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none cursor-pointer"
+      >
+        <div className="flex flex-col items-center gap-10">
+          <div className="text-center">
+            <p className="text-white font-mono text-9xl font-bold tracking-tight leading-none">{timeNoSeconds}</p>
+            <p className="text-white/70 capitalize text-3xl mt-4">{dateStr}</p>
+          </div>
+          <WeatherWidget size="lg" />
+        </div>
+        <div className="absolute bottom-12 flex items-center gap-2 text-white/40 animate-pulse">
+          <Hand className="h-6 w-6" />
+          <span className="text-xl">Toca la pantalla para fichar</span>
+        </div>
+      </div>
+    );
+  }
+
   // ── Pantalla de acción / resumen (técnico identificado) ─────
-  if (technician) {
+  if (screen === 'tech' && technician) {
     const firstName = technician.name?.split(' ')[0] || 'Técnico';
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none overflow-y-auto">
@@ -123,7 +149,6 @@ export default function KioskoFichaje() {
 
         {showSummary && summary ? (
           <div className="w-full max-w-2xl space-y-4">
-            {/* Confirmación del fichaje */}
             {lastAction && (
               <div className="flex items-center gap-3 bg-emerald-500/20 border border-emerald-400/40 rounded-2xl px-6 py-4">
                 <CheckCircle2 className="h-10 w-10 text-emerald-400 shrink-0" />
@@ -137,7 +162,6 @@ export default function KioskoFichaje() {
               </div>
             )}
 
-            {/* Alerta de fichajes pendientes */}
             {summary.missingAlert && (
               <div className="flex items-start gap-3 bg-red-500/20 border-2 border-red-400/60 rounded-2xl px-5 py-4">
                 <AlertTriangle className="h-8 w-8 text-red-300 shrink-0 mt-0.5" />
@@ -154,7 +178,6 @@ export default function KioskoFichaje() {
               </div>
             )}
 
-            {/* Cuenta atrás vacaciones */}
             {summary.vacationCountdown && summary.vacationCountdown.days <= 30 && (
               <div className="flex items-center gap-3 bg-gradient-to-r from-purple-500/30 to-blue-500/30 border border-purple-300/40 rounded-2xl px-5 py-4">
                 <CalendarDays className="h-9 w-9 text-purple-200 shrink-0" />
@@ -165,7 +188,6 @@ export default function KioskoFichaje() {
               </div>
             )}
 
-            {/* Resumen de horas */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/10 border border-white/20 rounded-2xl p-5 text-center">
                 <Clock className="h-7 w-7 text-blue-300 mx-auto mb-2" />
@@ -179,7 +201,6 @@ export default function KioskoFichaje() {
               </div>
             </div>
 
-            {/* Últimos fichajes */}
             <div className="bg-white/10 border border-white/20 rounded-2xl p-5">
               <p className="text-sm font-semibold text-white/80 mb-3">Últimos fichajes</p>
               <div className="space-y-2">
@@ -211,7 +232,6 @@ export default function KioskoFichaje() {
           </div>
         ) : (
           <div className="w-full max-w-3xl">
-            {/* Tarjeta del técnico */}
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl px-12 py-10 mb-8 flex items-center gap-6">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
                 {firstName[0]?.toUpperCase()}
@@ -284,7 +304,7 @@ export default function KioskoFichaje() {
   // ── Pantalla de PIN ───────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
-      <button onClick={() => navigate('/MenuInicio')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors z-10">
+      <button onClick={() => setScreen('screensaver')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors z-10">
         <ArrowLeft className="h-4 w-4" /> Volver
       </button>
       <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
@@ -292,12 +312,8 @@ export default function KioskoFichaje() {
         <span className="text-lg font-mono">{timeStr}</span>
       </div>
 
-      <div className="mt-10 mb-6">
-        <WeatherWidget />
-      </div>
-
       <div className="text-center mb-2">
-        <h1 className="text-4xl font-bold text-white tracking-tight">Kiosko de Fichaje</h1>
+        <h1 className="text-5xl font-bold text-white tracking-tight">Control Horario</h1>
         <p className="text-white/60 capitalize mt-2 text-xl">{dateStr}</p>
       </div>
 
