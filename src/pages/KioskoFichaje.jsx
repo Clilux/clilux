@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import WeatherWidget from '@/components/kiosko/WeatherWidget';
 
-const INACTIVITY_MS = 12000; // auto-reset a la pantalla PIN tras 12s sin tocar
+const INACTIVITY_MS = 15000; // auto-reset a la pantalla PIN tras 15s sin tocar
 
 export default function KioskoFichaje() {
   const navigate = useNavigate();
   const [pin, setPin] = useState('');
-  const [sessionPin, setSessionPin] = useState(''); // PIN validado, en memoria durante la sesión
+  const [sessionPin, setSessionPin] = useState('');
   const [technician, setTechnician] = useState(null);
   const [todayRecord, setTodayRecord] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [showSummary, setShowSummary] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lastAction, setLastAction] = useState(null);
   const [now, setNow] = useState(new Date());
   const inactivityTimer = useRef(null);
 
-  // Reloj en vivo
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
@@ -26,6 +28,8 @@ export default function KioskoFichaje() {
   const resetSession = () => {
     setTechnician(null);
     setTodayRecord(null);
+    setSummary(null);
+    setShowSummary(false);
     setPin('');
     setSessionPin('');
     setError('');
@@ -38,12 +42,9 @@ export default function KioskoFichaje() {
       inactivityTimer.current = setTimeout(resetSession, INACTIVITY_MS);
     }
     return () => { if (inactivityTimer.current) clearTimeout(inactivityTimer.current); };
-  }, [technician]);
+  }, [technician, showSummary, lastAction]);
 
-  const pressDigit = (d) => {
-    setError('');
-    setPin(p => (p.length < 6 ? p + d : p));
-  };
+  const pressDigit = (d) => { setError(''); setPin(p => (p.length < 6 ? p + d : p)); };
   const pressDelete = () => { setError(''); setPin(p => p.slice(0, -1)); };
 
   const doLookupWithPin = async (pinToTry) => {
@@ -54,8 +55,10 @@ export default function KioskoFichaje() {
       const res = await base44.functions.invoke('kioskoFichaje', { pin: pinToTry, action: 'lookup' });
       setTechnician(res.data.technician);
       setTodayRecord(res.data.todayRecord);
+      setSummary(res.data.summary || null);
       setSessionPin(pinToTry);
       setPin('');
+      setShowSummary(false);
     } catch (err) {
       setError('PIN no válido');
       setPin('');
@@ -71,8 +74,9 @@ export default function KioskoFichaje() {
     try {
       const res = await base44.functions.invoke('kioskoFichaje', { pin: sessionPin, action });
       setTodayRecord(res.data.todayRecord);
+      setSummary(res.data.summary || null);
       setLastAction({ action, hora: res.data.hora });
-      setTimeout(() => setLastAction(null), 4000);
+      setShowSummary(true);
     } catch (err) {
       setError(err?.response?.data?.error || 'Error al fichar');
     } finally {
@@ -90,96 +94,185 @@ export default function KioskoFichaje() {
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // ── Pantalla de acción (técnico identificado) ──────────────
+  const fmtFecha = (f) => {
+    if (!f) return '';
+    const d = new Date(f + 'T00:00');
+    return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  const todayHours = todayRecord?.horas_efectivas || 0;
+
+  // ── Pantalla de acción / resumen (técnico identificado) ─────
   if (technician) {
     const firstName = technician.name?.split(' ')[0] || 'Técnico';
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none overflow-y-auto">
+        <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40 z-10">
           <Clock className="h-4 w-4" />
           <span className="text-lg font-mono">{timeStr}</span>
         </div>
-        <div className="absolute top-6 left-6">
+        <div className="absolute top-6 left-6 z-10">
           <button onClick={resetSession} className="text-white/40 hover:text-white/80 text-sm underline underline-offset-2">
             Cerrar sesión
           </button>
         </div>
 
-        {lastAction && (
-          <div className="mb-6 flex items-center gap-3 bg-emerald-500/20 border border-emerald-400/40 rounded-2xl px-6 py-4">
-            <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-            <div>
-              <p className="text-xl font-bold text-white">
-                {lastAction.action === 'entrada' ? 'Jornada iniciada' :
-                 lastAction.action === 'pausa' ? 'Pausa registrada' :
-                 'Jornada finalizada'}
-              </p>
-              <p className="text-sm text-emerald-300">a las {lastAction.hora}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl px-12 py-10 mb-8 flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-            {firstName[0]?.toUpperCase()}
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-white">{firstName}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${jornadaActiva ? 'bg-emerald-400 animate-pulse' : jornadaPausada ? 'bg-amber-400' : jornadaFinalizada ? 'bg-slate-400' : 'bg-red-400'}`} />
-              <span className="text-sm text-white/70">
-                {jornadaActiva ? `En jornada desde ${ultimo?.entrada}` :
-                 jornadaPausada ? 'En pausa' :
-                 jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h` :
-                 'Sin fichar hoy'}
-              </span>
-            </div>
-          </div>
+        <div className="mt-10 mb-6">
+          <WeatherWidget />
         </div>
 
-        {error && (
-          <div className="mb-4 flex items-center gap-2 text-red-300 text-sm">
-            <AlertTriangle className="h-4 w-4" />{error}
-          </div>
-        )}
+        {showSummary && summary ? (
+          <div className="w-full max-w-2xl space-y-4">
+            {/* Confirmación del fichaje */}
+            {lastAction && (
+              <div className="flex items-center gap-3 bg-emerald-500/20 border border-emerald-400/40 rounded-2xl px-6 py-4">
+                <CheckCircle2 className="h-10 w-10 text-emerald-400 shrink-0" />
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {lastAction.action === 'entrada' ? 'Jornada iniciada' :
+                     lastAction.action === 'pausa' ? 'Pausa registrada' : 'Jornada finalizada'}
+                  </p>
+                  <p className="text-sm text-emerald-300">a las {lastAction.hora}</p>
+                </div>
+              </div>
+            )}
 
-        <div className="w-full max-w-3xl">
-          {!jornadaActiva && (
+            {/* Alerta de fichajes pendientes */}
+            {summary.missingAlert && (
+              <div className="flex items-start gap-3 bg-red-500/20 border-2 border-red-400/60 rounded-2xl px-5 py-4">
+                <AlertTriangle className="h-8 w-8 text-red-300 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xl font-bold text-red-200">Tienes fichajes pendientes</p>
+                  <div className="mt-1.5 space-y-1">
+                    {summary.missingAlert.map((m, i) => (
+                      <p key={i} className="text-sm text-red-100">
+                        · {fmtFecha(m.fecha)} — {m.tipo === 'sin_fichaje' ? 'sin fichar' : 'sin cerrar salida'}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cuenta atrás vacaciones */}
+            {summary.vacationCountdown && summary.vacationCountdown.days <= 30 && (
+              <div className="flex items-center gap-3 bg-gradient-to-r from-purple-500/30 to-blue-500/30 border border-purple-300/40 rounded-2xl px-5 py-4">
+                <CalendarDays className="h-9 w-9 text-purple-200 shrink-0" />
+                <div>
+                  <p className="text-xl font-bold text-white">¡{summary.vacationCountdown.days} días para tus vacaciones!</p>
+                  <p className="text-sm text-purple-100">Empiezan el {fmtFecha(summary.vacationCountdown.fecha_inicio)}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Resumen de horas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-5 text-center">
+                <Clock className="h-7 w-7 text-blue-300 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-white">{todayHours}h</p>
+                <p className="text-xs text-white/60 mt-1">Hoy (efectivas)</p>
+              </div>
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-5 text-center">
+                <Briefcase className="h-7 w-7 text-emerald-300 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-white">{summary.monthHours}h</p>
+                <p className="text-xs text-white/60 mt-1">Este mes</p>
+              </div>
+            </div>
+
+            {/* Últimos fichajes */}
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-5">
+              <p className="text-sm font-semibold text-white/80 mb-3">Últimos fichajes</p>
+              <div className="space-y-2">
+                {summary.recentRecords.length === 0 && (
+                  <p className="text-sm text-white/40 text-center py-2">Sin registros previos</p>
+                )}
+                {summary.recentRecords.map(r => (
+                  <div key={r.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium capitalize">{fmtFecha(r.fecha)}</p>
+                      <p className="text-xs text-white/50">
+                        {r.hora_entrada || '--'} → {r.hora_salida || (r.finalizada ? '--' : 'abierta')}
+                      </p>
+                    </div>
+                    <span className="text-sm text-emerald-300 font-semibold shrink-0 ml-2">
+                      {r.horas_efectivas ? `${r.horas_efectivas}h` : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <button
-              onClick={() => performAction('entrada')}
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition-all rounded-2xl py-10 mb-4 flex items-center justify-center gap-4 shadow-lg shadow-emerald-900/40 disabled:opacity-50"
+              onClick={() => setShowSummary(false)}
+              className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.99] transition-all rounded-2xl py-5 flex items-center justify-center gap-3 shadow-lg shadow-blue-900/40"
             >
-              <LogIn className="h-10 w-10 text-white" />
-              <span className="text-3xl font-bold text-white">
-                {jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Fichar entrada'}
-              </span>
+              <span className="text-xl font-bold text-white">Hecho</span>
             </button>
-          )}
-          {jornadaActiva && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => performAction('pausa')}
-                disabled={loading}
-                className="bg-amber-500 hover:bg-amber-400 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-amber-900/40 disabled:opacity-50"
-              >
-                <Coffee className="h-8 w-8 text-white" />
-                <span className="text-2xl font-bold text-white">Pausa</span>
-              </button>
-              <button
-                onClick={() => performAction('salida')}
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-500 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-red-900/40 disabled:opacity-50"
-              >
-                <LogOut className="h-8 w-8 text-white" />
-                <span className="text-2xl font-bold text-white">Fichar salida</span>
-              </button>
+          </div>
+        ) : (
+          <div className="w-full max-w-3xl">
+            {/* Tarjeta del técnico */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl px-12 py-10 mb-8 flex items-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+                {firstName[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-white">{firstName}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`w-2.5 h-2.5 rounded-full ${jornadaActiva ? 'bg-emerald-400 animate-pulse' : jornadaPausada ? 'bg-amber-400' : jornadaFinalizada ? 'bg-slate-400' : 'bg-red-400'}`} />
+                  <span className="text-sm text-white/70">
+                    {jornadaActiva ? `En jornada desde ${ultimo?.entrada}` :
+                     jornadaPausada ? 'En pausa' :
+                     jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h` :
+                     'Sin fichar hoy'}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-          {jornadaNoIniciada && !jornadaFinalizada && (
-            <p className="text-center text-white/40 text-sm mt-6">Pulsa para registrar el inicio de tu jornada</p>
-          )}
-        </div>
+
+            {error && (
+              <div className="mb-4 flex items-center gap-2 text-red-300 text-sm">
+                <AlertTriangle className="h-4 w-4" />{error}
+              </div>
+            )}
+
+            {!jornadaActiva && (
+              <button
+                onClick={() => performAction('entrada')}
+                disabled={loading}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition-all rounded-2xl py-10 mb-4 flex items-center justify-center gap-4 shadow-lg shadow-emerald-900/40 disabled:opacity-50"
+              >
+                {loading ? <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-10 w-10 text-white" />}
+                <span className="text-3xl font-bold text-white">
+                  {jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Fichar entrada'}
+                </span>
+              </button>
+            )}
+            {jornadaActiva && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => performAction('pausa')}
+                  disabled={loading}
+                  className="bg-amber-500 hover:bg-amber-400 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-amber-900/40 disabled:opacity-50"
+                >
+                  {loading ? <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Coffee className="h-8 w-8 text-white" />}
+                  <span className="text-2xl font-bold text-white">Pausa</span>
+                </button>
+                <button
+                  onClick={() => performAction('salida')}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-500 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-red-900/40 disabled:opacity-50"
+                >
+                  {loading ? <div className="w-9 h-9 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogOut className="h-8 w-8 text-white" />}
+                  <span className="text-2xl font-bold text-white">Fichar salida</span>
+                </button>
+              </div>
+            )}
+            {jornadaNoIniciada && !jornadaFinalizada && (
+              <p className="text-center text-white/40 text-sm mt-6">Pulsa para registrar el inicio de tu jornada</p>
+            )}
+          </div>
+        )}
 
         <p className="absolute bottom-5 text-white/30 text-xs">
           La sesión se cierra automáticamente por inactividad · RD-ley 8/2019
@@ -199,12 +292,16 @@ export default function KioskoFichaje() {
         <span className="text-lg font-mono">{timeStr}</span>
       </div>
 
+      <div className="mt-10 mb-6">
+        <WeatherWidget />
+      </div>
+
       <div className="text-center mb-2">
         <h1 className="text-4xl font-bold text-white tracking-tight">Kiosko de Fichaje</h1>
         <p className="text-white/60 capitalize mt-2 text-xl">{dateStr}</p>
       </div>
 
-      <div className="flex items-center gap-3 my-8">
+      <div className="flex items-center gap-3 my-6">
         <Lock className="h-6 w-6 text-white/50" />
         <div className="flex gap-3">
           {[0, 1, 2, 3].map(i => (

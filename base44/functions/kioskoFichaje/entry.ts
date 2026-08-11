@@ -62,7 +62,54 @@ function nowStr() {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default async function(req) {
+// ── Resumen del trabajador: últimos fichajes, horas del mes, alertas y vacaciones ──
+async function buildSummary(base44, tech, allRecords) {
+  const sorted = [...allRecords].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  const recentRecords = sorted.slice(0, 6);
+
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  const monthRecords = allRecords.filter(r => (r.fecha || '').startsWith(monthPrefix));
+  const monthHours = monthRecords.reduce((acc, r) => acc + (r.horas_efectivas || 0), 0);
+
+  // Alerta: días laborables pasados (últimos 7) sin fichaje o sin cerrar
+  const diasLaborables = tech.dias_laborables || [1, 2, 3, 4, 5];
+  const missing = [];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    if (!diasLaborables.includes(d.getDay())) continue;
+    const f = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const rec = allRecords.find(r => r.fecha === f);
+    if (!rec) missing.push({ fecha: f, tipo: 'sin_fichaje' });
+    else if (!rec.hora_salida && !rec.finalizada) missing.push({ fecha: f, tipo: 'sin_salida' });
+  }
+
+  // Cuenta atrás para vacaciones aprobadas
+  let vacationCountdown = null;
+  try {
+    const ausencias = await base44.asServiceRole.entities.Ausencia.filter({
+      technician_email: tech.email, tipo: 'vacaciones', estado: 'aprobada',
+    });
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const future = ausencias
+      .filter(a => a.fecha_inicio && new Date(a.fecha_inicio) > today0)
+      .sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
+    if (future.length > 0) {
+      const start = new Date(future[0].fecha_inicio);
+      const days = Math.ceil((start - today0) / (1000 * 60 * 60 * 24));
+      vacationCountdown = {
+        fecha_inicio: future[0].fecha_inicio,
+        days,
+        dias_totales: future[0].dias_totales || 0,
+      };
+    }
+  } catch (e) {}
+
+  return { recentRecords, monthHours, missingAlert: missing.length ? missing : null, vacationCountdown };
+}
+
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
@@ -90,38 +137,40 @@ export default async function(req) {
       horas_jornada_diaria: jornadaDiaria,
     };
 
-    // Registro de hoy
-    const existing = await base44.asServiceRole.entities.RegistroHorario.filter({ technician_email: tech.email, fecha });
-    const todayRecord = existing[0] || null;
+    // Todos los registros del técnico (se reutilizan para hoy + resumen)
+    const allRecords = await base44.asServiceRole.entities.RegistroHorario.filter({ technician_email: tech.email });
+    const todayRecord = allRecords.find(r => r.fecha === fecha) || null;
+    const summary = await buildSummary(base44, tech, allRecords);
 
-    // ── lookup: validar PIN y devolver estado ──────────────────
+    // ── lookup: validar PIN y devolver estado + resumen ─────────
     if (action === 'lookup') {
-      return Response.json({ technician: techPublic, todayRecord });
+      return Response.json({ technician: techPublic, todayRecord, summary });
     }
 
     // ── entrada: abrir un nuevo intervalo ─────────────────────
     if (action === 'entrada') {
       const now = nowStr();
       const nuevoIntervalo = { entrada: now, salida: null };
+      let updated;
       if (todayRecord) {
         const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
-        const updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
+        updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
           intervalos, hora_salida: null, finalizada: false,
         });
-        return Response.json({ technician: techPublic, todayRecord: updated, action: 'entrada', hora: now });
+      } else {
+        updated = await base44.asServiceRole.entities.RegistroHorario.create({
+          technician_email: tech.email,
+          technician_name: tech.name,
+          technician_id: tech.id || '',
+          company_id: tech.company_id || '',
+          fecha,
+          hora_entrada: now,
+          tipo_jornada: 'normal',
+          pausas: [],
+          intervalos: [nuevoIntervalo],
+        });
       }
-      const created = await base44.asServiceRole.entities.RegistroHorario.create({
-        technician_email: tech.email,
-        technician_name: tech.name,
-        technician_id: tech.id || '',
-        company_id: tech.company_id || '',
-        fecha,
-        hora_entrada: now,
-        tipo_jornada: 'normal',
-        pausas: [],
-        intervalos: [nuevoIntervalo],
-      });
-      return Response.json({ technician: techPublic, todayRecord: created, action: 'entrada', hora: now });
+      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'entrada', hora: now });
     }
 
     // ── pausa: cerrar el intervalo activo sin finalizar ────────
@@ -134,7 +183,7 @@ export default async function(req) {
       const updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
         intervalos, hora_salida: now,
       });
-      return Response.json({ technician: techPublic, todayRecord: updated, action: 'pausa', hora: now });
+      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'pausa', hora: now });
     }
 
     // ── salida: cerrar intervalo, calcular totales y finalizar ─
@@ -148,7 +197,7 @@ export default async function(req) {
       const updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
         intervalos, hora_salida: now, finalizada: true, ...calcs,
       });
-      return Response.json({ technician: techPublic, todayRecord: updated, action: 'salida', hora: now, calcs });
+      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'salida', hora: now, calcs });
     }
 
     return Response.json({ error: 'action no válida' }, { status: 400 });
