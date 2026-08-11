@@ -97,7 +97,7 @@ export default function KioskoFichaje() {
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
         <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
           <Clock className="h-4 w-4" />
-          <span className="text-sm font-mono">{timeStr}</span>
+          <span className="text-lg font-mono">{timeStr}</span>
         </div>
         <div className="absolute top-6 left-6">
           <button onClick={resetSession} className="text-white/40 hover:text-white/80 text-sm underline underline-offset-2">
@@ -119,12 +119,12 @@ export default function KioskoFichaje() {
           </div>
         )}
 
-        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl px-10 py-8 mb-8 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl px-12 py-10 mb-8 flex items-center gap-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
             {firstName[0]?.toUpperCase()}
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{firstName}</p>
+            <p className="text-3xl font-bold text-white">{firstName}</p>
             <div className="flex items-center gap-2 mt-1">
               <span className={`w-2.5 h-2.5 rounded-full ${jornadaActiva ? 'bg-emerald-400 animate-pulse' : jornadaPausada ? 'bg-amber-400' : jornadaFinalizada ? 'bg-slate-400' : 'bg-red-400'}`} />
               <span className="text-sm text-white/70">
@@ -148,10 +148,10 @@ export default function KioskoFichaje() {
             <button
               onClick={() => performAction('entrada')}
               disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition-all rounded-2xl py-8 mb-4 flex items-center justify-center gap-4 shadow-lg shadow-emerald-900/40 disabled:opacity-50"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition-all rounded-2xl py-10 mb-4 flex items-center justify-center gap-4 shadow-lg shadow-emerald-900/40 disabled:opacity-50"
             >
-              <LogIn className="h-8 w-8 text-white" />
-              <span className="text-2xl font-bold text-white">
+              <LogIn className="h-10 w-10 text-white" />
+              <span className="text-3xl font-bold text-white">
                 {jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Fichar entrada'}
               </span>
             </button>
@@ -161,18 +161,18 @@ export default function KioskoFichaje() {
               <button
                 onClick={() => performAction('pausa')}
                 disabled={loading}
-                className="bg-amber-500 hover:bg-amber-400 active:scale-[0.99] transition-all rounded-2xl py-8 flex items-center justify-center gap-3 shadow-lg shadow-amber-900/40 disabled:opacity-50"
+                className="bg-amber-500 hover:bg-amber-400 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-amber-900/40 disabled:opacity-50"
               >
-                <Coffee className="h-7 w-7 text-white" />
-                <span className="text-xl font-bold text-white">Pausa</span>
+                <Coffee className="h-8 w-8 text-white" />
+                <span className="text-2xl font-bold text-white">Pausa</span>
               </button>
               <button
                 onClick={() => performAction('salida')}
                 disabled={loading}
-                className="bg-red-600 hover:bg-red-500 active:scale-[0.99] transition-all rounded-2xl py-8 flex items-center justify-center gap-3 shadow-lg shadow-red-900/40 disabled:opacity-50"
+                className="bg-red-600 hover:bg-red-500 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-red-900/40 disabled:opacity-50"
               >
-                <LogOut className="h-7 w-7 text-white" />
-                <span className="text-xl font-bold text-white">Fichar salida</span>
+                <LogOut className="h-8 w-8 text-white" />
+                <span className="text-2xl font-bold text-white">Fichar salida</span>
               </button>
             </div>
           )}
@@ -196,24 +196,24 @@ export default function KioskoFichaje() {
       </button>
       <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
         <Clock className="h-4 w-4" />
-        <span className="text-sm font-mono">{timeStr}</span>
+        <span className="text-lg font-mono">{timeStr}</span>
       </div>
 
       <div className="text-center mb-2">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Kiosko de Fichaje</h1>
-        <p className="text-white/50 capitalize mt-1">{dateStr}</p>
+        <h1 className="text-4xl font-bold text-white tracking-tight">Kiosko de Fichaje</h1>
+        <p className="text-white/60 capitalize mt-2 text-xl">{dateStr}</p>
       </div>
 
       <div className="flex items-center gap-3 my-8">
-        <Lock className="h-5 w-5 text-white/40" />
-        <div className="flex gap-2">
+        <Lock className="h-6 w-6 text-white/50" />
+        <div className="flex gap-3">
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />
+            <div key={i} className={`w-5 h-5 rounded-full border-2 ${pin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />
           ))}
           {pin.length > 4 && (
             <div className="flex gap-2 ml-1">
               {[4, 5].map(i => (
-                <div key={i} className={`w-4 h-4 rounded-full border-2 ${pin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />
+                <div key={i} className={`w-5 h-5 rounded-full border-2 ${pin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />
               ))}
             </div>
           )}
@@ -226,13 +226,13 @@ export default function KioskoFichaje() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+      <div className="grid grid-cols-3 gap-4 w-full max-w-md">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
           <button
             key={d}
             onClick={() => pressDigit(d)}
             disabled={loading}
-            className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-2xl py-6 text-3xl font-semibold text-white border border-white/10 disabled:opacity-50"
+            className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-2xl py-8 text-4xl font-semibold text-white border border-white/10 disabled:opacity-50"
           >
             {d}
           </button>
@@ -240,21 +240,21 @@ export default function KioskoFichaje() {
         <button
           onClick={pressDelete}
           disabled={loading || !pin}
-          className="bg-white/5 hover:bg-white/15 active:scale-95 transition-all rounded-2xl py-6 flex items-center justify-center border border-white/10 disabled:opacity-30"
+          className="bg-white/5 hover:bg-white/15 active:scale-95 transition-all rounded-2xl py-8 flex items-center justify-center border border-white/10 disabled:opacity-30"
         >
-          <Delete className="h-6 w-6 text-white/70" />
+          <Delete className="h-7 w-7 text-white/70" />
         </button>
         <button
           onClick={() => pressDigit('0')}
           disabled={loading}
-          className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-2xl py-6 text-3xl font-semibold text-white border border-white/10 disabled:opacity-50"
+          className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-2xl py-8 text-4xl font-semibold text-white border border-white/10 disabled:opacity-50"
         >
           0
         </button>
         <button
           onClick={() => doLookupWithPin(pin)}
           disabled={loading || pin.length < 4}
-          className="bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all rounded-2xl py-6 flex items-center justify-center border border-blue-400/30 disabled:opacity-40 shadow-lg shadow-blue-900/40"
+          className="bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all rounded-2xl py-8 flex items-center justify-center border border-blue-400/30 disabled:opacity-40 shadow-lg shadow-blue-900/40"
         >
           {loading ? (
             <div className="w-7 h-7 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -264,8 +264,8 @@ export default function KioskoFichaje() {
         </button>
       </div>
 
-      <p className="absolute bottom-5 text-white/30 text-xs flex items-center gap-1.5">
-        <User className="h-3 w-3" />Introduce tu PIN personal · Pídelo al administrador si no lo recuerdas
+      <p className="absolute bottom-6 text-white/40 text-sm flex items-center gap-1.5">
+        <User className="h-4 w-4" />Introduce tu PIN personal · Créalo desde tu perfil si no lo tienes
       </p>
     </div>
   );

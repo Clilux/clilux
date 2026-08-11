@@ -10,7 +10,8 @@ import {
   Users, Building2, Thermometer, ClipboardCheck,
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine, BarChart3,
-  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc
+  Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc,
+  LayoutDashboard, Monitor
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -43,6 +44,12 @@ const FUNCIONES = [
   { id: '14', label: 'Mis Ausencias',    page: 'GestionAusencias',      icon: Calendar,  color: 'from-purple-500/30 to-violet-500/30',iconCls: 'text-purple-300' },
   { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',   icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300' },
   { id: '16', label: 'Control de Obras',   page: 'ControlObras',       icon: HardHat,         color: 'from-orange-500/30 to-amber-500/30',  iconCls: 'text-orange-300' },
+  { id: '17', label: 'Panel Edificios',    page: 'PanelEdificios',     icon: LayoutDashboard, color: 'from-blue-500/30 to-indigo-500/30',   iconCls: 'text-blue-300' },
+  { id: '18', label: 'Equipos',            page: 'Equipment',          icon: Wrench,          color: 'from-slate-500/30 to-gray-500/30',    iconCls: 'text-slate-300' },
+  { id: '19', label: 'Clientes',           page: 'Clients',            icon: Users,           color: 'from-emerald-500/30 to-teal-500/30',  iconCls: 'text-emerald-300' },
+  { id: '20', label: 'Edificios',          page: 'Buildings',          icon: Building2,       color: 'from-cyan-500/30 to-blue-500/30',     iconCls: 'text-cyan-300' },
+  { id: '21', label: 'Incidencias',        page: 'Incidents',           icon: AlertTriangle,   color: 'from-red-500/30 to-rose-500/30',      iconCls: 'text-red-300' },
+  { id: '22', label: 'Kiosko Fichaje',     page: 'KioskoFichaje',       icon: Monitor,         color: 'from-cyan-500/30 to-teal-500/30',     iconCls: 'text-cyan-300' },
 ];
 
 const AUTOMATIZACION = [
