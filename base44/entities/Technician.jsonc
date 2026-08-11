@@ -44,6 +44,10 @@
     "portal_password": {
       "type": "string"
     },
+    "pin": {
+      "type": "string",
+      "description": "PIN num\u00e9rico personal para fichar en el kiosko (4-6 d\u00edgitos)"
+    },
     "invited_at": {
       "type": "string"
     },

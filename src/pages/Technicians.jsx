@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, User, Mail, Phone, Edit, Trash2, UserCheck, Send, Loader2, Info } from 'lucide-react';
+import { Plus, User, Mail, Phone, Edit, Trash2, UserCheck, Send, Loader2, Info, Lock } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 
-const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_name: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '' };
+const emptyForm = { name: '', email: '', phone: '', specialty: '', status: 'active', company_name: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', pin: '' };
 
 export default function Technicians() {
   const queryClient = useQueryClient();
@@ -75,7 +75,7 @@ export default function Technicians() {
 
   const handleOpenDialog = (tech = null) => {
     setEditingTech(tech);
-    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active', company_name: tech.company_name || '', fgas_cert_num: tech.fgas_cert_num || '', rite_cert_num: tech.rite_cert_num || '', empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '' } : emptyForm);
+    setFormData(tech ? { name: tech.name, email: tech.email, phone: tech.phone || '', specialty: tech.specialty || '', status: tech.status || 'active', company_name: tech.company_name || '', fgas_cert_num: tech.fgas_cert_num || '', rite_cert_num: tech.rite_cert_num || '', empresa_fgas_cert_num: tech.empresa_fgas_cert_num || '', pin: tech.pin || '' } : emptyForm);
     setShowDialog(true);
   };
 
@@ -150,6 +150,11 @@ export default function Technicians() {
                 )}
                 {tech.specialty && (
                   <p className="text-slate-500 italic text-xs">{tech.specialty}</p>
+                )}
+                {tech.pin && (
+                  <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-medium w-fit">
+                    <Lock className="h-3 w-3" />PIN kiosko activo
+                  </div>
                 )}
               </div>
 
@@ -298,6 +303,24 @@ export default function Technicians() {
                       className="mt-1 text-sm"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-3">
+                <p className="text-xs font-medium text-slate-600 mb-1">Kiosko de fichaje</p>
+                <p className="text-xs text-slate-400 mb-3">PIN numérico personal (4-6 dígitos) que el técnico usará para fichar en la pantalla kiosko.</p>
+                <div>
+                  <Label className="text-xs">PIN kiosko</Label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d*"
+                    maxLength={6}
+                    value={formData.pin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pin: e.target.value.replace(/\D/g, '') }))}
+                    placeholder="Ej: 1234"
+                    className="mt-1 text-sm tracking-widest font-mono"
+                  />
                 </div>
               </div>
 
