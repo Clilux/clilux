@@ -19,6 +19,7 @@ import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
 import MapaTrayecto from '@/components/horario/MapaTrayecto';
+import ComplianceBanner from '@/components/horario/ComplianceBanner';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
@@ -187,6 +188,22 @@ export default function ControlHorario() {
   const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaActiva && !jornadaFinalizada;
   const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
+  // Aviso de pausa mínima (Art. 34.3 ET): si la jornada continua > 6h debe haber
+  // un descanso mínimo de 15 min. Se comprueba sobre los tramos cerrados de hoy.
+  const minutosSinPausa = (() => {
+    if (!todayRecord) return 0;
+    const tramosCerrados = (intervalos || []).filter(t => t.entrada && t.salida);
+    if (tramosCerrados.length === 0) return 0;
+    // tiempo desde el inicio del primer tramo hasta el final del último tramo cerrado
+    const inicio = tramosCerrados[0].entrada;
+    const fin = tramosCerrados[tramosCerrados.length - 1].salida;
+    const [hi, mi] = inicio.split(':').map(Number);
+    const [hf, mf] = fin.split(':').map(Number);
+    return Math.max(0, (hf * 60 + mf) - (hi * 60 + mi));
+  })();
+  const minutosPausaHoy = todayRecord?.minutos_pausa || 0;
+  const requierePausa = minutosSinPausa > 360 && minutosPausaHoy < 15 && !jornadaFinalizada;
+
   const exportPDF = () => {
     const doc = new jsPDF();
     const techName = myRegistros[0]?.technician_name || currentUser?.full_name || currentUser?.email || '';
@@ -243,7 +260,7 @@ export default function ControlHorario() {
     // Footer
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019 · RD-ley 5/2023 · ET Art. 34-35`, 14, 285);
 
     doc.save(`horario_${techName.split(' ')[0]}_${monthStr}.pdf`);
   };
@@ -291,7 +308,7 @@ export default function ControlHorario() {
 
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019`, 14, 285);
+    doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })} · RD-ley 8/2019 · RD-ley 5/2023 · ET Art. 34-35`, 14, 285);
 
     doc.save(`jornada_${techName.split(' ')[0]}_${r.fecha}.pdf`);
   };
@@ -301,6 +318,18 @@ export default function ControlHorario() {
   // Panel de técnico — reutilizado tanto en la vista pura de técnico como en admin+técnico
   const renderTechnicianPanel = () => (
     <>
+      <ComplianceBanner jornadaIniciada={!!todayRecord} />
+
+      {requierePausa && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 flex items-start gap-2">
+          <Coffee className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-700 leading-relaxed">
+            <span className="font-semibold">Pausa obligatoria (Art. 34.3 ET).</span> Llevas más de 6 h
+            de jornada continua sin registrar pausa. Debes tomar un descanso mínimo de 15 minutos.
+          </p>
+        </div>
+      )}
+
       {/* Fichaje card */}
       <Card className="bg-white border-0 shadow-sm mb-5 overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
@@ -507,7 +536,9 @@ export default function ControlHorario() {
           </div>
         )}
       </Card>
-      <p className="text-xs text-slate-400 mt-3 text-center">RD-ley 8/2019 — Jornada pactada: {jornadaDiaria}h/día</p>
+      <p className="text-xs text-slate-400 mt-3 text-center">
+        RD-ley 8/2019 · RD-ley 5/2023 · ET Art. 34-35 — Jornada pactada: {jornadaDiaria}h/día · Conservación 4 años (ITSS)
+      </p>
     </>
   );
 
