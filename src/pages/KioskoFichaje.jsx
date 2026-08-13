@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WeatherWidget from '@/components/kiosko/WeatherWidget';
+import HoraConfirmModal from '@/components/kiosko/HoraConfirmModal';
 
 const INACTIVITY_MS = 15000; // auto-reset al salvapantallas tras 15s sin tocar
 
@@ -19,6 +20,7 @@ export default function KioskoFichaje() {
   const [error, setError] = useState('');
   const [lastAction, setLastAction] = useState(null);
   const [now, setNow] = useState(new Date());
+  const [pendingAction, setPendingAction] = useState(null); // 'entrada' | 'salida'
   const inactivityTimer = useRef(null);
 
   useEffect(() => {
@@ -70,12 +72,19 @@ export default function KioskoFichaje() {
     }
   };
 
-  const performAction = async (action) => {
+  const startAction = (action) => {
+    if (!technician || !sessionPin) return;
+    setPendingAction(action);
+  };
+
+  const performAction = async (action, hora = null, motivo = null) => {
     if (!technician || !sessionPin) return;
     setLoading(true);
     setError('');
     try {
-      const res = await base44.functions.invoke('kioskoFichaje', { pin: sessionPin, action });
+      const payload = { pin: sessionPin, action };
+      if (hora) { payload.hora = hora; payload.motivo = motivo; }
+      const res = await base44.functions.invoke('kioskoFichaje', payload);
       setTodayRecord(res.data.todayRecord);
       setSummary(res.data.summary || null);
       setLastAction({ action, hora: res.data.hora });
@@ -84,6 +93,7 @@ export default function KioskoFichaje() {
       setError(err?.response?.data?.error || 'Error al fichar');
     } finally {
       setLoading(false);
+      setPendingAction(null);
     }
   };
 
@@ -258,7 +268,7 @@ export default function KioskoFichaje() {
 
             {!jornadaActiva && (
               <button
-                onClick={() => performAction('entrada')}
+                onClick={() => startAction('entrada')}
                 disabled={loading}
                 className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition-all rounded-2xl py-10 mb-4 flex items-center justify-center gap-4 shadow-lg shadow-emerald-900/40 disabled:opacity-50"
               >
@@ -279,7 +289,7 @@ export default function KioskoFichaje() {
                   <span className="text-2xl font-bold text-white">Pausa</span>
                 </button>
                 <button
-                  onClick={() => performAction('salida')}
+                  onClick={() => startAction('salida')}
                   disabled={loading}
                   className="bg-red-600 hover:bg-red-500 active:scale-[0.99] transition-all rounded-2xl py-10 flex items-center justify-center gap-3 shadow-lg shadow-red-900/40 disabled:opacity-50"
                 >
@@ -297,6 +307,15 @@ export default function KioskoFichaje() {
         <p className="absolute bottom-5 text-white/30 text-xs">
           La sesión se cierra automáticamente por inactividad · RD-ley 8/2019
         </p>
+
+        {pendingAction && (
+          <HoraConfirmModal
+            tipo={pendingAction}
+            horaActual={now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+            onConfirm={({ hora, motivo }) => performAction(pendingAction, hora, motivo)}
+            onClose={() => setPendingAction(null)}
+          />
+        )}
       </div>
     );
   }

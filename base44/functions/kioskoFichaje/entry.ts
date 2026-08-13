@@ -113,10 +113,21 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { pin, action } = body;
+    const { pin, action, hora, motivo } = body;
 
     if (!pin || !action) {
       return Response.json({ error: 'pin y action requeridos' }, { status: 400 });
+    }
+
+    // Hora ajustada (opcional): el trabajador indica que ficha a una hora distinta
+    // de la real. Debe justificarse (motivo). Se documenta en historial_modificaciones.
+    const HORA_RE = /^\d{2}:\d{2}$/;
+    let horaAjustada = null;
+    if (hora && HORA_RE.test(hora)) {
+      horaAjustada = hora;
+      if (!motivo || !motivo.trim()) {
+        return Response.json({ error: 'Debes indicar el motivo del ajuste de hora' }, { status: 400 });
+      }
     }
 
     // Buscar técnico por PIN (service role). El PIN actúa como factor de autenticación del kiosko.
@@ -149,28 +160,44 @@ export default async function (req) {
 
     // ── entrada: abrir un nuevo intervalo ─────────────────────
     if (action === 'entrada') {
-      const now = nowStr();
-      const nuevoIntervalo = { entrada: now, salida: null };
+      const realNow = nowStr();
+      // No se puede fichar una entrada en el futuro
+      if (horaAjustada && horaAjustada > realNow) {
+        return Response.json({ error: 'La hora no puede ser posterior a la actual' }, { status: 400 });
+      }
+      const horaRegistro = horaAjustada || realNow;
+      const nuevoIntervalo = { entrada: horaRegistro, salida: null };
       let updated;
       if (todayRecord) {
         const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
-        updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
-          intervalos, hora_salida: null, finalizada: false,
-        });
+        const updateData = { intervalos, hora_salida: null, finalizada: false };
+        if (horaAjustada) {
+          updateData.historial_modificaciones = [
+            ...(todayRecord.historial_modificaciones || []),
+            { fecha_mod: new Date().toISOString(), usuario: tech.name, campo: 'hora_entrada', valor_anterior: realNow, valor_nuevo: horaRegistro, motivo: motivo.trim() },
+          ];
+        }
+        updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, updateData);
       } else {
-        updated = await base44.asServiceRole.entities.RegistroHorario.create({
+        const createData = {
           technician_email: tech.email,
           technician_name: tech.name,
           technician_id: tech.id || '',
           company_id: tech.company_id || '',
           fecha,
-          hora_entrada: now,
+          hora_entrada: horaRegistro,
           tipo_jornada: 'normal',
           pausas: [],
           intervalos: [nuevoIntervalo],
-        });
+        };
+        if (horaAjustada) {
+          createData.historial_modificaciones = [
+            { fecha_mod: new Date().toISOString(), usuario: tech.name, campo: 'hora_entrada', valor_anterior: realNow, valor_nuevo: horaRegistro, motivo: motivo.trim() },
+          ];
+        }
+        updated = await base44.asServiceRole.entities.RegistroHorario.create(createData);
       }
-      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'entrada', hora: now });
+      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'entrada', hora: horaRegistro });
     }
 
     // ── pausa: cerrar el intervalo activo sin finalizar ────────
@@ -189,15 +216,33 @@ export default async function (req) {
     // ── salida: cerrar intervalo, calcular totales y finalizar ─
     if (action === 'salida') {
       if (!todayRecord) return Response.json({ error: 'No hay jornada iniciada hoy' }, { status: 400 });
-      const now = nowStr();
-      const intervalos = (todayRecord.intervalos || []).map((t, i, arr) =>
-        i === arr.length - 1 && !t.salida ? { ...t, salida: now } : t
+      const realNow = nowStr();
+      const intervalosActuales = todayRecord.intervalos || [];
+      const ultimoTramo = intervalosActuales[intervalosActuales.length - 1];
+      const entradaUltimo = ultimoTramo?.entrada;
+      // La salida no puede ser anterior a la entrada del tramo ni posterior a la hora real
+      if (horaAjustada) {
+        if (entradaUltimo && horaAjustada < entradaUltimo) {
+          return Response.json({ error: 'La salida no puede ser anterior a la entrada' }, { status: 400 });
+        }
+        if (horaAjustada > realNow) {
+          return Response.json({ error: 'La hora no puede ser posterior a la actual' }, { status: 400 });
+        }
+      }
+      const horaRegistro = horaAjustada || realNow;
+      const intervalos = intervalosActuales.map((t, i, arr) =>
+        i === arr.length - 1 && !t.salida ? { ...t, salida: horaRegistro } : t
       );
-      const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: now }, jornadaDiaria);
-      const updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, {
-        intervalos, hora_salida: now, finalizada: true, ...calcs,
-      });
-      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'salida', hora: now, calcs });
+      const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: horaRegistro }, jornadaDiaria);
+      const updateData = { intervalos, hora_salida: horaRegistro, finalizada: true, ...calcs };
+      if (horaAjustada) {
+        updateData.historial_modificaciones = [
+          ...(todayRecord.historial_modificaciones || []),
+          { fecha_mod: new Date().toISOString(), usuario: tech.name, campo: 'hora_salida', valor_anterior: realNow, valor_nuevo: horaRegistro, motivo: motivo.trim() },
+        ];
+      }
+      const updated = await base44.asServiceRole.entities.RegistroHorario.update(todayRecord.id, updateData);
+      return Response.json({ technician: techPublic, todayRecord: updated, summary, action: 'salida', hora: horaRegistro, calcs });
     }
 
     return Response.json({ error: 'action no válida' }, { status: 400 });
