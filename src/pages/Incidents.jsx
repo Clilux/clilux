@@ -12,6 +12,7 @@ import { Plus, Search, Filter } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import IncidentCard from '../components/incidents/IncidentCard';
 import { toast } from 'sonner';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function Incidents() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +24,13 @@ export default function Incidents() {
   const isSessionTech = !!sessionTechEmail;
 
   const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    await queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    await queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    await queryClient.invalidateQueries({ queryKey: ['clients'] });
+  };
 
   const { data: incidents = [], isLoading } = useQuery({
     queryKey: ['incidents', isSessionTech ? 'proxy' : 'direct'],
@@ -111,7 +119,8 @@ export default function Incidents() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-background p-6">
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="max-w-5xl mx-auto">
         <NavHeader title="Incidencias" />
 
@@ -122,12 +131,12 @@ export default function Incidents() {
               placeholder="Buscar incidencias..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white"
+              className="pl-10 bg-card"
             />
           </div>
           <div className="flex gap-3">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-36 bg-white">
+              <SelectTrigger className="w-36 bg-card">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
@@ -140,7 +149,7 @@ export default function Incidents() {
               </SelectContent>
             </Select>
             <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger className="w-36 bg-white">
+              <SelectTrigger className="w-36 bg-card">
                 <SelectValue placeholder="Prioridad" />
               </SelectTrigger>
               <SelectContent>
@@ -193,6 +202,7 @@ export default function Incidents() {
           isLoading={deleteMutation.isPending}
         />
       </div>
+      </PullToRefresh>
     </div>
   );
 }

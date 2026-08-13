@@ -4,7 +4,9 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from '@/components/PageTransition';
 import PageNotFound from './lib/PageNotFound';
 import VetaCatalogo from './pages/VetaCatalogo';
 import ContratoMantenimiento from './pages/ContratoMantenimiento';
@@ -31,12 +33,15 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>{children}</Layout>
-  : <>{children}</>;
+const LayoutWrapper = ({ children, currentPageName }) => (
+  <PageTransition>
+    {Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>}
+  </PageTransition>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -64,7 +69,8 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
+    <AnimatePresence mode="wait">
+    <Routes location={location} key={location.pathname}>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />
@@ -98,9 +104,10 @@ const AuthenticatedApp = () => {
       <Route path="/ObraDetail" element={<LayoutWrapper currentPageName="ObraDetail"><ObraDetail /></LayoutWrapper>} />
       <Route path="/PanelEdificios" element={<LayoutWrapper currentPageName="PanelEdificios"><PanelEdificios /></LayoutWrapper>} />
       <Route path="/NfcReader" element={<LayoutWrapper currentPageName="NfcReader"><NfcReader /></LayoutWrapper>} />
-      <Route path="/KioskoFichaje" element={<KioskoFichaje />} />
+      <Route path="/KioskoFichaje" element={<PageTransition><KioskoFichaje /></PageTransition>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </AnimatePresence>
   );
 };
 

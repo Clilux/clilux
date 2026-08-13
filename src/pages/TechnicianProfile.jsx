@@ -15,6 +15,7 @@ import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
+import EliminarCuentaDialog from '@/components/settings/EliminarCuentaDialog';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -117,12 +118,12 @@ export default function TechnicianProfile() {
 
   // Mientras carga la lista de técnicos, mostrar spinner
   if (loadingTechs) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
     </div>
   );
   if (!tech) return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <NavHeader title="Perfil técnico" />
       <p className="text-slate-500 text-center mt-8">Técnico no encontrado para: {techEmail}</p>
     </div>
@@ -150,7 +151,7 @@ export default function TechnicianProfile() {
   const vacacionesDisponibles = vacacionesAnuales - vacacionesUsadas;
 
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
+    <div className="h-screen bg-background flex overflow-hidden">
       <TechnicianSidebar
         isSessionTech={isSessionTechNav}
         isAdmin={isAdminUser}
@@ -162,7 +163,7 @@ export default function TechnicianProfile() {
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
-        <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+        <Card className="p-6 bg-card border-0 shadow-sm mb-6">
           <div className="flex items-center gap-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold
               ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -170,7 +171,7 @@ export default function TechnicianProfile() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-xl font-bold text-slate-800">{tech.name}</h2>
+                <h2 className="text-xl font-bold text-foreground">{tech.name}</h2>
                 {tech.is_admin && (
                   <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">
                     <Shield className="h-3 w-3 mr-1" />Admin
@@ -198,19 +199,19 @@ export default function TechnicianProfile() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+          <Card className="p-4 bg-card border-0 shadow-sm text-center">
             <p className="text-2xl font-bold text-blue-600">{Math.round(totalHorasMes * 10) / 10}h</p>
             <p className="text-xs text-slate-500">Horas este mes</p>
           </Card>
-          <Card className="p-4 bg-white border-0 shadow-sm text-center">
-            <p className="text-2xl font-bold text-slate-800">{thisMonthRegistros.length}</p>
+          <Card className="p-4 bg-card border-0 shadow-sm text-center">
+            <p className="text-2xl font-bold text-foreground">{thisMonthRegistros.length}</p>
             <p className="text-xs text-slate-500">Días trabajados</p>
           </Card>
-          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+          <Card className="p-4 bg-card border-0 shadow-sm text-center">
             <p className="text-2xl font-bold text-amber-600">{ausenciasPendientes}</p>
             <p className="text-xs text-slate-500">Ausencias pendientes</p>
           </Card>
-          <Card className="p-4 bg-white border-0 shadow-sm text-center">
+          <Card className="p-4 bg-card border-0 shadow-sm text-center">
             <p className="text-2xl font-bold text-emerald-600">{techClients.length}</p>
             <p className="text-xs text-slate-500">Clientes asignados</p>
           </Card>
@@ -219,7 +220,7 @@ export default function TechnicianProfile() {
         {/* Quick links */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Link to={`/ControlHorario`}>
-            <Card className="p-4 bg-white border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="p-4 bg-card border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -235,7 +236,7 @@ export default function TechnicianProfile() {
             </Card>
           </Link>
           <Link to={`/GestionAusencias`}>
-            <Card className="p-4 bg-white border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="p-4 bg-card border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -261,7 +262,7 @@ export default function TechnicianProfile() {
           </TabsList>
 
           <TabsContent value="registros">
-            <Card className="bg-white border-0 shadow-sm overflow-hidden">
+            <Card className="bg-card border-0 shadow-sm overflow-hidden">
               <div className="p-4 border-b border-slate-50">
                 <h3 className="font-semibold text-slate-700">Últimos registros de jornada</h3>
               </div>
@@ -293,7 +294,7 @@ export default function TechnicianProfile() {
                 <p className="text-xl font-bold text-blue-600">{vacacionesAnuales}</p>
                 <p className="text-xs text-slate-500">Días pactados</p>
               </Card>
-              <Card className="p-3 bg-slate-50 border-0 shadow-sm text-center">
+              <Card className="p-3 bg-background border-0 shadow-sm text-center">
                 <p className="text-xl font-bold text-slate-600">{vacacionesUsadas}</p>
                 <p className="text-xs text-slate-500">Días usados</p>
               </Card>
@@ -310,7 +311,7 @@ export default function TechnicianProfile() {
             {ausencias.length === 0 ? (
               <Card className="p-6 text-center text-slate-400 text-sm">Sin ausencias registradas</Card>
             ) : (
-              <Card className="bg-white border-0 shadow-sm overflow-hidden">
+              <Card className="bg-card border-0 shadow-sm overflow-hidden">
                 <div className="divide-y divide-slate-50">
                   {ausencias.slice(0, 8).map(a => (
                     <div key={a.id} className="px-4 py-3 flex items-center justify-between text-sm">
@@ -338,7 +339,7 @@ export default function TechnicianProfile() {
           </TabsContent>
 
           <TabsContent value="contacto">
-            <Card className="p-6 bg-white border-0 shadow-sm">
+            <Card className="p-6 bg-card border-0 shadow-sm">
               <h3 className="font-semibold text-slate-700 mb-1">Datos de contacto</h3>
               <p className="text-xs text-slate-400 mb-5">Usados para envíos de documentación (control horario, nóminas, etc.)</p>
               {contactForm && (
@@ -366,7 +367,7 @@ export default function TechnicianProfile() {
           </TabsContent>
 
           <TabsContent value="pin">
-            <Card className="p-6 bg-white border-0 shadow-sm">
+            <Card className="p-6 bg-card border-0 shadow-sm">
               <h3 className="font-semibold text-slate-700 mb-1">PIN de Kiosko</h3>
               <p className="text-xs text-slate-400 mb-5">PIN personal (4-6 dígitos) para fichar en el kiosko de la oficina. Cada trabajador gestiona el suyo.</p>
               <div className="flex items-center gap-2 mb-5">
@@ -396,6 +397,14 @@ export default function TechnicianProfile() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {isSessionTech && techEmail === sessionTechEmail && (
+          <div className="mt-8 border-t border-red-100 pt-6">
+            <h3 className="font-semibold text-foreground mb-1">Zona de peligro</h3>
+            <p className="text-sm text-muted-foreground mb-4">Puedes eliminar tu propia cuenta. Esta acción no se puede deshacer.</p>
+            <EliminarCuentaDialog techId={tech?.id} onDeleted={handleLogout} />
+          </div>
+        )}
       </div>
       </div>
     </div>

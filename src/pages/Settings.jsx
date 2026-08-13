@@ -11,6 +11,7 @@ import IntegracionesTab from '@/components/settings/IntegracionesTab';
 import TechniciansTab from '@/components/settings/TechniciansTab';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+import EliminarCuentaDialog from '@/components/settings/EliminarCuentaDialog';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -26,6 +27,12 @@ export default function Settings() {
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
   });
+
+  const myOwnTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
+
+  const handleAccountDeleted = () => {
+    try { base44.auth.logout('/MenuInicio'); } catch { window.location.href = '/MenuInicio'; }
+  };
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -185,7 +192,7 @@ export default function Settings() {
 
   if (isLoading || !currentUser) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
       </div>
     );
@@ -193,17 +200,17 @@ export default function Settings() {
 
   if (currentUser.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-4xl mx-auto">
           <NavHeader title="Configuración" />
-          <Card className="p-8 bg-white border-0 shadow-sm">
+          <Card className="p-8 bg-card border-0 shadow-sm">
             <div className="text-center max-w-sm mx-auto">
               <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
                 <Building className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-slate-800 text-lg mb-2">Datos de tu empresa</h3>
+              <h3 className="font-semibold text-foreground text-lg mb-2">Datos de tu empresa</h3>
               <p className="text-slate-500 text-sm mb-6">Solo lectura — el administrador gestiona la configuración.</p>
-              <div className="text-left space-y-3 bg-slate-50 rounded-lg p-4">
+              <div className="text-left space-y-3 bg-background rounded-lg p-4">
                 {settings?.company_name && <div><p className="text-xs text-slate-400">Empresa</p><p className="font-medium text-slate-700">{settings.company_name}</p></div>}
                 {settings?.company_cif && <div><p className="text-xs text-slate-400">CIF</p><p className="font-medium text-slate-700">{settings.company_cif}</p></div>}
                 {settings?.company_address && <div><p className="text-xs text-slate-400">Dirección</p><p className="font-medium text-slate-700">{settings.company_address}</p></div>}
@@ -219,12 +226,12 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         <NavHeader title="Configuración" />
 
         <Tabs defaultValue="empresa" className="space-y-6">
-          <TabsList className="bg-white flex-wrap">
+          <TabsList className="bg-card flex-wrap">
             <TabsTrigger value="empresa" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               Empresa
@@ -249,8 +256,8 @@ export default function Settings() {
 
           {/* ── EMPRESA ── */}
           <TabsContent value="empresa">
-            <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-              <h3 className="font-semibold text-slate-800 mb-2">Datos de la Empresa</h3>
+            <Card className="p-6 bg-card border-0 shadow-sm mb-6">
+              <h3 className="font-semibold text-foreground mb-2">Datos de la Empresa</h3>
               <p className="text-sm text-slate-500 mb-6">Estos datos se utilizan en contratos, facturas y documentos PDF.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div><Label className="text-slate-700">Nombre de la Empresa</Label><Input value={formData.company_name || ''} onChange={(e) => handleChange('company_name', e.target.value)} className="mt-1" /></div>
@@ -278,9 +285,9 @@ export default function Settings() {
               <p className="text-sm text-slate-500 mb-3">Aparecerá como marca de agua semitransparente en los certificados y documentos PDF.</p>
               <div className="flex items-center gap-4">
                 {formData.watermark_url && (
-                  <div className="relative h-20 w-32 border rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
+                  <div className="relative h-20 w-32 border rounded-lg overflow-hidden bg-background flex items-center justify-center">
                     <img src={formData.watermark_url} alt="Marca de agua" className="h-full w-full object-contain opacity-40" />
-                    <span className="absolute bottom-1 left-1 text-xs text-slate-400 bg-white/70 px-1 rounded">Vista previa</span>
+                    <span className="absolute bottom-1 left-1 text-xs text-slate-400 bg-card/70 px-1 rounded">Vista previa</span>
                   </div>
                 )}
                 <div className="space-y-2">
@@ -307,9 +314,9 @@ export default function Settings() {
 
           {/* ── PORTAL CLIENTE ── */}
           <TabsContent value="portal">
-            <Card className="p-6 bg-white border-0 shadow-sm">
+            <Card className="p-6 bg-card border-0 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-slate-800">Usuarios del Portal Cliente</h3>
+                <h3 className="font-semibold text-foreground">Usuarios del Portal Cliente</h3>
                 <Button onClick={addClientUser} variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />Añadir usuario
                 </Button>
@@ -318,11 +325,11 @@ export default function Settings() {
               {formData.client_users?.length > 0 ? (
                 <div className="space-y-4">
                   {formData.client_users.map((user, index) => (
-                    <div key={index} className="p-4 border border-slate-200 rounded-lg bg-slate-50">
+                    <div key={index} className="p-4 border border-slate-200 rounded-lg bg-background">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                           <Label className="text-xs text-slate-600">Cliente</Label>
-                          <select value={user.client_id} onChange={(e) => updateClientUser(index, 'client_id', e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-white text-slate-800 text-sm">
+                          <select value={user.client_id} onChange={(e) => updateClientUser(index, 'client_id', e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-card text-foreground text-sm">
                             <option value="">Seleccionar cliente...</option>
                             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
@@ -342,7 +349,7 @@ export default function Settings() {
                         </div>
                         <div>
                           <Label className="text-xs text-slate-600">Permisos</Label>
-                          <select value={user.can_edit ? 'edit' : 'view'} onChange={(e) => updateClientUser(index, 'can_edit', e.target.value === 'edit')} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-white text-slate-800 text-sm">
+                          <select value={user.can_edit ? 'edit' : 'view'} onChange={(e) => updateClientUser(index, 'can_edit', e.target.value === 'edit')} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-300 bg-card text-foreground text-sm">
                             <option value="view">Solo lectura</option>
                             <option value="edit">Puede editar</option>
                           </select>
@@ -367,20 +374,20 @@ export default function Settings() {
 
           {/* ── COPIAS ── */}
           <TabsContent value="backup">
-            <Card className="p-6 bg-white border-0 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-6">Copia de Seguridad y Exportación</h3>
+            <Card className="p-6 bg-card border-0 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-6">Copia de Seguridad y Exportación</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="p-6 border border-slate-200 rounded-lg text-center bg-slate-50">
+                <div className="p-6 border border-slate-200 rounded-lg text-center bg-background">
                   <Download className="h-10 w-10 mx-auto text-blue-500 mb-3" />
-                  <h4 className="font-medium text-slate-800 mb-1">Descargar Local</h4>
+                  <h4 className="font-medium text-foreground mb-1">Descargar Local</h4>
                   <p className="text-sm text-slate-500 mb-4">Descarga copia completa en JSON</p>
                   <Button onClick={handleExportBackup} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     <Download className="h-4 w-4 mr-2" />Descargar
                   </Button>
                 </div>
-                <div className="p-6 border border-slate-200 rounded-lg text-center bg-slate-50">
+                <div className="p-6 border border-slate-200 rounded-lg text-center bg-background">
                   <UploadCloud className="h-10 w-10 mx-auto text-emerald-500 mb-3" />
-                  <h4 className="font-medium text-slate-800 mb-1">Restaurar</h4>
+                  <h4 className="font-medium text-foreground mb-1">Restaurar</h4>
                   <p className="text-sm text-slate-500 mb-4">Importa desde archivo JSON</p>
                   <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" id="backup-upload" />
                   <label htmlFor="backup-upload">
@@ -408,6 +415,14 @@ export default function Settings() {
             Guardar Configuración
           </Button>
         </div>
+
+        {myOwnTechRecord && (
+          <Card className="p-6 bg-card border border-red-200 mt-6">
+            <h3 className="font-semibold text-foreground mb-1">Zona de peligro</h3>
+            <p className="text-sm text-muted-foreground mb-4">Elimina tu cuenta de técnico de esta plataforma. Acción irreversible.</p>
+            <EliminarCuentaDialog techId={myOwnTechRecord.id} onDeleted={handleAccountDeleted} />
+          </Card>
+        )}
       </div>
     </div>
   );

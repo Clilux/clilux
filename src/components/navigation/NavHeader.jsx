@@ -16,7 +16,7 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
   };
 
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between mb-6 ui-select-none" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex items-center gap-3">
         {showBack &&
         <Button

@@ -19,7 +19,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
   return (
     <>
     {/* Barra inferior móvil */}
-    <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-blue-700 border-t border-blue-800 flex items-center justify-around px-1 py-2 shadow-lg overflow-x-auto no-scrollbar">
+    <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-blue-700 border-t border-blue-800 flex items-center justify-around px-1 py-2 shadow-lg overflow-x-auto no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <Link to={createPageUrl('HomeTecnico')}>
         <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
           <Home className="h-6 w-6" />
@@ -71,7 +71,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
     </div>
 
     {/* Sidebar desktop */}
-    <div className="hidden lg:flex w-56 bg-blue-600 flex-col shadow-lg">
+    <div className="hidden lg:flex w-56 bg-blue-600 flex-col shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Logo */}
       <div className="p-5 border-b border-blue-700">
         <div className="flex items-center gap-2 text-white font-bold text-xl">

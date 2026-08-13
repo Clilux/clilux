@@ -11,6 +11,7 @@ import {
   Building2, LayoutGrid, List, LayoutList, Copy, Loader2, CalendarCheck, CalendarX } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+import PullToRefresh from '@/components/PullToRefresh';
 
 const statusLabels = {
   operational: { label: 'Operativo', color: 'bg-emerald-500/20 text-emerald-400' },
@@ -33,7 +34,7 @@ function ContextMenu({ x, y, onDuplicate, onOpen, onClose }) {
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+      className="fixed z-50 bg-card border border-slate-200 rounded-lg shadow-lg py-1 min-w-[160px]"
       style={{ top: y, left: x }}
     >
       <button
@@ -106,6 +107,14 @@ export default function Equipment() {
   const clients   = isSessionTech ? (proxyData?.clients   || []) : clientsDirect;
   const revisions = isSessionTech ? (proxyData?.revisions || []) : revisionsDirect;
   const isLoading = isSessionTech ? !proxyData : loadingDirect;
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    await queryClient.invalidateQueries({ queryKey: ['proxy-all'] });
+    await queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    await queryClient.invalidateQueries({ queryKey: ['clients'] });
+    await queryClient.invalidateQueries({ queryKey: ['revisions'] });
+  };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -188,7 +197,8 @@ export default function Equipment() {
   }, []);
 
   return (
-    <div className="bg-slate-50 p-6 min-h-screen">
+    <div className="bg-background p-6 min-h-screen">
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="mx-auto max-w-7xl">
         <NavHeader title="Equipos" />
 
@@ -199,11 +209,11 @@ export default function Equipment() {
               placeholder="Buscar por marca, modelo, serie, ubicación, edificio..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white/10 text-slate-950 pl-10 w-full" />
+              className="bg-card/10 text-slate-950 pl-10 w-full" />
           </div>
 
           <div className="flex flex-wrap gap-3 w-full items-center">
-            <div className="flex gap-1 border rounded-lg p-1 bg-white">
+            <div className="flex gap-1 border rounded-lg p-1 bg-card">
               <button
                 onClick={() => { setViewMode('grid'); localStorage.setItem('equipment_view', 'grid'); }}
                 className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
@@ -251,13 +261,13 @@ export default function Equipment() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="p-5 bg-white/10 backdrop-blur-sm border-white/20">
-                <div className="h-32 animate-pulse bg-white/5 rounded" />
+              <Card key={i} className="p-5 bg-card/10 backdrop-blur-sm border-white/20">
+                <div className="h-32 animate-pulse bg-card/5 rounded" />
               </Card>
             ))}
           </div>
         ) : filteredEquipment.length === 0 ? (
-          <Card className="p-12 bg-white/10 backdrop-blur-sm border-white/20 text-center">
+          <Card className="p-12 bg-card/10 backdrop-blur-sm border-white/20 text-center">
             <Thermometer className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-700 mb-2">
               {searchTerm ? 'No se encontraron equipos' : 'No hay equipos registrados'}
@@ -278,9 +288,9 @@ export default function Equipment() {
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                      <Card className="p-5 bg-white hover:shadow-md transition-all group border cursor-pointer select-none">
+                      <Card className="p-5 bg-card hover:shadow-md transition-all group border cursor-pointer select-none">
                         {eq.photo_url &&
-                          <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl bg-slate-50">
+                          <div className="mb-4 -mx-5 -mt-5 h-32 overflow-hidden rounded-t-xl bg-background">
                             <img src={eq.photo_url} alt={`${eq.brand} ${eq.model}`} className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
                           </div>
                         }
@@ -318,8 +328,8 @@ export default function Equipment() {
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                      <Card className="p-3 bg-white hover:shadow-md transition-all border flex flex-col gap-1 cursor-pointer select-none">
-                        {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl bg-slate-50"><img src={eq.photo_url} alt="" className="w-full h-full object-contain" /></div>}
+                      <Card className="p-3 bg-card hover:shadow-md transition-all border flex flex-col gap-1 cursor-pointer select-none">
+                        {eq.photo_url && <div className="h-20 -mx-3 -mt-3 mb-2 overflow-hidden rounded-t-xl bg-background"><img src={eq.photo_url} alt="" className="w-full h-full object-contain" /></div>}
                         <div className="flex items-start justify-between gap-1">
                           <span className="text-sm font-semibold text-teal-700 leading-tight">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusInfo.color}`}>{statusInfo.label}</span>
@@ -352,7 +362,7 @@ export default function Equipment() {
                 return (
                   <div key={eq.id} onContextMenu={(e) => handleContextMenu(e, eq)}>
                     <Link to={createPageUrl(`EquipmentDetail?id=${eq.id}`)}>
-                      <Card className="px-4 py-3 bg-white hover:shadow-md transition-all border flex items-center gap-4 cursor-pointer select-none">
+                      <Card className="px-4 py-3 bg-card hover:shadow-md transition-all border flex items-center gap-4 cursor-pointer select-none">
                         {eq.photo_url
                           ? <img src={eq.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover flex-shrink-0" />
                           : <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><Thermometer className="h-5 w-5 text-slate-400" /></div>
@@ -400,6 +410,7 @@ export default function Equipment() {
           onClose={() => setContextMenu(null)}
         />
       )}
+      </PullToRefresh>
     </div>
   );
 }
