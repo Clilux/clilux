@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench } from 'lucide-react';
+import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown } from 'lucide-react';
 import { createPageUrl } from '@/utils';
+import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 
-export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout, techEmail }) {
+export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout, techEmail, company, isGerente, sessionTechEmail }) {
+  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const showNav = isSessionTech || isAdmin;
 
   const NAV_LINKS = [
@@ -72,14 +74,31 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
 
     {/* Sidebar desktop */}
     <div className="hidden lg:flex w-56 bg-blue-600 flex-col shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      {/* Logo */}
-      <div className="p-5 border-b border-blue-700">
-        <div className="flex items-center gap-2 text-white font-bold text-xl">
-          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
-            <span className="text-base">C</span>
+      {/* Empresa arriba a la izquierda */}
+      <div className="p-3 border-b border-blue-700">
+        <button
+          onClick={() => company && setCompanyMenuOpen(true)}
+          className={`w-full flex items-center gap-2.5 text-left ${company ? 'hover:bg-blue-700 rounded-lg p-1.5 -m-1 transition-colors' : 'cursor-default'}`}
+        >
+          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+            {company?.logo_url ? (
+              <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
+            ) : (
+              <Building2 className="h-5 w-5 text-white" />
+            )}
           </div>
-          Clilux
-        </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-white font-bold text-base leading-tight truncate">
+              {company?.name || 'Clilux'}
+            </p>
+            {company && (
+              <p className="text-blue-200 text-[11px] flex items-center gap-0.5">
+                {isGerente ? 'Gerente' : 'Trabajador'}
+                <ChevronDown className="h-3 w-3" />
+              </p>
+            )}
+          </div>
+        </button>
       </div>
 
       {/* Nav Links */}
@@ -138,6 +157,15 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
         </Button>
       </div>
     </div>
+
+    {/* Menú de empresa (datos / edición gerente) */}
+    <CompanyMenuDialog
+      company={company}
+      isGerente={isGerente}
+      sessionTechEmail={sessionTechEmail}
+      open={companyMenuOpen}
+      onOpenChange={setCompanyMenuOpen}
+    />
     </>
   );
 }

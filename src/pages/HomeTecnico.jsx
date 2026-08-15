@@ -198,7 +198,14 @@ export default function HomeTecnico() {
     enabled: !!(sessionTechEmail || base44User?.email),
   });
 
-  const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
+  // Un usuario Base44 que también tiene ficha de Técnico con empresa → es gerente/trabajador
+  // y debe ver SOLO su empresa (proxy). Solo el admin de la app SIN ficha de técnico
+  // (psantos) ve todos los datos directamente.
+  const effectiveTechEmail = sessionTechEmail || (base44User && myTechRecord ? base44User.email : null);
+  const useProxy = !!myTechRecord && !!effectiveTechEmail;
+  const isPlatformAdmin = !useProxy && !isSessionTech && base44User?.role === 'admin';
+  const isGerente = !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
+  const isAdmin = isGerente || isPlatformAdmin;
 
   // Para compatibilidad con FichajeRapido que usa currentUser
   const currentUser = isSessionTech
@@ -207,12 +214,12 @@ export default function HomeTecnico() {
 
   // Helper: carga todo en una sola llamada para evitar rate limit
   const { data: proxyData, isLoading: proxyLoading } = useQuery({
-    queryKey: ['proxy-all', sessionTechEmail],
+    queryKey: ['proxy-all', effectiveTechEmail],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveTechEmail, entity: 'all' });
       return res.data || {};
     },
-    enabled: isSessionTech && !!sessionTechEmail,
+    enabled: useProxy,
     staleTime: 30000,
     gcTime: 300000,
     refetchOnMount: true,
@@ -222,41 +229,41 @@ export default function HomeTecnico() {
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients', 'direct'],
     queryFn: () => base44.entities.Client.list('-created_date'),
-    enabled: !isSessionTech,
+    enabled: !useProxy,
     staleTime: 60000,
   });
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings', 'direct'],
     queryFn: () => base44.entities.Building.list(),
-    enabled: !isSessionTech,
+    enabled: !useProxy,
     staleTime: 60000,
   });
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment', 'direct'],
     queryFn: () => base44.entities.Equipment.list(),
-    enabled: !isSessionTech,
+    enabled: !useProxy,
     staleTime: 60000,
   });
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduledRevisions', 'direct'],
     queryFn: () => base44.entities.ScheduledRevision.list(),
-    enabled: !isSessionTech,
+    enabled: !useProxy,
     staleTime: 60000,
   });
   const { data: incidents = [] } = useQuery({
     queryKey: ['incidents', 'direct'],
     queryFn: () => base44.entities.Incident.list('-created_date'),
-    enabled: !isSessionTech,
+    enabled: !useProxy,
     staleTime: 60000,
   });
 
-  // Datos finales: proxy (técnicos) o direct (admins Base44)
-  const isLoadingData  = isSessionTech ? proxyLoading : loadingClients;
-  const finalClients   = isSessionTech ? (proxyData?.clients   ?? []) : (clients   ?? []);
-  const finalBuildings = isSessionTech ? (proxyData?.buildings ?? []) : (buildings ?? []);
-  const finalEquipment = isSessionTech ? (proxyData?.equipment ?? []) : (equipment ?? []);
-  const finalRevisions = isSessionTech ? (proxyData?.revisions ?? []) : (scheduledRevisions ?? []);
-  const finalIncidents = isSessionTech ? (proxyData?.incidents ?? []) : (incidents ?? []);
+  // Datos finales: proxy (gerente/trabajador, aislado por empresa) o direct (admin de la app)
+  const isLoadingData  = useProxy ? proxyLoading : loadingClients;
+  const finalClients   = useProxy ? (proxyData?.clients   ?? []) : (clients   ?? []);
+  const finalBuildings = useProxy ? (proxyData?.buildings ?? []) : (buildings ?? []);
+  const finalEquipment = useProxy ? (proxyData?.equipment ?? []) : (equipment ?? []);
+  const finalRevisions = useProxy ? (proxyData?.revisions ?? []) : (scheduledRevisions ?? []);
+  const finalIncidents = useProxy ? (proxyData?.incidents ?? []) : (incidents ?? []);
 
   const pendingIncidents = finalIncidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
   const today = new Date();
@@ -266,15 +273,17 @@ export default function HomeTecnico() {
     .filter(sr => { const d = parseISO(sr.scheduled_date); return isAfter(d, today) && isBefore(d, next30Days); })
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
-  // ── Onboarding de primera configuración (admin de empresa nuevo) ──
+  // ── Onboarding de primera configuración (gerente nuevo) ──
+  const myCompany = proxyData?.company || null;
   const companyId = myTechRecord?.company_id || sessionTechEmail;
   const onboardingKey = `clilux_onboarding_done_${companyId}`;
   const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
-    if (isSessionTech && isAdmin && !proxyLoading && finalClients.length === 0 && !localStorage.getItem(onboardingKey)) {
+    // Mostrar si el gerente aún no completó el onboarding de su empresa
+    if (isGerente && !proxyLoading && myCompany && myCompany.onboarding_completed === false && !localStorage.getItem(onboardingKey)) {
       setShowOnboarding(true);
     }
-  }, [isSessionTech, isAdmin, proxyLoading, finalClients.length, onboardingKey]);
+  }, [isGerente, proxyLoading, myCompany, onboardingKey]);
   const dismissOnboarding = () => {
     localStorage.setItem(onboardingKey, '1');
     setShowOnboarding(false);
@@ -309,7 +318,16 @@ export default function HomeTecnico() {
         />
       )}
       {/* Sidebar */}
-      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} techEmail={sessionTechEmail || base44User?.email} />
+      <TechnicianSidebar
+        isSessionTech={isSessionTech}
+        isAdmin={isAdmin}
+        isLoading={false}
+        onLogout={handleLogout}
+        techEmail={sessionTechEmail || base44User?.email}
+        company={isSessionTech ? myCompany : null}
+        isGerente={isGerente}
+        sessionTechEmail={sessionTechEmail}
+      />
 
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}

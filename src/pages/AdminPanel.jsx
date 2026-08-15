@@ -123,7 +123,7 @@ export default function AdminPanel() {
           <Card className="p-8 text-center">
             <Shield className="h-12 w-12 text-red-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-slate-800 mb-2">Acceso restringido</h2>
-            <p className="text-slate-500">Solo los administradores pueden acceder a este panel.</p>
+            <p className="text-slate-500">Solo los gerentes de empresa y el administrador de la app pueden acceder a este panel.</p>
           </Card>
         </div>
       </div>
@@ -239,13 +239,13 @@ export default function AdminPanel() {
       const existingTechs = technicians.filter(t => t.company_id === req.company_cif?.toLowerCase());
       const isAdminAlready = existingTechs.some(t => t.is_admin);
       if (isAdminAlready) {
-        toast.error('Ya existe un administrador para esa empresa (CIF duplicado)');
+        toast.error('Ya existe un gerente para esa empresa (CIF duplicado)');
         setSending(false);
         return;
       }
-      // Invitar como admin (envía correo de bienvenida de la plataforma)
-      await base44.users.inviteUser(req.contact_email, 'admin');
-      // Vincular o crear técnico como admin de empresa con la contraseña elegida
+      // El gerente NO es administrador de la app (Base44): entra solo por el
+      // portal de técnico con su email + contraseña. Se crea como Technician
+      // con is_admin=true (gerente de su empresa).
       const adminEmail = req.technician_email || req.contact_email;
       const chosenPassword = req.password || '';
       if (req.technician_email) {
@@ -311,8 +311,8 @@ export default function AdminPanel() {
         try {
           await base44.integrations.Core.SendEmail({
             to: adminEmail,
-            subject: 'Bienvenido a Clilux — Acceso de Administrador',
-            body: `Hola ${req.full_name},\n\nTu empresa ${req.company_name} ya está dada de alta en Clilux. A partir de ahora eres el administrador de tu empresa.\n\nPara entrar a la app:\n1. Ve a la pantalla de inicio y pulsa "Técnico".\n2. Inicia sesión con tu email (${adminEmail}) y la contraseña que elegiste al registrarte.\n3. Desde "Administración" podrás crear e invitar a tus técnicos.\n\nTambién recibirás un correo de la plataforma para activar tu cuenta (opcional).\n\nBienvenido,\nEquipo Clilux`,
+            subject: 'Bienvenido a Clilux — Acceso de Gerente',
+            body: `Hola ${req.full_name},\n\nTu empresa ${req.company_name} ya está dada de alta en Clilux. A partir de ahora eres el GERENTE de tu empresa (no confundir con el administrador de la plataforma).\n\nPara entrar a la app:\n1. Ve a la pantalla de inicio y pulsa "Técnico".\n2. Inicia sesión con tu email (${adminEmail}) y la contraseña que elegiste al registrarte.\n3. Completa los datos de tu empresa y crea a tus trabajadores desde el asistente o desde "Administración".\n\nBienvenido,\nEquipo Clilux`,
           });
         } catch (e) {
           console.warn('No se pudo enviar el correo de bienvenida personalizado:', e.message);
@@ -322,7 +322,7 @@ export default function AdminPanel() {
       await base44.entities.AdminRequest.update(req.id, { status: 'approved' });
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Administrador aprobado: ${adminEmail}`);
+      toast.success(`Gerente aprobado: ${adminEmail}`);
     } catch (err) {
       toast.error('Error al aprobar: ' + (err.message || ''));
     } finally {
@@ -378,11 +378,8 @@ export default function AdminPanel() {
           company_name: manageData.companyName,
           company_id: companyId,
         });
-        // Si se marca como admin, promover también en base44 (solo admin Base44)
-        if (manageData.isAdmin) {
-          const email = manageTech.user_email || manageTech.email;
-          await base44.users.inviteUser(email, 'admin');
-        }
+        // Nota: el gerente (is_admin) NO recibe cuenta de admin de la plataforma.
+        // Entra por el portal de técnico con email + contraseña.
       }
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success('Técnico actualizado correctamente');
@@ -420,7 +417,7 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
-        <NavHeader title="Panel de Administración" />
+        <NavHeader title={isBase44Admin ? 'Panel del Administrador de la App' : 'Panel del Gerente'} />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -464,7 +461,7 @@ export default function AdminPanel() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4 text-amber-500" />
-              <h3 className="font-semibold text-slate-700">Solicitudes de administrador pendientes</h3>
+              <h3 className="font-semibold text-slate-700">Solicitudes de gerente pendientes</h3>
               <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{adminRequests.length}</Badge>
             </div>
             <div className="space-y-3">
@@ -553,7 +550,7 @@ export default function AdminPanel() {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-slate-800 text-sm">{tech.name}</p>
-                              {tech.is_admin && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-1.5 py-0"><Shield className="h-2.5 w-2.5 mr-0.5" />Admin</Badge>}
+                              {tech.is_admin && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-1.5 py-0"><Shield className="h-2.5 w-2.5 mr-0.5" />Gerente</Badge>}
                             </div>
                             <p className="text-xs text-slate-500">{tech.email}</p>
                             <p className="text-xs text-slate-400 mt-0.5">{clientsByTech(tech.email)} cliente{clientsByTech(tech.email) !== 1 ? 's' : ''}</p>
@@ -810,8 +807,8 @@ export default function AdminPanel() {
                 onCheckedChange={(v) => setManageData(p => ({ ...p, isAdmin: !!v }))}
               />
               <div>
-              <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Administrador de empresa</Label>
-              <p className="text-xs text-amber-600 mt-0.5">{isSessionTech ? 'Podrá crear e invitar técnicos dentro de tu empresa' : 'Si activas esto, se le enviará invitación con rol admin en la plataforma'}</p>
+              <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Gerente de empresa</Label>
+              <p className="text-xs text-amber-600 mt-0.5">{isSessionTech ? 'Podrá crear e invitar trabajadores dentro de tu empresa' : 'Gerente: gestiona su empresa y sus trabajadores (no es admin de la plataforma)'}</p>
               </div>
             </div>
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
