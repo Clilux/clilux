@@ -386,7 +386,8 @@ export default function MenuInicio() {
                       full_name: fullName, contact_email: contactEmail,
                       company_name: companyName, company_cif: companyCif.toUpperCase(),
                       company_address: registerData.companyAddress,
-                      technician_email: registerData.technicianEmail || null, status: 'pending',
+                      technician_email: registerData.technicianEmail || null,
+                      password: password, status: 'pending',
                     });
                     setRegisterDone(true);
                   } catch (err) {
@@ -414,7 +415,7 @@ export default function MenuInicio() {
               </div>
               <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                El administrador revisará tus datos y te enviará una invitación a <strong className="text-white">{registerData.contactEmail}</strong>.
+                Una vez validado tu pago, te enviaremos un correo de bienvenida a <strong className="text-white">{registerData.contactEmail}</strong> con tus credenciales de acceso. Podrás entrar a la app con el email y la contraseña que acabas de elegir.
               </p>
               <Button onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
                 className="w-full h-11 bg-slate-700 hover:bg-slate-600 text-white rounded-xl">

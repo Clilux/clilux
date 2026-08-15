@@ -331,6 +331,56 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Técnicos de la empresa (solo admin de empresa) ────────────
+    if (entity === 'technicians') {
+      if (!tech.is_admin) return deny('admin');
+      const data = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      return Response.json({ data });
+    }
+
+    // ── Crear técnico en la empresa (solo admin de empresa) ───────
+    if (entity === 'technician_create') {
+      if (!tech.is_admin) return deny('admin');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Technician.create({
+        ...record,
+        company_id: tech.company_id,
+        company_name: tech.company_name,
+        status: record.status || 'active',
+      });
+      return Response.json({ data });
+    }
+
+    // ── Actualizar técnico de la empresa (solo admin de empresa) ─
+    if (entity === 'technician_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { technician_id, updates } = body;
+      if (!technician_id || !updates) return Response.json({ error: 'technician_id y updates requeridos' }, { status: 400 });
+      const target = (await base44.asServiceRole.entities.Technician.filter({ id: technician_id }))[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El técnico no pertenece a tu empresa' }, { status: 403 });
+      }
+      // No permitir cambiar company_id desde el proxy de empresa
+      const safe = { ...updates };
+      delete safe.company_id;
+      const data = await base44.asServiceRole.entities.Technician.update(technician_id, safe);
+      return Response.json({ data });
+    }
+
+    // ── Eliminar técnico de la empresa (solo admin de empresa) ───
+    if (entity === 'technician_delete') {
+      if (!tech.is_admin) return deny('admin');
+      const { technician_id } = body;
+      if (!technician_id) return Response.json({ error: 'technician_id requerido' }, { status: 400 });
+      const target = (await base44.asServiceRole.entities.Technician.filter({ id: technician_id }))[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El técnico no pertenece a tu empresa' }, { status: 403 });
+      }
+      await base44.asServiceRole.entities.Technician.delete(technician_id);
+      return Response.json({ success: true });
+    }
+
     return Response.json({ error: 'entity no válida' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

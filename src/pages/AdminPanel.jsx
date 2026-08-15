@@ -38,28 +38,64 @@ export default function AdminPanel() {
   const [sending, setSending] = useState(false);
   const [permisosLocal, setPermisosLocal] = useState({});
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const { data: technicians = [], isLoading: loadingTechs } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.list('-created_date'),
+    queryKey: ['technicians', isSessionTech ? sessionTechEmail : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'technicians' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Technician.list('-created_date');
+    },
   });
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date'),
+    queryKey: ['clients', isSessionTech ? sessionTechEmail : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Client.list('-created_date');
+    },
   });
 
   const { data: adminRequests = [] } = useQuery({
     queryKey: ['admin-requests'],
     queryFn: () => base44.entities.AdminRequest.filter({ status: 'pending' }),
+    enabled: !isSessionTech,
   });
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech,
+    retry: false,
+  });
+
+  const { data: myTechRecord } = useQuery({
+    queryKey: ['my-tech-record', sessionTechEmail],
+    queryFn: async () => {
+      if (!sessionTechEmail) return null;
+      const techs = await base44.entities.Technician.filter({ email: sessionTechEmail });
+      return techs[0] || null;
+    },
+    enabled: isSessionTech,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Technician.delete(id),
+    mutationFn: async (id) => {
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'technician_delete', technician_id: id,
+        });
+      } else {
+        await base44.entities.Technician.delete(id);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success('Técnico eliminado');
@@ -67,9 +103,12 @@ export default function AdminPanel() {
   });
 
   // Mientras carga, no mostrar nada (evitar flash de acceso restringido)
-  if (!currentUser) return null;
+  const isSessionAdmin = isSessionTech && myTechRecord?.is_admin === true;
+  const isBase44Admin = !isSessionTech && currentUser?.role === 'admin';
+  if (!isSessionTech && !currentUser) return null;
+  if (isSessionTech && !myTechRecord) return null;
 
-  if (currentUser.role !== 'admin') {
+  if (!isSessionAdmin && !isBase44Admin) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
         <div className="w-full max-w-sm">
@@ -116,14 +155,28 @@ export default function AdminPanel() {
         ? inviteData.companyId
         : (inviteData.companyName ? inviteData.companyName.toLowerCase().replace(/\s+/g, '_') : '');
 
-      await base44.entities.Technician.create({
-        name: inviteData.techName.trim(),
-        email: inviteData.email.trim().toLowerCase(),
-        portal_password: inviteData.password.trim(),
-        company_name: inviteData.companyName || '',
-        company_id: companyId,
-        status: 'active',
-      });
+      if (isSessionTech) {
+        // Admin de empresa (sesión): crea el técnico dentro de su empresa vía proxy
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'technician_create',
+          record: {
+            name: inviteData.techName.trim(),
+            email: inviteData.email.trim().toLowerCase(),
+            portal_password: inviteData.password.trim(),
+            status: 'active',
+          },
+        });
+      } else {
+        await base44.entities.Technician.create({
+          name: inviteData.techName.trim(),
+          email: inviteData.email.trim().toLowerCase(),
+          portal_password: inviteData.password.trim(),
+          company_name: inviteData.companyName || '',
+          company_id: companyId,
+          status: 'active',
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success(`Técnico ${inviteData.techName} creado correctamente`);
@@ -142,7 +195,14 @@ export default function AdminPanel() {
       return;
     }
     try {
-      await base44.entities.Technician.update(techId, { portal_password: editPassword.trim() });
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'technician_update',
+          technician_id: techId, updates: { portal_password: editPassword.trim() },
+        });
+      } else {
+        await base44.entities.Technician.update(techId, { portal_password: editPassword.trim() });
+      }
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success('Contraseña actualizada');
       setEditingPwdId(null);
@@ -183,9 +243,11 @@ export default function AdminPanel() {
         setSending(false);
         return;
       }
-      // Invitar como admin
+      // Invitar como admin (envía correo de bienvenida de la plataforma)
       await base44.users.inviteUser(req.contact_email, 'admin');
-      // Vincular o crear técnico como admin de empresa
+      // Vincular o crear técnico como admin de empresa con la contraseña elegida
+      const adminEmail = req.technician_email || req.contact_email;
+      const chosenPassword = req.password || '';
       if (req.technician_email) {
         // Buscar técnico existente por email y actualizarlo
         const existingTechList = await base44.entities.Technician.filter({ user_email: req.technician_email });
@@ -195,6 +257,7 @@ export default function AdminPanel() {
             is_admin: true,
             company_id: req.company_cif?.toLowerCase(),
             company_name: req.company_name,
+            ...(chosenPassword ? { portal_password: chosenPassword } : {}),
           });
         } else {
           // No encontrado: crear nuevo técnico vinculado
@@ -206,6 +269,7 @@ export default function AdminPanel() {
             company_id: req.company_cif?.toLowerCase(),
             is_admin: true,
             status: 'active',
+            portal_password: chosenPassword || undefined,
             invited_at: new Date().toISOString(),
           });
         }
@@ -218,14 +282,27 @@ export default function AdminPanel() {
           company_id: req.company_cif?.toLowerCase(),
           is_admin: true,
           status: 'active',
+          portal_password: chosenPassword || undefined,
           invited_at: new Date().toISOString(),
         });
+      }
+      // Correo de bienvenida con credenciales (si la app permite envío a no registrados)
+      if (chosenPassword) {
+        try {
+          await base44.integrations.Core.SendEmail({
+            to: adminEmail,
+            subject: 'Bienvenido a Clilux — Acceso de Administrador',
+            body: `Hola ${req.full_name},\n\nTu empresa ${req.company_name} ya está dada de alta en Clilux. A partir de ahora eres el administrador de tu empresa.\n\nPara entrar a la app:\n1. Ve a la pantalla de inicio y pulsa "Técnico".\n2. Inicia sesión con tu email (${adminEmail}) y la contraseña que elegiste al registrarte.\n3. Desde "Administración" podrás crear e invitar a tus técnicos.\n\nTambién recibirás un correo de la plataforma para activar tu cuenta (opcional).\n\nBienvenido,\nEquipo Clilux`,
+          });
+        } catch (e) {
+          console.warn('No se pudo enviar el correo de bienvenida personalizado:', e.message);
+        }
       }
       // Marcar solicitud como aprobada
       await base44.entities.AdminRequest.update(req.id, { status: 'approved' });
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Administrador aprobado: ${req.contact_email}`);
+      toast.success(`Administrador aprobado: ${adminEmail}`);
     } catch (err) {
       toast.error('Error al aprobar: ' + (err.message || ''));
     } finally {
@@ -261,21 +338,31 @@ export default function AdminPanel() {
     setSending(true);
     try {
       const companyId = manageData.companyId || manageData.companyName?.toLowerCase().replace(/\s+/g, '_');
-      await base44.entities.Technician.update(manageTech.id, {
+      const updates = {
         name: manageData.name,
         phone: manageData.phone,
         specialty: manageData.specialty,
-        company_name: manageData.companyName,
-        company_id: companyId,
         is_admin: manageData.isAdmin,
         fgas_cert_num: manageData.fgas_cert_num,
         rite_cert_num: manageData.rite_cert_num,
         empresa_fgas_cert_num: manageData.empresa_fgas_cert_num,
-      });
-      // Si se marca como admin, promover también en base44
-      if (manageData.isAdmin) {
-        const email = manageTech.user_email || manageTech.email;
-        await base44.users.inviteUser(email, 'admin');
+      };
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'technician_update',
+          technician_id: manageTech.id, updates,
+        });
+      } else {
+        await base44.entities.Technician.update(manageTech.id, {
+          ...updates,
+          company_name: manageData.companyName,
+          company_id: companyId,
+        });
+        // Si se marca como admin, promover también en base44 (solo admin Base44)
+        if (manageData.isAdmin) {
+          const email = manageTech.user_email || manageTech.email;
+          await base44.users.inviteUser(email, 'admin');
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       toast.success('Técnico actualizado correctamente');
@@ -703,12 +790,13 @@ export default function AdminPanel() {
                 onCheckedChange={(v) => setManageData(p => ({ ...p, isAdmin: !!v }))}
               />
               <div>
-                <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Administrador de empresa</Label>
-                <p className="text-xs text-amber-600 mt-0.5">Si activas esto, se le enviará invitación con rol admin en la plataforma</p>
+              <Label htmlFor="isAdmin" className="cursor-pointer font-medium text-amber-800">Administrador de empresa</Label>
+              <p className="text-xs text-amber-600 mt-0.5">{isSessionTech ? 'Podrá crear e invitar técnicos dentro de tu empresa' : 'Si activas esto, se le enviará invitación con rol admin en la plataforma'}</p>
               </div>
             </div>
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
               <p className="text-slate-500">Email de acceso: <span className="font-medium text-slate-700">{manageTech?.user_email || manageTech?.email}</span></p>
+              {!isSessionTech && (
               <Button
                 variant="outline"
                 size="sm"
@@ -730,6 +818,10 @@ export default function AdminPanel() {
                 <RefreshCw className="h-3.5 w-3.5 mr-2" />
                 Enviar/reenviar invitación de acceso
               </Button>
+              )}
+              {isSessionTech && (
+                <p className="mt-2 text-xs text-slate-500">El técnico accederá desde "Acceso Técnico" con el email y la contraseña que asignaste arriba.</p>
+              )}
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowManageDialog(false)}>Cancelar</Button>
@@ -769,7 +861,14 @@ export default function AdminPanel() {
               onClick={async () => {
                 setSending(true);
                 try {
-                  await base44.entities.Technician.update(permisosTech.id, { permisos: permisosLocal });
+                  if (isSessionTech) {
+                    await base44.functions.invoke('getCompanyData', {
+                      technician_email: sessionTechEmail, entity: 'technician_update',
+                      technician_id: permisosTech.id, updates: { permisos: permisosLocal },
+                    });
+                  } else {
+                    await base44.entities.Technician.update(permisosTech.id, { permisos: permisosLocal });
+                  }
                   queryClient.invalidateQueries({ queryKey: ['technicians'] });
                   toast.success('Permisos guardados');
                   setShowPermisosDialog(false);

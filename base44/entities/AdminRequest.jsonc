@@ -26,6 +26,10 @@
       "type": "string",
       "description": "Email de la cuenta t\u00e9cnico existente a vincular como administrador (opcional)"
     },
+    "password": {
+      "type": "string",
+      "description": "Contrase\u00f1a elegida por el solicitante (se asigna como portal_password del administrador al aprobar)"
+    },
     "status": {
       "type": "string",
       "enum": [
