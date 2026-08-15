@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
         revisions: fetches[4].filter(r => clientIds.has(r.client_id)),
         settings:  fetches[5][0] || null,
         company:  companyRec,
+        tech:     tech,
       });
     }
 

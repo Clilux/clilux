@@ -186,31 +186,24 @@ export default function HomeTecnico() {
 
   const stelEnabled = appSettings?.integrations?.stel_order?.enabled === true;
 
-  // Registro del técnico actual (por sesión propia o por Base44)
-  const { data: myTechRecord = null } = useQuery({
-    queryKey: ['my-tech-record', sessionTechEmail || base44User?.email],
+  // Registro del técnico actual:
+  // - Sesión propia (portal de técnico): la ficha llega vía proxy (no hay sesión Base44
+  //   para hacer lecturas directas). El proxy valida al técnico con service role.
+  // - Usuario Base44: lectura directa para saber si tiene ficha de técnico (gerente).
+  const { data: myTechRecordDirect = null } = useQuery({
+    queryKey: ['my-tech-record', base44User?.email],
     queryFn: async () => {
-      const email = sessionTechEmail || base44User?.email;
-      if (!email) return null;
-      const techs = await base44.entities.Technician.filter({ email });
+      if (!base44User?.email) return null;
+      const techs = await base44.entities.Technician.filter({ email: base44User.email });
       return techs[0] || null;
     },
-    enabled: !!(sessionTechEmail || base44User?.email),
+    enabled: !isSessionTech && !!base44User?.email,
   });
 
-  // Un usuario Base44 que también tiene ficha de Técnico con empresa → es gerente/trabajador
-  // y debe ver SOLO su empresa (proxy). Solo el admin de la app SIN ficha de técnico
-  // (psantos) ve todos los datos directamente.
-  const effectiveTechEmail = sessionTechEmail || (base44User && myTechRecord ? base44User.email : null);
-  const useProxy = !!myTechRecord && !!effectiveTechEmail;
-  const isPlatformAdmin = !useProxy && !isSessionTech && base44User?.role === 'admin';
-  const isGerente = !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
-  const isAdmin = isGerente || isPlatformAdmin;
-
-  // Para compatibilidad con FichajeRapido que usa currentUser
-  const currentUser = isSessionTech
-    ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
-    : base44User;
+  // Sesión de técnico → siempre proxy. Usuario Base44 con ficha de técnico → proxy.
+  // Solo el admin de la app SIN ficha de técnico ve datos directos.
+  const useProxy = isSessionTech || (!!myTechRecordDirect && !!base44User?.email);
+  const effectiveTechEmail = sessionTechEmail || (myTechRecordDirect ? base44User.email : null);
 
   // Helper: carga todo en una sola llamada para evitar rate limit
   const { data: proxyData, isLoading: proxyLoading } = useQuery({
@@ -256,6 +249,16 @@ export default function HomeTecnico() {
     enabled: !useProxy,
     staleTime: 60000,
   });
+
+  // Ficha del técnico actual: vía proxy (sesión de técnico) o directa (usuario Base44)
+  const myTechRecord = isSessionTech ? (proxyData?.tech || null) : myTechRecordDirect;
+  const isPlatformAdmin = !useProxy && !isSessionTech && base44User?.role === 'admin';
+  const isGerente = !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
+  const isAdmin = isGerente || isPlatformAdmin;
+  // Para compatibilidad con FichajeRapido que usa currentUser
+  const currentUser = isSessionTech
+    ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
+    : base44User;
 
   // Datos finales: proxy (gerente/trabajador, aislado por empresa) o direct (admin de la app)
   const isLoadingData  = useProxy ? proxyLoading : loadingClients;

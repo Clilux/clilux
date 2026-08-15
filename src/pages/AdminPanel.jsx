@@ -76,15 +76,17 @@ export default function AdminPanel() {
     retry: false,
   });
 
-  const { data: myTechRecord } = useQuery({
-    queryKey: ['my-tech-record', sessionTechEmail],
+  // Ficha del gerente/trabajador en sesión: vía proxy (no hay sesión Base44 para
+  // lecturas directas). El proxy devuelve la ficha del técnico en `tech`.
+  const { data: proxyMe, isLoading: loadingProxyMe } = useQuery({
+    queryKey: ['proxy-me', sessionTechEmail],
     queryFn: async () => {
-      if (!sessionTechEmail) return null;
-      const techs = await base44.entities.Technician.filter({ email: sessionTechEmail });
-      return techs[0] || null;
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
     },
     enabled: isSessionTech,
   });
+  const myTechRecord = isSessionTech ? (proxyMe?.tech || null) : null;
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -106,7 +108,13 @@ export default function AdminPanel() {
   const isSessionAdmin = isSessionTech && myTechRecord?.is_admin === true;
   const isBase44Admin = !isSessionTech && currentUser?.role === 'admin';
   if (!isSessionTech && !currentUser) return null;
-  if (isSessionTech && !myTechRecord) return null;
+  if (isSessionTech && (loadingProxyMe || !myTechRecord)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   if (!isSessionAdmin && !isBase44Admin) {
     return (
