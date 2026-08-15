@@ -41,8 +41,11 @@ Deno.serve(async (req) => {
     let _companyClientIds = null;
     const getCompanyClientIds = async () => {
       if (_companyClientIds === null) {
-        const cs = await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id });
-        _companyClientIds = new Set(cs.map(c => c.id));
+        // Datos de la empresa del técnico + datos legacy sin company_id (pre-multi-tenant).
+        const all = await base44.asServiceRole.entities.Client.list('-created_date');
+        _companyClientIds = new Set(
+          all.filter(c => !c.company_id || c.company_id === tech.company_id).map(c => c.id)
+        );
       }
       return _companyClientIds;
     };
@@ -57,9 +60,10 @@ Deno.serve(async (req) => {
 
     // ── Carga masiva (evita múltiples llamadas simultáneas) ──────
     if (entity === 'all') {
-      const companyClients = permisos.ver_clientes
-        ? await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id })
+      const allClients = permisos.ver_clientes
+        ? await base44.asServiceRole.entities.Client.list('-created_date')
         : [];
+      const companyClients = allClients.filter(c => !c.company_id || c.company_id === tech.company_id);
       const clientIds = new Set(companyClients.map(c => c.id));
 
       const fetches = await Promise.all([
@@ -192,26 +196,6 @@ Deno.serve(async (req) => {
       delete safe.user_email;
       const data = await base44.asServiceRole.entities.Technician.update(tech.id, safe);
       return Response.json({ data });
-    }
-
-    // ── Listar empresas disponibles (para selector de cambio) ───
-    if (entity === 'companies_list') {
-      const all = await base44.asServiceRole.entities.Company.list('-created_date');
-      return Response.json({ data: all.map(c => ({ company_id: c.company_id, name: c.name, cif: c.cif })) });
-    }
-
-    // ── Cambiar mi propia empresa (solo gerente) ────────────────
-    if (entity === 'me_company_change') {
-      if (!tech.is_admin) return deny('admin');
-      const { company_id } = body;
-      if (!company_id) return Response.json({ error: 'company_id requerido' }, { status: 400 });
-      const target = (await base44.asServiceRole.entities.Company.filter({ company_id }))[0];
-      if (!target) return Response.json({ error: 'Empresa no encontrada' }, { status: 404 });
-      const data = await base44.asServiceRole.entities.Technician.update(tech.id, {
-        company_id: target.company_id,
-        company_name: target.name,
-      });
-      return Response.json({ data, company: target });
     }
 
     // ── Ausencias pendientes del técnico ────────────────────────

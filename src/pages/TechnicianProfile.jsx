@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
 import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase } from 'lucide-react';
@@ -29,8 +26,6 @@ export default function TechnicianProfile() {
   const [contactForm, setContactForm] = useState(null);
   const [pinForm, setPinForm] = useState({ pin: '', confirm: '' });
   const [pinSaving, setPinSaving] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [companySaving, setCompanySaving] = useState(false);
 
   const sessionTechEmailNav = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmailNav;
@@ -78,16 +73,6 @@ export default function TechnicianProfile() {
 
   const isLoading = isSessionTech ? proxyLoading : loadingDirect;
 
-  // Lista de empresas para el selector (solo gerentes)
-  const { data: companiesList = [] } = useQuery({
-    queryKey: ['companies-list'],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'companies_list' });
-      return res.data?.data || [];
-    },
-    enabled: isSessionTech && !!tech?.is_admin,
-  });
-
   const isGerente = !!tech?.is_admin;
   const isAdminUser = currentUser?.role === 'admin' || isGerente;
 
@@ -97,10 +82,6 @@ export default function TechnicianProfile() {
       setContactForm({ name: tech.name || '', phone: tech.phone || '', email: tech.email || '' });
     }
   }, [tech]);
-
-  useEffect(() => {
-    if (tech?.company_id) setSelectedCompany(tech.company_id);
-  }, [tech?.company_id]);
 
   // Guardar datos de contacto vía proxy (sesión) o directo (Base44)
   const saveContact = async () => {
@@ -119,29 +100,6 @@ export default function TechnicianProfile() {
       toast.success('Datos guardados');
     } catch (err) {
       toast.error('Error al guardar');
-    }
-  };
-
-  // Cambiar empresa propia (gerente)
-  const changeCompany = async () => {
-    if (!selectedCompany || selectedCompany === tech?.company_id) {
-      toast.error('Selecciona una empresa distinta');
-      return;
-    }
-    setCompanySaving(true);
-    try {
-      await base44.functions.invoke('getCompanyData', {
-        technician_email: effectiveEmail, entity: 'me_company_change',
-        company_id: selectedCompany,
-      });
-      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
-      queryClient.invalidateQueries({ queryKey: ['proxy-all', effectiveEmail] });
-      toast.success('Empresa actualizada. Recargando...');
-      setTimeout(() => window.location.reload(), 800);
-    } catch (err) {
-      toast.error(err?.message || 'Error al cambiar de empresa');
-    } finally {
-      setCompanySaving(false);
     }
   };
 
@@ -324,41 +282,16 @@ export default function TechnicianProfile() {
                 </div>
               </div>
 
-              {isSessionTech && isGerente ? (
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-slate-600 mb-1.5">Selecciona tu empresa</Label>
-                    <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona una empresa" /></SelectTrigger>
-                      <SelectContent>
-                        {companiesList.map(c => (
-                          <SelectItem key={c.company_id} value={c.company_id}>
-                            {c.name} {c.cif ? `· ${c.cif}` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-slate-400 mt-2">
-                      Si tu empresa no aparece, pide a Clilux que la dé de alta antes de asignarla.
-                    </p>
-                  </div>
-                  <div className="pt-1">
-                    <Button onClick={changeCompany} disabled={companySaving || selectedCompany === tech.company_id} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      {companySaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Building2 className="h-4 w-4 mr-2" />Cambiar empresa</>}
-                    </Button>
-                  </div>
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  <p className="font-semibold text-slate-700">{myCompany?.name || tech.company_name || 'Sin empresa'}</p>
                 </div>
-              ) : (
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Building2 className="h-4 w-4 text-blue-600" />
-                    <p className="font-semibold text-slate-700">{myCompany?.name || tech.company_name || 'Sin empresa'}</p>
-                  </div>
-                  {myCompany?.cif && <p className="text-xs text-slate-500">CIF: {myCompany.cif}</p>}
-                  {myCompany?.address && <p className="text-xs text-slate-500">{myCompany.address}</p>}
-                  {!isGerente && <p className="text-xs text-slate-400 mt-2">Solo el gerente puede cambiar la empresa asignada.</p>}
-                </div>
-              )}
+                {myCompany?.cif && <p className="text-xs text-slate-500">CIF: {myCompany.cif}</p>}
+                {myCompany?.address && <p className="text-xs text-slate-500">{myCompany.address}</p>}
+                {myCompany?.city && <p className="text-xs text-slate-500">{myCompany.city}{myCompany.postal_code ? ` · ${myCompany.postal_code}` : ''}</p>}
+                <p className="text-xs text-slate-400 mt-2">La empresa la asigna el administrador de Clilux al crear tu cuenta.</p>
+              </div>
             </Card>
           </TabsContent>
 
