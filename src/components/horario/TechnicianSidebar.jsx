@@ -5,7 +5,7 @@ import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 
-export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, onLogout, techEmail, company, isGerente, sessionTechEmail }) {
+export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAdmin, isLoading, onLogout, techEmail, company, isGerente, sessionTechEmail }) {
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const showNav = isSessionTech || isAdmin;
 
@@ -16,7 +16,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
     { to: 'ControlObras',   label: 'Obras',            icon: HardHat,  sessionOnly: true },
   ];
 
-  const visibleLinks = NAV_LINKS.filter(l => !l.sessionOnly || isSessionTech);
+  const visibleLinks = NAV_LINKS.filter(l => !l.sessionOnly || isSessionTech || isPlatformAdmin);
 
   return (
     <>
@@ -58,7 +58,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
           )}
         </>
       )}
-      {isAdmin && (
+      {isPlatformAdmin && (
         <Link to={createPageUrl('AdminPanel')}>
           <button className="flex flex-col items-center gap-1 text-amber-300 hover:text-amber-200 px-2 py-1 shrink-0">
             <Shield className="h-6 w-6" />
@@ -112,7 +112,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
           </Link>
         ))}
 
-        {techEmail && isSessionTech && (
+        {techEmail && (isSessionTech || isPlatformAdmin) && (
           <Link to={`/TechnicianProfile?email=${techEmail}`}>
             <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-12 text-base font-medium">
               <User className="h-5 w-5 mr-3" />
@@ -124,7 +124,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
 
       {/* Bottom actions */}
       <div className="p-3 border-t border-blue-700 space-y-2">
-        {isAdmin && (
+        {isPlatformAdmin && (
           <Link to={createPageUrl('AdminPanel')}>
             <Button variant="ghost" size="sm" className="w-full justify-start text-amber-300 hover:bg-blue-700 h-10 text-sm">
               <Shield className="h-4 w-4 mr-2" />
@@ -133,7 +133,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isLoading, o
           </Link>
         )}
 
-        {isAdmin && isSessionTech && (
+        {isPlatformAdmin && (
           <Button
             variant="ghost"
             size="sm"

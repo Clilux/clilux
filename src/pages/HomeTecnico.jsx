@@ -201,8 +201,9 @@ export default function HomeTecnico() {
   });
 
   // Sesión de técnico → siempre proxy. Usuario Base44 con ficha de técnico → proxy.
-  // Solo el admin de la app SIN ficha de técnico ve datos directos.
-  const useProxy = isSessionTech || (!!myTechRecordDirect && !!base44User?.email);
+  // El admin de la app (role=admin) ve datos directos aunque tenga ficha de técnico.
+  const isPlatformAdmin = !isSessionTech && base44User?.role === 'admin';
+  const useProxy = isSessionTech || (!!myTechRecordDirect && !!base44User?.email && !isPlatformAdmin);
   const effectiveTechEmail = sessionTechEmail || (myTechRecordDirect ? base44User.email : null);
 
   // Helper: carga todo en una sola llamada para evitar rate limit
@@ -252,8 +253,7 @@ export default function HomeTecnico() {
 
   // Ficha del técnico actual: vía proxy (sesión de técnico) o directa (usuario Base44)
   const myTechRecord = isSessionTech ? (proxyData?.tech || null) : myTechRecordDirect;
-  const isPlatformAdmin = !useProxy && !isSessionTech && base44User?.role === 'admin';
-  const isGerente = !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
+  const isGerente = !isPlatformAdmin && !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
   const isAdmin = isGerente || isPlatformAdmin;
   // Para compatibilidad con FichajeRapido que usa currentUser
   const currentUser = isSessionTech
@@ -324,6 +324,7 @@ export default function HomeTecnico() {
       <TechnicianSidebar
         isSessionTech={isSessionTech}
         isAdmin={isAdmin}
+        isPlatformAdmin={isPlatformAdmin}
         isLoading={false}
         onLogout={handleLogout}
         techEmail={sessionTechEmail || base44User?.email}
