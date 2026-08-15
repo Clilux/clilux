@@ -41,10 +41,9 @@ Deno.serve(async (req) => {
     let _companyClientIds = null;
     const getCompanyClientIds = async () => {
       if (_companyClientIds === null) {
-        // Datos de la empresa del técnico + datos legacy sin company_id (pre-multi-tenant).
         const all = await base44.asServiceRole.entities.Client.list('-created_date');
         _companyClientIds = new Set(
-          all.filter(c => !c.company_id || c.company_id === tech.company_id).map(c => c.id)
+          all.filter(c => c.company_id === tech.company_id).map(c => c.id)
         );
       }
       return _companyClientIds;
@@ -63,7 +62,7 @@ Deno.serve(async (req) => {
       const allClients = permisos.ver_clientes
         ? await base44.asServiceRole.entities.Client.list('-created_date')
         : [];
-      const companyClients = allClients.filter(c => !c.company_id || c.company_id === tech.company_id);
+      const companyClients = allClients.filter(c => c.company_id === tech.company_id);
       const clientIds = new Set(companyClients.map(c => c.id));
 
       const fetches = await Promise.all([
@@ -143,6 +142,11 @@ Deno.serve(async (req) => {
     if (entity === 'settings') {
       const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
       return Response.json({ data: settings[0] || null });
+    }
+
+    // ── Datos del propio técnico (auto-servicio) ──────────────────
+    if (entity === 'me') {
+      return Response.json({ data: tech });
     }
 
     // ── Datos de la empresa del técnico ─────────────────────────
@@ -563,6 +567,45 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'El técnico no pertenece a tu empresa' }, { status: 403 });
       }
       await base44.asServiceRole.entities.Technician.delete(technician_id);
+      return Response.json({ success: true });
+    }
+
+    // ── Invitar cliente al portal (crea usuario en AppSettings.client_users) ──
+    if (entity === 'client_invite') {
+      if (!tech.is_admin) return deny('admin');
+      const { client_id, email, password, can_edit } = body;
+      if (!client_id || !email || !password) return Response.json({ error: 'client_id, email y password requeridos' }, { status: 400 });
+      if (!(await assertCompanyClient(client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
+      const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
+      const s = settings[0];
+      if (!s) return Response.json({ error: 'Configuración no encontrada' }, { status: 500 });
+      const users = Array.isArray(s.client_users) ? [...s.client_users] : [];
+      const idx = users.findIndex(u => u.client_id === client_id && (u.email || '').toLowerCase() === email.trim().toLowerCase());
+      const entry = { email: email.trim().toLowerCase(), password, client_id, can_edit: !!can_edit };
+      if (idx >= 0) users[idx] = entry; else users.push(entry);
+      const updated = await base44.asServiceRole.entities.AppSettings.update(s.id, { client_users: users });
+      // Vincular el email al cliente
+      await base44.asServiceRole.entities.Client.update(client_id, { user_email: email.trim().toLowerCase() });
+      return Response.json({ data: entry });
+    }
+
+    // ── Eliminar acceso de cliente al portal ──────────────────────
+    if (entity === 'client_user_delete') {
+      if (!tech.is_admin) return deny('admin');
+      const { client_id, email } = body;
+      if (!client_id || !email) return Response.json({ error: 'client_id y email requeridos' }, { status: 400 });
+      if (!(await assertCompanyClient(client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
+      const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
+      const s = settings[0];
+      if (!s) return Response.json({ error: 'Configuración no encontrada' }, { status: 500 });
+      const users = (Array.isArray(s.client_users) ? s.client_users : []).filter(
+        u => !(u.client_id === client_id && (u.email || '').toLowerCase() === email.trim().toLowerCase())
+      );
+      await base44.asServiceRole.entities.AppSettings.update(s.id, { client_users: users });
       return Response.json({ success: true });
     }
 

@@ -17,6 +17,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
 import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
+import ClientPortalInvite from '../components/clients/ClientPortalInvite';
 import { toast } from 'sonner';
 
 export default function ClientDetail() {
@@ -90,14 +91,16 @@ export default function ClientDetail() {
   });
 
   const { data: settings } = useQuery({
-    queryKey: ['settings'],
+    queryKey: ['settings', isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'settings' });
+        return res.data?.data || null;
+      }
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || null;
     },
   });
-
-  const clientPortalUsers = settings?.client_users?.filter(u => u.client_id === clientId) || [];
 
   const getEquipmentCount = (buildingId) => {
     return equipment.filter(e => e.building_id === buildingId).length;
@@ -250,25 +253,7 @@ export default function ClientDetail() {
 
           <ScadaAccessPanel client={client} />
 
-          {clientPortalUsers.length > 0 && (
-            <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-3">Acceso Portal Cliente</h4>
-              <div className="space-y-3">
-                {clientPortalUsers.map((u, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-3 text-sm border-t border-blue-100 pt-2 first:border-t-0 first:pt-0">
-                    <div>
-                      <span className="text-blue-600">Email:</span>
-                      <p className="font-mono text-blue-900">{u.email}</p>
-                    </div>
-                    <div>
-                      <span className="text-blue-600">Contraseña:</span>
-                      <p className="font-mono text-blue-900">{u.password}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ClientPortalInvite client={client} isSessionTech={isSessionTech} techEmail={sessionTechEmail} />
         </Card>
 
         <Tabs defaultValue="buildings" className="space-y-4">

@@ -16,6 +16,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import EliminarCuentaDialog from '@/components/settings/EliminarCuentaDialog';
+import TrabajadoresTab from '@/components/settings/TrabajadoresTab';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -251,6 +252,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="registros">Registros</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
+            {isSessionTech && isGerente && <TabsTrigger value="trabajadores">Trabajadores</TabsTrigger>}
           </TabsList>
 
           {/* ── Empresa y tipo de usuario ── */}
@@ -429,6 +431,12 @@ export default function TechnicianProfile() {
               </div>
             </Card>
           </TabsContent>
+
+          {isSessionTech && isGerente && (
+            <TabsContent value="trabajadores">
+              <TrabajadoresTab techEmail={effectiveEmail} />
+            </TabsContent>
+          )}
         </Tabs>
 
         {isSessionTech && techEmail === sessionTechEmailNav && (
