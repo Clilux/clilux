@@ -76,29 +76,41 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
     <div className="hidden lg:flex w-56 bg-blue-600 flex-col shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Empresa arriba a la izquierda */}
       <div className="p-3 border-b border-blue-700">
-        <button
-          onClick={() => company && setCompanyMenuOpen(true)}
-          className={`w-full flex items-center gap-2.5 text-left ${company ? 'hover:bg-blue-700 rounded-lg p-1.5 -m-1 transition-colors' : 'cursor-default'}`}
-        >
-          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-            {company?.logo_url ? (
-              <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
-            ) : (
-              <Building2 className="h-5 w-5 text-white" />
-            )}
+        {isPlatformAdmin ? (
+          <div className="w-full flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+              <Shield className="h-5 w-5 text-amber-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-bold text-base leading-tight truncate">Administrador de la App</p>
+              <p className="text-blue-200 text-[11px]">Plataforma Clilux</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-white font-bold text-base leading-tight truncate">
-              {company?.name || 'Clilux'}
-            </p>
-            {company && (
-              <p className="text-blue-200 text-[11px] flex items-center gap-0.5">
-                {isGerente ? 'Gerente' : 'Trabajador'}
-                <ChevronDown className="h-3 w-3" />
+        ) : (
+          <button
+            onClick={() => company && setCompanyMenuOpen(true)}
+            className={`w-full flex items-center gap-2.5 text-left ${company ? 'hover:bg-blue-700 rounded-lg p-1.5 -m-1 transition-colors' : 'cursor-default'}`}
+          >
+            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+              {company?.logo_url ? (
+                <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
+              ) : (
+                <Building2 className="h-5 w-5 text-white" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-bold text-base leading-tight truncate">
+                {company?.name || 'Clilux'}
               </p>
-            )}
-          </div>
-        </button>
+              {company && (
+                <p className="text-blue-200 text-[11px] flex items-center gap-0.5">
+                  {isGerente ? 'Gerente' : 'Trabajador'}
+                  <ChevronDown className="h-3 w-3" />
+                </p>
+              )}
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Nav Links */}

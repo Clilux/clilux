@@ -597,6 +597,26 @@ export default function AdminPanel() {
                   <Badge variant="outline" className="text-xs">{group.status === 'active' ? 'Activa' : 'Inactiva'}</Badge>
                 )}
                 <Badge variant="secondary" className="text-xs">{group.techs.length} técnico{group.techs.length !== 1 ? 's' : ''}</Badge>
+                {isBase44Admin && group.id !== '__sin__' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={async () => {
+                      if (!window.confirm(`¿Eliminar la empresa "${group.name}"? Los trabajadores asignados quedarán sin empresa.`)) return;
+                      try {
+                        const company = companyEntities.find(c => c.company_id === group.id);
+                        if (company?.id) await base44.entities.Company.delete(company.id);
+                        queryClient.invalidateQueries({ queryKey: ['company-entities'] });
+                        toast.success('Empresa eliminada');
+                      } catch (err) {
+                        toast.error('Error al eliminar: ' + (err.message || ''));
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />Eliminar empresa
+                  </Button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {group.techs.map(tech => {

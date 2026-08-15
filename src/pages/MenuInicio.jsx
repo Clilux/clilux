@@ -126,7 +126,7 @@ export default function MenuInicio() {
     }
   };
 
-  const handleAdminLogin = () => base44.auth.redirectToLogin(createPageUrl('HomeTecnico'));
+  const handleAdminLogin = () => base44.auth.redirectToLogin(createPageUrl('AdminPanel'));
 
   const logoUrl = null;
   const companyName = 'Clilux';

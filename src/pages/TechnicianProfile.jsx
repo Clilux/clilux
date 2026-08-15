@@ -75,7 +75,8 @@ export default function TechnicianProfile() {
   const isLoading = isSessionTech ? proxyLoading : loadingDirect;
 
   const isGerente = !!tech?.is_admin;
-  const isAdminUser = currentUser?.role === 'admin' || isGerente;
+  const isPlatformAdmin = !isSessionTech && currentUser?.role === 'admin';
+  const isAdminUser = isPlatformAdmin || isGerente;
 
   // Inicializar formularios cuando se carga tech
   useEffect(() => {
@@ -182,6 +183,7 @@ export default function TechnicianProfile() {
       <TechnicianSidebar
         isSessionTech={isSessionTech}
         isAdmin={isAdminUser}
+        isPlatformAdmin={isPlatformAdmin}
         isLoading={false}
         onLogout={handleLogout}
         techEmail={sessionTechEmailNav || currentUser?.email}
