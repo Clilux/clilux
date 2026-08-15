@@ -286,6 +286,26 @@ export default function AdminPanel() {
           invited_at: new Date().toISOString(),
         });
       }
+      // Crear / asegurar registro de la empresa (Company) con los datos de la solicitud
+      try {
+        const companyId = req.company_cif?.toLowerCase();
+        if (companyId) {
+          const existingCompanies = await base44.entities.Company.filter({ company_id: companyId });
+          if (!existingCompanies[0]) {
+            await base44.entities.Company.create({
+              company_id: companyId,
+              name: req.company_name,
+              cif: req.company_cif,
+              address: req.company_address || '',
+              email: req.contact_email || '',
+              status: 'active',
+              onboarding_completed: false,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo crear el registro de empresa:', e.message);
+      }
       // Correo de bienvenida con credenciales (si la app permite envío a no registrados)
       if (chosenPassword) {
         try {

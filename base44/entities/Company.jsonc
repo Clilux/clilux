@@ -1,0 +1,67 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Identificador \u00fanico de empresa (CIF en min\u00fasculas)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social de la empresa"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF/NIF de la empresa"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "province": {
+      "type": "string",
+      "description": "Provincia"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de la empresa"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contacto de la empresa"
+    },
+    "web": {
+      "type": "string",
+      "description": "Sitio web"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logo de la empresa"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si el gerente complet\u00f3 el asistente de primera configuraci\u00f3n"
+    }
+  },
+  "required": [
+    "company_id",
+    "name"
+  ]
+}

@@ -70,6 +70,9 @@ Deno.serve(async (req) => {
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.list()               : Promise.resolve([]),
         base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' }),
       ]);
+      const companyRec = tech.company_id
+        ? (await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id }))[0] || null
+        : null;
       return Response.json({
         clients:   fetches[0],
         buildings: fetches[1].filter(b => clientIds.has(b.client_id)),
@@ -77,6 +80,7 @@ Deno.serve(async (req) => {
         incidents: fetches[3].filter(i => clientIds.has(i.client_id)),
         revisions: fetches[4].filter(r => clientIds.has(r.client_id)),
         settings:  fetches[5][0] || null,
+        company:  companyRec,
       });
     }
 
@@ -134,6 +138,59 @@ Deno.serve(async (req) => {
     if (entity === 'settings') {
       const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
       return Response.json({ data: settings[0] || null });
+    }
+
+    // ── Datos de la empresa del técnico ─────────────────────────
+    if (entity === 'company') {
+      if (!tech.company_id) return Response.json({ data: null });
+      const rec = (await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id }))[0] || null;
+      return Response.json({ data: rec });
+    }
+
+    // ── Actualizar / crear datos de la empresa (solo admin) ─────
+    if (entity === 'company_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const existing = tech.company_id
+        ? (await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id }))[0]
+        : null;
+      const payload = {
+        ...record,
+        company_id: tech.company_id,
+        status: record.status || 'active',
+      };
+      let data;
+      if (existing) {
+        data = await base44.asServiceRole.entities.Company.update(existing.id, payload);
+      } else {
+        data = await base44.asServiceRole.entities.Company.create(payload);
+      }
+      // Sincronizar el nombre de empresa en los técnicos de la empresa
+      if (record.name) {
+        const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+        for (const ct of companyTechs) {
+          if (ct.company_name !== record.name) {
+            await base44.asServiceRole.entities.Technician.update(ct.id, { company_name: record.name });
+          }
+        }
+      }
+      return Response.json({ data });
+    }
+
+    // ── Actualizar mi propio perfil (auto-servicio del gerente/técnico) ─
+    if (entity === 'me_update') {
+      const { updates } = body;
+      if (!updates) return Response.json({ error: 'updates requerido' }, { status: 400 });
+      // No permitir cambiar company_id, is_admin, email desde el proxy de auto-servicio
+      const safe = { ...updates };
+      delete safe.company_id;
+      delete safe.company_name;
+      delete safe.is_admin;
+      delete safe.email;
+      delete safe.user_email;
+      const data = await base44.asServiceRole.entities.Technician.update(tech.id, safe);
+      return Response.json({ data });
     }
 
     // ── Ausencias pendientes del técnico ────────────────────────
