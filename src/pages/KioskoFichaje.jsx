@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand } from 'lucide-react';
+import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand, DoorOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WeatherWidget from '@/components/kiosko/WeatherWidget';
 import HoraConfirmModal from '@/components/kiosko/HoraConfirmModal';
@@ -134,6 +134,13 @@ export default function KioskoFichaje() {
           <Hand className="h-6 w-6" />
           <span className="text-xl">Toca la pantalla para fichar</span>
         </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); navigate('/'); }}
+          title="Salir del kiosco"
+          className="absolute top-6 right-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+        >
+          <DoorOpen className="h-5 w-5" /> Salir
+        </button>
       </div>
     );
   }
@@ -147,9 +154,16 @@ export default function KioskoFichaje() {
           <Clock className="h-4 w-4" />
           <span className="text-lg font-mono">{timeStr}</span>
         </div>
-        <div className="absolute top-6 left-6 z-10">
+        <div className="absolute top-6 left-6 z-10 flex flex-col gap-1.5">
           <button onClick={resetSession} className="text-white/40 hover:text-white/80 text-sm underline underline-offset-2">
             Cerrar sesión
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            title="Salir del kiosco"
+            className="flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+          >
+            <DoorOpen className="h-4 w-4" /> Salir del kiosco
           </button>
         </div>
 
@@ -399,6 +413,13 @@ export default function KioskoFichaje() {
       <p className="absolute bottom-6 text-white/40 text-sm flex items-center gap-1.5">
         <User className="h-4 w-4" />Introduce tu PIN personal · Créalo desde tu perfil si no lo tienes
       </p>
+      <button
+        onClick={() => navigate('/')}
+        title="Salir del kiosco"
+        className="absolute bottom-6 left-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+      >
+        <DoorOpen className="h-4 w-4" /> Salir del kiosco
+      </button>
     </div>
   );
 }
