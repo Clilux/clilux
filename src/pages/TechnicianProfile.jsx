@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, LogOut } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
@@ -26,9 +29,11 @@ export default function TechnicianProfile() {
   const [contactForm, setContactForm] = useState(null);
   const [pinForm, setPinForm] = useState({ pin: '', confirm: '' });
   const [pinSaving, setPinSaving] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [companySaving, setCompanySaving] = useState(false);
 
   const sessionTechEmailNav = sessionStorage.getItem('technician_email');
-  const isSessionTechNav = !!sessionTechEmailNav;
+  const isSessionTech = !!sessionTechEmailNav;
 
   const handleLogout = () => {
     sessionStorage.removeItem('technician_email');
@@ -37,34 +42,108 @@ export default function TechnicianProfile() {
     localStorage.removeItem('clilux_tech_email');
     localStorage.removeItem('clilux_tech_password');
     navigate(createPageUrl('MenuInicio'));
-  }; // null = no cargado aún
+  };
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech,
   });
 
-  const sessionTechEmailQuery = sessionStorage.getItem('technician_email');
-  const { data: technicians = [], isLoading: loadingTechs } = useQuery({
+  // ── Carga de la ficha del técnico vía proxy (sesión propia) o directa (Base44) ──
+  const effectiveEmail = isSessionTech ? sessionTechEmailNav : currentUser?.email;
+  const useProxy = isSessionTech || !!currentUser?.email;
+
+  const { data: proxyData, isLoading: proxyLoading } = useQuery({
+    queryKey: ['profile-proxy-all', effectiveEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'all' });
+      return res.data || {};
+    },
+    enabled: useProxy && !!effectiveEmail,
+    staleTime: 30000,
+  });
+
+  const { data: directTechs = [], isLoading: loadingDirect } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    enabled: true, // siempre cargar — técnicos de sesión no tienen currentUser
+    enabled: !useProxy,
   });
 
-  const tech = technicians.find(t => t.user_email === techEmail || t.email === techEmail);
+  // Ficha resuelta
+  const tech = isSessionTech
+    ? (proxyData?.tech || null)
+    : (directTechs.find(t => t.user_email === techEmail || t.email === techEmail) || null);
+  const myCompany = isSessionTech ? (proxyData?.company || null) : null;
 
-  // Inicializar contactForm cuando se carga tech
-  React.useEffect(() => {
+  const isLoading = isSessionTech ? proxyLoading : loadingDirect;
+
+  // Lista de empresas para el selector (solo gerentes)
+  const { data: companiesList = [] } = useQuery({
+    queryKey: ['companies-list'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'companies_list' });
+      return res.data?.data || [];
+    },
+    enabled: isSessionTech && !!tech?.is_admin,
+  });
+
+  const isGerente = !!tech?.is_admin;
+  const isAdminUser = currentUser?.role === 'admin' || isGerente;
+
+  // Inicializar formularios cuando se carga tech
+  useEffect(() => {
     if (tech && contactForm === null) {
       setContactForm({ name: tech.name || '', phone: tech.phone || '', email: tech.email || '' });
     }
   }, [tech]);
 
-  const saveContactMutation = useMutation({
-    mutationFn: () => base44.entities.Technician.update(tech.id, { name: contactForm.name, phone: contactForm.phone, email: contactForm.email }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['technicians'] }); toast.success('Datos guardados'); },
-    onError: () => toast.error('Error al guardar'),
-  });
+  useEffect(() => {
+    if (tech?.company_id) setSelectedCompany(tech.company_id);
+  }, [tech?.company_id]);
+
+  // Guardar datos de contacto vía proxy (sesión) o directo (Base44)
+  const saveContact = async () => {
+    if (!tech) return;
+    try {
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'me_update',
+          updates: { name: contactForm.name, phone: contactForm.phone },
+        });
+      } else {
+        await base44.entities.Technician.update(tech.id, { name: contactForm.name, phone: contactForm.phone, email: contactForm.email });
+      }
+      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-all', effectiveEmail] });
+      toast.success('Datos guardados');
+    } catch (err) {
+      toast.error('Error al guardar');
+    }
+  };
+
+  // Cambiar empresa propia (gerente)
+  const changeCompany = async () => {
+    if (!selectedCompany || selectedCompany === tech?.company_id) {
+      toast.error('Selecciona una empresa distinta');
+      return;
+    }
+    setCompanySaving(true);
+    try {
+      await base44.functions.invoke('getCompanyData', {
+        technician_email: effectiveEmail, entity: 'me_company_change',
+        company_id: selectedCompany,
+      });
+      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-all', effectiveEmail] });
+      toast.success('Empresa actualizada. Recargando...');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      toast.error(err?.message || 'Error al cambiar de empresa');
+    } finally {
+      setCompanySaving(false);
+    }
+  };
 
   const savePin = async () => {
     if (!tech) return;
@@ -72,8 +151,15 @@ export default function TechnicianProfile() {
     if (pinForm.pin !== pinForm.confirm) { toast.error('Los PIN no coinciden'); return; }
     setPinSaving(true);
     try {
-      await base44.entities.Technician.update(tech.id, { pin: pinForm.pin });
-      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'me_update',
+          updates: { pin: pinForm.pin },
+        });
+      } else {
+        await base44.entities.Technician.update(tech.id, { pin: pinForm.pin });
+      }
+      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
       toast.success('PIN actualizado');
       setPinForm({ pin: '', confirm: '' });
     } catch (err) {
@@ -89,35 +175,27 @@ export default function TechnicianProfile() {
   const { data: registros = [] } = useQuery({
     queryKey: ['registros-tech', techEmail],
     queryFn: async () => {
-      const all = await base44.entities.RegistroHorario.list('-fecha', 100);
-      return all.filter(r => r.technician_email === techEmail);
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: techEmail, entity: 'registro_horario_mes', mes: format(new Date(), 'yyyy-MM'),
+      });
+      return res.data?.data || [];
     },
-    enabled: !!techEmail,
+    enabled: !!techEmail && isSessionTech,
   });
 
   const { data: ausencias = [] } = useQuery({
     queryKey: ['ausencias-tech', techEmail],
     queryFn: async () => {
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 50);
-      return all.filter(a => a.technician_email === techEmail);
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: techEmail, entity: 'ausencias_pendientes',
+      });
+      return res.data?.data || [];
     },
-    enabled: !!techEmail,
+    enabled: !!techEmail && isSessionTech,
   });
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date'),
-  });
-
-  const sessionTechEmail = sessionStorage.getItem('technician_email');
-  const isSessionTech = !!sessionTechEmail;
-
-  // Determinar si el usuario actual es admin (Base44 admin O técnico con is_admin=true)
-  const myOwnTechRecord = technicians.find(t => t.user_email === currentUser?.email || t.email === currentUser?.email);
-  const isAdminUser = currentUser?.role === 'admin' || myOwnTechRecord?.is_admin === true;
-
-  // Mientras carga la lista de técnicos, mostrar spinner
-  if (loadingTechs) return (
+  // Mientras carga, mostrar spinner
+  if (isLoading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
     </div>
@@ -130,39 +208,32 @@ export default function TechnicianProfile() {
   );
 
   const thisMonthRegistros = registros.filter(r => r.fecha >= currentMonthStart && r.fecha <= currentMonthEnd);
-  const totalHorasMes = thisMonthRegistros.reduce((acc, r) => acc + (r.horas_totales || 0), 0);
-  const ausenciasPendientes = ausencias.filter(a => a.estado === 'pendiente').length;
-  const techClients = clients.filter(c => c.assigned_technician === techEmail || c.assigned_technician === tech?.email);
+  const totalHorasMes = thisMonthRegistros.reduce((acc, r) => acc + (r.horas_efectivas || r.horas_trabajadas || 0), 0);
+  const ausenciasPendientes = ausencias.length;
 
   const TIPO_LABELS = {
-    vacaciones: 'Vacaciones',
-    baja_medica: 'Baja médica',
-    permiso: 'Permiso',
-    asunto_propio: 'Asunto propio',
-    maternidad_paternidad: 'Mat./Paternidad',
-    otro: 'Otro',
+    vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
+    asunto_propio: 'Asunto propio', maternidad_paternidad: 'Mat./Paternidad', otro: 'Otro',
   };
 
-  // Vacaciones
   const vacacionesAnuales = tech?.vacaciones_anuales ?? 22;
-  const vacacionesUsadas = ausencias
-    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada')
-    .reduce((acc, a) => acc + (a.dias_totales || 0), 0);
-  const vacacionesDisponibles = vacacionesAnuales - vacacionesUsadas;
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
       <TechnicianSidebar
-        isSessionTech={isSessionTechNav}
+        isSessionTech={isSessionTech}
         isAdmin={isAdminUser}
         isLoading={false}
         onLogout={handleLogout}
         techEmail={sessionTechEmailNav || currentUser?.email}
+        company={myCompany}
+        isGerente={isGerente}
+        sessionTechEmail={sessionTechEmailNav}
       />
       <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
       <div className="max-w-4xl mx-auto">
 
-        {/* Header */}
+        {/* Header con tipo de usuario */}
         <Card className="p-6 bg-card border-0 shadow-sm mb-6">
           <div className="flex items-center gap-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold
@@ -170,16 +241,20 @@ export default function TechnicianProfile() {
               {tech.name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground">{tech.name}</h2>
-                {tech.is_admin && (
+                {tech.is_admin ? (
                   <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">
-                    <Shield className="h-3 w-3 mr-1" />Admin
+                    <Shield className="h-3 w-3 mr-1" />Gerente
+                  </Badge>
+                ) : (
+                  <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
+                    <User className="h-3 w-3 mr-1" />Trabajador
                   </Badge>
                 )}
                 {tech.worker_type && (
-                  <Badge className={tech.worker_type === 'tecnico' ? 'bg-blue-100 text-blue-700 border-0 text-xs' : 'bg-purple-100 text-purple-700 border-0 text-xs'}>
-                    {tech.worker_type === 'tecnico' ? 'Técnico' : 'Administración'}
+                  <Badge className={tech.worker_type === 'tecnico' ? 'bg-cyan-100 text-cyan-700 border-0 text-xs' : 'bg-purple-100 text-purple-700 border-0 text-xs'}>
+                    {tech.worker_type === 'tecnico' ? <><HardHat className="h-3 w-3 mr-1" />Técnico</> : <><Briefcase className="h-3 w-3 mr-1" />Administración</>}
                   </Badge>
                 )}
                 <Badge className={tech.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' : 'bg-slate-100 text-slate-500 border-0 text-xs'}>
@@ -187,18 +262,16 @@ export default function TechnicianProfile() {
                 </Badge>
               </div>
               <p className="text-slate-500 text-sm">{techEmail}</p>
-              {tech.company_name && (
-                <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
-                  <Building2 className="h-3 w-3" />{tech.company_name}
-                </p>
-              )}
-              {tech.specialty && <p className="text-slate-400 text-xs">{tech.specialty}</p>}
+              <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
+                <Building2 className="h-3 w-3" />
+                {myCompany?.name || tech.company_name || 'Sin empresa asignada'}
+              </p>
             </div>
           </div>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <Card className="p-4 bg-card border-0 shadow-sm text-center">
             <p className="text-2xl font-bold text-blue-600">{Math.round(totalHorasMes * 10) / 10}h</p>
             <p className="text-xs text-slate-500">Horas este mes</p>
@@ -211,55 +284,112 @@ export default function TechnicianProfile() {
             <p className="text-2xl font-bold text-amber-600">{ausenciasPendientes}</p>
             <p className="text-xs text-slate-500">Ausencias pendientes</p>
           </Card>
-          <Card className="p-4 bg-card border-0 shadow-sm text-center">
-            <p className="text-2xl font-bold text-emerald-600">{techClients.length}</p>
-            <p className="text-xs text-slate-500">Clientes asignados</p>
-          </Card>
         </div>
 
-        {/* Quick links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Link to={`/ControlHorario`}>
-            <Card className="p-4 bg-card border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-700">Control Horario</p>
-                    <p className="text-xs text-slate-400">Ver registros de jornada</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-slate-300" />
-              </div>
-            </Card>
-          </Link>
-          <Link to={`/GestionAusencias`}>
-            <Card className="p-4 bg-card border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-700">Ausencias</p>
-                    <p className="text-xs text-slate-400">{ausenciasPendientes > 0 ? `${ausenciasPendientes} pendiente${ausenciasPendientes > 1 ? 's' : ''}` : 'Sin pendientes'}</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-slate-300" />
-              </div>
-            </Card>
-          </Link>
-        </div>
-
-        <Tabs defaultValue="registros">
-          <TabsList className="mb-4">
+        <Tabs defaultValue="empresa">
+          <TabsList className="mb-4 flex-wrap">
+            <TabsTrigger value="empresa">Empresa y tipo</TabsTrigger>
+            <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
             <TabsTrigger value="registros">Registros</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
-            <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
           </TabsList>
+
+          {/* ── Empresa y tipo de usuario ── */}
+          <TabsContent value="empresa">
+            <Card className="p-6 bg-card border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-1">Empresa asignada</h3>
+              <p className="text-xs text-slate-400 mb-5">
+                Esta es la empresa a la que perteneces. Determina los clientes, edificios y datos que ves.
+              </p>
+
+              {/* Tipo de usuario (solo lectura) */}
+              <div className="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-xs text-slate-400 mb-2">Tipo de usuario</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {tech.is_admin ? (
+                    <Badge className="bg-amber-100 text-amber-700 border-0">
+                      <Shield className="h-3 w-3 mr-1" />Gerente (administrador de empresa)
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-blue-100 text-blue-700 border-0">
+                      <User className="h-3 w-3 mr-1" />Trabajador
+                    </Badge>
+                  )}
+                  {tech.worker_type && (
+                    <Badge className={tech.worker_type === 'tecnico' ? 'bg-cyan-100 text-cyan-700 border-0' : 'bg-purple-100 text-purple-700 border-0'}>
+                      {tech.worker_type === 'tecnico' ? 'Técnico de campo' : 'Personal de administración'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {isSessionTech && isGerente ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-600 mb-1.5">Selecciona tu empresa</Label>
+                    <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona una empresa" /></SelectTrigger>
+                      <SelectContent>
+                        {companiesList.map(c => (
+                          <SelectItem key={c.company_id} value={c.company_id}>
+                            {c.name} {c.cif ? `· ${c.cif}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Si tu empresa no aparece, pide a Clilux que la dé de alta antes de asignarla.
+                    </p>
+                  </div>
+                  <div className="pt-1">
+                    <Button onClick={changeCompany} disabled={companySaving || selectedCompany === tech.company_id} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      {companySaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Building2 className="h-4 w-4 mr-2" />Cambiar empresa</>}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    <p className="font-semibold text-slate-700">{myCompany?.name || tech.company_name || 'Sin empresa'}</p>
+                  </div>
+                  {myCompany?.cif && <p className="text-xs text-slate-500">CIF: {myCompany.cif}</p>}
+                  {myCompany?.address && <p className="text-xs text-slate-500">{myCompany.address}</p>}
+                  {!isGerente && <p className="text-xs text-slate-400 mt-2">Solo el gerente puede cambiar la empresa asignada.</p>}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="contacto">
+            <Card className="p-6 bg-card border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-1">Datos de contacto</h3>
+              <p className="text-xs text-slate-400 mb-5">Usados para envíos de documentación (control horario, nóminas, etc.)</p>
+              {contactForm && (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-600 mb-1">Nombre completo</Label>
+                    <Input value={contactForm.name} onChange={e => setContactForm(p => ({ ...p, name: e.target.value }))} placeholder="Nombre" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Teléfono</Label>
+                    <Input value={contactForm.phone} onChange={e => setContactForm(p => ({ ...p, phone: e.target.value }))} placeholder="+34 600 000 000" type="tel" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Correo electrónico</Label>
+                    <Input value={contactForm.email} onChange={e => setContactForm(p => ({ ...p, email: e.target.value }))} placeholder="correo@empresa.com" type="email" disabled={isSessionTech} />
+                    {isSessionTech && <p className="text-xs text-slate-400 mt-1">El correo no se puede cambiar desde el perfil.</p>}
+                  </div>
+                  <div className="pt-2">
+                    <Button onClick={saveContact} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Save className="h-4 w-4 mr-2" />Guardar cambios
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
 
           <TabsContent value="registros">
             <Card className="bg-card border-0 shadow-sm overflow-hidden">
@@ -278,7 +408,7 @@ export default function TechnicianProfile() {
                       <div className="flex gap-4">
                         <span className="text-emerald-600">{r.hora_entrada || '—'}</span>
                         <span className="text-red-500">{r.hora_salida || '—'}</span>
-                        <span className="font-medium text-slate-700">{r.horas_totales ? `${r.horas_totales}h` : '—'}</span>
+                        <span className="font-medium text-slate-700">{r.horas_efectivas || r.horas_trabajadas ? `${r.horas_efectivas || r.horas_trabajadas}h` : '—'}</span>
                       </div>
                     </div>
                   ))}
@@ -288,19 +418,18 @@ export default function TechnicianProfile() {
           </TabsContent>
 
           <TabsContent value="ausencias">
-            {/* Resumen vacaciones */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <Card className="p-3 bg-blue-50 border-0 shadow-sm text-center">
                 <p className="text-xl font-bold text-blue-600">{vacacionesAnuales}</p>
                 <p className="text-xs text-slate-500">Días pactados</p>
               </Card>
-              <Card className="p-3 bg-background border-0 shadow-sm text-center">
-                <p className="text-xl font-bold text-slate-600">{vacacionesUsadas}</p>
-                <p className="text-xs text-slate-500">Días usados</p>
-              </Card>
-              <Card className={`p-3 border-0 shadow-sm text-center ${vacacionesDisponibles < 5 ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xl font-bold ${vacacionesDisponibles < 5 ? 'text-red-600' : 'text-emerald-600'}`}>{vacacionesDisponibles}</p>
+              <Card className="p-3 bg-emerald-50 border-0 shadow-sm text-center">
+                <p className="text-xl font-bold text-emerald-600">{vacacionesAnuales - ausencias.filter(a => a.tipo === 'vacaciones').length}</p>
                 <p className="text-xs text-slate-500">Días disponibles</p>
+              </Card>
+              <Card className="p-3 bg-amber-50 border-0 shadow-sm text-center">
+                <p className="text-xl font-bold text-amber-600">{ausenciasPendientes}</p>
+                <p className="text-xs text-slate-500">Pendientes</p>
               </Card>
             </div>
             <Link to="/GestionAusencias">
@@ -321,7 +450,6 @@ export default function TechnicianProfile() {
                           {a.fecha_inicio && format(parseISO(a.fecha_inicio), "d MMM", { locale: es })}
                           {' — '}
                           {a.fecha_fin && format(parseISO(a.fecha_fin), "d MMM yyyy", { locale: es })}
-                          {a.dias_totales && <span className="ml-1">({a.dias_totales}d)</span>}
                         </span>
                       </div>
                       <Badge className={
@@ -336,34 +464,6 @@ export default function TechnicianProfile() {
                 </div>
               </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="contacto">
-            <Card className="p-6 bg-card border-0 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-1">Datos de contacto</h3>
-              <p className="text-xs text-slate-400 mb-5">Usados para envíos de documentación (control horario, nóminas, etc.)</p>
-              {contactForm && (
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-slate-600 mb-1">Nombre completo</Label>
-                    <Input value={contactForm.name} onChange={e => setContactForm(p => ({ ...p, name: e.target.value }))} placeholder="Nombre" />
-                  </div>
-                  <div>
-                    <Label className="text-slate-600 mb-1">Teléfono</Label>
-                    <Input value={contactForm.phone} onChange={e => setContactForm(p => ({ ...p, phone: e.target.value }))} placeholder="+34 600 000 000" type="tel" />
-                  </div>
-                  <div>
-                    <Label className="text-slate-600 mb-1">Correo electrónico</Label>
-                    <Input value={contactForm.email} onChange={e => setContactForm(p => ({ ...p, email: e.target.value }))} placeholder="correo@empresa.com" type="email" />
-                  </div>
-                  <div className="pt-2">
-                    <Button onClick={() => saveContactMutation.mutate()} disabled={saveContactMutation.isPending} className="bg-blue-600">
-                      {saveContactMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar cambios</>}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
           </TabsContent>
 
           <TabsContent value="pin">
@@ -398,7 +498,7 @@ export default function TechnicianProfile() {
           </TabsContent>
         </Tabs>
 
-        {isSessionTech && techEmail === sessionTechEmail && (
+        {isSessionTech && techEmail === sessionTechEmailNav && (
           <div className="mt-8 border-t border-red-100 pt-6">
             <h3 className="font-semibold text-foreground mb-1">Zona de peligro</h3>
             <p className="text-sm text-muted-foreground mb-4">Puedes eliminar tu propia cuenta. Esta acción no se puede deshacer.</p>

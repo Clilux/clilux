@@ -194,6 +194,26 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Listar empresas disponibles (para selector de cambio) ───
+    if (entity === 'companies_list') {
+      const all = await base44.asServiceRole.entities.Company.list('-created_date');
+      return Response.json({ data: all.map(c => ({ company_id: c.company_id, name: c.name, cif: c.cif })) });
+    }
+
+    // ── Cambiar mi propia empresa (solo gerente) ────────────────
+    if (entity === 'me_company_change') {
+      if (!tech.is_admin) return deny('admin');
+      const { company_id } = body;
+      if (!company_id) return Response.json({ error: 'company_id requerido' }, { status: 400 });
+      const target = (await base44.asServiceRole.entities.Company.filter({ company_id }))[0];
+      if (!target) return Response.json({ error: 'Empresa no encontrada' }, { status: 404 });
+      const data = await base44.asServiceRole.entities.Technician.update(tech.id, {
+        company_id: target.company_id,
+        company_name: target.name,
+      });
+      return Response.json({ data, company: target });
+    }
+
     // ── Ausencias pendientes del técnico ────────────────────────
     if (entity === 'ausencias_pendientes') {
       const data = await base44.asServiceRole.entities.Ausencia.filter({ technician_email, estado: 'pendiente' });
