@@ -63,6 +63,13 @@ export default function AdminPanel() {
     },
   });
 
+  // Empresas reales (entidad Company) — solo para el admin de la plataforma
+  const { data: companyEntities = [] } = useQuery({
+    queryKey: ['company-entities'],
+    queryFn: () => base44.entities.Company.list(),
+    enabled: !isSessionTech,
+  });
+
   const { data: adminRequests = [] } = useQuery({
     queryKey: ['admin-requests'],
     queryFn: () => base44.entities.AdminRequest.filter({ status: 'pending' }),
@@ -420,26 +427,51 @@ export default function AdminPanel() {
 
 
 
-  // Group technicians by company
-  const companies = {};
-  technicians.forEach(t => {
-    const key = t.company_id || '__sin_empresa__';
-    const label = t.company_name || 'Sin empresa';
-    if (!companies[key]) companies[key] = { label, techs: [] };
-    companies[key].techs.push(t);
-  });
+  // El admin de la plataforma no se muestra a sí mismo como trabajador
+  const displayedTechnicians = isBase44Admin
+    ? technicians.filter(t =>
+        (t.email || '').toLowerCase() !== (currentUser?.email || '').toLowerCase() &&
+        (t.user_email || '').toLowerCase() !== (currentUser?.email || '').toLowerCase())
+    : technicians;
+
+  // Grupos: empresa → trabajadores
+  let groups;
+  if (isBase44Admin) {
+    const companyGroups = companyEntities.map(c => ({
+      id: c.company_id,
+      name: c.name,
+      cif: c.cif,
+      status: c.status,
+      techs: displayedTechnicians.filter(t => t.company_id === c.company_id),
+    }));
+    const unassigned = displayedTechnicians.filter(
+      t => !t.company_id || !companyEntities.some(c => c.company_id === t.company_id)
+    );
+    groups = [...companyGroups];
+    if (unassigned.length) groups.push({ id: '__sin__', name: 'Sin empresa', cif: '', status: null, techs: unassigned });
+  } else {
+    groups = [{
+      id: myTechRecord?.company_id,
+      name: myTechRecord?.company_name || proxyMe?.company?.name || 'Mi empresa',
+      cif: proxyMe?.company?.cif || '',
+      status: proxyMe?.company?.status || null,
+      techs: displayedTechnicians,
+    }];
+  }
 
   const clientsByTech = (techEmail) =>
     clients.filter(c => c.assigned_technician === techEmail || c.company_id === technicians.find(t => t.email === techEmail)?.company_id).length;
 
-  // Empresas únicas ya existentes en técnicos
-  const existingCompanies = [...new Map(
-    technicians.filter(t => t.company_id && t.company_name)
-      .map(t => [t.company_id, { id: t.company_id, name: t.company_name }])
-  ).values()];
+  // Empresas únicas para selects (vincular / crear)
+  const existingCompanies = isBase44Admin
+    ? companyEntities.map(c => ({ id: c.company_id, name: c.name }))
+    : [...new Map(
+        technicians.filter(t => t.company_id && t.company_name)
+          .map(t => [t.company_id, { id: t.company_id, name: t.company_name }])
+      ).values()];
 
-  // Técnicos sin empresa asignada
-  const techsWithoutCompany = technicians.filter(t => !t.company_id);
+  // Técnicos sin empresa asignada (solo admin de plataforma)
+  const techsWithoutCompany = isBase44Admin ? displayedTechnicians.filter(t => !t.company_id) : [];
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -555,15 +587,19 @@ export default function AdminPanel() {
 
         {/* Technicians grouped by company */}
         <div className="space-y-6">
-          {Object.entries(companies).map(([companyId, { label, techs }]) => (
-            <div key={companyId}>
-              <div className="flex items-center gap-2 mb-3">
+          {groups.map(group => (
+            <div key={group.id}>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Building2 className="h-4 w-4 text-slate-400" />
-                <h3 className="font-semibold text-slate-700">{label}</h3>
-                <Badge variant="secondary" className="text-xs">{techs.length} técnico{techs.length !== 1 ? 's' : ''}</Badge>
+                <h3 className="font-semibold text-slate-700">{group.name}</h3>
+                {group.cif && <span className="text-xs text-slate-400">CIF: {group.cif}</span>}
+                {group.status && (
+                  <Badge variant="outline" className="text-xs">{group.status === 'active' ? 'Activa' : 'Inactiva'}</Badge>
+                )}
+                <Badge variant="secondary" className="text-xs">{group.techs.length} técnico{group.techs.length !== 1 ? 's' : ''}</Badge>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {techs.map(tech => {
+                {group.techs.map(tech => {
                   const accessEmail = tech.email;
                   const hasAccess = !!tech.portal_password && tech.status === 'active';
                   return (
@@ -666,7 +702,7 @@ export default function AdminPanel() {
             </div>
           ))}
 
-          {technicians.length === 0 && !loadingTechs && (
+          {groups.length === 0 && !loadingTechs && (
             <Card className="p-8 text-center bg-white border-0 shadow-sm">
               <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 mb-4">Aún no hay técnicos registrados</p>
