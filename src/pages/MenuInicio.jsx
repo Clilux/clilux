@@ -389,6 +389,22 @@ export default function MenuInicio() {
                       technician_email: registerData.technicianEmail || null,
                       password: password, status: 'pending',
                     });
+                    // Notificar al administrador de la aplicación para que autorice la solicitud
+                    try {
+                      await base44.integrations.Core.SendEmail({
+                        to: 'psantos@clilux.com',
+                        subject: `Nueva solicitud de acceso — ${companyName}`,
+                        body: `Hay una nueva solicitud de acceso a Clilux pendiente de autorización.\n\n` +
+                              `Solicitante: ${fullName}\n` +
+                              `Email: ${contactEmail}\n` +
+                              `Empresa: ${companyName}\n` +
+                              `CIF: ${companyCif.toUpperCase()}\n` +
+                              (registerData.companyAddress ? `Dirección: ${registerData.companyAddress}\n` : '') +
+                              `\nEntra en la app → Panel de Administración → Solicitudes pendientes para aprobar o rechazar. Al aprobar, se enviará automáticamente el correo de bienvenida al nuevo usuario.\n\nEquipo Clilux`,
+                      });
+                    } catch (e) {
+                      console.warn('No se pudo notificar al administrador:', e.message);
+                    }
                     setRegisterDone(true);
                   } catch (err) {
                     setRegisterError('Error al enviar: ' + (err.message || ''));
@@ -415,7 +431,7 @@ export default function MenuInicio() {
               </div>
               <h3 className="text-white text-lg font-semibold">Solicitud enviada</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Una vez validado tu pago, te enviaremos un correo de bienvenida a <strong className="text-white">{registerData.contactEmail}</strong> con tus credenciales de acceso. Podrás entrar a la app con el email y la contraseña que acabas de elegir.
+                Hemos notificado al administrador de Clilux. Cuando autorice tu solicitud, recibirás un correo de bienvenida en <strong className="text-white">{registerData.contactEmail}</strong> con las instrucciones de acceso. Podrás entrar a la app con el email y la contraseña que acabas de elegir.
               </p>
               <Button onClick={() => { setMode(null); setRegisterDone(false); setRegisterData({ fullName: '', contactEmail: '', password: '', passwordConfirm: '', companyName: '', companyCif: '', companyAddress: '', technicianEmail: '' }); }}
                 className="w-full h-11 bg-slate-700 hover:bg-slate-600 text-white rounded-xl">
