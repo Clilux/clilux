@@ -21,6 +21,7 @@ import FichajeRapido from '@/components/horario/FichajeRapido';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
 import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -265,6 +266,20 @@ export default function HomeTecnico() {
     .filter(sr => { const d = parseISO(sr.scheduled_date); return isAfter(d, today) && isBefore(d, next30Days); })
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
+  // ── Onboarding de primera configuración (admin de empresa nuevo) ──
+  const companyId = myTechRecord?.company_id || sessionTechEmail;
+  const onboardingKey = `clilux_onboarding_done_${companyId}`;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (isSessionTech && isAdmin && !proxyLoading && finalClients.length === 0 && !localStorage.getItem(onboardingKey)) {
+      setShowOnboarding(true);
+    }
+  }, [isSessionTech, isAdmin, proxyLoading, finalClients.length, onboardingKey]);
+  const dismissOnboarding = () => {
+    localStorage.setItem(onboardingKey, '1');
+    setShowOnboarding(false);
+  };
+
   const handleLogout = async () => {
     sessionStorage.setItem('just_logged_out', '1');
     // Limpiar TODA sesión de técnico
@@ -286,6 +301,13 @@ export default function HomeTecnico() {
 
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
+      {showOnboarding && (
+        <OnboardingWizard
+          techRecord={myTechRecord}
+          sessionTechEmail={sessionTechEmail}
+          onDismiss={dismissOnboarding}
+        />
+      )}
       {/* Sidebar */}
       <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} techEmail={sessionTechEmail || base44User?.email} />
 

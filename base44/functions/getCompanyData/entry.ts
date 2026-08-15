@@ -3,6 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 /**
  * Devuelve datos de la empresa usando service role (no requiere sesión Base44 del usuario).
  * Valida que el técnico exista y esté activo antes de devolver datos.
+ * TODO el dato de clientes/edificios/equipos/incidencias/revisiones se filtra
+ * por la empresa (company_id) del técnico que hace la petición.
  */
 Deno.serve(async (req) => {
   try {
@@ -34,13 +36,34 @@ Deno.serve(async (req) => {
       ...(tech.permisos || {}),
     };
 
+    // ── Aislamiento por empresa ──────────────────────────────────
+    // IDs de clientes que pertenecen a la empresa del técnico.
+    let _companyClientIds = null;
+    const getCompanyClientIds = async () => {
+      if (_companyClientIds === null) {
+        const cs = await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id });
+        _companyClientIds = new Set(cs.map(c => c.id));
+      }
+      return _companyClientIds;
+    };
+    const assertCompanyClient = async (clientId) => {
+      if (!clientId) return false;
+      const ids = await getCompanyClientIds();
+      return ids.has(clientId);
+    };
+
     // Helper para denegar acceso
     const deny = (perm) => Response.json({ error: `Sin permiso: ${perm}`, no_permission: true }, { status: 403 });
 
     // ── Carga masiva (evita múltiples llamadas simultáneas) ──────
     if (entity === 'all') {
+      const companyClients = permisos.ver_clientes
+        ? await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id })
+        : [];
+      const clientIds = new Set(companyClients.map(c => c.id));
+
       const fetches = await Promise.all([
-        permisos.ver_clientes   ? base44.asServiceRole.entities.Client.list('-created_date')          : Promise.resolve([]),
+        Promise.resolve(companyClients),
         permisos.ver_edificios  ? base44.asServiceRole.entities.Building.list()                        : Promise.resolve([]),
         permisos.ver_equipos    ? base44.asServiceRole.entities.Equipment.list()                       : Promise.resolve([]),
         permisos.ver_incidencias? base44.asServiceRole.entities.Incident.list('-created_date')         : Promise.resolve([]),
@@ -49,10 +72,10 @@ Deno.serve(async (req) => {
       ]);
       return Response.json({
         clients:   fetches[0],
-        buildings: fetches[1],
-        equipment: fetches[2],
-        incidents: fetches[3],
-        revisions: fetches[4],
+        buildings: fetches[1].filter(b => clientIds.has(b.client_id)),
+        equipment: fetches[2].filter(e => clientIds.has(e.client_id)),
+        incidents: fetches[3].filter(i => clientIds.has(i.client_id)),
+        revisions: fetches[4].filter(r => clientIds.has(r.client_id)),
         settings:  fetches[5][0] || null,
       });
     }
@@ -60,33 +83,53 @@ Deno.serve(async (req) => {
     // ── Operaciones de lectura individuales ───────────────────────
     if (entity === 'clients') {
       if (!permisos.ver_clientes) return deny('ver_clientes');
-      const data = await base44.asServiceRole.entities.Client.list('-created_date');
+      const data = await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id });
       return Response.json({ data });
     }
+    // ── Crear cliente en la empresa (admin de empresa) ────────────
+    if (entity === 'client_create') {
+      if (!tech.is_admin) return deny('admin');
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Client.create({
+        ...record,
+        company_id: tech.company_id,
+        status: record.status || 'active',
+      });
+      // invalidar caché de clientes de empresa
+      _companyClientIds = null;
+      return Response.json({ data });
+    }
+
     if (entity === 'buildings') {
       if (!permisos.ver_edificios) return deny('ver_edificios');
-      const data = await base44.asServiceRole.entities.Building.list();
-      return Response.json({ data });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.Building.list();
+      return Response.json({ data: all.filter(b => clientIds.has(b.client_id)) });
     }
     if (entity === 'equipment') {
       if (!permisos.ver_equipos) return deny('ver_equipos');
-      const data = await base44.asServiceRole.entities.Equipment.list();
-      return Response.json({ data });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.Equipment.list();
+      return Response.json({ data: all.filter(e => clientIds.has(e.client_id)) });
     }
     if (entity === 'incidents') {
       if (!permisos.ver_incidencias) return deny('ver_incidencias');
-      const data = await base44.asServiceRole.entities.Incident.list('-created_date');
-      return Response.json({ data });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.Incident.list('-created_date');
+      return Response.json({ data: all.filter(i => clientIds.has(i.client_id)) });
     }
     if (entity === 'revisions') {
       if (!permisos.ver_revisiones) return deny('ver_revisiones');
-      const data = await base44.asServiceRole.entities.ScheduledRevision.list();
-      return Response.json({ data });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.ScheduledRevision.list();
+      return Response.json({ data: all.filter(r => clientIds.has(r.client_id)) });
     }
     if (entity === 'contratos') {
       if (!permisos.ver_contratos) return deny('ver_contratos');
-      const data = await base44.asServiceRole.entities.Contrato.list();
-      return Response.json({ data });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.Contrato.list();
+      return Response.json({ data: all.filter(c => clientIds.has(c.cliente_id)) });
     }
     if (entity === 'settings') {
       const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
@@ -137,6 +180,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_equipos) return deny('editar_equipos');
       const { equipment_id, updates } = body;
       if (!equipment_id || !updates) return Response.json({ error: 'equipment_id y updates requeridos' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, updates);
       return Response.json({ data });
     }
@@ -146,6 +194,9 @@ Deno.serve(async (req) => {
       if (!permisos.editar_equipos) return deny('editar_equipos');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!(await assertCompanyClient(record.client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.Equipment.create(record);
       return Response.json({ data });
     }
@@ -155,6 +206,10 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { records } = body;
       if (!records?.length) return Response.json({ error: 'records requerido' }, { status: 400 });
+      const clientIds = await getCompanyClientIds();
+      for (const r of records) {
+        if (!clientIds.has(r.client_id)) return Response.json({ error: 'Una revisión no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.ScheduledRevision.bulkCreate(records);
       return Response.json({ data });
     }
@@ -164,6 +219,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { equipment_id } = body;
       if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
       const existing = await base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id, status: 'pending' });
       for (const rev of existing) {
         await base44.asServiceRole.entities.ScheduledRevision.delete(rev.id);
@@ -179,6 +239,9 @@ Deno.serve(async (req) => {
       const revList = await base44.asServiceRole.entities.ScheduledRevision.filter({ id: revision_id });
       const rev = revList[0] || null;
       if (!rev) return Response.json({ data: null });
+      if (!(await assertCompanyClient(rev.client_id))) {
+        return Response.json({ error: 'La revisión no pertenece a tu empresa' }, { status: 403 });
+      }
       const [eqList, cliList, bldList] = await Promise.all([
         rev.equipment_id ? base44.asServiceRole.entities.Equipment.filter({ id: rev.equipment_id }) : Promise.resolve([]),
         rev.client_id ? base44.asServiceRole.entities.Client.filter({ id: rev.client_id }) : Promise.resolve([]),
@@ -192,6 +255,11 @@ Deno.serve(async (req) => {
       if (!permisos.ver_revisiones) return deny('ver_revisiones');
       const { equipment_id } = body;
       if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id });
       return Response.json({ data });
     }
@@ -201,6 +269,9 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!(await assertCompanyClient(record.client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.ScheduledRevision.create(record);
       return Response.json({ data });
     }
@@ -210,6 +281,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { revision_id, updates } = body;
       if (!revision_id || !updates) return Response.json({ error: 'revision_id y updates requeridos' }, { status: 400 });
+      const revList = await base44.asServiceRole.entities.ScheduledRevision.filter({ id: revision_id });
+      const rev = revList[0];
+      if (!rev || !(await assertCompanyClient(rev.client_id))) {
+        return Response.json({ error: 'La revisión no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.ScheduledRevision.update(revision_id, updates);
       return Response.json({ data });
     }
@@ -219,6 +295,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { revision_id } = body;
       if (!revision_id) return Response.json({ error: 'revision_id requerido' }, { status: 400 });
+      const revList = await base44.asServiceRole.entities.ScheduledRevision.filter({ id: revision_id });
+      const rev = revList[0];
+      if (!rev || !(await assertCompanyClient(rev.client_id))) {
+        return Response.json({ error: 'La revisión no pertenece a tu empresa' }, { status: 403 });
+      }
       await base44.asServiceRole.entities.ScheduledRevision.delete(revision_id);
       return Response.json({ success: true });
     }
@@ -234,6 +315,9 @@ Deno.serve(async (req) => {
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ building_id }) : Promise.resolve([]),
       ]);
       const bld = buildings[0] || null;
+      if (!bld || !(await assertCompanyClient(bld.client_id))) {
+        return Response.json({ error: 'El edificio no pertenece a tu empresa' }, { status: 403 });
+      }
       const clientList = bld?.client_id ? await base44.asServiceRole.entities.Client.filter({ id: bld.client_id }) : [];
       return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList } });
     }
@@ -245,11 +329,14 @@ Deno.serve(async (req) => {
       if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
       const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
       const eq = eqList[0] || null;
-      const [clientList, buildingList, revisionsList] = eq ? await Promise.all([
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
+      const [clientList, buildingList, revisionsList] = await Promise.all([
         base44.asServiceRole.entities.Client.filter({ id: eq.client_id }),
         base44.asServiceRole.entities.Building.filter({ id: eq.building_id }),
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ equipment_id }) : Promise.resolve([]),
-      ]) : [[], [], []];
+      ]);
       return Response.json({ data: { equipment: eq, client: clientList[0] || null, building: buildingList[0] || null, revisions: revisionsList } });
     }
 
@@ -260,11 +347,14 @@ Deno.serve(async (req) => {
       if (!incident_id) return Response.json({ error: 'incident_id requerido' }, { status: 400 });
       const incList = await base44.asServiceRole.entities.Incident.filter({ id: incident_id });
       const inc = incList[0] || null;
-      const [clientList, buildingList, equipmentList] = inc ? await Promise.all([
+      if (!inc || !(await assertCompanyClient(inc.client_id))) {
+        return Response.json({ error: 'La incidencia no pertenece a tu empresa' }, { status: 403 });
+      }
+      const [clientList, buildingList, equipmentList] = await Promise.all([
         inc.client_id ? base44.asServiceRole.entities.Client.filter({ id: inc.client_id }) : Promise.resolve([]),
         inc.building_id ? base44.asServiceRole.entities.Building.filter({ id: inc.building_id }) : Promise.resolve([]),
         inc.equipment_id ? base44.asServiceRole.entities.Equipment.filter({ id: inc.equipment_id }) : Promise.resolve([]),
-      ]) : [[], [], []];
+      ]);
       return Response.json({ data: { incident: inc, client: clientList[0] || null, building: buildingList[0] || null, equipment: equipmentList[0] || null } });
     }
 
@@ -273,6 +363,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_incidencias) return deny('editar_incidencias');
       const { incident_id, updates } = body;
       if (!incident_id || !updates) return Response.json({ error: 'incident_id y updates requeridos' }, { status: 400 });
+      const incList = await base44.asServiceRole.entities.Incident.filter({ id: incident_id });
+      const inc = incList[0];
+      if (!inc || !(await assertCompanyClient(inc.client_id))) {
+        return Response.json({ error: 'La incidencia no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.Incident.update(incident_id, updates);
       return Response.json({ data });
     }
@@ -282,6 +377,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_incidencias) return deny('editar_incidencias');
       const { incident_id } = body;
       if (!incident_id) return Response.json({ error: 'incident_id requerido' }, { status: 400 });
+      const incList = await base44.asServiceRole.entities.Incident.filter({ id: incident_id });
+      const inc = incList[0];
+      if (!inc || !(await assertCompanyClient(inc.client_id))) {
+        return Response.json({ error: 'La incidencia no pertenece a tu empresa' }, { status: 403 });
+      }
       await base44.asServiceRole.entities.Incident.delete(incident_id);
       return Response.json({ success: true });
     }
@@ -291,6 +391,11 @@ Deno.serve(async (req) => {
       if (!permisos.ver_incidencias) return deny('ver_incidencias');
       const { equipment_id } = body;
       if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.Incident.filter({ equipment_id }, '-created_date');
       return Response.json({ data });
     }
@@ -300,6 +405,11 @@ Deno.serve(async (req) => {
       if (!permisos.ver_equipos) return deny('ver_equipos');
       const { equipment_id } = body;
       if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.RegistroLD.filter({ equipment_id });
       return Response.json({ data });
     }
@@ -309,6 +419,9 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!(await assertCompanyClient(record.client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.RegistroLD.create(record);
       return Response.json({ data });
     }
@@ -318,6 +431,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { record_id, updates } = body;
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const recList = await base44.asServiceRole.entities.RegistroLD.filter({ id: record_id });
+      const rec = recList[0];
+      if (!rec || !(await assertCompanyClient(rec.client_id))) {
+        return Response.json({ error: 'El registro no pertenece a tu empresa' }, { status: 403 });
+      }
       const data = await base44.asServiceRole.entities.RegistroLD.update(record_id, updates);
       return Response.json({ data });
     }
@@ -327,6 +445,11 @@ Deno.serve(async (req) => {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');
       const { record_id } = body;
       if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const recList = await base44.asServiceRole.entities.RegistroLD.filter({ id: record_id });
+      const rec = recList[0];
+      if (!rec || !(await assertCompanyClient(rec.client_id))) {
+        return Response.json({ error: 'El registro no pertenece a tu empresa' }, { status: 403 });
+      }
       await base44.asServiceRole.entities.RegistroLD.delete(record_id);
       return Response.json({ success: true });
     }
