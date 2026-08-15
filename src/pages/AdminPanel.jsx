@@ -306,7 +306,19 @@ export default function AdminPanel() {
       } catch (e) {
         console.warn('No se pudo crear el registro de empresa:', e.message);
       }
-      // Correo de bienvenida con credenciales (si la app permite envío a no registrados)
+      // Registrar al gerente como usuario de la app (rol "user", NO admin) para que
+      // el correo de bienvenida llegue garantizado (SendEmail entrega a usuarios
+      // registrados) sin darle acceso de administrador de la plataforma.
+      let invitedOk = false;
+      try {
+        await base44.users.inviteUser(adminEmail, 'user');
+        invitedOk = true;
+      } catch (e) {
+        // Es normal si ya estaba registrado: el correo igualmente llegará.
+        console.warn('Invitación Base44 (probablemente ya existe):', e.message);
+      }
+      // Correo de bienvenida con credenciales del portal de técnico
+      let emailSent = false;
       if (chosenPassword) {
         try {
           await base44.integrations.Core.SendEmail({
@@ -314,6 +326,7 @@ export default function AdminPanel() {
             subject: 'Bienvenido a Clilux — Acceso de Gerente',
             body: `Hola ${req.full_name},\n\nTu empresa ${req.company_name} ya está dada de alta en Clilux. A partir de ahora eres el GERENTE de tu empresa (no confundir con el administrador de la plataforma).\n\nPara entrar a la app:\n1. Ve a la pantalla de inicio y pulsa "Técnico".\n2. Inicia sesión con tu email (${adminEmail}) y la contraseña que elegiste al registrarte.\n3. Completa los datos de tu empresa y crea a tus trabajadores desde el asistente o desde "Administración".\n\nBienvenido,\nEquipo Clilux`,
           });
+          emailSent = true;
         } catch (e) {
           console.warn('No se pudo enviar el correo de bienvenida personalizado:', e.message);
         }
@@ -322,7 +335,13 @@ export default function AdminPanel() {
       await base44.entities.AdminRequest.update(req.id, { status: 'approved' });
       queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      toast.success(`Gerente aprobado: ${adminEmail}`);
+      if (!chosenPassword) {
+        toast.success(`Gerente aprobado: ${adminEmail} (sin contraseña — asígnala desde "Gestionar")`);
+      } else if (emailSent) {
+        toast.success(`Gerente aprobado: ${adminEmail}. Correo de bienvenida enviado.`);
+      } else {
+        toast.warning(`Gerente aprobado: ${adminEmail}. No se pudo enviar el correo automáticamente; comparte las credenciales manualmente.`);
+      }
     } catch (err) {
       toast.error('Error al aprobar: ' + (err.message || ''));
     } finally {
