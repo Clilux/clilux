@@ -380,34 +380,20 @@ export default function MenuInicio() {
                   if (password.length < 6) { setRegisterError('La contraseña debe tener al menos 6 caracteres'); return; }
                   setRegisterSending(true);
                   try {
-                    const existing = await base44.entities.AdminRequest.filter({ company_cif: companyCif.toUpperCase() });
-                    if (existing.length > 0) { setRegisterError('Ya existe una solicitud con ese CIF.'); setRegisterSending(false); return; }
-                    await base44.entities.AdminRequest.create({
-                      full_name: fullName, contact_email: contactEmail,
-                      company_name: companyName, company_cif: companyCif.toUpperCase(),
+                    const res = await base44.functions.invoke('submitAdminRequest', {
+                      full_name: fullName,
+                      contact_email: contactEmail,
+                      company_name: companyName,
+                      company_cif: companyCif.toUpperCase(),
                       company_address: registerData.companyAddress,
                       technician_email: registerData.technicianEmail || null,
-                      password: password, status: 'pending',
+                      password,
                     });
-                    // Notificar al administrador de la aplicación para que autorice la solicitud
-                    try {
-                      await base44.integrations.Core.SendEmail({
-                        to: 'psantos@clilux.com',
-                        subject: `Nueva solicitud de acceso — ${companyName}`,
-                        body: `Hay una nueva solicitud de acceso a Clilux pendiente de autorización.\n\n` +
-                              `Solicitante: ${fullName}\n` +
-                              `Email: ${contactEmail}\n` +
-                              `Empresa: ${companyName}\n` +
-                              `CIF: ${companyCif.toUpperCase()}\n` +
-                              (registerData.companyAddress ? `Dirección: ${registerData.companyAddress}\n` : '') +
-                              `\nEntra en la app → Panel de Administración → Solicitudes pendientes para aprobar o rechazar. Al aprobar, se enviará automáticamente el correo de bienvenida al nuevo usuario.\n\nEquipo Clilux`,
-                      });
-                    } catch (e) {
-                      console.warn('No se pudo notificar al administrador:', e.message);
-                    }
+                    if (res?.data?.error) { setRegisterError(res.data.error); return; }
                     setRegisterDone(true);
                   } catch (err) {
-                    setRegisterError('Error al enviar: ' + (err.message || ''));
+                    const msg = err?.response?.data?.error || err?.message || '';
+                    setRegisterError('Error al enviar: ' + (msg || ''));
                   } finally {
                     setRegisterSending(false);
                   }
