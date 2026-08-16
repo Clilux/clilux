@@ -10,11 +10,13 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calcularHoras, getGeoLocation } from '@/lib/horario-utils';
+import ConfirmarHoraFichaje from '@/components/horario/ConfirmarHoraFichaje';
 
 export default function FichajeRapido({ currentUser, techRecord }) {
   const queryClient = useQueryClient();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [geoLoading, setGeoLoading] = useState(false);
+  const [confirmHora, setConfirmHora] = useState(null);
   const jornadaDiaria = techRecord?.horas_jornada_diaria || 8;
 
   const isSessionTech = !!sessionStorage.getItem('technician_email');
@@ -84,19 +86,30 @@ export default function FichajeRapido({ currentUser, techRecord }) {
   const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaFinalizada;
   const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
-  // INICIO / REANUDACIÓN
+  // INICIO / REANUDACIÓN (con hora confirmada y ajustable)
   const inicioJornada = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts = {}) => {
+      const horaActual = opts.horaActual || format(new Date(), 'HH:mm');
+      const hora = opts.hora || horaActual;
+      const motivo = opts.motivo;
       setGeoLoading(true);
       const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
-      const nuevoIntervalo = { entrada: now, salida: null };
-      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
+      const nuevoIntervalo = { entrada: hora, salida: null };
+      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora, tipo: 'entrada' }] : [];
+      const historialEntry = motivo ? [{
+        fecha_mod: new Date().toISOString(),
+        usuario: currentUser.email,
+        campo: 'entrada',
+        valor_anterior: horaActual,
+        valor_nuevo: hora,
+        motivo,
+      }] : [];
       if (todayRecord) {
+        const historial = [...(todayRecord.historial_modificaciones || []), ...historialEntry];
         return updateRegistro(todayRecord.id, {
           intervalos: [...intervalos, nuevoIntervalo],
-          hora_salida: null, finalizada: false,
+          hora_salida: null, finalizada: false, historial_modificaciones: historial,
           ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
         });
       }
@@ -106,10 +119,11 @@ export default function FichajeRapido({ currentUser, techRecord }) {
         technician_id: techRecord?.id || '',
         company_id: techRecord?.company_id || '',
         fecha: todayStr,
-        hora_entrada: now,
+        hora_entrada: hora,
         tipo_jornada: 'normal',
         pausas: [],
         intervalos: [nuevoIntervalo],
+        historial_modificaciones: historialEntry,
         ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
@@ -131,22 +145,33 @@ export default function FichajeRapido({ currentUser, techRecord }) {
     onError: () => toast.error('Error al pausar'),
   });
 
-  // FIN JORNADA: cierra intervalo, calcula totales, marca finalizada
+  // FIN JORNADA: cierra intervalo con hora confirmada y ajustable
   const finJornada = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts = {}) => {
       if (!todayRecord) return;
+      const horaActual = opts.horaActual || format(new Date(), 'HH:mm');
+      const hora = opts.hora || horaActual;
+      const motivo = opts.motivo;
       setGeoLoading(true);
       const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
       const updatedIntervalos = intervalos.map((t, i) =>
-        i === intervalos.length - 1 && !t.salida ? { ...t, salida: now } : t
+        i === intervalos.length - 1 && !t.salida ? { ...t, salida: hora } : t
       );
-      const calcs = calcularHoras({ ...todayRecord, intervalos: updatedIntervalos, hora_salida: now }, jornadaDiaria);
+      const calcs = calcularHoras({ ...todayRecord, intervalos: updatedIntervalos, hora_salida: hora }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
-      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora, tipo: 'salida' });
+      const historialEntry = motivo ? [{
+        fecha_mod: new Date().toISOString(),
+        usuario: currentUser.email,
+        campo: 'salida',
+        valor_anterior: horaActual,
+        valor_nuevo: hora,
+        motivo,
+      }] : [];
+      const historial = [...(todayRecord.historial_modificaciones || []), ...historialEntry];
       return updateRegistro(todayRecord.id, {
-        intervalos: updatedIntervalos, hora_salida: now, finalizada: true, ...calcs,
+        intervalos: updatedIntervalos, hora_salida: hora, finalizada: true, ...calcs, historial_modificaciones: historial,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
@@ -208,7 +233,7 @@ export default function FichajeRapido({ currentUser, techRecord }) {
           {!jornadaActiva && (
             <Button
               size="sm"
-              onClick={() => inicioJornada.mutate()}
+              onClick={() => setConfirmHora({ tipo: 'entrada', horaActual: format(new Date(), 'HH:mm'), accion: 'inicio' })}
               disabled={isLoading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-9"
             >
@@ -231,7 +256,7 @@ export default function FichajeRapido({ currentUser, techRecord }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => finJornada.mutate()}
+                onClick={() => setConfirmHora({ tipo: 'salida', horaActual: format(new Date(), 'HH:mm'), accion: 'fin' })}
                 disabled={isLoading}
                 className="border-red-200 text-red-600 hover:bg-red-50 h-9"
               >
@@ -263,6 +288,21 @@ export default function FichajeRapido({ currentUser, techRecord }) {
           </Link>
         </div>
       </div>
+
+      {confirmHora && (
+        <ConfirmarHoraFichaje
+          tipo={confirmHora.tipo}
+          horaActual={confirmHora.horaActual}
+          onClose={() => setConfirmHora(null)}
+          onConfirm={({ hora, motivo, ajustada }) => {
+            const accion = confirmHora.accion;
+            const horaActual = confirmHora.horaActual;
+            setConfirmHora(null);
+            if (accion === 'inicio') inicioJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
+            else finJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
+          }}
+        />
+      )}
     </Card>
   );
 }

@@ -171,8 +171,8 @@ export default function TrabajadoresTab({ techEmail }) {
             {workers.map(w => (
               <div key={w.id} className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${w.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {w.name?.charAt(0)?.toUpperCase() || '?'}
+                  <div className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0 ${w.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {w.photo_url ? <img src={w.photo_url} alt={w.name} className="w-full h-full object-cover" /> : (w.name?.charAt(0)?.toUpperCase() || '?')}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

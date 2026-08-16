@@ -20,6 +20,7 @@ import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
 import MapaTrayecto from '@/components/horario/MapaTrayecto';
 import ComplianceBanner from '@/components/horario/ComplianceBanner';
+import ConfirmarHoraFichaje from '@/components/horario/ConfirmarHoraFichaje';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
@@ -30,6 +31,7 @@ export default function ControlHorario() {
   const [expandedMapId, setExpandedMapId] = useState(null);
   const [showAlbaranObra, setShowAlbaranObra] = useState(false);
   const [albaranRegistro, setAlbaranRegistro] = useState(null);
+  const [confirmHora, setConfirmHora] = useState(null);
 
   // Detectar si hay sesión de técnico propio (no Base44)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -104,19 +106,30 @@ export default function ControlHorario() {
     return base44.entities.RegistroHorario.create(record);
   };
 
-  // INICIO JORNADA: crea el registro del día con el primer intervalo abierto
+  // INICIO JORNADA: crea/reanuda el registro con la hora confirmada (ajustable)
   const inicioJornada = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts = {}) => {
+      const horaActual = opts.horaActual || format(new Date(), 'HH:mm');
+      const hora = opts.hora || horaActual;
+      const motivo = opts.motivo;
       setGeoLoading(true);
       const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
-      const nuevoIntervalo = { entrada: now, salida: null };
-      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'entrada' }] : [];
+      const nuevoIntervalo = { entrada: hora, salida: null };
+      const geopoints = geo ? [{ lat: geo.lat, lng: geo.lng, hora, tipo: 'entrada' }] : [];
+      const historialEntry = motivo ? [{
+        fecha_mod: new Date().toISOString(),
+        usuario: currentUser.email,
+        campo: 'entrada',
+        valor_anterior: horaActual,
+        valor_nuevo: hora,
+        motivo,
+      }] : [];
       if (todayRecord) {
         const intervalos = [...(todayRecord.intervalos || []), nuevoIntervalo];
+        const historial = [...(todayRecord.historial_modificaciones || []), ...historialEntry];
         return updateRegistro(todayRecord.id, {
-          intervalos, hora_salida: null, finalizada: false,
+          intervalos, hora_salida: null, finalizada: false, historial_modificaciones: historial,
           ...(geo && { geopoints: [...(todayRecord.geopoints || []), ...geopoints] }),
         });
       }
@@ -126,10 +139,11 @@ export default function ControlHorario() {
         technician_id: myTechRecord?.id || '',
         company_id: myTechRecord?.company_id || '',
         fecha: todayStr,
-        hora_entrada: now,
+        hora_entrada: hora,
         tipo_jornada: 'normal',
         pausas: [],
         intervalos: [nuevoIntervalo],
+        historial_modificaciones: historialEntry,
         ...(geo && { ubicacion_entrada: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
@@ -150,22 +164,33 @@ export default function ControlHorario() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); toast.success('Jornada pausada'); },
   });
 
-  // FIN JORNADA: cierra el intervalo activo, calcula totales y marca como finalizada
+  // FIN JORNADA: cierra el intervalo con la hora confirmada (ajustable)
   const finJornada = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts = {}) => {
       if (!todayRecord) return;
+      const horaActual = opts.horaActual || format(new Date(), 'HH:mm');
+      const hora = opts.hora || horaActual;
+      const motivo = opts.motivo;
       setGeoLoading(true);
       const geo = await getGeoLocation().catch(() => null);
       setGeoLoading(false);
-      const now = format(new Date(), 'HH:mm');
       const intervalos = (todayRecord.intervalos || []).map((t, i) =>
-        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: now } : t
+        i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: hora } : t
       );
-      const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: now }, jornadaDiaria);
+      const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: hora }, jornadaDiaria);
       const geopoints = [...(todayRecord.geopoints || [])];
-      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora: now, tipo: 'salida' });
+      if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora, tipo: 'salida' });
+      const historialEntry = motivo ? [{
+        fecha_mod: new Date().toISOString(),
+        usuario: currentUser.email,
+        campo: 'salida',
+        valor_anterior: horaActual,
+        valor_nuevo: hora,
+        motivo,
+      }] : [];
+      const historial = [...(todayRecord.historial_modificaciones || []), ...historialEntry];
       return updateRegistro(todayRecord.id, {
-        intervalos, hora_salida: now, finalizada: true, ...calcs,
+        intervalos, hora_salida: hora, finalizada: true, ...calcs, historial_modificaciones: historial,
         ...(geo && { ubicacion_salida: `${geo.lat},${geo.lng}`, geopoints }),
       });
     },
@@ -374,7 +399,7 @@ export default function ControlHorario() {
           )}
           <div className="space-y-2">
             {!jornadaActiva && (
-              <Button onClick={() => inicioJornada.mutate()} disabled={inicioJornada.isPending || geoLoading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11">
+              <Button onClick={() => setConfirmHora({ tipo: 'entrada', horaActual: format(new Date(), 'HH:mm'), accion: 'inicio' })} disabled={inicioJornada.isPending || geoLoading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11">
                 <LogIn className="h-4 w-4 mr-2" />{jornadaPausada || jornadaFinalizada ? 'Reanudar jornada' : 'Iniciar jornada'}
               </Button>
             )}
@@ -383,7 +408,7 @@ export default function ControlHorario() {
                 <Button variant="outline" onClick={() => pausaJornada.mutate()} disabled={pausaJornada.isPending} className="border-amber-300 text-amber-700 hover:bg-amber-50 h-11">
                   <Coffee className="h-4 w-4 mr-2" />Pausa
                 </Button>
-                <Button variant="outline" onClick={() => finJornada.mutate()} disabled={finJornada.isPending || geoLoading} className="border-red-300 text-red-600 hover:bg-red-50 h-11">
+                <Button variant="outline" onClick={() => setConfirmHora({ tipo: 'salida', horaActual: format(new Date(), 'HH:mm'), accion: 'fin' })} disabled={finJornada.isPending || geoLoading} className="border-red-300 text-red-600 hover:bg-red-50 h-11">
                   <LogOut className="h-4 w-4 mr-2" />Fin jornada
                 </Button>
               </div>
@@ -576,6 +601,20 @@ export default function ControlHorario() {
           onClose={() => { setShowAlbaranObra(false); setAlbaranRegistro(null); }}
           techRecord={myTechRecord}
           registroHorario={albaranRegistro}
+        />
+      )}
+      {confirmHora && (
+        <ConfirmarHoraFichaje
+          tipo={confirmHora.tipo}
+          horaActual={confirmHora.horaActual}
+          onClose={() => setConfirmHora(null)}
+          onConfirm={({ hora, motivo, ajustada }) => {
+            const accion = confirmHora.accion;
+            const horaActual = confirmHora.horaActual;
+            setConfirmHora(null);
+            if (accion === 'inicio') inicioJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
+            else finJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
+          }}
         />
       )}
     </>
