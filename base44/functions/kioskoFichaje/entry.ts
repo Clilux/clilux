@@ -113,7 +113,13 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { pin, action, hora, motivo } = body;
+    const { pin, action, hora, motivo, company_id } = body;
+
+    // Listar empresas activas (para configurar el kiosko por empresa)
+    if (action === 'companies') {
+      const companies = await base44.asServiceRole.entities.Company.filter({ status: 'active' });
+      return Response.json({ companies: companies.map(c => ({ company_id: c.company_id, name: c.name, logo_url: c.logo_url || '' })) });
+    }
 
     if (!pin || !action) {
       return Response.json({ error: 'pin y action requeridos' }, { status: 400 });
@@ -130,8 +136,10 @@ export default async function (req) {
       }
     }
 
-    // Buscar técnico por PIN (service role). El PIN actúa como factor de autenticación del kiosko.
-    const techs = await base44.asServiceRole.entities.Technician.filter({ pin: String(pin) });
+    // Buscar técnico por PIN dentro de la empresa del kiosko (aislamiento multi-empresa).
+    const techFilter = { pin: String(pin) };
+    if (company_id) techFilter.company_id = String(company_id);
+    const techs = await base44.asServiceRole.entities.Technician.filter(techFilter);
     const tech = techs[0];
     if (!tech || tech.status === 'inactive' || !tech.pin) {
       return Response.json({ error: 'PIN no válido' }, { status: 403 });
@@ -146,6 +154,7 @@ export default async function (req) {
       company_id: tech.company_id || '',
       company_name: tech.company_name || '',
       horas_jornada_diaria: jornadaDiaria,
+      is_admin: !!tech.is_admin,
     };
 
     // Todos los registros del técnico (se reutilizan para hoy + resumen)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand, DoorOpen } from 'lucide-react';
+import { Delete, Clock, LogIn, LogOut, Coffee, User, Lock, CheckCircle2, AlertTriangle, ArrowLeft, CalendarDays, Briefcase, Hand, DoorOpen, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WeatherWidget from '@/components/kiosko/WeatherWidget';
 import HoraConfirmModal from '@/components/kiosko/HoraConfirmModal';
@@ -9,7 +9,7 @@ const INACTIVITY_MS = 15000; // auto-reset al salvapantallas tras 15s sin tocar
 
 export default function KioskoFichaje() {
   const navigate = useNavigate();
-  const [screen, setScreen] = useState('screensaver'); // screensaver | pin | tech
+  const [screen, setScreen] = useState(() => (localStorage.getItem('kiosko_company') ? 'screensaver' : 'setup')); // setup | screensaver | pin | tech
   const [pin, setPin] = useState('');
   const [sessionPin, setSessionPin] = useState('');
   const [technician, setTechnician] = useState(null);
@@ -22,6 +22,52 @@ export default function KioskoFichaje() {
   const [now, setNow] = useState(new Date());
   const [pendingAction, setPendingAction] = useState(null); // 'entrada' | 'salida'
   const inactivityTimer = useRef(null);
+
+  // ── Kiosko ligado a una empresa (aislamiento multi-empresa) ──
+  const [kioskoCompany, setKioskoCompany] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('kiosko_company') || 'null'); } catch { return null; }
+  });
+  const [companies, setCompanies] = useState([]);
+  const [setupCompany, setSetupCompany] = useState('');
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+  const [showChangeCompany, setShowChangeCompany] = useState(false);
+  const [changePin, setChangePin] = useState('');
+  const [changeError, setChangeError] = useState('');
+  const [changeLoading, setChangeLoading] = useState(false);
+
+  const loadCompanies = async () => {
+    setCompaniesLoading(true);
+    try {
+      const res = await base44.functions.invoke('kioskoFichaje', { action: 'companies' });
+      setCompanies(res.data?.companies || []);
+    } catch { setCompanies([]); }
+    finally { setCompaniesLoading(false); }
+  };
+
+  const confirmSetupCompany = () => {
+    const c = companies.find(x => x.company_id === setupCompany);
+    if (!c) return;
+    const stored = { company_id: c.company_id, name: c.name, logo_url: c.logo_url };
+    localStorage.setItem('kiosko_company', JSON.stringify(stored));
+    setKioskoCompany(stored);
+    setScreen('screensaver');
+  };
+
+  const tryChangeCompany = async () => {
+    if (changePin.length < 4) { setChangeError('PIN incompleto'); return; }
+    setChangeLoading(true); setChangeError('');
+    try {
+      const res = await base44.functions.invoke('kioskoFichaje', { pin: changePin, action: 'lookup', company_id: kioskoCompany?.company_id });
+      if (!res.data?.technician?.is_admin) { setChangeError('Se requiere PIN de gerente'); return; }
+      localStorage.removeItem('kiosko_company');
+      setKioskoCompany(null);
+      setChangePin(''); setShowChangeCompany(false); setSetupCompany('');
+      setCompanies([]);
+      await loadCompanies();
+      setScreen('setup');
+    } catch { setChangeError('PIN no válido'); setChangePin(''); }
+    finally { setChangeLoading(false); }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -48,6 +94,11 @@ export default function KioskoFichaje() {
     return () => { if (inactivityTimer.current) clearTimeout(inactivityTimer.current); };
   }, [screen, showSummary, lastAction]);
 
+  // Cargar empresas al entrar en la pantalla de configuración
+  useEffect(() => {
+    if (screen === 'setup' && companies.length === 0 && !companiesLoading) loadCompanies();
+  }, [screen]);
+
   const pressDigit = (d) => { setError(''); setPin(p => (p.length < 6 ? p + d : p)); };
   const pressDelete = () => { setError(''); setPin(p => p.slice(0, -1)); };
 
@@ -56,7 +107,7 @@ export default function KioskoFichaje() {
     setLoading(true);
     setError('');
     try {
-      const res = await base44.functions.invoke('kioskoFichaje', { pin: pinToTry, action: 'lookup' });
+      const res = await base44.functions.invoke('kioskoFichaje', { pin: pinToTry, action: 'lookup', company_id: kioskoCompany?.company_id });
       setTechnician(res.data.technician);
       setTodayRecord(res.data.todayRecord);
       setSummary(res.data.summary || null);
@@ -82,7 +133,7 @@ export default function KioskoFichaje() {
     setLoading(true);
     setError('');
     try {
-      const payload = { pin: sessionPin, action };
+      const payload = { pin: sessionPin, action, company_id: kioskoCompany?.company_id };
       if (hora) { payload.hora = hora; payload.motivo = motivo; }
       const res = await base44.functions.invoke('kioskoFichaje', payload);
       setTodayRecord(res.data.todayRecord);
@@ -116,6 +167,46 @@ export default function KioskoFichaje() {
 
   const todayHours = todayRecord?.horas_efectivas || 0;
 
+  // ── Configuración inicial: ligar el kiosko a una empresa ──
+  if (screen === 'setup') {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Settings className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+            <h1 className="text-3xl font-bold text-white">Configurar kiosko</h1>
+            <p className="text-white/60 mt-2 text-sm">Selecciona la empresa a la que pertenece este dispositivo. Solo los trabajadores de esa empresa podrán fichar aquí.</p>
+          </div>
+          {companiesLoading ? (
+            <div className="text-center text-white/50 py-8">Cargando empresas...</div>
+          ) : companies.length === 0 ? (
+            <div className="text-center text-white/50 py-8">No hay empresas activas. Contacta con el administrador.</div>
+          ) : (
+            <div className="space-y-4">
+              <select
+                value={setupCompany}
+                onChange={e => setSetupCompany(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none"
+              >
+                <option value="" className="bg-slate-800">Selecciona empresa...</option>
+                {companies.map(c => (
+                  <option key={c.company_id} value={c.company_id} className="bg-slate-800">{c.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={confirmSetupCompany}
+                disabled={!setupCompany}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-2xl py-4 text-xl font-bold text-white transition-all"
+              >
+                Confirmar empresa
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── Salvapantallas: reloj + tiempo grandes. Tocar para entrar ──
   if (screen === 'screensaver') {
     return (
@@ -124,6 +215,12 @@ export default function KioskoFichaje() {
         className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none cursor-pointer"
       >
         <div className="flex flex-col items-center gap-10">
+          {kioskoCompany && (
+            <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-5 py-2">
+              {kioskoCompany.logo_url ? <img src={kioskoCompany.logo_url} alt="" className="h-6 w-6 rounded object-cover" /> : <Briefcase className="h-5 w-5 text-blue-300" />}
+              <span className="text-white font-semibold">{kioskoCompany.name}</span>
+            </div>
+          )}
           <div className="text-center">
             <p className="text-white font-mono text-9xl font-bold tracking-tight leading-none">{timeNoSeconds}</p>
             <p className="text-white/70 capitalize text-3xl mt-4">{dateStr}</p>
@@ -135,12 +232,40 @@ export default function KioskoFichaje() {
           <span className="text-xl">Toca la pantalla para fichar</span>
         </div>
         <button
+          onClick={(e) => { e.stopPropagation(); setShowChangeCompany(true); }}
+          title="Cambiar empresa"
+          className="absolute top-6 left-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors z-10"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+        <button
           onClick={(e) => { e.stopPropagation(); navigate('/'); }}
           title="Salir del kiosco"
           className="absolute top-6 right-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
         >
           <DoorOpen className="h-5 w-5" /> Salir
         </button>
+
+        {showChangeCompany && (
+          <div onClick={(e) => e.stopPropagation()} className="absolute inset-0 bg-black/80 flex items-center justify-center z-20 p-6">
+            <div className="bg-slate-800 border border-white/20 rounded-3xl p-8 max-w-sm w-full">
+              <h2 className="text-xl font-bold text-white mb-1">Cambiar empresa</h2>
+              <p className="text-white/60 text-sm mb-4">Introduce el PIN de un gerente de {kioskoCompany?.name} para desbloquear el cambio.</p>
+              <div className="flex gap-2.5 my-4 items-center justify-center">
+                <Lock className="h-5 w-5 text-white/50" />
+                {[0,1,2,3].map(i => <div key={i} className={`w-4 h-4 rounded-full border-2 ${changePin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />)}
+              </div>
+              {changeError && <p className="text-red-300 text-sm text-center mb-2">{changeError}</p>}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['1','2','3','4','5','6','7','8','9'].map(d => <button key={d} onClick={() => { setChangeError(''); setChangePin(p => p.length < 6 ? p + d : p); }} className="bg-white/10 hover:bg-white/20 rounded-xl py-4 text-2xl text-white">{d}</button>)}
+                <button onClick={() => { setChangeError(''); setChangePin(p => p.slice(0,-1)); }} className="bg-white/5 hover:bg-white/15 rounded-xl py-4 flex items-center justify-center"><Delete className="h-5 w-5 text-white/70" /></button>
+                <button onClick={() => { setChangeError(''); setChangePin(p => p.length < 6 ? p + '0' : p); }} className="bg-white/10 hover:bg-white/20 rounded-xl py-4 text-2xl text-white">0</button>
+                <button onClick={tryChangeCompany} disabled={changeLoading || changePin.length < 4} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-xl py-4 flex items-center justify-center">{changeLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-5 w-5 text-white" />}</button>
+              </div>
+              <button onClick={() => { setShowChangeCompany(false); setChangePin(''); setChangeError(''); }} className="w-full text-white/50 hover:text-white text-sm">Cancelar</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -347,6 +472,7 @@ export default function KioskoFichaje() {
 
       <div className="text-center mb-2">
         <h1 className="text-5xl font-bold text-white tracking-tight">Control Horario</h1>
+        {kioskoCompany && <p className="text-blue-300 font-semibold mt-1 text-lg">{kioskoCompany.name}</p>}
         <p className="text-white/60 capitalize mt-2 text-xl">{dateStr}</p>
       </div>
 
