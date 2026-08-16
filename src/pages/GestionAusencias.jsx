@@ -13,7 +13,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { format, differenceInCalendarDays, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval, getDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -246,6 +246,15 @@ export default function GestionAusencias() {
     toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
   };
 
+  const handleDelete = async (ausencia) => {
+    if (!confirm('¿Eliminar esta petición? No se puede deshacer.')) return;
+    try {
+      await base44.entities.Ausencia.delete(ausencia.id);
+      queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+      toast.success('Petición eliminada');
+    } catch { toast.error('Error al eliminar'); }
+  };
+
   if (!myEmail) return null;
 
   const handleLogout = () => {
@@ -279,18 +288,25 @@ export default function GestionAusencias() {
             </p>
             {ausencia.motivo && <p className="text-xs text-slate-400 mt-1">{ausencia.motivo}</p>}
           </div>
-          {isAdmin && ausencia.estado === 'pendiente' && (
-            <div className="flex gap-2 shrink-0">
-              <Button size="sm" onClick={() => handleEstado(ausencia, 'aprobada')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3">
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />Aprobar
+          <div className="flex items-center gap-1 shrink-0">
+            {isAdmin && ausencia.estado === 'pendiente' && (
+              <>
+                <Button size="sm" onClick={() => handleEstado(ausencia, 'aprobada')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3">
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />Aprobar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleEstado(ausencia, 'rechazada')}
+                  className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3">
+                  <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
+                </Button>
+              </>
+            )}
+            {isAdmin && (
+              <Button size="icon" variant="ghost" onClick={() => handleDelete(ausencia)} className="h-8 w-8 text-slate-400 hover:text-red-600" title="Eliminar petición">
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
-              <Button size="sm" variant="outline" onClick={() => handleEstado(ausencia, 'rechazada')}
-                className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3">
-                <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Card>
     );

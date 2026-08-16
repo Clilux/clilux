@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck, Umbrella } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck, Umbrella, Users } from 'lucide-react';
 import VacacionesPanel from './VacacionesPanel';
+import EstadoTrabajadoresPanel from './EstadoTrabajadoresPanel';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -21,7 +22,7 @@ import { formatHoras } from '@/lib/horario-utils';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord }) {
   const queryClient = useQueryClient();
-  const [mainTab, setMainTab] = useState('registros');
+  const [mainTab, setMainTab] = useState('estado');
   const [period, setPeriod] = useState('month');
   const [refDate, setRefDate] = useState(new Date());
   const [selectedTech, setSelectedTech] = useState('all');
@@ -266,11 +267,16 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       {/* Main tab selector */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <TabsList className="bg-white shadow-sm">
+          <TabsTrigger value="estado" className="gap-1.5"><Users className="h-3.5 w-3.5" />Estado</TabsTrigger>
           <TabsTrigger value="registros" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Registros</TabsTrigger>
           <TabsTrigger value="vacaciones" className="gap-1.5"><Umbrella className="h-3.5 w-3.5" />Vacaciones</TabsTrigger>
           <TabsTrigger value="cumplimiento" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Cumplimiento legal</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {mainTab === 'estado' && (
+        <EstadoTrabajadoresPanel technicians={technicians} myTechRecord={myTechRecord} />
+      )}
 
       {mainTab === 'vacaciones' && (
         <VacacionesPanel technicians={technicians} myTechRecord={myTechRecord} />
