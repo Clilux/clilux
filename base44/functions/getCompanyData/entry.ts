@@ -576,8 +576,26 @@ Deno.serve(async (req) => {
       if (!target || target.company_id !== tech.company_id) {
         return Response.json({ error: 'El técnico no pertenece a tu empresa' }, { status: 403 });
       }
+      const companyId = target.company_id;
+      const wasAdmin = !!target.is_admin;
       await base44.asServiceRole.entities.Technician.delete(technician_id);
-      return Response.json({ success: true });
+
+      // Salvavidas: si se elimina al gerente y no queda ningún admin en la empresa,
+      // promocionar automáticamente al trabajador activo más antiguo.
+      let promovido = null;
+      if (wasAdmin && companyId) {
+        const restantes = (await base44.asServiceRole.entities.Technician.filter({ company_id: companyId }))
+          .filter(t => t.status !== 'inactive');
+        if (restantes.length > 0 && !restantes.some(t => t.is_admin)) {
+          const candidato = [...restantes]
+            .sort((a, b) => (a.created_date || '').localeCompare(b.created_date || ''))[0];
+          if (candidato) {
+            await base44.asServiceRole.entities.Technician.update(candidato.id, { is_admin: true });
+            promovido = { id: candidato.id, name: candidato.name, email: candidato.email };
+          }
+        }
+      }
+      return Response.json({ success: true, promovido });
     }
 
     // ── Invitar cliente al portal (crea usuario en AppSettings.client_users) ──
