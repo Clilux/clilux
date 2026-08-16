@@ -532,8 +532,18 @@ Deno.serve(async (req) => {
       if (!tech.is_admin) return deny('admin');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      // Evitar emails duplicados: un mismo email no puede estar en dos fichas
+      // (rompería la resolución de login y de proxy, mezclando trabajadores)
+      const emailNorm = (record.email || '').trim().toLowerCase();
+      if (!emailNorm) return Response.json({ error: 'Email obligatorio' }, { status: 400 });
+      const allTechs = await base44.asServiceRole.entities.Technician.list();
+      const dup = allTechs.find(t => (t.email || '').trim().toLowerCase() === emailNorm);
+      if (dup) {
+        return Response.json({ error: 'Ya existe un trabajador con este email. Cada trabajador debe tener un email único.' }, { status: 400 });
+      }
       const data = await base44.asServiceRole.entities.Technician.create({
         ...record,
+        email: record.email,
         company_id: tech.company_id,
         company_name: tech.company_name,
         status: record.status || 'active',
