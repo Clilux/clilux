@@ -46,6 +46,10 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
     },
     onSuccess: () => {
       toast.success('Solicitud enviada, pendiente de aprobación');
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
       onClose();
     },
     onError: (err) => toast.error(err.message || 'Error al enviar la solicitud'),

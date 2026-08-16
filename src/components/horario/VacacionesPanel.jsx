@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { Calendar, Pencil, Check, X, Info } from 'lucide-react';
+import { Calendar, Pencil, Check, X, Info, CheckCircle, XCircle, Trash2, Bell } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -110,9 +110,41 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
   );
+  const companyTechEmails = new Set(companyTechs.map(t => t.user_email || t.email));
 
   const currentYear = new Date().getFullYear();
   const yearStr = String(currentYear);
+
+  // Solicitudes pendientes (todos los tipos) — para que el gerente las vea al instante
+  const { data: pendientes = [] } = useQuery({
+    queryKey: ['ausencias-pendientes'],
+    queryFn: async () => {
+      const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
+      return all.filter(a => a.estado === 'pendiente' && companyTechEmails.has(a.technician_email));
+    },
+  });
+
+  const resolver = async (a, estado) => {
+    try {
+      await base44.entities.Ausencia.update(a.id, { estado });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-vacaciones', yearStr] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
+    } catch { toast.error('Error al actualizar'); }
+  };
+
+  const borrar = async (a) => {
+    if (!confirm('¿Eliminar esta petición? No se puede deshacer.')) return;
+    try {
+      await base44.entities.Ausencia.delete(a.id);
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      toast.success('Petición eliminada');
+    } catch { toast.error('Error al eliminar'); }
+  };
 
   // Cargar todas las ausencias del año para calcular días usados
   const { data: ausencias = [] } = useQuery({
@@ -127,6 +159,11 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
     },
   });
 
+  const TIPO_AUS = {
+    vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
+    asunto_propio: 'Asunto propio', maternidad_paternidad: 'Mat./Paternidad', otro: 'Otro',
+  };
+
   const getDiasUsadosEnSistema = (techEmail) => {
     return ausencias
       .filter(a => a.technician_email === techEmail)
@@ -139,6 +176,42 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
         <Calendar className="h-4 w-4 text-blue-500" />
         <h3 className="font-semibold text-slate-700">Gestión de vacaciones · {currentYear}</h3>
       </div>
+
+      {/* Solicitudes pendientes — el gerente las ve nada más abrir */}
+      {pendientes.length > 0 && (
+        <Card className="bg-amber-50/60 border-amber-200 shadow-sm mb-4 overflow-hidden">
+          <div className="px-4 py-3 flex items-center gap-2 bg-amber-100/60 border-b border-amber-200">
+            <Bell className="h-4 w-4 text-amber-600" />
+            <h3 className="font-semibold text-amber-800 text-sm">Solicitudes pendientes ({pendientes.length})</h3>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendientes.map(a => (
+              <div key={a.id} className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-700 text-sm">
+                    {a.technician_name}
+                    <span className="text-slate-400 font-normal ml-2 text-xs">
+                      {a.fecha_inicio && format(parseISO(a.fecha_inicio), 'd MMM', { locale: es })} → {a.fecha_fin && format(parseISO(a.fecha_fin), 'd MMM yyyy', { locale: es })}
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {TIPO_AUS[a.tipo] || a.tipo} · {a.dias_totales}d{a.motivo ? ` · ${a.motivo}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button size="sm" onClick={() => resolver(a, 'aprobada')} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3">
+                    <CheckCircle className="h-3.5 w-3.5 mr-1" />Aprobar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => resolver(a, 'rechazada')} className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3">
+                    <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => borrar(a)} className="h-8 w-8 text-slate-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="bg-white border-0 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">

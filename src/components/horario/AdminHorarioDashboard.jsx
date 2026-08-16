@@ -34,6 +34,15 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
   );
+  const companyTechEmails = new Set(companyTechs.map(t => t.user_email || t.email));
+
+  const { data: pendientesCount = 0 } = useQuery({
+    queryKey: ['ausencias-pendientes-count'],
+    queryFn: async () => {
+      const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
+      return all.filter(a => a.estado === 'pendiente' && companyTechEmails.has(a.technician_email)).length;
+    },
+  });
 
   // Determine date range
   const dateRange = useMemo(() => {
@@ -269,7 +278,12 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
         <TabsList className="bg-white shadow-sm">
           <TabsTrigger value="estado" className="gap-1.5"><Users className="h-3.5 w-3.5" />Estado</TabsTrigger>
           <TabsTrigger value="registros" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Registros</TabsTrigger>
-          <TabsTrigger value="vacaciones" className="gap-1.5"><Umbrella className="h-3.5 w-3.5" />Vacaciones</TabsTrigger>
+          <TabsTrigger value="vacaciones" className="gap-1.5 relative">
+            <Umbrella className="h-3.5 w-3.5" />Vacaciones
+            {pendientesCount > 0 && (
+              <span className="ml-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">{pendientesCount}</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="cumplimiento" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Cumplimiento legal</TabsTrigger>
         </TabsList>
       </Tabs>

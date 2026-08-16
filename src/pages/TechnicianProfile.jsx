@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
 import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase, Camera, FileText, Download } from 'lucide-react';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -28,6 +28,8 @@ export default function TechnicianProfile() {
   const [contactForm, setContactForm] = useState(null);
   const [pinForm, setPinForm] = useState({ pin: '', confirm: '' });
   const [pinSaving, setPinSaving] = useState(false);
+  const [jornadaForm, setJornadaForm] = useState(null);
+  const [jornadaSaving, setJornadaSaving] = useState(false);
 
   const sessionTechEmailNav = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmailNav;
@@ -85,6 +87,12 @@ export default function TechnicianProfile() {
     if (tech && contactForm === null) {
       setContactForm({ name: tech.name || '', phone: tech.phone || '', email: tech.email || '' });
     }
+    if (tech && jornadaForm === null) {
+      setJornadaForm({
+        dias_laborables: Array.isArray(tech.dias_laborables) && tech.dias_laborables.length ? tech.dias_laborables : [1, 2, 3, 4, 5],
+        horas: tech.horas_jornada_diaria ?? 8,
+      });
+    }
   }, [tech]);
 
   // Guardar datos de contacto vía proxy (sesión) o directo (Base44)
@@ -129,6 +137,23 @@ export default function TechnicianProfile() {
     } finally {
       setPinSaving(false);
     }
+  };
+
+  const saveJornada = async () => {
+    if (!tech || !jornadaForm) return;
+    setJornadaSaving(true);
+    try {
+      const updates = { dias_laborables: jornadaForm.dias_laborables, horas_jornada_diaria: Number(jornadaForm.horas) };
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'me_update', updates });
+      } else {
+        await base44.entities.Technician.update(tech.id, updates);
+      }
+      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      toast.success('Jornada guardada');
+    } catch { toast.error('Error al guardar jornada'); }
+    finally { setJornadaSaving(false); }
   };
 
   const fileInputRef = useRef(null);
@@ -192,6 +217,13 @@ export default function TechnicianProfile() {
   const thisMonthRegistros = registros.filter(r => r.fecha >= currentMonthStart && r.fecha <= currentMonthEnd);
   const totalHorasMes = thisMonthRegistros.reduce((acc, r) => acc + (r.horas_efectivas || r.horas_trabajadas || 0), 0);
   const ausenciasPendientes = ausencias.length;
+
+  // Jornada laboral: días laborables y horas diarias pactadas → horas teóricas del mes
+  const diasLab = (jornadaForm?.dias_laborables) || (Array.isArray(tech?.dias_laborables) && tech.dias_laborables.length ? tech.dias_laborables : [1, 2, 3, 4, 5]);
+  const horasDia = Number(jornadaForm?.horas ?? tech?.horas_jornada_diaria ?? 8);
+  const monthDays = eachDayOfInterval({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) });
+  const expectedHoras = monthDays.filter(d => diasLab.includes(d.getDay())).length * horasDia;
+  const diffHoras = Math.round((totalHorasMes - expectedHoras) * 10) / 10;
 
   const TIPO_LABELS = {
     vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
@@ -287,6 +319,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="empresa">Empresa y tipo</TabsTrigger>
             <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
             <TabsTrigger value="registros">Registros</TabsTrigger>
+            <TabsTrigger value="jornada">Jornada</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
             {isSessionTech && <TabsTrigger value="documentos">Documentos</TabsTrigger>}
@@ -386,6 +419,78 @@ export default function TechnicianProfile() {
                     </div>
                   ))}
                 </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="jornada">
+            <Card className="p-6 bg-card border-0 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-1">Jornada laboral</h3>
+              <p className="text-xs text-slate-400 mb-5">Indica tus días laborables y las horas diarias pactadas. Sirve para calcular las horas teóricas del mes y compararlas con las fichadas.</p>
+
+              <div className="space-y-5">
+                <div>
+                  <Label className="text-slate-600 mb-2 block">Días laborables</Label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[
+                      { d: 1, l: 'Lun' }, { d: 2, l: 'Mar' }, { d: 3, l: 'Mié' }, { d: 4, l: 'Jue' },
+                      { d: 5, l: 'Vie' }, { d: 6, l: 'Sáb' }, { d: 0, l: 'Dom' },
+                    ].map(({ d, l }) => {
+                      const active = (jornadaForm?.dias_laborables || []).includes(d);
+                      return (
+                        <button key={d} type="button"
+                          onClick={() => setJornadaForm(p => {
+                            const set = new Set(p.dias_laborables);
+                            if (set.has(d)) set.delete(d); else set.add(d);
+                            return { ...p, dias_laborables: Array.from(set).sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)) };
+                          })}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
+                          {l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="max-w-xs">
+                  <Label className="text-slate-600 mb-1">Horas diarias pactadas</Label>
+                  <Input type="number" min={1} max={12} step={0.5}
+                    value={jornadaForm?.horas ?? 8}
+                    onChange={e => setJornadaForm(p => ({ ...p, horas: e.target.value }))}
+                  />
+                </div>
+
+                <div className="pt-1">
+                  <Button onClick={saveJornada} disabled={jornadaSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {jornadaSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar jornada</>}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 bg-card border-0 shadow-sm mt-4">
+              <h3 className="font-semibold text-slate-700 mb-1">Resumen del mes · {format(new Date(), 'MMMM yyyy', { locale: es })}</h3>
+              <p className="text-xs text-slate-400 mb-4">Horas teóricas según tu jornada vs. horas realmente fichadas.</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-100 text-center">
+                  <p className="text-2xl font-bold text-slate-700">{expectedHoras}h</p>
+                  <p className="text-xs text-slate-500">Teóricas</p>
+                </div>
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 text-center">
+                  <p className="text-2xl font-bold text-blue-600">{Math.round(totalHorasMes * 10) / 10}h</p>
+                  <p className="text-xs text-slate-500">Fichadas</p>
+                </div>
+                <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-center">
+                  <p className="text-2xl font-bold text-emerald-600">{thisMonthRegistros.length}</p>
+                  <p className="text-xs text-slate-500">Días fichados</p>
+                </div>
+                <div className={`p-4 rounded-lg border text-center ${diffHoras < 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                  <p className={`text-2xl font-bold ${diffHoras < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{diffHoras > 0 ? '+' : ''}{diffHoras}h</p>
+                  <p className="text-xs text-slate-500">Diferencia</p>
+                </div>
+              </div>
+              {diffHoras < 0 && (
+                <p className="text-xs text-red-500 mt-3">Te faltan {Math.abs(diffHoras)}h por fichar este mes respecto a tu jornada teórica.</p>
               )}
             </Card>
           </TabsContent>
