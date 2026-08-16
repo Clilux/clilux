@@ -23,49 +23,48 @@ export default function KioskoFichaje() {
   const [pendingAction, setPendingAction] = useState(null); // 'entrada' | 'salida'
   const inactivityTimer = useRef(null);
 
-  // ── Kiosko ligado a una empresa (aislamiento multi-empresa) ──
+  // ── Kiosko ligado a una empresa (login de gerente) ──
   const [kioskoCompany, setKioskoCompany] = useState(() => {
     try { return JSON.parse(localStorage.getItem('kiosko_company') || 'null'); } catch { return null; }
   });
-  const [companies, setCompanies] = useState([]);
-  const [setupCompany, setSetupCompany] = useState('');
-  const [companiesLoading, setCompaniesLoading] = useState(false);
+  const [setupEmail, setSetupEmail] = useState('');
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupError, setSetupError] = useState('');
   const [showChangeCompany, setShowChangeCompany] = useState(false);
-  const [changePin, setChangePin] = useState('');
-  const [changeError, setChangeError] = useState('');
+  const [changeEmail, setChangeEmail] = useState('');
+  const [changePassword, setChangePassword] = useState('');
   const [changeLoading, setChangeLoading] = useState(false);
+  const [changeError, setChangeError] = useState('');
 
-  const loadCompanies = async () => {
-    setCompaniesLoading(true);
-    try {
-      const res = await base44.functions.invoke('kioskoFichaje', { action: 'companies' });
-      setCompanies(res.data?.companies || []);
-    } catch { setCompanies([]); }
-    finally { setCompaniesLoading(false); }
+  const loginGerente = async (email, password) => {
+    const res = await base44.functions.invoke('kioskoFichaje', { action: 'setup_login', email, password });
+    const c = { company_id: res.data.company_id, name: res.data.company_name, logo_url: res.data.logo_url };
+    localStorage.setItem('kiosko_company', JSON.stringify(c));
+    setKioskoCompany(c);
+    return c;
   };
 
-  const confirmSetupCompany = () => {
-    const c = companies.find(x => x.company_id === setupCompany);
-    if (!c) return;
-    const stored = { company_id: c.company_id, name: c.name, logo_url: c.logo_url };
-    localStorage.setItem('kiosko_company', JSON.stringify(stored));
-    setKioskoCompany(stored);
-    setScreen('screensaver');
+  const handleSetupLogin = async () => {
+    if (!setupEmail || !setupPassword) { setSetupError('Introduce email y contraseña'); return; }
+    setSetupLoading(true); setSetupError('');
+    try {
+      await loginGerente(setupEmail, setupPassword);
+      setSetupEmail(''); setSetupPassword('');
+      setScreen('screensaver');
+    } catch { setSetupError('Gerente no válido o sin permisos'); }
+    finally { setSetupLoading(false); }
   };
 
   const tryChangeCompany = async () => {
-    if (changePin.length < 4) { setChangeError('PIN incompleto'); return; }
+    if (!changeEmail || !changePassword) { setChangeError('Introduce email y contraseña'); return; }
     setChangeLoading(true); setChangeError('');
     try {
-      const res = await base44.functions.invoke('kioskoFichaje', { pin: changePin, action: 'lookup', company_id: kioskoCompany?.company_id });
-      if (!res.data?.technician?.is_admin) { setChangeError('Se requiere PIN de gerente'); return; }
-      localStorage.removeItem('kiosko_company');
-      setKioskoCompany(null);
-      setChangePin(''); setShowChangeCompany(false); setSetupCompany('');
-      setCompanies([]);
-      await loadCompanies();
-      setScreen('setup');
-    } catch { setChangeError('PIN no válido'); setChangePin(''); }
+      await loginGerente(changeEmail, changePassword);
+      setChangeEmail(''); setChangePassword('');
+      setShowChangeCompany(false);
+      setScreen('screensaver');
+    } catch { setChangeError('Gerente no válido'); }
     finally { setChangeLoading(false); }
   };
 
@@ -94,10 +93,7 @@ export default function KioskoFichaje() {
     return () => { if (inactivityTimer.current) clearTimeout(inactivityTimer.current); };
   }, [screen, showSummary, lastAction]);
 
-  // Cargar empresas al entrar en la pantalla de configuración
-  useEffect(() => {
-    if (screen === 'setup' && companies.length === 0 && !companiesLoading) loadCompanies();
-  }, [screen]);
+  // (El kiosko se asigna a una empresa mediante login de gerente, sin listado público)
 
   const pressDigit = (d) => { setError(''); setPin(p => (p.length < 6 ? p + d : p)); };
   const pressDelete = () => { setError(''); setPin(p => p.slice(0, -1)); };
@@ -167,41 +163,48 @@ export default function KioskoFichaje() {
 
   const todayHours = todayRecord?.horas_efectivas || 0;
 
-  // ── Configuración inicial: ligar el kiosko a una empresa ──
+  // ── Activar kiosko: el gerente se identifica para ligarlo a su empresa ──
   if (screen === 'setup') {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Settings className="h-12 w-12 text-blue-400 mx-auto mb-3" />
-            <h1 className="text-3xl font-bold text-white">Configurar kiosko</h1>
-            <p className="text-white/60 mt-2 text-sm">Selecciona la empresa a la que pertenece este dispositivo. Solo los trabajadores de esa empresa podrán fichar aquí.</p>
+            <h1 className="text-3xl font-bold text-white">Activar kiosko</h1>
+            <p className="text-white/60 mt-2 text-sm">Introduce las credenciales de gerente. El kiosko quedará asignado a su empresa y solo sus trabajadores podrán fichar aquí.</p>
           </div>
-          {companiesLoading ? (
-            <div className="text-center text-white/50 py-8">Cargando empresas...</div>
-          ) : companies.length === 0 ? (
-            <div className="text-center text-white/50 py-8">No hay empresas activas. Contacta con el administrador.</div>
-          ) : (
-            <div className="space-y-4">
-              <select
-                value={setupCompany}
-                onChange={e => setSetupCompany(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none"
-              >
-                <option value="" className="bg-slate-800">Selecciona empresa...</option>
-                {companies.map(c => (
-                  <option key={c.company_id} value={c.company_id} className="bg-slate-800">{c.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={confirmSetupCompany}
-                disabled={!setupCompany}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-2xl py-4 text-xl font-bold text-white transition-all"
-              >
-                Confirmar empresa
-              </button>
+          <div className="space-y-4">
+            <div>
+              <label className="text-white/60 text-sm mb-1 block">Email del gerente</label>
+              <input
+                type="email"
+                value={setupEmail}
+                onChange={e => setSetupEmail(e.target.value)}
+                placeholder="gerente@empresa.com"
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/30"
+              />
             </div>
-          )}
+            <div>
+              <label className="text-white/60 text-sm mb-1 block">Contraseña</label>
+              <input
+                type="password"
+                value={setupPassword}
+                onChange={e => setSetupPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSetupLogin(); }}
+                placeholder="••••••••"
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/30"
+              />
+            </div>
+            {setupError && <p className="text-red-300 text-sm text-center">{setupError}</p>}
+            <button
+              onClick={handleSetupLogin}
+              disabled={setupLoading}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl py-4 text-xl font-bold text-white transition-all flex items-center justify-center gap-2"
+            >
+              {setupLoading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-5 w-5" />}
+              {setupLoading ? 'Validando...' : 'Activar kiosko'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -249,20 +252,31 @@ export default function KioskoFichaje() {
         {showChangeCompany && (
           <div onClick={(e) => e.stopPropagation()} className="absolute inset-0 bg-black/80 flex items-center justify-center z-20 p-6">
             <div className="bg-slate-800 border border-white/20 rounded-3xl p-8 max-w-sm w-full">
-              <h2 className="text-xl font-bold text-white mb-1">Cambiar empresa</h2>
-              <p className="text-white/60 text-sm mb-4">Introduce el PIN de un gerente de {kioskoCompany?.name} para desbloquear el cambio.</p>
-              <div className="flex gap-2.5 my-4 items-center justify-center">
-                <Lock className="h-5 w-5 text-white/50" />
-                {[0,1,2,3].map(i => <div key={i} className={`w-4 h-4 rounded-full border-2 ${changePin.length > i ? 'bg-blue-400 border-blue-400' : 'border-white/30'}`} />)}
+              <h2 className="text-xl font-bold text-white mb-1">Cambiar de empresa</h2>
+              <p className="text-white/60 text-sm mb-4">Introduce las credenciales de gerente de la nueva empresa para reasignar este kiosko.</p>
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  value={changeEmail}
+                  onChange={e => setChangeEmail(e.target.value)}
+                  placeholder="Email del gerente"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/30"
+                />
+                <input
+                  type="password"
+                  value={changePassword}
+                  onChange={e => setChangePassword(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') tryChangeCompany(); }}
+                  placeholder="Contraseña"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/30"
+                />
+                {changeError && <p className="text-red-300 text-sm text-center">{changeError}</p>}
+                <button onClick={tryChangeCompany} disabled={changeLoading} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl py-3 font-bold text-white flex items-center justify-center gap-2">
+                  {changeLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-4 w-4" />}
+                  Reasignar kiosko
+                </button>
+                <button onClick={() => { setShowChangeCompany(false); setChangeEmail(''); setChangePassword(''); setChangeError(''); }} className="w-full text-white/50 hover:text-white text-sm">Cancelar</button>
               </div>
-              {changeError && <p className="text-red-300 text-sm text-center mb-2">{changeError}</p>}
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {['1','2','3','4','5','6','7','8','9'].map(d => <button key={d} onClick={() => { setChangeError(''); setChangePin(p => p.length < 6 ? p + d : p); }} className="bg-white/10 hover:bg-white/20 rounded-xl py-4 text-2xl text-white">{d}</button>)}
-                <button onClick={() => { setChangeError(''); setChangePin(p => p.slice(0,-1)); }} className="bg-white/5 hover:bg-white/15 rounded-xl py-4 flex items-center justify-center"><Delete className="h-5 w-5 text-white/70" /></button>
-                <button onClick={() => { setChangeError(''); setChangePin(p => p.length < 6 ? p + '0' : p); }} className="bg-white/10 hover:bg-white/20 rounded-xl py-4 text-2xl text-white">0</button>
-                <button onClick={tryChangeCompany} disabled={changeLoading || changePin.length < 4} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-xl py-4 flex items-center justify-center">{changeLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-5 w-5 text-white" />}</button>
-              </div>
-              <button onClick={() => { setShowChangeCompany(false); setChangePin(''); setChangeError(''); }} className="w-full text-white/50 hover:text-white text-sm">Cancelar</button>
             </div>
           </div>
         )}

@@ -113,12 +113,24 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { pin, action, hora, motivo, company_id } = body;
+    const { pin, action, hora, motivo, company_id, email, password } = body;
 
-    // Listar empresas activas (para configurar el kiosko por empresa)
-    if (action === 'companies') {
-      const companies = await base44.asServiceRole.entities.Company.filter({ status: 'active' });
-      return Response.json({ companies: companies.map(c => ({ company_id: c.company_id, name: c.name, logo_url: c.logo_url || '' })) });
+    // Activar kiosko: el gerente se identifica con email + contraseña y queda ligado a su empresa
+    if (action === 'setup_login') {
+      if (!email || !password) return Response.json({ error: 'Email y contraseña requeridos' }, { status: 400 });
+      const allTechs = await base44.asServiceRole.entities.Technician.list();
+      const tech = allTechs.find(t =>
+        (t.email || '').trim().toLowerCase() === String(email).trim().toLowerCase() &&
+        (t.portal_password || '').trim() === String(password).trim() &&
+        t.status === 'active' && t.is_admin
+      );
+      if (!tech) return Response.json({ error: 'Gerente no válido o sin permisos' }, { status: 403 });
+      let logo_url = '';
+      try {
+        const companies = await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id });
+        logo_url = companies[0]?.logo_url || '';
+      } catch {}
+      return Response.json({ company_id: tech.company_id || '', company_name: tech.company_name || tech.company_id || '', logo_url, gerente_name: tech.name });
     }
 
     if (!pin || !action) {
