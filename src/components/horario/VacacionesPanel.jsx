@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Calendar, Pencil, Check, X, Info, CheckCircle, XCircle, Trash2, Bell } from 'lucide-react';
+import { notificar } from '@/lib/buzon';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -131,6 +132,15 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias-vacaciones', yearStr] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      notificar('vacacion_resuelta', {
+        company_id: myTechRecord?.company_id || '',
+        worker_email: a.technician_email,
+        worker_name: a.technician_name,
+        estado,
+        tipo_aus: TIPO_AUS[a.tipo] || 'Vacaciones',
+        fecha_inicio: a.fecha_inicio,
+        fecha_fin: a.fecha_fin,
+      });
       toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
     } catch { toast.error('Error al actualizar'); }
   };

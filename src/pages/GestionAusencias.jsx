@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { notificar } from '@/lib/buzon';
 import { format, differenceInCalendarDays, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval, getDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -243,6 +244,14 @@ export default function GestionAusencias() {
   const handleEstado = async (ausencia, estado) => {
     await base44.entities.Ausencia.update(ausencia.id, { estado });
     queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+    notificar('vacacion_resuelta', {
+      worker_email: ausencia.technician_email,
+      worker_name: ausencia.technician_name,
+      estado,
+      tipo_aus: ausencia.tipo,
+      fecha_inicio: ausencia.fecha_inicio,
+      fecha_fin: ausencia.fecha_fin,
+    });
     toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
   };
 

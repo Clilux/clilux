@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
+import BuzonBell from '@/components/buzon/BuzonBell';
 
 export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAdmin, isLoading, onLogout, techEmail, company, isGerente, sessionTechEmail }) {
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
@@ -65,6 +66,11 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             <span className="text-[10px]">Admin</span>
           </button>
         </Link>
+      )}
+      {techEmail && (
+        <BuzonBell email={techEmail}
+          className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0"
+          iconClassName="h-6 w-6" label="Buzón" />
       )}
       <button onClick={onLogout} className="flex flex-col items-center gap-1 text-red-300 hover:text-red-200 px-2 py-1 shrink-0">
         <LogOut className="h-6 w-6" />
@@ -155,6 +161,12 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             <Wrench className="h-4 w-4 mr-2" />
             Cambiar a Técnico
           </Button>
+        )}
+
+        {techEmail && (
+          <BuzonBell email={techEmail}
+            className="w-full flex items-center justify-center gap-2 h-10 text-white hover:bg-blue-700 rounded-md text-sm font-medium"
+            iconClassName="h-4 w-4" label="Buzón" />
         )}
 
         <Button

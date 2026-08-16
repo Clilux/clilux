@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
+import { notificar } from '@/lib/buzon';
 
 const priorityConfig = {
   low: { label: 'Baja', color: 'bg-slate-100 text-slate-700' },
@@ -199,6 +200,14 @@ export default function IncidentDetail() {
           oldStatus: prevStatus,
           newStatus: data.status,
         }).catch(() => {});
+        notificar('incidencia_estado', {
+          client_email: finalClient?.user_email || finalClient?.email || '',
+          client_name: finalClient?.name || '',
+          title: incident.title,
+          oldStatus: prevStatus,
+          newStatus: data.status,
+          client_id: incident.client_id,
+        });
       }
 
       // Notify technician if newly assigned
@@ -263,6 +272,14 @@ export default function IncidentDetail() {
           oldStatus: prevStatus,
           newStatus,
         }).catch(() => {});
+        notificar('incidencia_estado', {
+          client_email: finalClient?.user_email || finalClient?.email || '',
+          client_name: finalClient?.name || '',
+          title: incident.title,
+          oldStatus: prevStatus,
+          newStatus,
+          client_id: incident.client_id,
+        });
       }
     },
     onSuccess: () => {

@@ -10,6 +10,7 @@ import {
   Building2, Thermometer, ClipboardCheck,
   LogOut, AlertCircle, Plus, FileText, Activity } from
 'lucide-react';
+import BuzonBell from '@/components/buzon/BuzonBell';
 
 export default function HomeCliente() {
   const navigate = useNavigate();
@@ -79,6 +80,10 @@ export default function HomeCliente() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-slate-300 text-sm hidden sm:inline">{clientData?.client?.name || 'Cliente'}</span>
+              <BuzonBell
+                email={clientData?.client?.user_email || (typeof localStorage !== 'undefined' ? localStorage.getItem('clilux_email') : '') || ''}
+                className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/10 rounded-lg"
+                iconClassName="h-5 w-5" />
               <Button onClick={handleLogout} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Cerrar Sesión</span>

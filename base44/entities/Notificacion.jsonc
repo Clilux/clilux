@@ -1,0 +1,49 @@
+{
+  "name": "Notificacion",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Email del destinatario (gerente, trabajador o cliente)"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "gerente",
+        "trabajador",
+        "cliente"
+      ],
+      "default": "trabajador",
+      "description": "Rol del destinatario"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "description": "Tipo de evento (vacacion_solicitud, vacacion_resuelta, incidencia_nueva, incidencia_estado, ...)"
+    },
+    "titulo": {
+      "type": "string"
+    },
+    "mensaje": {
+      "type": "string"
+    },
+    "link": {
+      "type": "string",
+      "description": "Ruta interna a la que saltar al abrir la notificaci\u00f3n"
+    },
+    "leida": {
+      "type": "boolean",
+      "default": false
+    },
+    "datos": {
+      "type": "object",
+      "description": "Datos adicionales del evento"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "titulo"
+  ]
+}

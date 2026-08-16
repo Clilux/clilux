@@ -12,6 +12,7 @@ import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, C
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { notificar } from '@/lib/buzon';
 
 const TIPO_LABELS = {
   vacaciones: 'Vacaciones',
@@ -92,6 +93,14 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
       await base44.entities.Ausencia.update(a.id, { estado });
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
+      notificar('vacacion_resuelta', {
+        worker_email: a.technician_email,
+        worker_name: a.technician_name,
+        estado,
+        tipo_aus: TIPO_LABELS[a.tipo] || 'Vacaciones',
+        fecha_inicio: a.fecha_inicio,
+        fecha_fin: a.fecha_fin,
+      });
       toast.success(estado === 'aprobada' ? 'Aprobada' : 'Rechazada');
     } catch { toast.error('Error al actualizar'); }
   };

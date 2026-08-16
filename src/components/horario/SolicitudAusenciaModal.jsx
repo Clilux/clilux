@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { notificar } from '@/lib/buzon';
 
 const TIPOS = {
   vacaciones: 'Vacaciones',
@@ -50,6 +51,15 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      notificar('vacacion_solicitud', {
+        company_id: techRecord?.company_id || '',
+        worker_email: currentUser?.email || '',
+        worker_name: techRecord?.name || currentUser?.full_name || '',
+        tipo_aus: TIPOS[form.tipo] || 'vacaciones',
+        fecha_inicio: form.fecha_inicio,
+        fecha_fin: form.fecha_fin,
+        dias,
+      });
       onClose();
     },
     onError: (err) => toast.error(err.message || 'Error al enviar la solicitud'),

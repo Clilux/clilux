@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload, X } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
+import { notificar } from '@/lib/buzon';
 
 export default function ClientReportIncident() {
   const navigate = useNavigate();
@@ -89,8 +90,13 @@ export default function ClientReportIncident() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Incident.create(data),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       toast.success('Incidencia reportada correctamente');
+      notificar('incidencia_nueva', {
+        client_id: clientId,
+        client_name: userName,
+        title: vars?.title || 'Incidencia',
+      });
       navigate(createPageUrl('ClientIncidents'));
     },
     onError: () => toast.error('Error al reportar la incidencia'),
