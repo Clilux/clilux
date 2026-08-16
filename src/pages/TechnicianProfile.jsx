@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase, Camera, FileText, Download } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import EliminarCuentaDialog from '@/components/settings/EliminarCuentaDialog';
 import TrabajadoresTab from '@/components/settings/TrabajadoresTab';
+import WorkerDocumentsPanel from '@/components/settings/WorkerDocumentsPanel';
 
 export default function TechnicianProfile() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -77,6 +78,7 @@ export default function TechnicianProfile() {
   const isGerente = !!tech?.is_admin;
   const isPlatformAdmin = !isSessionTech && currentUser?.role === 'admin';
   const isAdminUser = isPlatformAdmin || isGerente;
+  const canEditPhoto = isSessionTech && techEmail === sessionTechEmailNav;
 
   // Inicializar formularios cuando se carga tech
   useEffect(() => {
@@ -127,6 +129,26 @@ export default function TechnicianProfile() {
     } finally {
       setPinSaving(false);
     }
+  };
+
+  const fileInputRef = useRef(null);
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !tech) return;
+    try {
+      const up = await base44.integrations.Core.UploadFile({ file });
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'me_update',
+          updates: { photo_url: up.file_url },
+        });
+      } else {
+        await base44.entities.Technician.update(tech.id, { photo_url: up.file_url });
+      }
+      queryClient.invalidateQueries({ queryKey: ['profile-proxy-all', effectiveEmail] });
+      toast.success('Foto actualizada');
+    } catch { toast.error('Error al subir la foto'); }
+    finally { e.target.value = ''; }
   };
 
   const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
@@ -197,10 +219,23 @@ export default function TechnicianProfile() {
         {/* Header con tipo de usuario */}
         <Card className="p-6 bg-card border-0 shadow-sm mb-6">
           <div className="flex items-center gap-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold
-              ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-              {tech.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
+            <button
+              type="button"
+              onClick={() => canEditPhoto && fileInputRef.current?.click()}
+              className={`relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0 ${canEditPhoto ? 'cursor-pointer ring-2 ring-transparent hover:ring-blue-400' : 'cursor-default'} ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}
+            >
+              {tech.photo_url ? (
+                <img src={tech.photo_url} alt={tech.name} className="w-full h-full object-cover" />
+              ) : (
+                tech.name?.charAt(0)?.toUpperCase() || '?'
+              )}
+              {canEditPhoto && (
+                <span className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 border-2 border-white">
+                  <Camera className="h-3 w-3 text-white" />
+                </span>
+              )}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground">{tech.name}</h2>
@@ -254,6 +289,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="registros">Registros</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
+            {isSessionTech && <TabsTrigger value="documentos">Documentos</TabsTrigger>}
             {isSessionTech && isGerente && <TabsTrigger value="trabajadores">Trabajadores</TabsTrigger>}
           </TabsList>
 
@@ -433,6 +469,12 @@ export default function TechnicianProfile() {
               </div>
             </Card>
           </TabsContent>
+
+          {isSessionTech && (
+            <TabsContent value="documentos">
+              <WorkerDocumentsPanel sessionEmail={effectiveEmail} targetEmail={effectiveEmail} canEdit={false} />
+            </TabsContent>
+          )}
 
           {isSessionTech && isGerente && (
             <TabsContent value="trabajadores">

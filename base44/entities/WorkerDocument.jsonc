@@ -1,0 +1,56 @@
+{
+  "name": "WorkerDocument",
+  "type": "object",
+  "properties": {
+    "technician_id": {
+      "type": "string",
+      "description": "ID del trabajador"
+    },
+    "technician_email": {
+      "type": "string",
+      "description": "Email del trabajador"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nombre del trabajador"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del documento"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "nomina",
+        "contrato",
+        "baja_medica",
+        "documento_empresa",
+        "otro"
+      ],
+      "default": "otro",
+      "description": "Tipo de documento"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del documento"
+    },
+    "uploaded_by": {
+      "type": "string",
+      "description": "Email del gerente que sube el documento"
+    }
+  },
+  "required": [
+    "technician_email",
+    "title",
+    "file_url"
+  ]
+}

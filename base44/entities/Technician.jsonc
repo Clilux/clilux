@@ -16,6 +16,10 @@
     "specialty": {
       "type": "string"
     },
+    "photo_url": {
+      "type": "string",
+      "description": "Foto de perfil del t\u00e9cnico"
+    },
     "status": {
       "type": "string",
       "enum": [

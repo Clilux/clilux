@@ -8,14 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, UserPlus, Trash2, Edit, Shield, HardHat, Briefcase, KeyRound, X } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, Edit, Shield, HardHat, Briefcase, KeyRound, X, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import WorkerDocumentsPanel from '@/components/settings/WorkerDocumentsPanel';
 
 export default function TrabajadoresTab({ techEmail }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active' });
+  const [docsWorker, setDocsWorker] = useState(null);
 
   const invoke = (entity, extra = {}) =>
     base44.functions.invoke('getCompanyData', { technician_email: techEmail, entity, ...extra });
@@ -194,6 +197,7 @@ export default function TrabajadoresTab({ techEmail }) {
                   <Button variant="ghost" size="sm" onClick={() => toggleStatus(w)} className="text-slate-600">
                     {w.status === 'active' ? 'Desactivar' : 'Activar'}
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDocsWorker(w)} title="Documentos"><FileText className="h-4 w-4 text-slate-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => startEdit(w)}><Edit className="h-4 w-4 text-slate-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => removeWorker(w)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                 </div>
@@ -202,6 +206,17 @@ export default function TrabajadoresTab({ techEmail }) {
           </div>
         </Card>
       )}
+
+      <Dialog open={!!docsWorker} onOpenChange={o => !o && setDocsWorker(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Documentos de {docsWorker?.name}</DialogTitle>
+          </DialogHeader>
+          {docsWorker && (
+            <WorkerDocumentsPanel sessionEmail={techEmail} targetEmail={docsWorker.email} canEdit={true} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

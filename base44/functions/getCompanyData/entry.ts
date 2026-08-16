@@ -609,6 +609,56 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Documentos de trabajadores (nóminas, contratos, etc.) ─────
+    if (entity === 'worker_documents') {
+      const { target_email } = body;
+      const emailToUse = target_email || technician_email;
+      const targetTechs = await base44.asServiceRole.entities.Technician.filter({ email: emailToUse });
+      const target = targetTechs[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ data: [] });
+      }
+      const data = await base44.asServiceRole.entities.WorkerDocument.filter({ technician_email: emailToUse });
+      return Response.json({ data });
+    }
+
+    // ── Subir documento a un trabajador (solo gerente) ──────────────
+    if (entity === 'worker_document_create') {
+      if (!tech.is_admin) return deny('admin');
+      const { record } = body;
+      if (!record || !record.technician_email || !record.file_url) {
+        return Response.json({ error: 'record, technician_email y file_url requeridos' }, { status: 400 });
+      }
+      const targetTechs = await base44.asServiceRole.entities.Technician.filter({ email: record.technician_email });
+      const target = targetTechs[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El trabajador no pertenece a tu empresa' }, { status: 403 });
+      }
+      const data = await base44.asServiceRole.entities.WorkerDocument.create({
+        ...record,
+        technician_id: target.id,
+        technician_name: target.name,
+        company_id: tech.company_id,
+        uploaded_by: tech.email,
+        fecha: record.fecha || new Date().toISOString().slice(0, 10),
+      });
+      return Response.json({ data });
+    }
+
+    // ── Eliminar documento de un trabajador (solo gerente) ──────────
+    if (entity === 'worker_document_delete') {
+      if (!tech.is_admin) return deny('admin');
+      const { document_id } = body;
+      if (!document_id) return Response.json({ error: 'document_id requerido' }, { status: 400 });
+      const docs = await base44.asServiceRole.entities.WorkerDocument.filter({ id: document_id });
+      const doc = docs[0];
+      if (!doc || doc.company_id !== tech.company_id) {
+        return Response.json({ error: 'El documento no pertenece a tu empresa' }, { status: 403 });
+      }
+      await base44.asServiceRole.entities.WorkerDocument.delete(document_id);
+      return Response.json({ success: true });
+    }
+
     return Response.json({ error: 'entity no válida' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
