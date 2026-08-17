@@ -1,4 +1,4 @@
-import { parseISO, isBefore, addDays } from 'date-fns';
+import { parseISO, isBefore, addDays, format } from 'date-fns';
 
 // 4 niveles de prioridad con palabras descriptivas
 // Niveles por severidad: Crítico (4) > Atención (3) > Mantenimiento (2) > Operativo (1)
@@ -22,8 +22,8 @@ export function tienePlanMantenimientoActivo(eq) {
 export function equipoNecesitaRevision(eq, openIncidentEquipmentIds = new Set(), today = new Date()) {
   if (eq.status === 'out_of_service') return true;
   if (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) return true;
-  // La fecha de primera revisión solo cuenta si hay plan de mantenimiento recurrente activo
-  if (tienePlanMantenimientoActivo(eq) && eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) return true;
+  // El seguimiento de revisiones se basa en los registros de revisión (vencidos).
+  // La fecha de primera revisión NO marca "necesita revisión" por sí sola.
   if (eq.next_leak_check_date && isBefore(parseISO(eq.next_leak_check_date), today)) return true;
   return false;
 }
@@ -44,11 +44,15 @@ export function calcularNivelEdificio({ incidents = [], equipment = [], revision
   const revPending = (revisions || []).filter(
     r => r.status === 'pending' && isBefore(parseISO(r.scheduled_date), next30)
   );
+  // Solo las revisiones vencidas (fecha pasada y pendientes) marcan "requiere mantenimiento".
+  // Las próximas programadas dentro de 30 días son planificación, no alerta.
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const revOverdue = revPending.filter(r => r.scheduled_date < todayStr);
 
   let level = 'ok';
   if (urgentIncidents.length > 0) level = 'critical';
   else if (openIncidents.length > 0) level = 'warning';
-  else if (eqReview.length > 0 || revPending.length > 0) level = 'maintenance';
+  else if (eqReview.length > 0 || revOverdue.length > 0) level = 'maintenance';
 
-  return { level, openIncidents, urgentIncidents, eqReview, revPending };
+  return { level, openIncidents, urgentIncidents, eqReview, revPending, revOverdue };
 }

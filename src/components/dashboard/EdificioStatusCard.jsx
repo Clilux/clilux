@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Building2, MapPin, AlertTriangle, Wrench, ClipboardCheck, ChevronRight, CheckCircle2, Info } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { NIVEL_CONFIG, calcularNivelEdificio } from '@/lib/edificio-nivel';
-import LongPressHelp from '@/components/ui/LongPressHelp';
+import HelpIcon from '@/components/ui/HelpIcon';
 import { PANEL_EDIFICIOS_HELP } from '@/lib/panel-edificios-help';
 
 export default function EdificioStatusCard({ building, client, incidents, equipmentNeedingReview, pendingRevisions, hasPlan }) {
@@ -35,10 +35,13 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
               <p className="text-slate-500 text-xs truncate">{client?.name || 'Sin cliente'}</p>
             </div>
           </div>
-          <LongPressHelp as="span" help={PANEL_EDIFICIOS_HELP.status[level]} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${cfg.chip}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-            {cfg.label}
-          </LongPressHelp>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.chip}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+              {cfg.label}
+            </span>
+            <HelpIcon help={PANEL_EDIFICIOS_HELP.status[level]} />
+          </div>
         </div>
 
         {/* Dirección */}
@@ -51,27 +54,30 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
 
         {/* Métricas */}
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <LongPressHelp as="div" help={PANEL_EDIFICIOS_HELP.metricAlertas} className={`rounded-lg p-2.5 text-center ${incCount > 0 ? 'bg-red-50' : 'bg-slate-50'}`}>
+          <div className={`relative rounded-lg p-2.5 text-center ${incCount > 0 ? 'bg-red-50' : 'bg-slate-50'}`}>
+            <HelpIcon help={PANEL_EDIFICIOS_HELP.metricAlertas} className="absolute top-1 right-1" iconClass="h-3 w-3 text-slate-300 hover:text-slate-500" />
             <div className="flex items-center justify-center mb-1">
               <AlertTriangle className={`h-3.5 w-3.5 ${incCount > 0 ? 'text-red-500' : 'text-slate-300'}`} />
             </div>
             <p className={`text-lg font-bold ${incCount > 0 ? 'text-red-600' : 'text-slate-400'}`}>{incCount}</p>
             <p className="text-[10px] text-slate-500 leading-tight">Alertas</p>
-          </LongPressHelp>
-          <LongPressHelp as="div" help={PANEL_EDIFICIOS_HELP.metricEquipos} className={`rounded-lg p-2.5 text-center ${eqCount > 0 ? 'bg-blue-50' : 'bg-slate-50'}`}>
+          </div>
+          <div className={`relative rounded-lg p-2.5 text-center ${eqCount > 0 ? 'bg-blue-50' : 'bg-slate-50'}`}>
+            <HelpIcon help={PANEL_EDIFICIOS_HELP.metricEquipos} className="absolute top-1 right-1" iconClass="h-3 w-3 text-slate-300 hover:text-slate-500" />
             <div className="flex items-center justify-center mb-1">
               <Wrench className={`h-3.5 w-3.5 ${eqCount > 0 ? 'text-blue-500' : 'text-slate-300'}`} />
             </div>
             <p className={`text-lg font-bold ${eqCount > 0 ? 'text-blue-600' : 'text-slate-400'}`}>{eqCount}</p>
             <p className="text-[10px] text-slate-500 leading-tight">A revisar</p>
-          </LongPressHelp>
-          <LongPressHelp as="div" help={PANEL_EDIFICIOS_HELP.metricRevisiones} className={`rounded-lg p-2.5 text-center ${revCount > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+          </div>
+          <div className={`relative rounded-lg p-2.5 text-center ${revCount > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+            <HelpIcon help={PANEL_EDIFICIOS_HELP.metricRevisiones} className="absolute top-1 right-1" iconClass="h-3 w-3 text-slate-300 hover:text-slate-500" />
             <div className="flex items-center justify-center mb-1">
               <ClipboardCheck className={`h-3.5 w-3.5 ${revCount > 0 ? 'text-amber-500' : 'text-slate-300'}`} />
             </div>
             <p className={`text-lg font-bold ${revCount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{revCount}</p>
             <p className="text-[10px] text-slate-500 leading-tight">Revisiones</p>
-          </LongPressHelp>
+          </div>
         </div>
 
         {/* Detalle de alertas urgentes */}
@@ -109,10 +115,11 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
           </div>
         )}
         {level === 'ok' && !hasPlan && (
-          <LongPressHelp as="div" help={PANEL_EDIFICIOS_HELP.sinPlan} className="flex items-center gap-2 text-amber-600 text-xs mb-3">
+          <div className="flex items-center gap-2 text-amber-600 text-xs mb-3">
             <Info className="h-4 w-4 shrink-0" />
             <span>Sin plan de mantenimiento configurado</span>
-          </LongPressHelp>
+            <HelpIcon help={PANEL_EDIFICIOS_HELP.sinPlan} iconClass="h-3.5 w-3.5 text-amber-400 hover:text-amber-600" />
+          </div>
         )}
 
         {/* Footer */}

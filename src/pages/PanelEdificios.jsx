@@ -16,7 +16,7 @@ import { createPageUrl } from '@/utils';
 import { format, parseISO, isBefore, isAfter, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularNivelEdificio, equipoNecesitaRevision, tienePlanMantenimientoActivo } from '@/lib/edificio-nivel';
-import LongPressHelp from '@/components/ui/LongPressHelp';
+import HelpIcon from '@/components/ui/HelpIcon';
 import { PANEL_EDIFICIOS_HELP } from '@/lib/panel-edificios-help';
 
 const FILTERS = [
@@ -212,7 +212,7 @@ export default function PanelEdificios() {
               </div>
               <div>
                 <h1 className="text-white text-lg font-bold">Panel de Edificios</h1>
-                <p className="text-blue-100 text-xs">Estado global de instalaciones · Mantén pulsado un elemento para ver su ayuda</p>
+                <p className="text-blue-100 text-xs">Estado global de instalaciones · Pulsa (?) para ver la ayuda</p>
               </div>
             </div>
             <p className="text-white text-sm font-medium hidden sm:block">
@@ -226,19 +226,18 @@ export default function PanelEdificios() {
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {kpis.map(({ label, value, icon: Icon, color, iconBg, iconCls, help }) => (
-                <LongPressHelp key={label} as="div" help={help}>
-                  <Card className={`${color} border p-4 shadow-sm`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
-                        <Icon className={`h-5 w-5 ${iconCls}`} />
-                      </div>
-                      <div>
-                        {isLoading ? <Skeleton className="h-7 w-10" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
-                        <p className="text-xs text-slate-500 font-medium">{label}</p>
-                      </div>
+                <Card key={label} className={`relative ${color} border p-4 shadow-sm`}>
+                  <HelpIcon help={help} className="absolute top-2 right-2" />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`h-5 w-5 ${iconCls}`} />
                     </div>
-                  </Card>
-                </LongPressHelp>
+                    <div>
+                      {isLoading ? <Skeleton className="h-7 w-10" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
+                      <p className="text-xs text-slate-500 font-medium">{label}</p>
+                    </div>
+                  </div>
+                </Card>
               ))}
             </div>
 
@@ -255,17 +254,17 @@ export default function PanelEdificios() {
               </div>
               <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
                 <Filter className="h-4 w-4 text-slate-400 mx-1.5 shrink-0" />
+                <HelpIcon help={PANEL_EDIFICIOS_HELP.filtros[filter]} className="mr-0.5" />
                 {FILTERS.map(f => (
-                  <LongPressHelp key={f.id} as="span" help={PANEL_EDIFICIOS_HELP.filtros[f.id]}>
-                    <button
-                      onClick={() => setFilter(f.id)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                        filter === f.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  </LongPressHelp>
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      filter === f.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
                 ))}
               </div>
             </div>
