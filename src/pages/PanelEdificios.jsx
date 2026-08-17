@@ -20,8 +20,8 @@ import { calcularNivelEdificio } from '@/lib/edificio-nivel';
 const FILTERS = [
   { id: 'all',         label: 'Todos' },
   { id: 'critical',    label: 'Críticos' },
-  { id: 'maintenance', label: 'Mantenimiento' },
   { id: 'warning',     label: 'Atención' },
+  { id: 'maintenance', label: 'Mantenimiento' },
   { id: 'ok',          label: 'Operativos' },
 ];
 
@@ -164,8 +164,8 @@ export default function PanelEdificios() {
       );
     })
     .sort((a, b) => {
-      // Críticos, luego mantenimiento, luego atención, luego ok
-      const order = { critical: 0, maintenance: 1, warning: 2, ok: 3 };
+      // Crítico (4) > Atención (3) > Mantenimiento (2) > Operativo (1)
+      const order = { critical: 0, warning: 1, maintenance: 2, ok: 3 };
       if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level];
       return (b.incs.length + b.eqs.length) - (a.incs.length + a.eqs.length);
     });

@@ -56,11 +56,11 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
             <p className={`text-lg font-bold ${incCount > 0 ? 'text-red-600' : 'text-slate-400'}`}>{incCount}</p>
             <p className="text-[10px] text-slate-500 leading-tight">Alertas</p>
           </div>
-          <div className={`rounded-lg p-2.5 text-center ${eqCount > 0 ? 'bg-orange-50' : 'bg-slate-50'}`}>
+          <div className={`rounded-lg p-2.5 text-center ${eqCount > 0 ? 'bg-blue-50' : 'bg-slate-50'}`}>
             <div className="flex items-center justify-center mb-1">
-              <Wrench className={`h-3.5 w-3.5 ${eqCount > 0 ? 'text-orange-500' : 'text-slate-300'}`} />
+              <Wrench className={`h-3.5 w-3.5 ${eqCount > 0 ? 'text-blue-500' : 'text-slate-300'}`} />
             </div>
-            <p className={`text-lg font-bold ${eqCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>{eqCount}</p>
+            <p className={`text-lg font-bold ${eqCount > 0 ? 'text-blue-600' : 'text-slate-400'}`}>{eqCount}</p>
             <p className="text-[10px] text-slate-500 leading-tight">A revisar</p>
           </div>
           <div className={`rounded-lg p-2.5 text-center ${revCount > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
@@ -91,7 +91,7 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Equipos a revisar</p>
             {equipmentNeedingReview.slice(0, 2).map(eq => (
               <div key={eq.id} className="flex items-center gap-2 text-xs">
-                <Wrench className="h-3 w-3 text-orange-400 shrink-0" />
+                <Wrench className="h-3 w-3 text-blue-400 shrink-0" />
                 <span className="text-slate-600 truncate">{eq.reference_name || `${eq.brand} ${eq.model}`}</span>
               </div>
             ))}
