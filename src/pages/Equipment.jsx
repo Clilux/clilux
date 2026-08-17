@@ -68,7 +68,7 @@ export default function Equipment() {
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
-  const { data: proxyData } = useQuery({
+  const { data: proxyData, isError: proxyError } = useQuery({
     queryKey: ['proxy-all', sessionTechEmail],
     queryFn: async () => {
       const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
@@ -106,7 +106,7 @@ export default function Equipment() {
   const buildings = isSessionTech ? (proxyData?.buildings || []) : buildingsDirect;
   const clients   = isSessionTech ? (proxyData?.clients   || []) : clientsDirect;
   const revisions = isSessionTech ? (proxyData?.revisions || []) : revisionsDirect;
-  const isLoading = isSessionTech ? !proxyData : loadingDirect;
+  const isLoading = isSessionTech ? (!proxyData && !proxyError) : loadingDirect;
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['equipment'] });
@@ -261,13 +261,13 @@ export default function Equipment() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="p-5 bg-card/10 backdrop-blur-sm border-white/20">
-                <div className="h-32 animate-pulse bg-card/5 rounded" />
+              <Card key={i} className="p-5 bg-white border border-slate-200 shadow-sm">
+                <div className="h-32 animate-pulse bg-slate-200 rounded" />
               </Card>
             ))}
           </div>
         ) : filteredEquipment.length === 0 ? (
-          <Card className="p-12 bg-card/10 backdrop-blur-sm border-white/20 text-center">
+          <Card className="p-12 bg-white border border-slate-200 shadow-sm text-center">
             <Thermometer className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-700 mb-2">
               {searchTerm ? 'No se encontraron equipos' : 'No hay equipos registrados'}
