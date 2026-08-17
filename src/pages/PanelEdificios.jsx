@@ -15,12 +15,14 @@ import {
 import { createPageUrl } from '@/utils';
 import { format, parseISO, isBefore, isAfter, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calcularNivelEdificio } from '@/lib/edificio-nivel';
 
 const FILTERS = [
-  { id: 'all',      label: 'Todos' },
-  { id: 'critical', label: 'Críticos' },
-  { id: 'warning',  label: 'Atención' },
-  { id: 'ok',       label: 'Operativos' },
+  { id: 'all',         label: 'Todos' },
+  { id: 'critical',    label: 'Críticos' },
+  { id: 'maintenance', label: 'Mantenimiento' },
+  { id: 'warning',     label: 'Atención' },
+  { id: 'ok',          label: 'Operativos' },
 ];
 
 export default function PanelEdificios() {
@@ -136,9 +138,7 @@ export default function PanelEdificios() {
       const incs = pendingIncidentsMap[b.id] || [];
       const eqs  = equipmentNeedingReviewMap[b.id] || [];
       const revs = pendingRevisionsMap[b.id] || [];
-      let level = 'ok';
-      if (incs.length > 0 || eqs.length > 0) level = 'critical';
-      else if (revs.length > 0) level = 'warning';
+      const { level } = calcularNivelEdificio({ incidents: incs, equipment: eqs, revisions: revs, today });
       return { building: b, level, incs, eqs, revs };
     });
   }, [buildings, pendingIncidentsMap, equipmentNeedingReviewMap, pendingRevisionsMap]);
@@ -164,8 +164,8 @@ export default function PanelEdificios() {
       );
     })
     .sort((a, b) => {
-      // Críticos primero, luego atención, luego ok
-      const order = { critical: 0, warning: 1, ok: 2 };
+      // Críticos, luego mantenimiento, luego atención, luego ok
+      const order = { critical: 0, maintenance: 1, warning: 2, ok: 3 };
       if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level];
       return (b.incs.length + b.eqs.length) - (a.incs.length + a.eqs.length);
     });

@@ -2,30 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
 import { Building2, MapPin, AlertTriangle, Wrench, ClipboardCheck, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { format, parseISO, isBefore } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { createPageUrl } from '@/utils';
-
-const STATUS_CONFIG = {
-  ok:      { label: 'Operativo',  dot: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', ring: 'border-emerald-200' },
-  warning: { label: 'Atención',   dot: 'bg-amber-500',   chip: 'bg-amber-50 text-amber-700 border-amber-200',     ring: 'border-amber-300' },
-  critical:{ label: 'Crítico',    dot: 'bg-red-500',     chip: 'bg-red-50 text-red-700 border-red-200',           ring: 'border-red-300' },
-};
+import { NIVEL_CONFIG, calcularNivelEdificio } from '@/lib/edificio-nivel';
 
 export default function EdificioStatusCard({ building, client, incidents, equipmentNeedingReview, pendingRevisions }) {
   const today = new Date();
-  const incCount = incidents.length;
+  const { level, urgentIncidents, openIncidents } = calcularNivelEdificio({
+    incidents,
+    equipment: equipmentNeedingReview,
+    revisions: pendingRevisions,
+    today,
+  });
+  const cfg = NIVEL_CONFIG[level];
+
+  const incCount = openIncidents.length;
   const eqCount = equipmentNeedingReview.length;
   const revCount = pendingRevisions.length;
-
-  // Determinar severidad
-  let level = 'ok';
-  if (incCount > 0 || eqCount > 0) level = 'critical';
-  else if (revCount > 0) level = 'warning';
-
-  const cfg = STATUS_CONFIG[level];
-
-  const urgentIncidents = incidents.filter(i => i.priority === 'urgent' || i.priority === 'high');
 
   return (
     <Link to={`${createPageUrl('BuildingDetail')}?id=${building.id}`} className="block h-full">
@@ -33,8 +25,8 @@ export default function EdificioStatusCard({ building, client, incidents, equipm
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${level === 'critical' ? 'bg-red-100' : level === 'warning' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-              <Building2 className={`h-6 w-6 ${level === 'critical' ? 'text-red-600' : level === 'warning' ? 'text-amber-600' : 'text-emerald-600'}`} />
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${cfg.iconBg}`}>
+              <Building2 className={`h-6 w-6 ${cfg.iconCls}`} />
             </div>
             <div className="min-w-0">
               <p className="text-slate-800 font-semibold text-sm leading-tight truncate">{building.name}</p>

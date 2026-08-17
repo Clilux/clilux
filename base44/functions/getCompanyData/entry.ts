@@ -375,17 +375,18 @@ Deno.serve(async (req) => {
       if (!permisos.ver_edificios) return deny('ver_edificios');
       const { building_id } = body;
       if (!building_id) return Response.json({ error: 'building_id requerido' }, { status: 400 });
-      const [buildings, equipmentList, revisionsList] = await Promise.all([
+      const [buildings, equipmentList, revisionsList, incidentsList] = await Promise.all([
         base44.asServiceRole.entities.Building.filter({ id: building_id }),
         permisos.ver_equipos ? base44.asServiceRole.entities.Equipment.filter({ building_id }) : Promise.resolve([]),
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ building_id }) : Promise.resolve([]),
+        permisos.ver_incidencias ? base44.asServiceRole.entities.Incident.filter({ building_id }) : Promise.resolve([]),
       ]);
       const bld = buildings[0] || null;
       if (!bld || !(await assertCompanyClient(bld.client_id))) {
         return Response.json({ error: 'El edificio no pertenece a tu empresa' }, { status: 403 });
       }
       const clientList = bld?.client_id ? await base44.asServiceRole.entities.Client.filter({ id: bld.client_id }) : [];
-      return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList } });
+      return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList, incidents: incidentsList } });
     }
 
     // ── Detalle de equipo (para técnicos de sesión propia) ──────

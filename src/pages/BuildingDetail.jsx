@@ -16,6 +16,7 @@ import EquipmentCard from '../components/cards/EquipmentCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import BuildingReport from '../components/reports/BuildingReport';
+import BuildingPendientes from '../components/buildings/BuildingPendientes';
 import { toast } from 'sonner';
 
 export default function BuildingDetail() {
@@ -102,11 +103,18 @@ export default function BuildingDetail() {
     enabled: !isSessionTech && !!buildingId,
   });
 
+  const { data: incidents = [] } = useQuery({
+    queryKey: ['incidents-building', buildingId],
+    queryFn: () => base44.entities.Incident.filter({ building_id: buildingId }),
+    enabled: !isSessionTech && !!buildingId,
+  });
+
   // Datos finales según modo
   const finalBuilding = isSessionTech ? proxyData?.building : building;
   const finalClient = isSessionTech ? proxyData?.client : client;
   const finalEquipment = isSessionTech ? (proxyData?.equipment || []) : equipment;
   const finalRevisions = isSessionTech ? (proxyData?.revisions || []) : revisions;
+  const finalIncidents = isSessionTech ? (proxyData?.incidents || []) : incidents;
   const isLoadingFinal = isSessionTech ? !proxyData && !buildingId : isLoading;
 
   const totalCoolingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
@@ -282,6 +290,13 @@ export default function BuildingDetail() {
             </div>
           )}
         </Card>
+
+        <BuildingPendientes
+          building={finalBuilding}
+          equipment={finalEquipment}
+          revisions={finalRevisions}
+          incidents={finalIncidents}
+        />
 
         <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
