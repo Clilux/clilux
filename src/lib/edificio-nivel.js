@@ -9,13 +9,21 @@ export const NIVEL_CONFIG = {
   critical:      { label: 'Crítico',                nivel: 4, dot: 'bg-red-500',     chip: 'bg-red-50 text-red-700 border-red-200',           ring: 'border-red-300',     iconBg: 'bg-red-100',     iconCls: 'text-red-600',     order: 0 },
 };
 
+// ¿Tiene el equipo un plan de mantenimiento recurrente activo?
+export function tienePlanMantenimientoActivo(eq) {
+  const mc = eq.maintenance_config;
+  if (!mc) return false;
+  return !!(mc.monthly_enabled || mc.quarterly_enabled || mc.biannual_enabled || mc.annual_enabled);
+}
+
 // ¿Un equipo concreto necesita revisión?
 // openIncidentEquipmentIds: IDs de equipos con incidencia abierta. Sirve para
 // ignorar estados `maintenance_needed` huérfanos (sin incidencia real).
 export function equipoNecesitaRevision(eq, openIncidentEquipmentIds = new Set(), today = new Date()) {
   if (eq.status === 'out_of_service') return true;
   if (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) return true;
-  if (eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) return true;
+  // La fecha de primera revisión solo cuenta si hay plan de mantenimiento recurrente activo
+  if (tienePlanMantenimientoActivo(eq) && eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) return true;
   if (eq.next_leak_check_date && isBefore(parseISO(eq.next_leak_check_date), today)) return true;
   return false;
 }

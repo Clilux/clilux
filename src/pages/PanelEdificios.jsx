@@ -15,7 +15,7 @@ import {
 import { createPageUrl } from '@/utils';
 import { format, parseISO, isBefore, isAfter, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calcularNivelEdificio } from '@/lib/edificio-nivel';
+import { calcularNivelEdificio, equipoNecesitaRevision } from '@/lib/edificio-nivel';
 
 const FILTERS = [
   { id: 'all',         label: 'Todos' },
@@ -93,17 +93,11 @@ export default function PanelEdificios() {
     return s;
   }, [incidents]);
 
-  // Equipos que necesitan revisión: fuera de servicio, maintenance_needed con incidencia
-  // abierta real, o fecha de revisión vencida
+  // Equipos que necesitan revisión (misma lógica que calcularNivelEdificio)
   const equipmentNeedingReviewMap = useMemo(() => {
     const map = {};
     equipment.forEach(eq => {
-      const needsReview =
-        eq.status === 'out_of_service' ||
-        (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) ||
-        (eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) ||
-        (eq.next_leak_check_date && isBefore(parseISO(eq.next_leak_check_date), today));
-      if (needsReview) {
+      if (equipoNecesitaRevision(eq, openIncidentEquipmentIds, today)) {
         if (!map[eq.building_id]) map[eq.building_id] = [];
         map[eq.building_id].push(eq);
       }
