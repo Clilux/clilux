@@ -57,7 +57,9 @@ export default function ControlObras() {
   });
 
   const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
-  const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
+  const isPlatformAdmin = !isSessionTech && base44User?.role === 'admin';
+  const isGerente = !!myTechRecord?.is_admin;
+  const isAdmin = isPlatformAdmin || isGerente;
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -141,7 +143,7 @@ export default function ControlObras() {
 
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
-      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} techEmail={effectiveEmail} />
+      <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isPlatformAdmin={isPlatformAdmin} isLoading={false} onLogout={handleLogout} techEmail={effectiveEmail} isGerente={isGerente} sessionTechEmail={sessionTechEmail} />
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
         <div className="max-w-5xl mx-auto">

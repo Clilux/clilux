@@ -15,6 +15,7 @@ import { Loader2, Save, Plus, Camera, ArrowLeft, ArrowRight, Upload, Scan } from
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
+import { REFRIGERANTES, gwpDe, tco2eq } from '@/lib/refrigerantes';
 
 // Campos según RITE-IT3 por tipo de equipo
 const camposIDAE = {
@@ -336,6 +337,26 @@ export default function EquipmentForm() {
     }
   }, [existingEquipment]);
 
+  // Prefill para nueva unidad interior desde URL (?parent=...&building=...&client=...&type=...)
+  React.useEffect(() => {
+    if (equipmentId) return;
+    const parent = urlParams.get('parent');
+    const building = urlParams.get('building');
+    const client = urlParams.get('client');
+    const type = urlParams.get('type');
+    if (parent || building || client || type) {
+      setFormData((prev) => ({
+        ...prev,
+        unit_type: parent ? 'interior' : prev.unit_type,
+        parent_equipment_id: parent || prev.parent_equipment_id,
+        building_id: building || prev.building_id,
+        client_id: client || prev.client_id,
+        equipment_type: type || prev.equipment_type
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients', sessionTechEmail],
     queryFn: async () => {
@@ -431,6 +452,8 @@ export default function EquipmentForm() {
     heating_power_kw: data.technical_data.potencia_calorifica || null,
     refrigerant_type: data.technical_data.tipo_refrigerante || '',
     refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+    gwp: data.technical_data.tipo_refrigerante ? (gwpDe(data.technical_data.tipo_refrigerante) ?? null) : null,
+    co2_equivalent_tons: tco2eq(data.technical_data.tipo_refrigerante, data.technical_data.carga_refrigerante),
     balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
     technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
     registration_date: data.registration_date,
@@ -565,6 +588,8 @@ export default function EquipmentForm() {
         heating_power_kw: data.technical_data.potencia_calorifica || null,
         refrigerant_type: data.technical_data.tipo_refrigerante || '',
         refrigerant_charge_kg: data.technical_data.carga_refrigerante || null,
+        gwp: data.technical_data.tipo_refrigerante ? (gwpDe(data.technical_data.tipo_refrigerante) ?? null) : null,
+        co2_equivalent_tons: tco2eq(data.technical_data.tipo_refrigerante, data.technical_data.carga_refrigerante),
         balsa_litros: data.technical_data.balsa_litros ? Number(data.technical_data.balsa_litros) : null,
         technical_data: { ...data.technical_data, custom_fields: data.custom_fields },
         registration_date: data.registration_date,
@@ -783,10 +808,17 @@ export default function EquipmentForm() {
     }
   };
 
-  const canProceedStep1 = formData.reference_name && formData.equipment_type && equipmentFields?.identificacion.every((field) =>
-  !field.required || formData.technical_data[field.key]
-  );
-  const canProceedStep2 = formData.client_id && formData.building_id;
+  const isIndoorUnit = (formData.equipment_type === 'split' || formData.equipment_type === 'vrf') && formData.unit_type === 'interior';
+  const indoorValid = isIndoorUnit &&
+    formData.technical_data.indoor_subtype &&
+    formData.technical_data.modelo &&
+    formData.technical_data.numero_serie &&
+    formData.technical_data.ubicacion &&
+    formData.technical_data.potencia_frigorifica;
+  const canProceedStep1 = formData.reference_name && formData.equipment_type && (isIndoorUnit
+    ? indoorValid
+    : equipmentFields?.identificacion.every((field) => !field.required || formData.technical_data[field.key]));
+  const canProceedStep2 = formData.client_id && formData.building_id && (isIndoorUnit ? !!formData.parent_equipment_id : true);
   const canProceedStep3 = formData.requires_maintenance !== null && (
   formData.requires_maintenance === false ||
   formData.selected_periods.length > 0 && formData.maintenance_fields.length > 0);
@@ -960,6 +992,45 @@ export default function EquipmentForm() {
                 placeholder="Notas adicionales del equipo..." />
               </div>
 
+              {/* ── Unidad Interior (Split/VRF) — campos simplificados ── */}
+              {isIndoorUnit &&
+            <div className="mt-6 p-4 rounded-xl border-2 border-blue-300 bg-blue-50 space-y-4">
+                  <p className="text-sm font-bold text-blue-800 flex items-center gap-2">🏠 Unidad Interior — Datos</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-700">Tipo de unidad interior *</Label>
+                      <Select value={formData.technical_data.indoor_subtype || ''} onValueChange={(v) => handleTechnicalDataChange('indoor_subtype', v)}>
+                        <SelectTrigger className="bg-white"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="conductos">Conductos</SelectItem>
+                          <SelectItem value="suelo">Suelo</SelectItem>
+                          <SelectItem value="techo">Techo</SelectItem>
+                          <SelectItem value="mural">Mural</SelectItem>
+                          <SelectItem value="cassette">Cassette</SelectItem>
+                          <SelectItem value="otros">Otros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Modelo *</Label>
+                      <Input value={formData.technical_data.modelo || ''} onChange={(e) => handleTechnicalDataChange('modelo', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Nº de serie *</Label>
+                      <Input value={formData.technical_data.numero_serie || ''} onChange={(e) => handleTechnicalDataChange('numero_serie', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Ubicación *</Label>
+                      <Input value={formData.technical_data.ubicacion || ''} onChange={(e) => handleTechnicalDataChange('ubicacion', e.target.value)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-700">Potencia frigorífica (kW) *</Label>
+                      <Input type="number" value={formData.technical_data.potencia_frigorifica || ''} onChange={(e) => handleTechnicalDataChange('potencia_frigorifica', e.target.value)} className="bg-white" />
+                    </div>
+                  </div>
+                </div>
+            }
+
               {/* ── Campos específicos Cámara Frigorífica ── */}
               {formData.equipment_type === 'camara_frigorifica' &&
             <div className="mt-6 p-4 rounded-xl border-2 border-blue-300 bg-blue-50 space-y-4">
@@ -1062,7 +1133,7 @@ export default function EquipmentForm() {
                 </div>
             }
 
-              {equipmentFields &&
+              {equipmentFields && !isIndoorUnit &&
             <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {equipmentFields.identificacion.map((field) =>
@@ -1100,20 +1171,29 @@ export default function EquipmentForm() {
                           </> :
                   field.key === 'tipo_refrigerante' ?
                   <>
-                            <Input
-                      type={field.type}
+                    <Select
                       value={formData.technical_data[field.key] || ''}
-                      onChange={(e) => handleTechnicalDataChange(field.key, e.target.value)}
-                      list="refrigerants-list"
-                      className="bg-white border-gray-300 text-gray-900"
-                      required={field.required} />
-                    
-                            <datalist id="refrigerants-list">
-                              {suggestions?.refrigerants?.map((ref) =>
-                      <option key={ref} value={ref} />
-                      )}
-                            </datalist>
-                          </> :
+                      onValueChange={(v) => handleTechnicalDataChange(field.key, v)}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Seleccionar refrigerante" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REFRIGERANTES.map((r) =>
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.value} <span className="text-xs text-slate-400 ml-1">GWP {r.gwp}</span>
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {formData.technical_data[field.key] &&
+                      <p className="text-xs text-blue-600 mt-1">
+                        GWP: {gwpDe(formData.technical_data[field.key])}
+                        {formData.technical_data.carga_refrigerante
+                          ? ` · ${tco2eq(formData.technical_data[field.key], formData.technical_data.carga_refrigerante)} tCO₂eq`
+                          : ''}
+                      </p>
+                    }
+                  </> :
 
                   <Input
                     type={field.type}
@@ -1303,10 +1383,19 @@ export default function EquipmentForm() {
                     Guardar
                   </Button>
               }
+                {isIndoorUnit ? (
+                <Button
+                  onClick={() => saveMutation.mutate({ ...formData, requires_maintenance: false, selected_periods: [], maintenance_fields: [], first_revision_date: null, starting_period: null })}
+                  disabled={!canProceedStep2 || saveMutation.isPending}
+                  className="bg-blue-700 hover:bg-blue-800 text-white">
+                  {saveMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : <><Save className="h-4 w-4 mr-2" /> Crear Unidad Interior</>}
+                </Button>
+                ) : (
                 <Button onClick={handleNext} disabled={!canProceedStep2} className="bg-blue-700 hover:bg-blue-800 text-white">
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Siguiente
                 </Button>
+                )}
               </div>
             </div>
           </Card>

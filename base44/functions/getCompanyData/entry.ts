@@ -267,6 +267,27 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Eliminar equipo ─────────────────────────────────────────
+    if (entity === 'equipment_delete') {
+      if (!permisos.editar_equipos) return deny('editar_equipos');
+      const { equipment_id } = body;
+      if (!equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
+      const eq = eqList[0];
+      if (!eq || !(await assertCompanyClient(eq.client_id))) {
+        return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
+      }
+      // Si es unidad exterior, eliminar también sus unidades interiores asociadas
+      if (eq.unit_type === 'exterior') {
+        const children = await base44.asServiceRole.entities.Equipment.filter({ parent_equipment_id: equipment_id });
+        for (const ch of children) {
+          await base44.asServiceRole.entities.Equipment.delete(ch.id);
+        }
+      }
+      await base44.asServiceRole.entities.Equipment.delete(equipment_id);
+      return Response.json({ success: true });
+    }
+
     // ── Bulk create revisiones ───────────────────────────────────
     if (entity === 'revisions_bulk_create') {
       if (!permisos.editar_revisiones) return deny('editar_revisiones');

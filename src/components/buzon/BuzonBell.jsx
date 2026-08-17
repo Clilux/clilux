@@ -46,7 +46,7 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0 z-[60]" align="end" side="top">
         <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
           <p className="font-semibold text-sm text-slate-700">Buzón</p>
           {noLeidas > 0 && (

@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, UserPlus, Trash2, Edit, Shield, HardHat, Briefcase, KeyRound, X, FileText } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, Edit, Shield, HardHat, Briefcase, KeyRound, X, FileText, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import WorkerDocumentsPanel from '@/components/settings/WorkerDocumentsPanel';
+import PermisosTecnicoPanel from '@/components/settings/PermisosTecnicoPanel';
 
 export default function TrabajadoresTab({ techEmail }) {
   const queryClient = useQueryClient();
@@ -19,6 +20,9 @@ export default function TrabajadoresTab({ techEmail }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active' });
   const [docsWorker, setDocsWorker] = useState(null);
+  const [permWorker, setPermWorker] = useState(null);
+  const [permisos, setPermisos] = useState(null);
+  const [permSaving, setPermSaving] = useState(false);
 
   const invoke = (entity, extra = {}) =>
     base44.functions.invoke('getCompanyData', { technician_email: techEmail, entity, ...extra });
@@ -88,6 +92,21 @@ export default function TrabajadoresTab({ techEmail }) {
       queryClient.invalidateQueries({ queryKey: ['company-workers', techEmail] });
       toast.success('Trabajador eliminado');
     } catch (e) { toast.error('Error al eliminar'); }
+  };
+
+  const savePermisos = async () => {
+    if (!permWorker || !permisos) return;
+    setPermSaving(true);
+    try {
+      await invoke('technician_update', { technician_id: permWorker.id, updates: { permisos } });
+      queryClient.invalidateQueries({ queryKey: ['company-workers', techEmail] });
+      toast.success('Permisos actualizados');
+      setPermWorker(null);
+    } catch (e) {
+      toast.error('Error al guardar permisos');
+    } finally {
+      setPermSaving(false);
+    }
   };
 
   return (
@@ -197,6 +216,7 @@ export default function TrabajadoresTab({ techEmail }) {
                   <Button variant="ghost" size="sm" onClick={() => toggleStatus(w)} className="text-slate-600">
                     {w.status === 'active' ? 'Desactivar' : 'Activar'}
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setPermWorker(w); setPermisos(w.permisos || {}); }} title="Permisos"><Shield className="h-4 w-4 text-blue-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => setDocsWorker(w)} title="Documentos"><FileText className="h-4 w-4 text-slate-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => startEdit(w)}><Edit className="h-4 w-4 text-slate-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => removeWorker(w)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
@@ -215,6 +235,23 @@ export default function TrabajadoresTab({ techEmail }) {
           {docsWorker && (
             <WorkerDocumentsPanel sessionEmail={techEmail} targetEmail={docsWorker.email} canEdit={true} />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!permWorker} onOpenChange={o => !o && setPermWorker(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Permisos de {permWorker?.name}</DialogTitle>
+          </DialogHeader>
+          {permWorker && (
+            <PermisosTecnicoPanel technician={permWorker} onPermisoChange={setPermisos} />
+          )}
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setPermWorker(null)}>Cancelar</Button>
+            <Button onClick={savePermisos} disabled={permSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {permSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar permisos</>}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

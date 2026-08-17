@@ -77,6 +77,7 @@ export default function EquipmentDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const equipmentId = urlParams.get('id');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editingSpecs, setEditingSpecs] = useState(false);
   const [specs, setSpecs] = useState({});
   const queryClient = useQueryClient();
@@ -102,6 +103,29 @@ export default function EquipmentDetail() {
       toast.error('Error al eliminar el equipo');
     }
   });
+
+  const handleDelete = async () => {
+    if (isSessionTech) {
+      setDeleting(true);
+      try {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_delete',
+          equipment_id: equipmentId
+        });
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+        queryClient.invalidateQueries({ queryKey: ['proxy-equipment-list', sessionTechEmail] });
+        toast.success('Equipo eliminado correctamente');
+        navigate(createPageUrl('Equipment'));
+      } catch {
+        toast.error('Error al eliminar el equipo');
+      } finally {
+        setDeleting(false);
+      }
+    } else {
+      deleteMutation.mutate();
+    }
+  };
 
   const toggleEquipmentStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
@@ -184,8 +208,22 @@ export default function EquipmentDetail() {
     queryFn: async () => {
       return await base44.entities.Equipment.filter({ parent_equipment_id: equipmentId });
     },
-    enabled: !!equipmentId && equipment?.unit_type === 'exterior'
+    enabled: !isSessionTech && !!equipmentId && equipment?.unit_type === 'exterior'
   });
+
+  // Para técnicos: lista de equipos de la empresa para derivar hijos/padre
+  const { data: proxyEquipmentList = [] } = useQuery({
+    queryKey: ['proxy-equipment-list', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
+      return res.data || [];
+    },
+    enabled: isSessionTech && !!equipmentId
+  });
+  const proxyChildren = proxyEquipmentList.filter((e) => e.parent_equipment_id === equipmentId);
+  const proxyParent = proxyEquipmentList.find((e) => e.id === finalEquipment?.parent_equipment_id) || null;
+  const finalChildren = isSessionTech ? proxyChildren : childEquipment;
+  const finalParent = isSessionTech ? proxyParent : parentEquipment;
 
   const updateSpecsMutation = useMutation({
     mutationFn: async (data) => {
@@ -343,23 +381,23 @@ export default function EquipmentDetail() {
                       Editar
                     </Button>
                   </Link>
-                  {!isSessionTech && <>
+                  {!isSessionTech &&
                   <Button
                       variant="outline"
                       size="sm"
                       onClick={() => toggleEquipmentStatusMutation.mutate(finalEquipment.status || 'operational')}
                       disabled={toggleEquipmentStatusMutation.isPending}
                       className={finalEquipment.status === 'out_of_service' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}>
-                      
-                    {finalEquipment.status === 'out_of_service' ?
+                      {finalEquipment.status === 'out_of_service' ?
                       <><ToggleRight className="h-4 w-4 mr-2" />Activar</> :
                       <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
                       }
                   </Button>
+                  }
                   <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Eliminar</span>
                   </Button>
-                  </>}
                 </div>
               </div>
 
@@ -584,36 +622,32 @@ export default function EquipmentDetail() {
 
 
           {/* Related Equipment */}
-          {(parentEquipment || childEquipment.length > 0) &&
+          {(finalParent || finalEquipment?.unit_type === 'exterior') &&
           <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <Wind className="h-5 w-5 text-blue-600" />
-                Equipos Relacionados
+                {finalEquipment?.unit_type === 'exterior' ? 'Unidades Interiores' : 'Unidad Exterior'}
               </h4>
-              {parentEquipment &&
+              {finalParent &&
             <div className="mb-2">
-                  <p className="text-xs text-slate-500 mb-1">Unidad Exterior:</p>
-                  <Link
-                to={createPageUrl(`EquipmentDetail?id=${parentEquipment.id}`)}
-                className="text-blue-600 hover:underline text-sm">
-                
-                    {parentEquipment.brand} {parentEquipment.model} - {parentEquipment.location}
+                  <p className="text-xs text-slate-500 mb-1">Pertenece a la unidad exterior:</p>
+                  <Link to={createPageUrl(`EquipmentDetail?id=${finalParent.id}`)} className="text-blue-600 hover:underline text-sm font-medium">
+                    {finalParent.brand} {finalParent.model} - {finalParent.location}
                   </Link>
                 </div>
             }
-              {childEquipment.length > 0 &&
+              {finalEquipment?.unit_type === 'exterior' &&
             <div>
-                  <p className="text-xs text-slate-500 mb-1">Unidades Interiores ({childEquipment.length}):</p>
+                  <p className="text-xs text-slate-500 mb-1">Unidades Interiores ({finalChildren.length}):</p>
                   <div className="space-y-1">
-                    {childEquipment.map((child) =>
-                <Link
-                  key={child.id}
-                  to={createPageUrl(`EquipmentDetail?id=${child.id}`)}
-                  className="block text-blue-600 hover:underline text-sm">
-                  
-                        • {child.brand} {child.model} - {child.location}
+                    {finalChildren.map((child) =>
+                  <Link key={child.id} to={createPageUrl(`EquipmentDetail?id=${child.id}`)} className="block text-blue-600 hover:underline text-sm">
+                        • {child.technical_data?.indoor_subtype ? `${child.technical_data.indoor_subtype} · ` : ''}{child.brand} {child.model} - {child.location}
                       </Link>
                 )}
+                    <Link to={createPageUrl(`EquipmentForm?parent=${finalEquipment.id}&building=${finalEquipment.building_id}&client=${finalEquipment.client_id}&type=${finalEquipment.equipment_type}`)} className="inline-flex items-center gap-1 mt-2 text-xs text-blue-700 font-medium hover:underline">
+                      + Añadir unidad interior
+                    </Link>
                   </div>
                 </div>
             }
@@ -750,8 +784,8 @@ export default function EquipmentDetail() {
           onOpenChange={setShowDeleteDialog}
           title="¿Eliminar equipo?"
           description={`Se eliminará "${finalEquipment.brand} ${finalEquipment.model}". Esta acción no se puede deshacer.`}
-          onConfirm={() => deleteMutation.mutate()}
-          isLoading={deleteMutation.isPending} />
+          onConfirm={handleDelete}
+          isLoading={deleting || deleteMutation.isPending} />
         
 
 
