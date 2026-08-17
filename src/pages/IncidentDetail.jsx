@@ -179,6 +179,51 @@ export default function IncidentDetail() {
     queryClient.invalidateQueries({ queryKey: ['incidents'] });
   };
 
+  // Al resolver/cerrar una incidencia, devolver el equipo a "operational"
+  // si estaba marcado como "requiere mantenimiento" y no hay otras
+  // incidencias abiertas para el mismo equipo.
+  const syncEquipmentOnResolve = async (status) => {
+    if (!incident.equipment_id) return;
+    if (status !== 'resolved' && status !== 'closed') return;
+    const eqId = incident.equipment_id;
+
+    let eq, others;
+    if (isSessionTech) {
+      const eqRes = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'equipment_detail', equipment_id: eqId,
+      });
+      eq = eqRes.data?.data?.equipment;
+      const incRes = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'incidents_by_equipment', equipment_id: eqId,
+      });
+      others = incRes.data?.data || [];
+    } else {
+      const items = await base44.entities.Equipment.filter({ id: eqId });
+      eq = items[0];
+      others = await base44.entities.Incident.filter({ equipment_id: eqId });
+    }
+
+    // Solo resetear si está en "requiere mantenimiento"
+    // (no tocar equipos marcados como fuera de servicio por irreparable)
+    if (!eq || eq.status !== 'maintenance_needed') return;
+
+    const hasOpen = others.some(i => i.id !== incidentId && (i.status === 'pending' || i.status === 'in_progress'));
+    if (hasOpen) return;
+
+    if (isSessionTech) {
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'equipment_update',
+        equipment_id: eqId, updates: { status: 'operational' },
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+    } else {
+      await base44.entities.Equipment.update(eqId, { status: 'operational' });
+    }
+    queryClient.invalidateQueries({ queryKey: ['equipment-incident', eqId] });
+    queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    queryClient.invalidateQueries({ queryKey: ['proxy-all', sessionTechEmail] });
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (data) => {
       const user = await resolveUser();
@@ -191,6 +236,7 @@ export default function IncidentDetail() {
         updateData.resolution_date = new Date().toISOString().split('T')[0];
       }
       await updateIncident(incidentId, updateData);
+      await syncEquipmentOnResolve(data.status);
 
       // Notify client if status changed
       if (data.status && data.status !== prevStatus) {
@@ -263,6 +309,7 @@ export default function IncidentDetail() {
         queryClient.invalidateQueries({ queryKey: ['equipment-incident', incident.equipment_id] });
       }
       await updateIncident(incidentId, updateData);
+      await syncEquipmentOnResolve(newStatus);
 
       // Notify client if status changed
       if (newStatus && newStatus !== prevStatus) {
