@@ -563,6 +563,15 @@ Deno.serve(async (req) => {
       // No permitir cambiar company_id desde el proxy de empresa
       const safe = { ...updates };
       delete safe.company_id;
+      // Evitar emails duplicados al actualizar (igual que en el alta)
+      if (safe.email && safe.email.trim().toLowerCase() !== (target.email || '').trim().toLowerCase()) {
+        const emailNorm = safe.email.trim().toLowerCase();
+        const allTechs = await base44.asServiceRole.entities.Technician.list();
+        const dup = allTechs.find(t => t.id !== technician_id && (t.email || '').trim().toLowerCase() === emailNorm);
+        if (dup) {
+          return Response.json({ error: 'Ya existe un trabajador con este email. Cada trabajador debe tener un email único.' }, { status: 400 });
+        }
+      }
       const data = await base44.asServiceRole.entities.Technician.update(technician_id, safe);
       return Response.json({ data });
     }

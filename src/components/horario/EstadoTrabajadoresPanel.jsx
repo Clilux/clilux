@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase } from 'lucide-react';
+import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { notificar } from '@/lib/buzon';
+import { formatHoras } from '@/lib/horario-utils';
 
 const TIPO_LABELS = {
   vacaciones: 'Vacaciones',
@@ -115,9 +116,22 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
     } catch { toast.error('Error al eliminar'); }
   };
 
-  const workerRegistros = registrosMes
-    .filter(r => r.technician_email === email)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  // Resumen de jornadas del trabajador (con navegación mensual) — igual que ve el propio trabajador
+  const [viewMonth, setViewMonth] = useState(new Date());
+  const monthStr = format(viewMonth, 'yyyy-MM');
+  const { data: mesRegistros = [] } = useQuery({
+    queryKey: ['worker-jornadas', email, monthStr],
+    queryFn: async () => {
+      const all = await base44.entities.RegistroHorario.filter({ technician_email: email });
+      return all.filter(r => r.fecha?.startsWith(monthStr)).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    },
+    enabled: !!email,
+  });
+  const mesStats = useMemo(() => ({
+    normal: mesRegistros.reduce((a, r) => a + (r.horas_normales || 0), 0),
+    extra: mesRegistros.reduce((a, r) => a + (r.horas_extra || 0), 0),
+    dias: new Set(mesRegistros.map(r => r.fecha)).size,
+  }), [mesRegistros]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -141,7 +155,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
           {['estado', 'vacaciones', 'registros', 'peticiones'].map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-3 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-              {t === 'peticiones' ? `Peticiones${pendientes.length ? ` (${pendientes.length})` : ''}` : t}
+              {t === 'peticiones' ? `Peticiones${pendientes.length ? ` (${pendientes.length})` : ''}` : t === 'registros' ? 'Jornadas' : t}
             </button>
           ))}
         </div>
@@ -209,20 +223,87 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
         )}
 
         {tab === 'registros' && (
-          <div className="space-y-1 max-h-80 overflow-y-auto">
-            {workerRegistros.length === 0 ? (
-              <p className="text-center text-slate-400 text-sm py-6">Sin registros este mes</p>
-            ) : workerRegistros.slice(0, 20).map(r => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-sm">
-                <span className="text-slate-600 capitalize">{r.fecha && format(parseISO(r.fecha), "EEE d MMM", { locale: es })}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-emerald-600">{r.hora_entrada || '—'}</span>
-                  <span className="text-slate-300">→</span>
-                  <span className="text-red-500">{r.hora_salida || (r.finalizada ? '—' : 'en curso')}</span>
-                  <span className="font-semibold text-slate-700 w-12 text-right">{r.horas_efectivas ? `${r.horas_efectivas}h` : ''}</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-semibold text-slate-700 text-sm capitalize">{format(viewMonth, 'MMMM yyyy', { locale: es })}</span>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Card className="p-2.5 bg-white border-0 shadow-sm text-center">
+                <p className="text-lg font-bold text-blue-600">{formatHoras(mesStats.normal)}</p>
+                <p className="text-[11px] text-slate-500">H. normales</p>
+              </Card>
+              <Card className="p-2.5 bg-white border-0 shadow-sm text-center">
+                <p className={`text-lg font-bold ${mesStats.extra > 0 ? 'text-orange-500' : 'text-slate-300'}`}>{formatHoras(mesStats.extra)}</p>
+                <p className="text-[11px] text-slate-500">H. extra</p>
+              </Card>
+              <Card className="p-2.5 bg-white border-0 shadow-sm text-center">
+                <p className="text-lg font-bold text-slate-700">{mesStats.dias}</p>
+                <p className="text-[11px] text-slate-500">Días</p>
+              </Card>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto">
+              {mesRegistros.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-6">Sin registros este mes</p>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[22px] top-0 bottom-0 w-0.5 bg-slate-100" />
+                  <div className="divide-y divide-slate-50">
+                    {mesRegistros.map(r => {
+                      const isToday = r.fecha === format(new Date(), 'yyyy-MM-dd');
+                      const tramos = r.intervalos || [];
+                      const isFinalizada = r.finalizada;
+                      return (
+                        <div key={r.id} className={`flex gap-1.5 items-start py-2 pr-1 ${isToday ? 'bg-blue-50/40' : ''}`}>
+                          <div className="w-9 flex-shrink-0 text-center pt-0.5">
+                            <p className={`text-xs font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>{r.fecha ? format(parseISO(r.fecha), 'd', { locale: es }) : '—'}</p>
+                            <p className={`text-[10px] uppercase leading-none mt-0.5 ${isToday ? 'text-blue-400' : 'text-slate-400'}`}>{r.fecha ? format(parseISO(r.fecha), 'EEE', { locale: es }) : ''}</p>
+                          </div>
+                          <div className="relative flex-shrink-0 w-4 flex items-start justify-center pt-1.5">
+                            <div className={`w-3 h-3 rounded-full border-2 z-10 ${isFinalizada ? 'bg-blue-500 border-blue-400' : tramos.length > 0 ? 'bg-amber-400 border-amber-400' : 'bg-slate-200 border-slate-300'}`} />
+                          </div>
+                          <div className="flex-1 min-w-0 ml-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium text-slate-700">
+                                <span className="text-emerald-600">{r.hora_entrada || '—'}</span>
+                                {' → '}
+                                <span className={r.hora_salida ? 'text-red-500' : 'text-slate-300'}>{r.hora_salida || (isToday ? 'en curso' : '—')}</span>
+                              </span>
+                              {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">hoy</span>}
+                              {isFinalizada && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">✓ cerrada</span>}
+                              {(r.horas_extra || 0) > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600">+{formatHoras(r.horas_extra)} extra</span>}
+                            </div>
+                            {tramos.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {tramos.map((t, i) => (
+                                  <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">
+                                    <span className="font-medium text-emerald-600">{t.entrada}</span>
+                                    <span className="text-slate-300">→</span>
+                                    <span className={!t.salida ? 'text-emerald-500 font-medium' : 'text-red-500'}>{t.salida || 'en curso'}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+                              {(r.horas_efectivas || r.horas_normales) > 0 && <span className="text-blue-600 font-semibold">{formatHoras(r.horas_efectivas || r.horas_normales || 0)}</span>}
+                              {r.minutos_pausa > 0 && <span>{r.minutos_pausa}m pausa</span>}
+                              {r.ubicacion_entrada && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3 text-emerald-400" />GPS</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         )}
 
