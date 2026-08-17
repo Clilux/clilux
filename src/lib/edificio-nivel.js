@@ -10,22 +10,28 @@ export const NIVEL_CONFIG = {
 };
 
 // ¿Un equipo concreto necesita revisión?
-export function equipoNecesitaRevision(eq, today = new Date()) {
-  if (eq.status === 'maintenance_needed' || eq.status === 'out_of_service') return true;
+// openIncidentEquipmentIds: IDs de equipos con incidencia abierta. Sirve para
+// ignorar estados `maintenance_needed` huérfanos (sin incidencia real).
+export function equipoNecesitaRevision(eq, openIncidentEquipmentIds = new Set(), today = new Date()) {
+  if (eq.status === 'out_of_service') return true;
+  if (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) return true;
   if (eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) return true;
   if (eq.next_leak_check_date && isBefore(parseISO(eq.next_leak_check_date), today)) return true;
   return false;
 }
 
 // Calcula el nivel de un edificio a partir de sus incidencias, equipos y revisiones
-// Crítico (4)    = solo incidencias urgentes abiertas
-// Atención (3)  = incidencias no urgentes abiertas o revisiones vencidas/próximas
-// Mantenimiento (2) = equipos que requieren revisión (sin incidencias abiertas)
-// Operativo (1) = nada pendiente
+// Crítico (4)      = incidencias urgentes abiertas
+// Atención (3)     = incidencias no urgentes abiertas
+// Mantenimiento (2)= equipos que requieren revisión o revisiones pendientes/vencidas
+// Operativo (1)    = nada pendiente
 export function calcularNivelEdificio({ incidents = [], equipment = [], revisions = [], today = new Date() }) {
   const openIncidents = incidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
   const urgentIncidents = openIncidents.filter(i => i.priority === 'urgent');
-  const eqReview = equipment.filter(eq => equipoNecesitaRevision(eq, today));
+  const eqWithOpenIncident = new Set(openIncidents.filter(i => i.equipment_id).map(i => i.equipment_id));
+
+  const eqReview = equipment.filter(eq => equipoNecesitaRevision(eq, eqWithOpenIncident, today));
+
   const next30 = addDays(today, 30);
   const revPending = (revisions || []).filter(
     r => r.status === 'pending' && isBefore(parseISO(r.scheduled_date), next30)
@@ -33,8 +39,8 @@ export function calcularNivelEdificio({ incidents = [], equipment = [], revision
 
   let level = 'ok';
   if (urgentIncidents.length > 0) level = 'critical';
-  else if (openIncidents.length > 0 || revPending.length > 0) level = 'warning';
-  else if (eqReview.length > 0) level = 'maintenance';
+  else if (openIncidents.length > 0) level = 'warning';
+  else if (eqReview.length > 0 || revPending.length > 0) level = 'maintenance';
 
   return { level, openIncidents, urgentIncidents, eqReview, revPending };
 }

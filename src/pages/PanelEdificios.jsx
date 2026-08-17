@@ -84,13 +84,23 @@ export default function PanelEdificios() {
 
   const today = new Date();
 
-  // Equipos que necesitan revisión: estado no operativo o fecha de revisión pasada
+  // IDs de equipos con incidencia abierta (para descartar estados maintenance_needed huérfanos)
+  const openIncidentEquipmentIds = useMemo(() => {
+    const s = new Set();
+    incidents
+      .filter(i => i.status === 'pending' || i.status === 'in_progress')
+      .forEach(i => { if (i.equipment_id) s.add(i.equipment_id); });
+    return s;
+  }, [incidents]);
+
+  // Equipos que necesitan revisión: fuera de servicio, maintenance_needed con incidencia
+  // abierta real, o fecha de revisión vencida
   const equipmentNeedingReviewMap = useMemo(() => {
     const map = {};
     equipment.forEach(eq => {
       const needsReview =
-        eq.status === 'maintenance_needed' ||
         eq.status === 'out_of_service' ||
+        (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) ||
         (eq.first_revision_date && isBefore(parseISO(eq.first_revision_date), today)) ||
         (eq.next_leak_check_date && isBefore(parseISO(eq.next_leak_check_date), today));
       if (needsReview) {
@@ -99,7 +109,7 @@ export default function PanelEdificios() {
       }
     });
     return map;
-  }, [equipment]);
+  }, [equipment, openIncidentEquipmentIds]);
 
   // Incidencias pendientes por edificio
   const pendingIncidentsMap = useMemo(() => {
@@ -173,7 +183,7 @@ export default function PanelEdificios() {
   const kpis = [
     { label: 'Edificios',        value: totalBuildings, icon: Building2,      color: 'bg-blue-50 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-600' },
     { label: 'Alertas activas',  value: totalIncidents, icon: AlertTriangle,  color: totalIncidents > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200', iconBg: totalIncidents > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: totalIncidents > 0 ? 'text-red-500' : 'text-slate-400' },
-    { label: 'Equipos a revisar',value: totalEqReview,  icon: Wrench,         color: totalEqReview > 0 ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-200', iconBg: totalEqReview > 0 ? 'bg-orange-100' : 'bg-slate-100', iconCls: totalEqReview > 0 ? 'text-orange-500' : 'text-slate-400' },
+    { label: 'Equipos a revisar',value: totalEqReview,  icon: Wrench,         color: totalEqReview > 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200', iconBg: totalEqReview > 0 ? 'bg-blue-100' : 'bg-slate-100', iconCls: totalEqReview > 0 ? 'text-blue-500' : 'text-slate-400' },
     { label: 'Revisiones 30d',   value: totalRevisions, icon: ClipboardCheck, color: totalRevisions > 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200', iconBg: totalRevisions > 0 ? 'bg-amber-100' : 'bg-slate-100', iconCls: totalRevisions > 0 ? 'text-amber-500' : 'text-slate-400' },
   ];
 
