@@ -15,7 +15,9 @@ import {
 import { createPageUrl } from '@/utils';
 import { format, parseISO, isBefore, isAfter, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calcularNivelEdificio, equipoNecesitaRevision } from '@/lib/edificio-nivel';
+import { calcularNivelEdificio, equipoNecesitaRevision, tienePlanMantenimientoActivo } from '@/lib/edificio-nivel';
+import LongPressHelp from '@/components/ui/LongPressHelp';
+import { PANEL_EDIFICIOS_HELP } from '@/lib/panel-edificios-help';
 
 const FILTERS = [
   { id: 'all',         label: 'Todos' },
@@ -136,6 +138,15 @@ export default function PanelEdificios() {
     return map;
   }, [revisions]);
 
+  // Mapa de edificios con al menos un equipo con plan de mantenimiento activo
+  const hasPlanByBuilding = useMemo(() => {
+    const map = {};
+    equipment.forEach(eq => {
+      if (!map[eq.building_id]) map[eq.building_id] = tienePlanMantenimientoActivo(eq);
+    });
+    return map;
+  }, [equipment]);
+
   // Calcular nivel de cada edificio
   const buildingSummaries = useMemo(() => {
     return buildings.map(b => {
@@ -143,9 +154,9 @@ export default function PanelEdificios() {
       const eqs  = equipmentNeedingReviewMap[b.id] || [];
       const revs = pendingRevisionsMap[b.id] || [];
       const { level } = calcularNivelEdificio({ incidents: incs, equipment: eqs, revisions: revs, today });
-      return { building: b, level, incs, eqs, revs };
+      return { building: b, level, incs, eqs, revs, hasPlan: !!hasPlanByBuilding[b.id] };
     });
-  }, [buildings, pendingIncidentsMap, equipmentNeedingReviewMap, pendingRevisionsMap]);
+  }, [buildings, pendingIncidentsMap, equipmentNeedingReviewMap, pendingRevisionsMap, hasPlanByBuilding]);
 
   // KPIs globales
   const totalBuildings = buildings.length;
@@ -175,10 +186,10 @@ export default function PanelEdificios() {
     });
 
   const kpis = [
-    { label: 'Edificios',        value: totalBuildings, icon: Building2,      color: 'bg-blue-50 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-600' },
-    { label: 'Alertas activas',  value: totalIncidents, icon: AlertTriangle,  color: totalIncidents > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200', iconBg: totalIncidents > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: totalIncidents > 0 ? 'text-red-500' : 'text-slate-400' },
-    { label: 'Equipos a revisar',value: totalEqReview,  icon: Wrench,         color: totalEqReview > 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200', iconBg: totalEqReview > 0 ? 'bg-blue-100' : 'bg-slate-100', iconCls: totalEqReview > 0 ? 'text-blue-500' : 'text-slate-400' },
-    { label: 'Revisiones 30d',   value: totalRevisions, icon: ClipboardCheck, color: totalRevisions > 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200', iconBg: totalRevisions > 0 ? 'bg-amber-100' : 'bg-slate-100', iconCls: totalRevisions > 0 ? 'text-amber-500' : 'text-slate-400' },
+    { label: 'Edificios',        value: totalBuildings, icon: Building2,      color: 'bg-blue-50 border-blue-200',    iconBg: 'bg-blue-100',    iconCls: 'text-blue-600', help: PANEL_EDIFICIOS_HELP.kpiEdificios },
+    { label: 'Alertas activas',  value: totalIncidents, icon: AlertTriangle,  color: totalIncidents > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200', iconBg: totalIncidents > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: totalIncidents > 0 ? 'text-red-500' : 'text-slate-400', help: PANEL_EDIFICIOS_HELP.kpiAlertas },
+    { label: 'Equipos a revisar',value: totalEqReview,  icon: Wrench,         color: totalEqReview > 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200', iconBg: totalEqReview > 0 ? 'bg-blue-100' : 'bg-slate-100', iconCls: totalEqReview > 0 ? 'text-blue-500' : 'text-slate-400', help: PANEL_EDIFICIOS_HELP.kpiEquipos },
+    { label: 'Revisiones 30d',   value: totalRevisions, icon: ClipboardCheck, color: totalRevisions > 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200', iconBg: totalRevisions > 0 ? 'bg-amber-100' : 'bg-slate-100', iconCls: totalRevisions > 0 ? 'text-amber-500' : 'text-slate-400', help: PANEL_EDIFICIOS_HELP.kpiRevisiones },
   ];
 
   return (
@@ -201,7 +212,7 @@ export default function PanelEdificios() {
               </div>
               <div>
                 <h1 className="text-white text-lg font-bold">Panel de Edificios</h1>
-                <p className="text-blue-100 text-xs">Estado global de instalaciones conectadas</p>
+                <p className="text-blue-100 text-xs">Estado global de instalaciones · Mantén pulsado un elemento para ver su ayuda</p>
               </div>
             </div>
             <p className="text-white text-sm font-medium hidden sm:block">
@@ -214,18 +225,20 @@ export default function PanelEdificios() {
           <div className="max-w-7xl mx-auto space-y-6">
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {kpis.map(({ label, value, icon: Icon, color, iconBg, iconCls }) => (
-                <Card key={label} className={`${color} border p-4 shadow-sm`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
-                      <Icon className={`h-5 w-5 ${iconCls}`} />
+              {kpis.map(({ label, value, icon: Icon, color, iconBg, iconCls, help }) => (
+                <LongPressHelp key={label} as="div" help={help}>
+                  <Card className={`${color} border p-4 shadow-sm`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+                        <Icon className={`h-5 w-5 ${iconCls}`} />
+                      </div>
+                      <div>
+                        {isLoading ? <Skeleton className="h-7 w-10" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
+                        <p className="text-xs text-slate-500 font-medium">{label}</p>
+                      </div>
                     </div>
-                    <div>
-                      {isLoading ? <Skeleton className="h-7 w-10" /> : <p className="text-2xl font-bold text-slate-800">{value}</p>}
-                      <p className="text-xs text-slate-500 font-medium">{label}</p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                </LongPressHelp>
               ))}
             </div>
 
@@ -243,15 +256,16 @@ export default function PanelEdificios() {
               <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
                 <Filter className="h-4 w-4 text-slate-400 mx-1.5 shrink-0" />
                 {FILTERS.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFilter(f.id)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      filter === f.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
+                  <LongPressHelp key={f.id} as="span" help={PANEL_EDIFICIOS_HELP.filtros[f.id]}>
+                    <button
+                      onClick={() => setFilter(f.id)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        filter === f.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  </LongPressHelp>
                 ))}
               </div>
             </div>
@@ -269,7 +283,7 @@ export default function PanelEdificios() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map(({ building, level, incs, eqs, revs }) => {
+                {filtered.map(({ building, level, incs, eqs, revs, hasPlan }) => {
                   const client = clients.find(c => c.id === building.client_id);
                   return (
                     <EdificioStatusCard
@@ -279,6 +293,7 @@ export default function PanelEdificios() {
                       incidents={incs}
                       equipmentNeedingReview={eqs}
                       pendingRevisions={revs}
+                      hasPlan={hasPlan}
                     />
                   );
                 })}
