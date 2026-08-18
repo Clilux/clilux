@@ -4,16 +4,30 @@
   "properties": {
     "obra_id": {
       "type": "string",
-      "description": "ID de la obra"
+      "description": "ID de la obra (opcional, se mantiene por compatibilidad)"
     },
     "obra_nombre": {
       "type": "string"
     },
     "client_id": {
-      "type": "string"
+      "type": "string",
+      "description": "ID del cliente (local o de STEL Order)"
     },
     "client_name": {
       "type": "string"
+    },
+    "client_source": {
+      "type": "string",
+      "enum": [
+        "local",
+        "stel"
+      ],
+      "default": "local",
+      "description": "Origen del cliente: local o sincronizado de STEL Order"
+    },
+    "stel_client_id": {
+      "type": "string",
+      "description": "ID del cliente en STEL Order (si proviene de sincronizaci\u00f3n)"
     },
     "numero": {
       "type": "string",
@@ -84,7 +98,6 @@
     }
   },
   "required": [
-    "obra_id",
     "fecha",
     "tecnico_nombre",
     "descripcion_trabajos"

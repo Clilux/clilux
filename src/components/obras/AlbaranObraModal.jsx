@@ -14,7 +14,7 @@ export default function AlbaranObraModal({ open, onClose, techRecord, registroHo
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    obra_id: '',
+    client_id: '',
     fecha: registroHorario?.fecha || format(new Date(), 'yyyy-MM-dd'),
     hora_inicio: registroHorario?.hora_entrada || '',
     hora_fin: registroHorario?.hora_salida || '',
@@ -25,13 +25,36 @@ export default function AlbaranObraModal({ open, onClose, techRecord, registroHo
   });
   const [nuevoMaterial, setNuevoMaterial] = useState({ descripcion: '', cantidad: 1, precio_unitario: 0 });
 
-  const { data: obras = [] } = useQuery({
-    queryKey: ['obras-activas'],
-    queryFn: () => base44.entities.Obra.filter({ estado: 'activa' }),
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
+    queryKey: ['albaran-clientes', isSessionTech ? sessionTechEmail : 'admin'],
+    queryFn: async () => {
+      // 1) Preferir clientes sincronizados de STEL Order (requiere auth Base44)
+      if (!isSessionTech) {
+        try {
+          const stelRes = await base44.functions.invoke('stelProxy', { action: 'listClients', payload: {} });
+          const stelClients = stelRes.data?.clients || [];
+          if (stelClients.length > 0) {
+            return stelClients.map(c => ({ id: String(c.id), name: c.name, fiscalId: c.fiscalId || '', source: 'stel' }));
+          }
+        } catch (_) { /* STEL no configurado → usar clientes locales */ }
+      }
+      // 2) Clientes locales (proxy para técnicos, directo para admin)
+      let localClients = [];
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+        localClients = res.data?.clients || [];
+      } else {
+        localClients = await base44.entities.Client.list();
+      }
+      return localClients.map(c => ({ id: c.id, name: c.name, fiscalId: c.cif || '', source: 'local' }));
+    },
     enabled: open,
   });
 
-  const obraSeleccionada = obras.find(o => o.id === form.obra_id);
+  const clienteSeleccionado = clientes.find(c => c.id === form.client_id);
 
   const addMaterial = () => {
     if (!nuevoMaterial.descripcion) return;
@@ -44,24 +67,30 @@ export default function AlbaranObraModal({ open, onClose, techRecord, registroHo
   };
 
   const handleSave = async () => {
-    if (!form.obra_id || !form.descripcion_trabajos) {
-      toast.error('Selecciona una obra y añade la descripción de trabajos');
+    if (!form.client_id || !form.descripcion_trabajos) {
+      toast.error('Selecciona un cliente y añade la descripción de trabajos');
       return;
     }
     setSaving(true);
     const numero = `ALB-${Date.now().toString().slice(-6)}`;
     await base44.entities.AlbaranObra.create({
-      ...form,
       numero,
-      obra_nombre: obraSeleccionada?.nombre || '',
-      client_id: obraSeleccionada?.client_id || '',
-      client_name: obraSeleccionada?.client_name || '',
+      client_id: clienteSeleccionado?.id || '',
+      client_name: clienteSeleccionado?.name || '',
+      client_source: clienteSeleccionado?.source || 'local',
+      stel_client_id: clienteSeleccionado?.source === 'stel' ? clienteSeleccionado?.id : '',
+      fecha: form.fecha,
+      hora_inicio: form.hora_inicio,
+      hora_fin: form.hora_fin,
+      horas_trabajadas: parseFloat(form.horas_trabajadas) || 0,
+      descripcion_trabajos: form.descripcion_trabajos,
+      materiales_usados: form.materiales_usados,
+      notas: form.notas,
       tecnico_id: techRecord?.id || '',
       tecnico_nombre: techRecord?.name || '',
       tecnico_email: techRecord?.email || techRecord?.user_email || '',
       company_id: techRecord?.company_id || '',
       registro_horario_id: registroHorario?.id || '',
-      horas_trabajadas: parseFloat(form.horas_trabajadas) || 0,
     });
     queryClient.invalidateQueries({ queryKey: ['albaranes-obra'] });
     toast.success('Albarán creado correctamente');
@@ -73,19 +102,21 @@ export default function AlbaranObraModal({ open, onClose, techRecord, registroHo
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nuevo albarán de obra</DialogTitle>
+          <DialogTitle>Nuevo albarán</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          {/* Obra */}
+          {/* Cliente */}
           <div>
-            <Label>Obra *</Label>
-            <Select value={form.obra_id} onValueChange={v => setForm(f => ({ ...f, obra_id: v }))}>
+            <Label>Cliente *</Label>
+            <Select value={form.client_id} onValueChange={v => setForm(f => ({ ...f, client_id: v }))}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Seleccionar obra..." />
+                <SelectValue placeholder={loadingClientes ? "Cargando clientes..." : "Seleccionar cliente..."} />
               </SelectTrigger>
               <SelectContent>
-                {obras.map(o => (
-                  <SelectItem key={o.id} value={o.id}>{o.nombre} — {o.client_name}</SelectItem>
+                {clientes.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}{c.fiscalId ? ` — ${c.fiscalId}` : ''}{c.source === 'stel' ? ' (STEL)' : ''}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

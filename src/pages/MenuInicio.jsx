@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight, Monitor } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
+import { APP_VERSION } from '@/lib/appVersion';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
@@ -429,7 +430,7 @@ export default function MenuInicio() {
         </div>
           </div>
 
-          <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados</p>
+          <p className="text-center text-slate-600 text-xs mt-6">© {new Date().getFullYear()} {companyName} · Todos los derechos reservados · v{APP_VERSION}</p>
         </div>
       </div>
   );
