@@ -57,6 +57,11 @@ Deno.serve(async (req) => {
     // Helper para denegar acceso
     const deny = (perm) => Response.json({ error: `Sin permiso: ${perm}`, no_permission: true }, { status: 403 });
 
+    // Identidad del técnico logeado (para sellar el creador en cualquier registro que genere)
+    const creatorName = tech.name;
+    const creatorEmail = tech.email;
+    const creatorId = tech.id;
+
     // ── Carga masiva (evita múltiples llamadas simultáneas) ──────
     if (entity === 'all') {
       const allClients = permisos.ver_clientes
@@ -103,6 +108,7 @@ Deno.serve(async (req) => {
         ...record,
         company_id: tech.company_id,
         status: record.status || 'active',
+        created_by_name: record.created_by_name || creatorName,
       });
       // invalidar caché de clientes de empresa
       _companyClientIds = null;
@@ -229,7 +235,11 @@ Deno.serve(async (req) => {
     if (entity === 'registro_horario_create') {
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
-      const data = await base44.asServiceRole.entities.RegistroHorario.create(record);
+      const data = await base44.asServiceRole.entities.RegistroHorario.create({
+        technician_name: creatorName,
+        technician_id: creatorId,
+        ...record,
+      });
       return Response.json({ data });
     }
 
@@ -263,7 +273,10 @@ Deno.serve(async (req) => {
       if (!(await assertCompanyClient(record.client_id))) {
         return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
       }
-      const data = await base44.asServiceRole.entities.Equipment.create(record);
+      const data = await base44.asServiceRole.entities.Equipment.create({
+        ...record,
+        created_by_name: record.created_by_name || creatorName,
+      });
       return Response.json({ data });
     }
 
@@ -297,7 +310,13 @@ Deno.serve(async (req) => {
       for (const r of records) {
         if (!clientIds.has(r.client_id)) return Response.json({ error: 'Una revisión no pertenece a tu empresa' }, { status: 403 });
       }
-      const data = await base44.asServiceRole.entities.ScheduledRevision.bulkCreate(records);
+      const stampedRecords = records.map((r) => ({
+        technician_name: creatorName,
+        technician_id: creatorId,
+        technician_email: creatorEmail,
+        ...r,
+      }));
+      const data = await base44.asServiceRole.entities.ScheduledRevision.bulkCreate(stampedRecords);
       return Response.json({ data });
     }
 
@@ -359,7 +378,12 @@ Deno.serve(async (req) => {
       if (!(await assertCompanyClient(record.client_id))) {
         return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
       }
-      const data = await base44.asServiceRole.entities.ScheduledRevision.create(record);
+      const data = await base44.asServiceRole.entities.ScheduledRevision.create({
+        technician_name: creatorName,
+        technician_id: creatorId,
+        technician_email: creatorEmail,
+        ...record,
+      });
       return Response.json({ data });
     }
 
@@ -510,7 +534,10 @@ Deno.serve(async (req) => {
       if (!(await assertCompanyClient(record.client_id))) {
         return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
       }
-      const data = await base44.asServiceRole.entities.RegistroLD.create(record);
+      const data = await base44.asServiceRole.entities.RegistroLD.create({
+        tecnico_nombre: creatorName,
+        ...record,
+      });
       return Response.json({ data });
     }
 

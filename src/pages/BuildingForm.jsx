@@ -13,6 +13,7 @@ import { Loader2, Save, MapPin } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ImageUploader from '../components/ui/ImageUploader';
 import { toast } from 'sonner';
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
 export default function BuildingForm() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function BuildingForm() {
   const buildingId = urlParams.get('id');
   const preselectedClientId = urlParams.get('client_id');
   const isEditing = !!buildingId;
+  const { technician, user } = useCurrentTechnician();
 
   const [formData, setFormData] = useState({
     client_id: preselectedClientId || '',
@@ -69,7 +71,10 @@ export default function BuildingForm() {
       if (isEditing) {
         return base44.entities.Building.update(buildingId, cleanData);
       }
-      return base44.entities.Building.create(cleanData);
+      return base44.entities.Building.create({
+        ...cleanData,
+        created_by_name: technician?.name || user?.full_name || '',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });

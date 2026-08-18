@@ -16,6 +16,7 @@ import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { REFRIGERANTES, gwpDe, tco2eq } from '@/lib/refrigerantes';
+import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
 // Campos según RITE-IT3 por tipo de equipo
 const camposIDAE = {
@@ -233,16 +234,7 @@ export default function EquipmentForm() {
     return res.data;
   };
 
-  const { data: sessionTechRecord } = useQuery({
-    queryKey: ['session-tech-record', sessionTechEmail],
-    queryFn: async () => {
-      if (!sessionTechEmail) return null;
-      const r = await proxyCall('all');
-      // buscar técnico en la lista completa no disponible por proxy; usar datos mínimos
-      return { name: sessionTechEmail };
-    },
-    enabled: !!sessionTechEmail
-  });
+  const { technician: currentTech, user: currentUser } = useCurrentTechnician();
   const [step, setStep] = useState(1);
 
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
@@ -571,9 +563,6 @@ export default function EquipmentForm() {
         }
       }
 
-      // Técnico que crea el equipo (desde sesión propia)
-      const creatingTechName = sessionTechRecord?.name || null;
-
       // Crear equipo
       const equipmentData = {
         reference_name: data.reference_name,
@@ -599,7 +588,7 @@ export default function EquipmentForm() {
         last_revision_date: data.last_revision_date || null,
         unit_type: data.unit_type || 'standalone',
         parent_equipment_id: data.parent_equipment_id || null,
-        ...(creatingTechName ? { created_by_name: creatingTechName } : {}),
+        created_by_name: currentTech?.name || currentUser?.full_name || '',
         maintenance_config: {
           monthly_enabled: data.selected_periods.includes('mensual'),
           monthly_fields: data.maintenance_fields.filter((f) => f.periods.includes('mensual')),

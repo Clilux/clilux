@@ -65,6 +65,10 @@
         "inactive"
       ],
       "default": "active"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico/usuario que cre\u00f3 el edificio"
     }
   },
   "required": [
