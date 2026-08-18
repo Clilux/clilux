@@ -33,7 +33,13 @@ import LDTab from '../components/equipment/LDTab';
 import LibroRegistroTab from '../components/equipment/LibroRegistroTab';
 import NfcAssignButton from '../components/equipment/NfcAssignButton';
 
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+const safeFormat = (value, pattern) => {
+  if (!value) return '';
+  const dt = new Date(value);
+  return isValid(dt) ? format(dt, pattern) : '';
+};
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
@@ -425,7 +431,7 @@ export default function EquipmentDetail() {
                   <p className="text-xs text-slate-500">Última revisión</p>
                   <p className="text-sm font-medium text-slate-700">
                     {lastRevision?.completed_date ?
-                    format(new Date(lastRevision.completed_date), 'dd/MM/yy') :
+                    (safeFormat(lastRevision.completed_date, 'dd/MM/yy') || 'Sin datos') :
                     'Sin datos'}
                   </p>
                 </div>
@@ -445,7 +451,7 @@ export default function EquipmentDetail() {
                   'text-red-600' : 'text-slate-700'}`
                   }>
                     {nextRevision?.scheduled_date ?
-                    format(new Date(nextRevision.scheduled_date), 'dd/MM/yy') :
+                    (safeFormat(nextRevision.scheduled_date, 'dd/MM/yy') || 'No programada') :
                     'No programada'}
                   </p>
                 </div>
@@ -605,7 +611,7 @@ export default function EquipmentDetail() {
                         <div>
                           <p className="text-xs text-slate-500">Instalación</p>
                           <p className="text-sm text-slate-700">
-                            {format(new Date(finalEquipment.installation_date), 'dd/MM/yyyy')}
+                            {safeFormat(finalEquipment.installation_date, 'dd/MM/yyyy')}
                           </p>
                         </div>
                       </div>
