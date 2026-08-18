@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, CheckCircle2, Edit2, Save, X, Plus } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+const safeFormat = (value, pattern, opts) => {
+  if (!value) return '';
+  const dt = new Date(value);
+  return isValid(dt) ? format(dt, pattern, opts) : '';
+};
 import { toast } from 'sonner';
 
 const revisionTypeLabels = {
@@ -237,7 +243,7 @@ export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
                       />
                     ) : (
                       <p className="text-sm text-slate-600">
-                        {format(new Date(revision.scheduled_date), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                        {safeFormat(revision.scheduled_date, "d 'de' MMMM 'de' yyyy", { locale: es }) || 'Sin fecha'}
                       </p>
                     )}
                   </div>
@@ -289,7 +295,7 @@ export default function MaintenancePlan({ equipmentId, clientId, buildingId }) {
                   {revisionTypeLabels[revision.revision_type]}
                 </Badge>
                 <span className="text-sm text-slate-600">
-                  {format(new Date(revision.completed_date || revision.scheduled_date), "d MMM yyyy", { locale: es })}
+                  {safeFormat(revision.completed_date || revision.scheduled_date, "d MMM yyyy", { locale: es }) || 'Sin fecha'}
                 </span>
               </div>
             ))}
