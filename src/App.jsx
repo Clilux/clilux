@@ -28,6 +28,7 @@ import NfcReader from './pages/NfcReader';
 import KioskoFichaje from './pages/KioskoFichaje';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <ErrorBoundary>
     <AnimatePresence mode="wait">
     <Routes location={location} key={location.pathname}>
       <Route path="/" element={
@@ -108,6 +110,7 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </AnimatePresence>
+    </ErrorBoundary>
   );
 };
 

@@ -59,7 +59,10 @@ function ContextMenu({ x, y, onDuplicate, onOpen, onClose }) {
 // 'grid' = tarjetas grandes, 'compact' = tarjetas pequeñas, 'list' = lista
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('equipment_view') || 'grid');
+  const [viewMode, setViewMode] = useState(() => {
+    const v = localStorage.getItem('equipment_view');
+    return ['grid', 'compact', 'list'].includes(v) ? v : 'grid';
+  });
   const [contextMenu, setContextMenu] = useState(null); // { x, y, eq }
   const [duplicating, setDuplicating] = useState(false);
   const navigate = useNavigate();
