@@ -132,6 +132,8 @@ export default function Equipment() {
   };
 
   const filteredEquipment = equipment.filter((eq) => {
+    // Ocultar unidades interiores: solo se ven desde su unidad exterior
+    if (eq.parent_equipment_id) return false;
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     const building = buildings.find((b) => b.id === eq.building_id);
