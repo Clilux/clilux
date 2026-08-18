@@ -222,7 +222,7 @@ export default function EquipmentDetail() {
     queryKey: ['proxy-equipment-list', sessionTechEmail],
     queryFn: async () => {
       const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' });
-      return res.data || [];
+      return res.data?.data || [];
     },
     enabled: isSessionTech && !!equipmentId
   });
