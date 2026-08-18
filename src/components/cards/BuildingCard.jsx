@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
-import { MapPin, Layers, Thermometer, ChevronRight, Snowflake } from 'lucide-react';
+import { MapPin, Layers, Thermometer, ChevronRight, Snowflake, User } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import StatusBadge from '../ui/StatusBadge';
 
@@ -39,6 +39,12 @@ export default function BuildingCard({ building, equipmentCount = 0, totalCoolin
                 <div className="flex items-center gap-1.5 text-blue-500">
                   <Snowflake className="h-4 w-4" />
                   <span>{totalCoolingKw.toFixed(1)} kW</span>
+                </div>
+              )}
+              {building.created_by_name && (
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <User className="h-4 w-4" />
+                  <span>Creado por: {building.created_by_name}</span>
                 </div>
               )}
             </div>

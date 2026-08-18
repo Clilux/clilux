@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
-import { Building2, MapPin, Phone, ChevronRight } from 'lucide-react';
+import { Building2, MapPin, Phone, ChevronRight, User } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import StatusBadge from '../ui/StatusBadge';
 
@@ -38,6 +38,12 @@ export default function ClientCard({ client, buildingCount = 0 }) {
                 <Building2 className="h-4 w-4" />
                 <span>{buildingCount} edificio{buildingCount !== 1 ? 's' : ''}</span>
               </div>
+              {client.created_by_name && (
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <User className="h-4 w-4" />
+                  <span>Creado por: {client.created_by_name}</span>
+                </div>
+              )}
             </div>
           </div>
           </div>

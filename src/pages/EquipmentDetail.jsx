@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import {
   Edit, MapPin, Calendar, FileText,
   Snowflake, Flame, Wind, Droplet,
-  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X, AlertTriangle } from
+  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X, AlertTriangle, User } from
 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -359,6 +359,12 @@ export default function EquipmentDetail() {
                       {finalBuilding.name}
                     </Link>
                   }
+                  {finalEquipment.created_by_name && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-1">
+                      <User className="h-3.5 w-3.5" />
+                      Creado por: {finalEquipment.created_by_name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <EquipmentReport

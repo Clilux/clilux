@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
-import { MapPin, Calendar, ChevronRight, Wind, Flame, Snowflake } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, Wind, Flame, Snowflake, User } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import StatusBadge from '../ui/StatusBadge';
 import { format } from 'date-fns';
@@ -74,6 +74,12 @@ export default function EquipmentCard({ equipment }) {
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />
                     <span>Próx. revisión: {format(new Date(equipment.next_revision_date), 'dd MMM yyyy', { locale: es })}</span>
+                  </div>
+                )}
+                {equipment.created_by_name && (
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <User className="h-4 w-4" />
+                    <span>Creado por: {equipment.created_by_name}</span>
                   </div>
                 )}
               </div>
