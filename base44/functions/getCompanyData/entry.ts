@@ -251,6 +251,93 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Fichaje (admin): listar registros de la empresa en un rango ──
+    if (entity === 'registro_horario_admin_list') {
+      if (!tech.is_admin) return deny('admin');
+      const { start, end } = body;
+      const all = await base44.asServiceRole.entities.RegistroHorario.list('-fecha', 5000);
+      const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      const companyEmails = new Set(companyTechs.map(t => (t.email || '').trim().toLowerCase()));
+      let data = all.filter(r => companyEmails.has((r.technician_email || '').trim().toLowerCase()));
+      if (start && end) data = data.filter(r => r.fecha >= start && r.fecha <= end);
+      return Response.json({ data });
+    }
+
+    // ── Fichaje (admin): crear registro atrasado para un trabajador ──
+    if (entity === 'registro_horario_admin_create') {
+      if (!tech.is_admin) return deny('admin');
+      const { target_email, record, motivo } = body;
+      if (!target_email || !record) return Response.json({ error: 'target_email y record requeridos' }, { status: 400 });
+      if (!record.fecha || !record.hora_entrada) return Response.json({ error: 'fecha y hora_entrada requeridos' }, { status: 400 });
+      const targetTechs = await base44.asServiceRole.entities.Technician.filter({ email: target_email });
+      const target = targetTechs[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El trabajador no pertenece a tu empresa' }, { status: 403 });
+      }
+      // No duplicar: si ya existe un registro para esa fecha+técnico, rechazar
+      const existing = await base44.asServiceRole.entities.RegistroHorario.filter({ technician_email: target.email, fecha: record.fecha });
+      if (existing[0]) {
+        return Response.json({ error: 'Ya existe un registro para esa fecha. Usa editar en su lugar.' }, { status: 400 });
+      }
+      const historialEntry = {
+        fecha_mod: new Date().toISOString(),
+        usuario: creatorName,
+        campo: 'registro_atrasado',
+        valor_anterior: '',
+        valor_nuevo: record.fecha,
+        motivo: motivo || 'Registro atrasado por el administrador',
+      };
+      const data = await base44.asServiceRole.entities.RegistroHorario.create({
+        technician_email: target.email,
+        technician_name: target.name,
+        technician_id: target.id,
+        company_id: target.company_id,
+        fecha: record.fecha,
+        hora_entrada: record.hora_entrada,
+        hora_salida: record.hora_salida || '',
+        tipo_jornada: record.tipo_jornada || 'normal',
+        notas: record.notas || '',
+        pausas: [],
+        intervalos: [{ entrada: record.hora_entrada, salida: record.hora_salida || null }],
+        historial_modificaciones: [historialEntry],
+        ...(record.hora_salida && { finalizada: true }),
+        ...(record.horas_normales !== undefined && {
+          horas_normales: record.horas_normales,
+          horas_extra: record.horas_extra,
+          horas_efectivas: record.horas_efectivas,
+          horas_trabajadas: record.horas_trabajadas,
+          minutos_pausa: record.minutos_pausa || 0,
+        }),
+      });
+      return Response.json({ data });
+    }
+
+    // ── Fichaje (admin): actualizar registro de un trabajador ─────
+    if (entity === 'registro_horario_admin_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { record_id, updates, motivo } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const recList = await base44.asServiceRole.entities.RegistroHorario.filter({ id: record_id });
+      const rec = recList[0];
+      if (!rec || rec.company_id !== tech.company_id) {
+        return Response.json({ error: 'El registro no pertenece a tu empresa' }, { status: 403 });
+      }
+      const historialEntry = {
+        fecha_mod: new Date().toISOString(),
+        usuario: creatorName,
+        campo: 'edicion_admin',
+        valor_anterior: '',
+        valor_nuevo: '',
+        motivo: motivo || 'Edición por administrador',
+      };
+      const finalUpdates = {
+        ...updates,
+        historial_modificaciones: [...(rec.historial_modificaciones || []), historialEntry],
+      };
+      const data = await base44.asServiceRole.entities.RegistroHorario.update(record_id, finalUpdates);
+      return Response.json({ data });
+    }
+
     // ── Actualizar equipo ────────────────────────────────────────
     if (entity === 'equipment_update') {
       if (!permisos.editar_equipos) return deny('editar_equipos');

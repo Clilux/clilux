@@ -109,6 +109,27 @@ Deno.serve(async (req) => {
           `Incidencia actualizada: ${estadoTxt}`,
           `${datos.title || 'Incidencia'} — nuevo estado: ${estadoTxt}.`,
           '/ClientIncidents', companyId);
+      } else if (tipo === 'amonestacion_fichaje_tardio') {
+        const { worker_email, worker_name, company_id, fecha, observaciones } = datos;
+        const titulo = `Amonestación: fichaje tardío del ${fecha}`;
+        const mensaje = `Hola ${worker_name || ''},\n\n` +
+          `Se ha detectado que no registraste tu jornada del día ${fecha} en el momento correspondiente. ` +
+          `Según el Art. 34 del Estatuto de los Trabajadores (RD-ley 8/2019), el registro de jornada ` +
+          `debe realizarse diariamente en el momento de su prestación.\n\n` +
+          `Se ha procedido a registrar tu jornada de oficio por el administrador.` +
+          (observaciones ? `\n\nObservaciones: ${observaciones}` : '') +
+          `\n\nTe recordamos la obligación de fichar la entrada y la salida cada día. ` +
+          `Un nuevo incumplimiento podría dar lugar a medidas disciplinarias adicionales.\n\n` +
+          `Saludos,\nDepartamento de Administración`;
+        await crear(worker_email, 'trabajador', titulo, mensaje, '/ControlHorario', company_id);
+        // Enviar también por email
+        try {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: worker_email,
+            subject: titulo,
+            body: mensaje,
+          });
+        } catch (e) { /* no bloquear la notificación interna */ }
       }
       return Response.json({ success: true });
     }

@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck, Umbrella, Users, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, History, Pencil, BarChart3, FileText, Download, ShieldCheck, Umbrella, Users, Calendar as CalendarIcon, CalendarClock } from 'lucide-react';
 import VacacionesPanel from './VacacionesPanel';
 import EstadoTrabajadoresPanel from './EstadoTrabajadoresPanel';
 import ResumenMensualCalendario from './ResumenMensualCalendario';
+import GestionFichajesPanel from './GestionFichajesPanel';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, getISOWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -21,7 +22,7 @@ import CumplimientoLegalPanel from './CumplimientoLegalPanel';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatHoras } from '@/lib/horario-utils';
 
-export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord }) {
+export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
   const [mainTab, setMainTab] = useState('estado');
   const [period, setPeriod] = useState('month');
@@ -280,6 +281,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
           <TabsTrigger value="estado" className="gap-1.5"><Users className="h-3.5 w-3.5" />Estado</TabsTrigger>
           <TabsTrigger value="mensual" className="gap-1.5"><CalendarIcon className="h-3.5 w-3.5" />Mensual</TabsTrigger>
           <TabsTrigger value="registros" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Registros</TabsTrigger>
+          <TabsTrigger value="fichajes" className="gap-1.5"><CalendarClock className="h-3.5 w-3.5" />Fichajes</TabsTrigger>
           <TabsTrigger value="vacaciones" className="gap-1.5 relative">
             <Umbrella className="h-3.5 w-3.5" />Vacaciones
             {pendientesCount > 0 && (
@@ -304,6 +306,10 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
 
       {mainTab === 'cumplimiento' && (
         <CumplimientoLegalPanel technicians={technicians} myTechRecord={myTechRecord} />
+      )}
+
+      {mainTab === 'fichajes' && (
+        <GestionFichajesPanel technicians={technicians} myTechRecord={myTechRecord} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
       )}
 
       {mainTab === 'registros' && <>

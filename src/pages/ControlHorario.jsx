@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock } from 'lucide-react';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
@@ -627,7 +627,7 @@ export default function ControlHorario() {
         <TechnicianSidebar {...sidebarProps} />
         <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-6xl mx-auto">
-            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} />
+            <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
           </div>
         </div>
         {innerContent}
@@ -648,7 +648,7 @@ export default function ControlHorario() {
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Panel de administración</p>
-              <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} />
+              <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={myTechRecord} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
             </div>
           </div>
         </div>
