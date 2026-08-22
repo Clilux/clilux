@@ -243,6 +243,52 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Fichaje (auto-servicio): registrar jornada atrasada propia ──
+    // Permite a cualquier trabajador dar de alta su propia jornada olvidada
+    // (sin requerir admin), sellando el historial por trazabilidad legal.
+    if (entity === 'registro_horario_self_create') {
+      const { record, motivo } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!record.fecha || !record.hora_entrada) return Response.json({ error: 'fecha y hora_entrada requeridos' }, { status: 400 });
+      if (!motivo || !motivo.trim()) return Response.json({ error: 'El motivo es obligatorio (trazabilidad legal)' }, { status: 400 });
+      // No duplicar: si ya existe un registro para esa fecha+técnico, rechazar
+      const existing = await base44.asServiceRole.entities.RegistroHorario.filter({ technician_email: tech.email, fecha: record.fecha });
+      if (existing[0]) {
+        return Response.json({ error: 'Ya existe un registro para esa fecha. Edita el registro existente en su lugar.' }, { status: 400 });
+      }
+      const historialEntry = {
+        fecha_mod: new Date().toISOString(),
+        usuario: creatorName,
+        campo: 'registro_atrasado',
+        valor_anterior: '',
+        valor_nuevo: record.fecha,
+        motivo: motivo || 'Registro atrasado por el trabajador',
+      };
+      const data = await base44.asServiceRole.entities.RegistroHorario.create({
+        technician_email: tech.email,
+        technician_name: creatorName,
+        technician_id: creatorId,
+        company_id: tech.company_id,
+        fecha: record.fecha,
+        hora_entrada: record.hora_entrada,
+        hora_salida: record.hora_salida || '',
+        tipo_jornada: record.tipo_jornada || 'normal',
+        notas: record.notas || '',
+        pausas: [],
+        intervalos: [{ entrada: record.hora_entrada, salida: record.hora_salida || null }],
+        historial_modificaciones: [historialEntry],
+        ...(record.hora_salida && { finalizada: true }),
+        ...(record.horas_normales !== undefined && {
+          horas_normales: record.horas_normales,
+          horas_extra: record.horas_extra,
+          horas_efectivas: record.horas_efectivas,
+          horas_trabajadas: record.horas_trabajadas,
+          minutos_pausa: record.minutos_pausa || 0,
+        }),
+      });
+      return Response.json({ data });
+    }
+
     // ── Fichaje: actualizar registro ─────────────────────────────
     if (entity === 'registro_horario_update') {
       const { record_id, updates } = body;

@@ -17,6 +17,7 @@ import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation, formatHoras } from '@/lib/horario-utils';
 import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
+import JornadaAtrasadaModal from '@/components/horario/JornadaAtrasadaModal';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
 import MapaTrayecto from '@/components/horario/MapaTrayecto';
 import ComplianceBanner from '@/components/horario/ComplianceBanner';
@@ -32,6 +33,7 @@ export default function ControlHorario() {
   const [showAlbaranObra, setShowAlbaranObra] = useState(false);
   const [albaranRegistro, setAlbaranRegistro] = useState(null);
   const [confirmHora, setConfirmHora] = useState(null);
+  const [showAtrasada, setShowAtrasada] = useState(false);
 
   // Detectar si hay sesión de técnico propio (no Base44)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -424,6 +426,9 @@ export default function ControlHorario() {
                 <Pencil className="h-3.5 w-3.5" />Corregir fichaje
               </Button>
             )}
+            <Button variant="ghost" size="sm" className="text-xs text-slate-600 gap-1.5" onClick={() => setShowAtrasada(true)}>
+              <CalendarClock className="h-3.5 w-3.5" />Jornada atrasada
+            </Button>
             <Button variant="ghost" size="sm" className="text-xs text-orange-600 gap-1.5" onClick={() => { setAlbaranRegistro(todayRecord || null); setShowAlbaranObra(true); }}>
               <HardHat className="h-3.5 w-3.5" />Albarán de obra
             </Button>
@@ -591,6 +596,16 @@ export default function ControlHorario() {
         <EditarRegistroModal registro={editingRecord} currentUser={currentUser} jornadaDiaria={jornadaDiaria}
           updateRegistro={updateRegistro}
           onClose={() => { setEditingRecord(null); queryClient.invalidateQueries({ queryKey: ['registros-horario'] }); }} />
+      )}
+      {showAtrasada && (
+        <JornadaAtrasadaModal
+          technicians={technicians}
+          myTechRecord={myTechRecord}
+          isSessionTech={isSessionTech}
+          effectiveEmail={effectiveEmail}
+          selfReport
+          onClose={() => setShowAtrasada(false)}
+        />
       )}
       {showAusencia && (
         <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />

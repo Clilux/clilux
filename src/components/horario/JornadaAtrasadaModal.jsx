@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,10 +12,11 @@ import { CalendarClock, Loader2, AlertTriangle } from 'lucide-react';
 import { calcularHoras, formatHoras } from '@/lib/horario-utils';
 import { base44 } from '@/api/base44Client';
 
-export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSessionTech, effectiveEmail, onClose }) {
+export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSessionTech, effectiveEmail, selfReport, onClose }) {
   const queryClient = useQueryClient();
   const companyTechs = technicians.filter(t => !myTechRecord?.company_id || t.company_id === myTechRecord.company_id);
-  const [targetEmail, setTargetEmail] = useState(companyTechs[0]?.email || companyTechs[0]?.user_email || '');
+  const selfEmail = selfReport ? (myTechRecord?.email || myTechRecord?.user_email || effectiveEmail || '') : '';
+  const [targetEmail, setTargetEmail] = useState(selfReport ? selfEmail : (companyTechs[0]?.email || companyTechs[0]?.user_email || ''));
   const [fecha, setFecha] = useState('');
   const [horaEntrada, setHoraEntrada] = useState('08:00');
   const [horaSalida, setHoraSalida] = useState('17:00');
@@ -48,6 +50,14 @@ export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSess
         ...(calcs || {}),
       };
       if (isSessionTech) {
+        if (selfReport) {
+          return base44.functions.invoke('getCompanyData', {
+            technician_email: effectiveEmail,
+            entity: 'registro_horario_self_create',
+            record,
+            motivo,
+          });
+        }
         return base44.functions.invoke('getCompanyData', {
           technician_email: effectiveEmail,
           entity: 'registro_horario_admin_create',
@@ -60,7 +70,7 @@ export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSess
       const target = technicians.find(t => (t.email || t.user_email) === targetEmail);
       const historialEntry = {
         fecha_mod: new Date().toISOString(),
-        usuario: 'Administrador',
+        usuario: selfReport ? (myTechRecord?.name || 'Trabajador') : 'Administrador',
         campo: 'registro_atrasado',
         valor_anterior: '',
         valor_nuevo: fecha,
@@ -86,6 +96,7 @@ export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSess
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-registros'] });
       queryClient.invalidateQueries({ queryKey: ['gestion-fichajes'] });
+      queryClient.invalidateQueries({ queryKey: ['registros-horario'] });
       toast.success('Jornada registrada');
       onClose();
     },
@@ -113,14 +124,21 @@ export default function JornadaAtrasadaModal({ technicians, myTechRecord, isSess
 
           <div>
             <Label className="text-xs text-slate-500 mb-1 block">Trabajador</Label>
-            <Select value={targetEmail} onValueChange={setTargetEmail}>
-              <SelectTrigger><SelectValue placeholder="Selecciona trabajador" /></SelectTrigger>
-              <SelectContent>
-                {companyTechs.map(t => (
-                  <SelectItem key={t.id} value={t.email || t.user_email}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {selfReport ? (
+              <div className="flex items-center gap-2 bg-slate-50 border rounded-md px-3 py-2 text-sm text-slate-600">
+                <span className="font-medium">{myTechRecord?.name || targetEmail}</span>
+                <Badge variant="secondary" className="ml-auto text-xs">Tú mismo</Badge>
+              </div>
+            ) : (
+              <Select value={targetEmail} onValueChange={setTargetEmail}>
+                <SelectTrigger><SelectValue placeholder="Selecciona trabajador" /></SelectTrigger>
+                <SelectContent>
+                  {companyTechs.map(t => (
+                    <SelectItem key={t.id} value={t.email || t.user_email}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div>
