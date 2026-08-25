@@ -57,6 +57,8 @@ export default function HomeCliente() {
     sessionStorage.removeItem('client_id');
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
+    sessionStorage.removeItem('session_token');
+    localStorage.removeItem('clilux_session_token');
     navigate(createPageUrl('MenuInicio'));
   };
 

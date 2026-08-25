@@ -303,6 +303,8 @@ export default function HomeTecnico() {
     localStorage.removeItem('clilux_email');
     localStorage.removeItem('clilux_password');
     sessionStorage.removeItem('client_id');
+    sessionStorage.removeItem('session_token');
+    localStorage.removeItem('clilux_session_token');
     if (isSessionTech) {
       // Técnico propio: redirigir sin logout de Base44
       navigate(createPageUrl('MenuInicio'));
