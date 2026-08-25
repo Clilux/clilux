@@ -48,6 +48,9 @@ export default function ControlHorario() {
     retry: false,
   });
 
+  // Email efectivo: sesión de técnico propio tiene prioridad sobre Base44
+  const effectiveEmail = sessionTechEmail || base44User?.email;
+
   const { data: technicians = [] } = useQuery({
     queryKey: isSessionTech ? ['technicians-proxy', effectiveEmail] : ['technicians'],
     queryFn: async () => {
@@ -66,9 +69,6 @@ export default function ControlHorario() {
     },
     enabled: !isSessionTech || !!effectiveEmail,
   });
-
-  // Email efectivo: sesión de técnico propio tiene prioridad sobre Base44
-  const effectiveEmail = sessionTechEmail || base44User?.email;
 
   const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
