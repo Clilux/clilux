@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { verifySessionToken } from '../../shared/auth.ts';
 
 const ESTADO_INC = {
   pending: 'Pendiente',
@@ -14,9 +15,23 @@ Deno.serve(async (req) => {
     const { action } = body;
     const emailNorm = (body.email || '').trim().toLowerCase();
 
+    // Verificar identidad del llamante: token de sesión (técnico/cliente) o admin Base44
+    const session = body.session_token ? await verifySessionToken(body.session_token) : null;
+    let isAdmin = false;
+    if (!session) {
+      try { const me = await base44.auth.me(); if (me && me.role === 'admin') isAdmin = true; } catch { /* no autenticado */ }
+    }
+    if (!session && !isAdmin) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    const callerEmail = session ? (session.email || '').toLowerCase() : null;
+    // Un usuario de sesión solo puede operar sobre sus propias notificaciones
+    const canAccess = (email: string) => !session || isAdmin || callerEmail === (email || '').toLowerCase();
+
     // ── Listar notificaciones del destinatario ─────────────────────
     if (action === 'list') {
       if (!emailNorm) return Response.json({ data: [] });
+      if (!canAccess(emailNorm)) return Response.json({ error: 'No autorizado' }, { status: 403 });
       const all = await base44.asServiceRole.entities.Notificacion.list('-created_date', 200);
       const data = all.filter(n => (n.recipient_email || '').trim().toLowerCase() === emailNorm);
       return Response.json({ data });
@@ -25,6 +40,7 @@ Deno.serve(async (req) => {
     // ── Marcar como leída (una o todas) ────────────────────────────
     if (action === 'marcar') {
       if (!emailNorm) return Response.json({ error: 'email requerido' }, { status: 400 });
+      if (!canAccess(emailNorm)) return Response.json({ error: 'No autorizado' }, { status: 403 });
       if (body.todas) {
         await base44.asServiceRole.entities.Notificacion.updateMany(
           { recipient_email: emailNorm },

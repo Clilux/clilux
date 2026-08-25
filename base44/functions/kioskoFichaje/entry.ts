@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { verifyPassword, isHashed, hashPassword } from '../../shared/auth.ts';
 
 // Kiosko de fichaje: pantalla compartida donde los técnicos se identifican con su PIN.
 // El PIN se valida en servidor (service role) — nunca se exponen los PINes al cliente.
@@ -121,10 +122,18 @@ export default async function (req) {
       const allTechs = await base44.asServiceRole.entities.Technician.list();
       const tech = allTechs.find(t =>
         (t.email || '').trim().toLowerCase() === String(email).trim().toLowerCase() &&
-        (t.portal_password || '').trim() === String(password).trim() &&
         t.status === 'active' && t.is_admin
       );
       if (!tech) return Response.json({ error: 'Gerente no válido o sin permisos' }, { status: 403 });
+      const pwdOk = await verifyPassword(String(password), String(tech.portal_password || ''));
+      if (!pwdOk) return Response.json({ error: 'Gerente no válido o sin permisos' }, { status: 403 });
+      // Migrar contraseña legacy en texto plano a hash
+      if (!isHashed(String(tech.portal_password || ''))) {
+        try {
+          const hashed = await hashPassword(String(password));
+          await base44.asServiceRole.entities.Technician.update(tech.id, { portal_password: hashed });
+        } catch { /* no bloquear */ }
+      }
       let logo_url = '';
       try {
         const companies = await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id });

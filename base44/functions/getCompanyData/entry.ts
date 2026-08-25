@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { verifySessionToken, hashPassword, isHashed } from '../../shared/auth.ts';
 
 /**
  * Devuelve datos de la empresa usando service role (no requiere sesión Base44 del usuario).
@@ -15,6 +16,26 @@ Deno.serve(async (req) => {
 
     if (!technician_email) {
       return Response.json({ error: 'technician_email requerido' }, { status: 400 });
+    }
+
+    // ── Autenticación del llamante ────────────────────────────────
+    // Se exige un token de sesión firmado (técnico/cliente) cuya identidad coincida
+    // con el technician_email solicitado, o bien un administrador de la plataforma
+    // autenticado con Base44. Sin esto, cualquiera que conociera un email podría
+    // acceder a los datos de la empresa.
+    const session = body.session_token ? await verifySessionToken(body.session_token) : null;
+    let isPlatformAdmin = false;
+    if (!session) {
+      try {
+        const me = await base44.auth.me();
+        if (me && me.role === 'admin') isPlatformAdmin = true;
+      } catch { /* no autenticado vía Base44 */ }
+    }
+    if (!session && !isPlatformAdmin) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    if (session && (session.email || '').toLowerCase() !== (technician_email || '').toLowerCase()) {
+      return Response.json({ error: 'La sesión no coincide con el técnico solicitado' }, { status: 403 });
     }
 
     // Validar técnico usando service role (no depende de sesión del usuario)
@@ -784,8 +805,12 @@ Deno.serve(async (req) => {
       if (dup) {
         return Response.json({ error: 'Ya existe un trabajador con este email. Cada trabajador debe tener un email único.' }, { status: 400 });
       }
+      const createRec = { ...record };
+      if (createRec.portal_password && !isHashed(createRec.portal_password)) {
+        createRec.portal_password = await hashPassword(createRec.portal_password);
+      }
       const data = await base44.asServiceRole.entities.Technician.create({
-        ...record,
+        ...createRec,
         email: record.email,
         company_id: tech.company_id,
         company_name: tech.company_name,
@@ -806,6 +831,9 @@ Deno.serve(async (req) => {
       // No permitir cambiar company_id desde el proxy de empresa
       const safe = { ...updates };
       delete safe.company_id;
+      if (safe.portal_password && !isHashed(safe.portal_password)) {
+        safe.portal_password = await hashPassword(safe.portal_password);
+      }
       // Evitar emails duplicados al actualizar (igual que en el alta)
       if (safe.email && safe.email.trim().toLowerCase() !== (target.email || '').trim().toLowerCase()) {
         const emailNorm = safe.email.trim().toLowerCase();

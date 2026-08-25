@@ -8,6 +8,7 @@ import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRo
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import { APP_VERSION } from '@/lib/appVersion';
+import { setSessionToken, ensureSessionTokenFromStorage } from '@/lib/passwordHash';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ export default function MenuInicio() {
           sessionStorage.setItem('technician_name', localStorage.getItem('clilux_tech_name'));
         if (!sessionStorage.getItem('technician_company') && localStorage.getItem('clilux_tech_company'))
           sessionStorage.setItem('technician_company', localStorage.getItem('clilux_tech_company'));
+        // Restaurar token de sesión desde localStorage (persistencia entre pestañas)
+        ensureSessionTokenFromStorage();
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
@@ -60,6 +63,7 @@ export default function MenuInicio() {
           });
           if (res.data?.success) {
             sessionStorage.setItem('client_id', res.data.client_id);
+            setSessionToken(res.data.session_token);
             navigate(createPageUrl('HomeCliente'));
           }
         } catch {
@@ -84,6 +88,7 @@ export default function MenuInicio() {
         localStorage.setItem('clilux_email', credentials.email.trim());
         localStorage.setItem('clilux_password', credentials.password);
         sessionStorage.setItem('client_id', data.client_id);
+        setSessionToken(data.session_token);
         navigate(createPageUrl('HomeCliente'));
       } else {
         setLoginError(data?.error || 'Email o contraseña incorrectos');
@@ -113,6 +118,7 @@ export default function MenuInicio() {
         // Guardar sesión de técnico en AMBOS storages para persistencia
         sessionStorage.setItem('technician_email', data.email);
         localStorage.setItem('clilux_tech_email', data.email);
+        setSessionToken(data.session_token);
         if (data.id) sessionStorage.setItem('technician_id', data.id);
         if (data.name) { sessionStorage.setItem('technician_name', data.name); localStorage.setItem('clilux_tech_name', data.name); }
         if (data.company_name) { sessionStorage.setItem('technician_company', data.company_name); localStorage.setItem('clilux_tech_company', data.company_name); }

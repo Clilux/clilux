@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { verifySessionToken } from '../../shared/auth.ts';
 
 const statusLabels = {
   pending: 'Pendiente',
@@ -11,6 +12,17 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
+
+    // Verificar identidad del llamante: token de sesión (técnico/cliente) o admin Base44
+    const session = body.session_token ? await verifySessionToken(body.session_token) : null;
+    let isAdmin = false;
+    if (!session) {
+      try { const me = await base44.auth.me(); if (me && me.role === 'admin') isAdmin = true; } catch { /* no autenticado */ }
+    }
+    if (!session && !isAdmin) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const { type, incidentId, oldStatus, newStatus, technicianEmail } = body;
 
     // Get the incident

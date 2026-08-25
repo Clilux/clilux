@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Users, UserPlus, Loader2, Check, Eye, EyeOff, ExternalLink, Pencil, Key } from 'lucide-react';
 import { toast } from 'sonner';
+import { hashPassword } from '@/lib/passwordHash';
 
 export default function TechniciansTab({ technicians, queryClient }) {
   const [form, setForm] = useState({ name: '', email: '', password: '', passwordConfirm: '', phone: '', specialty: '', fgas_cert_num: '', rite_cert_num: '', empresa_fgas_cert_num: '', company_name: '' });
@@ -25,10 +26,11 @@ export default function TechniciansTab({ technicians, queryClient }) {
     mutationFn: async ({ name, email, password, phone, specialty, fgas_cert_num, rite_cert_num, empresa_fgas_cert_num, company_name }) => {
       const existing = await base44.entities.Technician.filter({ email });
       if (existing.length > 0) throw new Error('Ya existe un técnico con ese email');
+      const hashedPwd = await hashPassword(password.trim());
       await base44.entities.Technician.create({
         name: name.trim(),
         email: email.trim().toLowerCase(),
-        portal_password: password.trim(),
+        portal_password: hashedPwd,
         phone: phone || '',
         specialty: specialty || '',
         fgas_cert_num: fgas_cert_num || '',
@@ -50,7 +52,8 @@ export default function TechniciansTab({ technicians, queryClient }) {
 
   const updatePasswordMutation = useMutation({
     mutationFn: async ({ id, password }) => {
-      await base44.entities.Technician.update(id, { portal_password: password.trim() });
+      const hashedPwd = await hashPassword(password.trim());
+      await base44.entities.Technician.update(id, { portal_password: hashedPwd });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
