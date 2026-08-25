@@ -11,7 +11,7 @@ import {
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine, BarChart3,
   Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc,
-  LayoutDashboard, Monitor
+  LayoutDashboard, Monitor, ClipboardList
 } from 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -50,6 +50,7 @@ const FUNCIONES = [
   { id: '20', label: 'Edificios',          page: 'Buildings',          icon: Building2,       color: 'from-cyan-500/30 to-blue-500/30',     iconCls: 'text-cyan-300' },
   { id: '21', label: 'Incidencias',        page: 'Incidents',           icon: AlertTriangle,   color: 'from-red-500/30 to-rose-500/30',      iconCls: 'text-red-300' },
   { id: '22', label: 'Kiosko Fichaje',     page: 'KioskoFichaje',       icon: Monitor,         color: 'from-cyan-500/30 to-teal-500/30',     iconCls: 'text-cyan-300' },
+  { id: '23', label: 'Gestión de Trabajo',  page: 'GestionTrabajo',     icon: ClipboardList,   color: 'from-indigo-500/30 to-blue-500/30',    iconCls: 'text-indigo-300' },
 ];
 
 const AUTOMATIZACION = [

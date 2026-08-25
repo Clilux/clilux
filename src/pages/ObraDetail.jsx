@@ -50,16 +50,30 @@ export default function ObraDetail() {
   const effectiveEmail = sessionTechEmail || base44User?.email;
 
   const { data: technicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.list(),
+    queryKey: isSessionTech ? ['me-proxy', effectiveEmail] : ['technicians'],
+    queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'me' });
+        return res.data?.data ? [res.data.data] : [];
+      }
+      return base44.entities.Technician.list();
+    },
+    enabled: !isSessionTech || !!effectiveEmail,
   });
 
   const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
 
   const { data: obra, isLoading } = useQuery({
-    queryKey: ['obra', obraId],
-    queryFn: () => base44.entities.Obra.filter({ id: obraId }).then(r => r[0]),
+    queryKey: ['obra', obraId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (!obraId) return null;
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'obra_get', obra_id: obraId });
+        return res.data?.data || null;
+      }
+      return base44.entities.Obra.filter({ id: obraId }).then(r => r[0]);
+    },
     enabled: !!obraId,
   });
 
@@ -68,6 +82,22 @@ export default function ObraDetail() {
     queryFn: () => base44.entities.AlbaranObra.filter({ obra_id: obraId }),
     enabled: !!obraId,
   });
+
+  // Albaranes de trabajo vinculados a la obra (generan gasto)
+  const { data: gastosAlbaranes = [] } = useQuery({
+    queryKey: ['gastos-albaranes-trabajo', obraId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (!obraId) return [];
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'albaran_trabajo_by_obra', obra_id: obraId });
+        return res.data?.data || [];
+      }
+      const all = await base44.entities.AlbaranTrabajo.filter({ obra_id: obraId });
+      return all;
+    },
+    enabled: !!obraId,
+  });
+  const gastosTrabajoTotal = gastosAlbaranes.reduce((s, a) => s + (a.total || 0), 0);
 
   const updateObra = useMutation({
     mutationFn: (data) => base44.entities.Obra.update(obraId, data),
@@ -187,7 +217,7 @@ export default function ObraDetail() {
   );
 
   const cfg = ESTADO_CONFIG[obra.estado] || ESTADO_CONFIG.activa;
-  const costoTotal = (obra.costo_trabajadores || 0) + (obra.costo_materiales || 0);
+  const costoTotal = (obra.costo_trabajadores || 0) + (obra.costo_materiales || 0) + gastosTrabajoTotal;
   const margen = obra.presupuesto_inicial > 0 ? obra.presupuesto_inicial - costoTotal : null;
   const totalFacturado = obra.total_facturado || 0;
 
@@ -395,6 +425,37 @@ export default function ObraDetail() {
                     <Plus className="h-4 w-4 mr-1" />Añadir
                   </Button>
                 </div>
+              </Card>
+
+              {/* Gastos por albaranes de trabajo vinculados */}
+              <Card className="p-4 bg-white border-0 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-indigo-600" />Gastos por albaranes ({gastosAlbaranes.length})
+                  </h3>
+                  <span className="text-sm font-bold text-indigo-600">{gastosTrabajoTotal.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
+                </div>
+                {gastosAlbaranes.length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-3">Sin albaranes de trabajo vinculados</p>
+                ) : (
+                  <div className="space-y-2">
+                    {gastosAlbaranes.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).map(a => (
+                      <div key={a.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg text-sm">
+                        <FileText className="h-4 w-4 text-indigo-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-slate-700">{a.numero || '—'}</span>
+                          <span className="text-slate-500 ml-2 truncate">{a.titulo}</span>
+                          <span className="text-slate-400 ml-2 text-xs">{a.fecha && format(parseISO(a.fecha), "d MMM yyyy", { locale: es })}</span>
+                          {a.firma_url && <span className="ml-2 text-xs text-emerald-600">· Firmado</span>}
+                        </div>
+                        <span className="font-bold text-slate-800 shrink-0">{(a.total || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
+                        <Button size="sm" variant="ghost" className="h-8 text-xs text-blue-600" onClick={() => navigate(`/GestionTrabajo`)}>
+                          Ver
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </TabsContent>
 

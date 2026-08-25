@@ -1,0 +1,134 @@
+{
+  "name": "AlbaranTrabajo",
+  "type": "object",
+  "properties": {
+    "numero": {
+      "type": "string",
+      "description": "N\u00ba de albar\u00e1n (auto-generado)"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del albar\u00e1n"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo / concepto del albar\u00e1n"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente para env\u00edo del documento"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "Obra vinculada \u2014 su total genera un gasto en la obra"
+    },
+    "obra_nombre": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "capitulo": {
+      "type": "string",
+      "description": "Cap\u00edtulo del albar\u00e1n"
+    },
+    "lineas": {
+      "type": "array",
+      "default": [],
+      "description": "L\u00edneas del albar\u00e1n",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string",
+            "description": "Unidad de medida (ud, h, kg, m...)"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "descuento": {
+            "type": "number",
+            "description": "% de descuento de la l\u00ednea"
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Subtotal con descuento aplicado"
+          }
+        }
+      }
+    },
+    "base_imponible": {
+      "type": "number",
+      "description": "Suma de subtotales antes de descuentos"
+    },
+    "descuento_total": {
+      "type": "number",
+      "description": "Importe total descontado"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total del albar\u00e1n"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "enviado",
+        "firmado"
+      ],
+      "default": "borrador"
+    },
+    "firma_url": {
+      "type": "string",
+      "description": "Imagen de la firma del cliente"
+    },
+    "firmante_nombre": {
+      "type": "string",
+      "description": "Nombre de quien firma"
+    },
+    "fecha_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la firma"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "PDF generado del albar\u00e1n"
+    },
+    "tecnico_nombre": {
+      "type": "string",
+      "description": "T\u00e9cnico que crea el albar\u00e1n"
+    },
+    "tecnico_email": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "incident_id": {
+      "type": "string",
+      "description": "Incidencia de origen (si se cre\u00f3 desde una incidencia)"
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "numero",
+    "fecha",
+    "titulo"
+  ]
+}

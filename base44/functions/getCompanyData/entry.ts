@@ -150,6 +150,57 @@ Deno.serve(async (req) => {
       return Response.json({ data: settings[0] || null });
     }
 
+    // ── Obras de la empresa ──────────────────────────────────────
+    if (entity === 'obras') {
+      const data = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
+      return Response.json({ data });
+    }
+    if (entity === 'obra_get') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: null });
+      const all = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
+      return Response.json({ data: all.find(o => o.id === obra_id) || null });
+    }
+
+    // ── Albaranes de trabajo (gestión comercial) ──────────────────
+    if (entity === 'albaran_trabajo_list') {
+      const data = await base44.asServiceRole.entities.AlbaranTrabajo.filter({ company_id: tech.company_id });
+      return Response.json({ data });
+    }
+    if (entity === 'albaran_trabajo_by_obra') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: [] });
+      const all = await base44.asServiceRole.entities.AlbaranTrabajo.filter({ company_id: tech.company_id });
+      return Response.json({ data: all.filter(a => a.obra_id === obra_id) });
+    }
+    if (entity === 'albaran_trabajo_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.AlbaranTrabajo.create({
+        ...record,
+        tecnico_nombre: record.tecnico_nombre || creatorName,
+        tecnico_email: record.tecnico_email || creatorEmail,
+        company_id: tech.company_id,
+      });
+      return Response.json({ data });
+    }
+    if (entity === 'albaran_trabajo_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.AlbaranTrabajo.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const data = await base44.asServiceRole.entities.AlbaranTrabajo.update(record_id, updates);
+      return Response.json({ data });
+    }
+    if (entity === 'albaran_trabajo_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.AlbaranTrabajo.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      await base44.asServiceRole.entities.AlbaranTrabajo.delete(record_id);
+      return Response.json({ data: true });
+    }
+
     // ── Datos del propio técnico (auto-servicio) ──────────────────
     if (entity === 'me') {
       return Response.json({ data: tech });
