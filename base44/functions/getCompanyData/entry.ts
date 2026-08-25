@@ -358,6 +358,16 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Ausencias (admin): listar ausencias de la empresa ──────────
+    if (entity === 'ausencias_admin_list') {
+      if (!tech.is_admin) return deny('admin');
+      const all = await base44.asServiceRole.entities.Ausencia.list('-fecha_inicio', 500);
+      const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      const companyEmails = new Set(companyTechs.map(t => (t.email || '').trim().toLowerCase()));
+      const data = all.filter(a => companyEmails.has((a.technician_email || '').trim().toLowerCase()));
+      return Response.json({ data });
+    }
+
     // ── Fichaje (admin): actualizar registro de un trabajador ─────
     if (entity === 'registro_horario_admin_update') {
       if (!tech.is_admin) return deny('admin');

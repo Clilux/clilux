@@ -249,12 +249,12 @@ export default function TechnicianProfile() {
       <div className="max-w-4xl mx-auto">
 
         {/* Header con tipo de usuario */}
-        <Card className="p-6 bg-card border-0 shadow-sm mb-6">
-          <div className="flex items-center gap-4">
+        <Card className="p-4 sm:p-6 bg-card border-0 shadow-sm mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => canEditPhoto && fileInputRef.current?.click()}
-              className={`relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0 ${canEditPhoto ? 'cursor-pointer ring-2 ring-transparent hover:ring-blue-400' : 'cursor-default'} ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}
+              className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden flex items-center justify-center text-xl sm:text-2xl font-bold shrink-0 ${canEditPhoto ? 'cursor-pointer ring-2 ring-transparent hover:ring-blue-400' : 'cursor-default'} ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}
             >
               {tech.photo_url ? (
                 <img src={tech.photo_url} alt={tech.name} className="w-full h-full object-cover" />
@@ -268,9 +268,9 @@ export default function TechnicianProfile() {
               )}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h2 className="text-xl font-bold text-foreground">{tech.name}</h2>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold text-foreground break-words">{tech.name}</h2>
                 {tech.is_admin ? (
                   <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">
                     <Shield className="h-3 w-3 mr-1" />Gerente
@@ -289,10 +289,10 @@ export default function TechnicianProfile() {
                   {tech.status === 'active' ? 'Activo' : 'Inactivo'}
                 </Badge>
               </div>
-              <p className="text-slate-500 text-sm">{techEmail}</p>
-              <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
-                {myCompany?.name || tech.company_name || 'Sin empresa asignada'}
+              <p className="text-slate-500 text-sm truncate">{techEmail}</p>
+              <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1 min-w-0">
+                <Building2 className="h-3 w-3 shrink-0" />
+                <span className="truncate">{myCompany?.name || tech.company_name || 'Sin empresa asignada'}</span>
               </p>
             </div>
           </div>

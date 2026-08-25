@@ -48,7 +48,7 @@ function computeStatus(worker, todayRec, activeAusencia) {
   return { key: 'no_iniciado', label: 'No iniciado', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-300' };
 }
 
-function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
+function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, effectiveEmail, onClose }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('estado');
   const email = worker.email || worker.user_email || '';
@@ -120,8 +120,16 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
   const [viewMonth, setViewMonth] = useState(new Date());
   const monthStr = format(viewMonth, 'yyyy-MM');
   const { data: mesRegistros = [] } = useQuery({
-    queryKey: ['worker-jornadas', email, monthStr],
+    queryKey: ['worker-jornadas', email, monthStr, isSessionTech ? 'proxy' : 'direct'],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const start = format(startOfMonth(viewMonth), 'yyyy-MM-dd');
+        const end = format(endOfMonth(viewMonth), 'yyyy-MM-dd');
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'registro_horario_admin_list', start, end,
+        });
+        return (res.data?.data || []).filter(r => r.technician_email === email && r.fecha?.startsWith(monthStr)).sort((a, b) => b.fecha.localeCompare(a.fecha));
+      }
       const all = await base44.entities.RegistroHorario.filter({ technician_email: email });
       return all.filter(r => r.fecha?.startsWith(monthStr)).sort((a, b) => b.fecha.localeCompare(a.fecha));
     },
@@ -342,7 +350,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, onClose }) {
   );
 }
 
-export default function EstadoTrabajadoresPanel({ technicians, myTechRecord }) {
+export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState(null);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -355,8 +363,16 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord }) {
   const techEmails = useMemo(() => new Set(companyTechs.map(t => t.email || t.user_email)), [companyTechs]);
 
   const { data: registrosMes = [], isLoading } = useQuery({
-    queryKey: ['estado-trabajadores', monthStr],
+    queryKey: ['estado-trabajadores', monthStr, isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const start = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+        const end = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'registro_horario_admin_list', start, end,
+        });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.RegistroHorario.list('-fecha', 2000);
       return all.filter(r => r.fecha?.startsWith(monthStr) && techEmails.has(r.technician_email));
     },
@@ -364,8 +380,12 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord }) {
   });
 
   const { data: ausencias = [] } = useQuery({
-    queryKey: ['estado-trabajadores-ausencias'],
+    queryKey: ['estado-trabajadores-ausencias', isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencias_admin_list' });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
       return all.filter(a => techEmails.has(a.technician_email));
     },
@@ -449,7 +469,7 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord }) {
       )}
 
       {selected && (
-        <WorkerDetailDialog worker={selected} registrosMes={registrosMes} ausencias={ausencias} onClose={() => setSelected(null)} />
+        <WorkerDetailDialog worker={selected} registrosMes={registrosMes} ausencias={ausencias} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} onClose={() => setSelected(null)} />
       )}
     </div>
   );

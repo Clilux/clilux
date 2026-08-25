@@ -39,11 +39,10 @@ const FUNCIONES = [
   { id: '3',  label: 'Formulario Equipos',page: 'EquipmentForm',        icon: FileCheck, color: 'from-cyan-500/30 to-teal-500/30',    iconCls: 'text-cyan-300' },
   { id: '8',  label: 'Documentación',    page: 'Documentacion',         icon: FileText,  color: 'from-indigo-500/30 to-blue-500/30',  iconCls: 'text-indigo-300' },
   { id: '10', label: 'Asistencia Virtual',page: 'AIConsulta',           icon: Bot,       color: 'from-purple-500/30 to-pink-500/30',  iconCls: 'text-purple-300' },
-  { id: '11', label: 'Búsquedas PVP',    page: 'VetaCatalogo',          icon: Tag,       color: 'from-amber-500/30 to-orange-500/30', iconCls: 'text-amber-300' },
   { id: '12', label: 'Contrato',         page: 'ContratoMantenimiento', icon: FileText,  color: 'from-green-500/30 to-teal-500/30',   iconCls: 'text-green-300' },
   { id: '13', label: 'Control Horario',  page: 'ControlHorario',        icon: Clock,     color: 'from-blue-500/30 to-cyan-500/30',    iconCls: 'text-blue-300' },
   { id: '14', label: 'Mis Ausencias',    page: 'GestionAusencias',      icon: Calendar,  color: 'from-purple-500/30 to-violet-500/30',iconCls: 'text-purple-300' },
-  { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',   icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300' },
+  { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',   icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300', gerenteOnly: true },
   { id: '16', label: 'Control de Obras',   page: 'ControlObras',       icon: HardHat,         color: 'from-orange-500/30 to-amber-500/30',  iconCls: 'text-orange-300' },
   { id: '17', label: 'Panel Edificios',    page: 'PanelEdificios',     icon: LayoutDashboard, color: 'from-blue-500/30 to-indigo-500/30',   iconCls: 'text-blue-300' },
   { id: '18', label: 'Equipos',            page: 'Equipment',          icon: Wrench,          color: 'from-slate-500/30 to-gray-500/30',    iconCls: 'text-slate-300' },
@@ -596,7 +595,7 @@ export default function HomeTecnico() {
                 Funciones
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {FUNCIONES.map(({ id, label, page, icon: Icon, color, iconCls }) => (
+                {FUNCIONES.filter(f => !f.gerenteOnly || isGerente).map(({ id, label, page, icon: Icon, color, iconCls }) => (
                   <Link key={id} to={createPageUrl(page)}>
                     <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">

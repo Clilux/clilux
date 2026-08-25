@@ -14,7 +14,7 @@ import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calcularHoras, getGeoLocation, formatHoras } from '@/lib/horario-utils';
+import { calcularHoras, getGeoLocation, formatHoras, minutesToHours } from '@/lib/horario-utils';
 import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import JornadaAtrasadaModal from '@/components/horario/JornadaAtrasadaModal';
@@ -22,6 +22,7 @@ import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal'
 import MapaTrayecto from '@/components/horario/MapaTrayecto';
 import ComplianceBanner from '@/components/horario/ComplianceBanner';
 import ConfirmarHoraFichaje from '@/components/horario/ConfirmarHoraFichaje';
+import PausaFinJornadaModal from '@/components/horario/PausaFinJornadaModal';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
@@ -34,6 +35,7 @@ export default function ControlHorario() {
   const [albaranRegistro, setAlbaranRegistro] = useState(null);
   const [confirmHora, setConfirmHora] = useState(null);
   const [showAtrasada, setShowAtrasada] = useState(false);
+  const [pendienteFin, setPendienteFin] = useState(null);
 
   // Detectar si hay sesión de técnico propio (no Base44)
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -47,8 +49,22 @@ export default function ControlHorario() {
   });
 
   const { data: technicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.list('-created_date'),
+    queryKey: isSessionTech ? ['technicians-proxy', effectiveEmail] : ['technicians'],
+    queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        // Sesión de técnico propio: cargar ficha propia; si es gerente, equipo completo
+        const meRes = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'me' });
+        const me = meRes.data?.data;
+        if (!me) return [];
+        if (me.is_admin) {
+          const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'technicians' });
+          return res.data?.data || [me];
+        }
+        return [me];
+      }
+      return base44.entities.Technician.list('-created_date');
+    },
+    enabled: !isSessionTech || !!effectiveEmail,
   });
 
   // Email efectivo: sesión de técnico propio tiene prioridad sobre Base44
@@ -180,6 +196,17 @@ export default function ControlHorario() {
         i === (todayRecord.intervalos.length - 1) && !t.salida ? { ...t, salida: hora } : t
       );
       const calcs = calcularHoras({ ...todayRecord, intervalos, hora_salida: hora }, jornadaDiaria);
+      // Pausa declarada al finalizar: descuenta minutos de la jornada efectiva
+      if (opts.minutosPausaDeclarada > 0) {
+        const mins = Number(opts.minutosPausaDeclarada);
+        calcs.minutos_pausa = (calcs.minutos_pausa || 0) + mins;
+        const efectivasMins = Math.max(0, Math.round(calcs.horas_efectivas * 60) - mins);
+        const jornadaMins = jornadaDiaria * 60;
+        calcs.horas_efectivas = minutesToHours(efectivasMins);
+        calcs.horas_normales = minutesToHours(Math.min(efectivasMins, jornadaMins));
+        calcs.horas_extra = minutesToHours(Math.max(0, efectivasMins - jornadaMins));
+        calcs.horas_trabajadas = minutesToHours(efectivasMins + calcs.minutos_pausa);
+      }
       const geopoints = [...(todayRecord.geopoints || [])];
       if (geo) geopoints.push({ lat: geo.lat, lng: geo.lng, hora, tipo: 'salida' });
       const historialEntry = motivo ? [{
@@ -626,9 +653,29 @@ export default function ControlHorario() {
           onConfirm={({ hora, motivo, ajustada }) => {
             const accion = confirmHora.accion;
             const horaActual = confirmHora.horaActual;
+            const horaFinal = hora || horaActual;
             setConfirmHora(null);
-            if (accion === 'inicio') inicioJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
-            else finJornada.mutate({ hora: hora || horaActual, motivo: ajustada ? motivo : null, horaActual });
+            if (accion === 'inicio') {
+              inicioJornada.mutate({ hora: horaFinal, motivo: ajustada ? motivo : null, horaActual });
+            } else {
+              // Si no hay pausas registradas hoy, preguntar si hubo pausa para descontar
+              const tienePausas = (todayRecord?.pausas || []).some(p => p.inicio && p.fin) || (todayRecord?.minutos_pausa || 0) > 0;
+              if (tienePausas) {
+                finJornada.mutate({ hora: horaFinal, motivo: ajustada ? motivo : null, horaActual });
+              } else {
+                setPendienteFin({ hora: horaFinal, motivo: ajustada ? motivo : null, horaActual });
+              }
+            }
+          }}
+        />
+      )}
+      {pendienteFin && (
+        <PausaFinJornadaModal
+          onClose={() => setPendienteFin(null)}
+          onConfirm={(minutos) => {
+            const p = pendienteFin;
+            setPendienteFin(null);
+            finJornada.mutate({ hora: p.hora, motivo: p.motivo, horaActual: p.horaActual, minutosPausaDeclarada: minutos });
           }}
         />
       )}

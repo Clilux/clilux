@@ -39,9 +39,15 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
   const companyTechEmails = new Set(companyTechs.map(t => t.user_email || t.email));
 
   const { data: pendientesCount = 0 } = useQuery({
-    queryKey: ['ausencias-pendientes-count'],
+    queryKey: ['ausencias-pendientes-count', isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
+      let all;
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencias_admin_list' });
+        all = res.data?.data || [];
+      } else {
+        all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
+      }
       return all.filter(a => a.estado === 'pendiente' && companyTechEmails.has(a.technician_email)).length;
     },
   });
@@ -55,8 +61,15 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
   }, [period, refDate]);
 
   const { data: allRegistros = [], isLoading } = useQuery({
-    queryKey: ['admin-registros', dateRange.start, dateRange.end],
+    queryKey: ['admin-registros', dateRange.start, dateRange.end, isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'registro_horario_admin_list',
+          start: dateRange.start, end: dateRange.end,
+        });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.RegistroHorario.list('-fecha', 2000);
       return all.filter(r => r.fecha >= dateRange.start && r.fecha <= dateRange.end);
     },
@@ -293,7 +306,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       </Tabs>
 
       {mainTab === 'estado' && (
-        <EstadoTrabajadoresPanel technicians={technicians} myTechRecord={myTechRecord} />
+        <EstadoTrabajadoresPanel technicians={technicians} myTechRecord={myTechRecord} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
       )}
 
       {mainTab === 'mensual' && (
