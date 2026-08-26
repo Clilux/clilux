@@ -28,6 +28,8 @@ export default function TechnicianProfile() {
   const [contactForm, setContactForm] = useState(null);
   const [pinForm, setPinForm] = useState({ pin: '', confirm: '' });
   const [pinSaving, setPinSaving] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwdSaving, setPwdSaving] = useState(false);
   const [jornadaForm, setJornadaForm] = useState(null);
   const [jornadaSaving, setJornadaSaving] = useState(false);
 
@@ -136,6 +138,26 @@ export default function TechnicianProfile() {
       toast.error('Error al guardar el PIN');
     } finally {
       setPinSaving(false);
+    }
+  };
+
+  const savePwd = async () => {
+    if (!tech) return;
+    if (!pwdForm.current || !pwdForm.next) { toast.error('Completa todos los campos'); return; }
+    if (pwdForm.next.length < 4) { toast.error('La nueva contraseña debe tener al menos 4 caracteres'); return; }
+    if (pwdForm.next !== pwdForm.confirm) { toast.error('Las contraseñas no coinciden'); return; }
+    setPwdSaving(true);
+    try {
+      await base44.functions.invoke('getCompanyData', {
+        technician_email: effectiveEmail, entity: 'me_password',
+        current_password: pwdForm.current, new_password: pwdForm.next,
+      });
+      toast.success('Contraseña actualizada');
+      setPwdForm({ current: '', next: '', confirm: '' });
+    } catch (err) {
+      toast.error(err?.message || 'Error al cambiar la contraseña');
+    } finally {
+      setPwdSaving(false);
     }
   };
 
@@ -322,6 +344,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="jornada">Jornada</TabsTrigger>
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
+            {isSessionTech && <TabsTrigger value="contrasena">Contraseña</TabsTrigger>}
             {isSessionTech && <TabsTrigger value="documentos">Documentos</TabsTrigger>}
             {isSessionTech && isGerente && <TabsTrigger value="trabajadores">Trabajadores</TabsTrigger>}
           </TabsList>
@@ -574,6 +597,40 @@ export default function TechnicianProfile() {
               </div>
             </Card>
           </TabsContent>
+
+          {isSessionTech && (
+            <TabsContent value="contrasena">
+              <Card className="p-6 bg-card border-0 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-1">Cambiar contraseña</h3>
+                <p className="text-xs text-slate-400 mb-5">Usa una contraseña de al menos 4 caracteres. La contraseña actual se verifica por seguridad.</p>
+                <div className="space-y-4 max-w-xs">
+                  <div>
+                    <Label className="text-slate-600 mb-1">Contraseña actual</Label>
+                    <Input type="password" value={pwdForm.current}
+                      onChange={e => setPwdForm(p => ({ ...p, current: e.target.value }))}
+                      placeholder="••••" className="tracking-widest" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Nueva contraseña</Label>
+                    <Input type="password" value={pwdForm.next}
+                      onChange={e => setPwdForm(p => ({ ...p, next: e.target.value }))}
+                      placeholder="••••" className="tracking-widest" />
+                  </div>
+                  <div>
+                    <Label className="text-slate-600 mb-1">Confirmar nueva contraseña</Label>
+                    <Input type="password" value={pwdForm.confirm}
+                      onChange={e => setPwdForm(p => ({ ...p, confirm: e.target.value }))}
+                      placeholder="••••" className="tracking-widest" />
+                  </div>
+                  <div className="pt-2">
+                    <Button onClick={savePwd} disabled={pwdSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      {pwdSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="h-4 w-4 mr-2" />Guardar contraseña</>}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+          )}
 
           {isSessionTech && (
             <TabsContent value="documentos">

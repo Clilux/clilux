@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { verifySessionToken, hashPassword, isHashed } from '../../shared/auth.ts';
+import { verifySessionToken, hashPassword, isHashed, verifyPassword } from '../../shared/auth.ts';
 
 /**
  * Devuelve datos de la empresa usando service role (no requiere sesión Base44 del usuario).
@@ -276,7 +276,22 @@ Deno.serve(async (req) => {
       delete safe.is_admin;
       delete safe.email;
       delete safe.user_email;
+      if (safe.portal_password && !isHashed(safe.portal_password)) {
+        safe.portal_password = await hashPassword(safe.portal_password);
+      }
       const data = await base44.asServiceRole.entities.Technician.update(tech.id, safe);
+      return Response.json({ data });
+    }
+
+    // ── Cambiar mi propia contraseña (verifica la actual) ────────
+    if (entity === 'me_password') {
+      const { current_password, new_password } = body;
+      if (!current_password || !new_password) return Response.json({ error: 'current_password y new_password requeridos' }, { status: 400 });
+      if (new_password.length < 4) return Response.json({ error: 'La nueva contraseña debe tener al menos 4 caracteres' }, { status: 400 });
+      const ok = await verifyPassword(current_password, tech.portal_password || '');
+      if (!ok) return Response.json({ error: 'La contraseña actual no es correcta' }, { status: 403 });
+      const hashed = await hashPassword(new_password);
+      const data = await base44.asServiceRole.entities.Technician.update(tech.id, { portal_password: hashed });
       return Response.json({ data });
     }
 

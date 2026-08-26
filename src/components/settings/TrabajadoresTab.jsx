@@ -23,6 +23,9 @@ export default function TrabajadoresTab({ techEmail }) {
   const [permWorker, setPermWorker] = useState(null);
   const [permisos, setPermisos] = useState(null);
   const [permSaving, setPermSaving] = useState(false);
+  const [resetWorker, setResetWorker] = useState(null);
+  const [resetPwd, setResetPwd] = useState('');
+  const [resetSaving, setResetSaving] = useState(false);
 
   const invoke = (entity, extra = {}) =>
     base44.functions.invoke('getCompanyData', { technician_email: techEmail, entity, ...extra });
@@ -106,6 +109,23 @@ export default function TrabajadoresTab({ techEmail }) {
       toast.error('Error al guardar permisos');
     } finally {
       setPermSaving(false);
+    }
+  };
+
+  const saveResetPwd = async () => {
+    if (!resetWorker) return;
+    if (!resetPwd || resetPwd.length < 4) { toast.error('La contraseña debe tener al menos 4 caracteres'); return; }
+    setResetSaving(true);
+    try {
+      await invoke('technician_update', { technician_id: resetWorker.id, updates: { portal_password: resetPwd } });
+      queryClient.invalidateQueries({ queryKey: ['company-workers', techEmail] });
+      toast.success('Contraseña restablecida');
+      setResetWorker(null);
+      setResetPwd('');
+    } catch (e) {
+      toast.error(e?.message || 'Error al restablecer la contraseña');
+    } finally {
+      setResetSaving(false);
     }
   };
 
@@ -216,6 +236,7 @@ export default function TrabajadoresTab({ techEmail }) {
                   <Button variant="ghost" size="sm" onClick={() => toggleStatus(w)} className="text-slate-600">
                     {w.status === 'active' ? 'Desactivar' : 'Activar'}
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setResetWorker(w); setResetPwd(''); }} title="Restablecer contraseña"><KeyRound className="h-4 w-4 text-amber-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => { setPermWorker(w); setPermisos(w.permisos || {}); }} title="Permisos"><Shield className="h-4 w-4 text-blue-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => setDocsWorker(w)} title="Documentos"><FileText className="h-4 w-4 text-slate-500" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => startEdit(w)}><Edit className="h-4 w-4 text-slate-500" /></Button>
@@ -235,6 +256,29 @@ export default function TrabajadoresTab({ techEmail }) {
           {docsWorker && (
             <WorkerDocumentsPanel sessionEmail={techEmail} targetEmail={docsWorker.email} canEdit={true} />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetWorker} onOpenChange={o => { if (!o) { setResetWorker(null); setResetPwd(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Restablecer contraseña · {resetWorker?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500">
+              Por seguridad, las contraseñas no se pueden ver. Define una nueva contraseña para este trabajador y comunícasela. Queda guardada cifrada.
+            </p>
+            <div>
+              <Label className="text-slate-600 mb-1">Nueva contraseña</Label>
+              <Input type="text" value={resetPwd} onChange={e => setResetPwd(e.target.value)} placeholder="Nueva contraseña" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button variant="outline" onClick={() => { setResetWorker(null); setResetPwd(''); }}>Cancelar</Button>
+            <Button onClick={saveResetPwd} disabled={resetSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {resetSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><KeyRound className="h-4 w-4 mr-2" />Restablecer</>}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
