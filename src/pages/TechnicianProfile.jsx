@@ -365,7 +365,7 @@ export default function TechnicianProfile() {
         </div>
 
         <Tabs defaultValue="empresa">
-          <TabsList className="mb-4 flex-wrap">
+          <TabsList className="mb-4 flex flex-wrap h-auto items-stretch gap-1">
             <TabsTrigger value="empresa">Empresa y tipo</TabsTrigger>
             <TabsTrigger value="contacto">Datos de contacto</TabsTrigger>
             <TabsTrigger value="registros">Registros</TabsTrigger>
