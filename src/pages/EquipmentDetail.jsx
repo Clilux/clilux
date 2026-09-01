@@ -669,7 +669,7 @@ export default function EquipmentDetail() {
 
         {/* Observaciones editables */}
         <Card className="p-6 bg-white border-0 shadow-sm mb-6">
-          <EditableNotes equipment={finalEquipment} equipmentId={equipmentId} />
+          <EditableNotes equipment={finalEquipment} equipmentId={equipmentId} isSessionTech={isSessionTech} sessionTechEmail={sessionTechEmail} />
         </Card>
 
         {/* Tabs */}

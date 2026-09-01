@@ -6,15 +6,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Edit, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function EditableNotes({ equipment, equipmentId }) {
+export default function EditableNotes({ equipment, equipmentId, isSessionTech, sessionTechEmail }) {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState(equipment?.notes || '');
 
   const updateMutation = useMutation({
-    mutationFn: (newNotes) => base44.entities.Equipment.update(equipmentId, { notes: newNotes }),
+    mutationFn: async (newNotes) => {
+      if (isSessionTech) {
+        // Técnicos con sesión propia: rutear por el proxy seguro (sin token Base44)
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_update',
+          equipment_id: equipmentId,
+          updates: { notes: newNotes },
+        });
+      } else {
+        await base44.entities.Equipment.update(equipmentId, { notes: newNotes });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
       setIsEditing(false);
       toast.success('Observaciones actualizadas');
     },
