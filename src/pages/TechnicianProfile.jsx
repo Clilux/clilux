@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
-import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase, Camera, FileText, Download } from 'lucide-react';
+import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase, Camera, FileText, Download, Fingerprint } from 'lucide-react';
+import { isBiometricAvailable, isBiometricEnabled, registerBiometric, clearBiometric, getBiometricEmail } from '@/lib/biometricAuth';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
@@ -32,6 +33,9 @@ export default function TechnicianProfile() {
   const [pwdSaving, setPwdSaving] = useState(false);
   const [jornadaForm, setJornadaForm] = useState(null);
   const [jornadaSaving, setJornadaSaving] = useState(false);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioEnabled, setBioEnabled] = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
 
   const sessionTechEmailNav = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmailNav;
@@ -96,6 +100,30 @@ export default function TechnicianProfile() {
       });
     }
   }, [tech]);
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBioAvailable);
+    setBioEnabled(isBiometricEnabled() && getBiometricEmail() === techEmail);
+  }, [techEmail]);
+
+  const enableBiometric = async () => {
+    setBioLoading(true);
+    try {
+      await registerBiometric(effectiveEmail);
+      setBioEnabled(true);
+      toast.success('Acceso por huella activado');
+    } catch (err) {
+      toast.error(err?.message || 'No se pudo activar la huella');
+    } finally {
+      setBioLoading(false);
+    }
+  };
+
+  const disableBiometric = () => {
+    clearBiometric();
+    setBioEnabled(false);
+    toast.success('Acceso por huella desactivado');
+  };
 
   // Guardar datos de contacto vía proxy (sesión) o directo (Base44)
   const saveContact = async () => {
@@ -272,7 +300,7 @@ export default function TechnicianProfile() {
 
         {/* Header con tipo de usuario */}
         <Card className="p-4 sm:p-6 bg-card border-0 shadow-sm mb-6">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => canEditPhoto && fileInputRef.current?.click()}
@@ -291,8 +319,8 @@ export default function TechnicianProfile() {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold text-foreground break-words">{tech.name}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground break-words leading-tight">{tech.name}</h2>
+              <div className="flex items-center gap-1.5 mt-1 mb-1.5 flex-wrap">
                 {tech.is_admin ? (
                   <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">
                     <Shield className="h-3 w-3 mr-1" />Gerente
@@ -345,6 +373,7 @@ export default function TechnicianProfile() {
             <TabsTrigger value="ausencias">Ausencias</TabsTrigger>
             <TabsTrigger value="pin">PIN Kiosko</TabsTrigger>
             {isSessionTech && <TabsTrigger value="contrasena">Contraseña</TabsTrigger>}
+            {isSessionTech && <TabsTrigger value="huella">Huella</TabsTrigger>}
             {isSessionTech && <TabsTrigger value="documentos">Documentos</TabsTrigger>}
             {isSessionTech && isGerente && <TabsTrigger value="trabajadores">Trabajadores</TabsTrigger>}
           </TabsList>
@@ -628,6 +657,36 @@ export default function TechnicianProfile() {
                     </Button>
                   </div>
                 </div>
+              </Card>
+            </TabsContent>
+          )}
+
+          {isSessionTech && (
+            <TabsContent value="huella">
+              <Card className="p-6 bg-card border-0 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                  <Fingerprint className="h-4 w-4 text-blue-600" />Acceso con huella dactilar
+                </h3>
+                <p className="text-xs text-slate-400 mb-5">Activa el desbloqueo biométrico para entrar a la app sin escribir la contraseña. Usa el sensor de huella o Face ID de tu dispositivo.</p>
+                {!bioAvailable ? (
+                  <div className="p-4 rounded-lg bg-amber-50 border border-amber-100">
+                    <p className="text-sm text-amber-700">Tu dispositivo no tiene sensor biométrico disponible o no es compatible. Necesitas un móvil con huella/Face ID y un navegador compatible (Chrome Android o Safari iOS).</p>
+                  </div>
+                ) : bioEnabled ? (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center gap-2">
+                      <Fingerprint className="h-5 w-5 text-emerald-600 shrink-0" />
+                      <p className="text-sm text-emerald-700">Acceso por huella activado para <strong>{effectiveEmail}</strong>.</p>
+                    </div>
+                    <Button onClick={disableBiometric} variant="outline" className="text-red-600 hover:text-red-700">
+                      Desactivar huella
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={enableBiometric} disabled={bioLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {bioLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Activando...</> : <><Fingerprint className="h-4 w-4 mr-2" />Activar huella dactilar</>}
+                  </Button>
+                )}
               </Card>
             </TabsContent>
           )}

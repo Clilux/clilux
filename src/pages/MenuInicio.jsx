@@ -4,11 +4,12 @@ import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight, Monitor } from 'lucide-react';
+import { Thermometer, Loader2, Users, Wrench, Shield, UserPlus, ArrowLeft, KeyRound, ChevronRight, Monitor, Fingerprint } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import { APP_VERSION } from '@/lib/appVersion';
 import { setSessionToken, ensureSessionTokenFromStorage } from '@/lib/passwordHash';
+import { isBiometricEnabled, getBiometricEmail, authenticateBiometric } from '@/lib/biometricAuth';
 
 export default function MenuInicio() {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ export default function MenuInicio() {
   const [registerError, setRegisterError] = useState('');
   const [registerSending, setRegisterSending] = useState(false);
   const [registerDone, setRegisterDone] = useState(false);
+  const [biometricPending, setBiometricPending] = useState(false);
+  const [biometricChecking, setBiometricChecking] = useState(false);
+  const [biometricError, setBiometricError] = useState('');
 
   useEffect(() => {
     const autoLogin = async () => {
@@ -44,6 +48,11 @@ export default function MenuInicio() {
           sessionStorage.setItem('technician_company', localStorage.getItem('clilux_tech_company'));
         // Restaurar token de sesión desde localStorage (persistencia entre pestañas)
         ensureSessionTokenFromStorage();
+        // Si la huella está activada para este técnico, exigir desbloqueo biométrico antes de entrar
+        if (isBiometricEnabled() && getBiometricEmail() === activeTechSession) {
+          setBiometricPending(true);
+          return;
+        }
         navigate(createPageUrl('HomeTecnico'));
         return;
       }
@@ -135,6 +144,26 @@ export default function MenuInicio() {
 
   const handleAdminLogin = () => base44.auth.redirectToLogin(createPageUrl('AdminPanel'));
 
+  const handleBiometricUnlock = async () => {
+    setBiometricError('');
+    setBiometricChecking(true);
+    try {
+      await authenticateBiometric();
+      setBiometricPending(false);
+      navigate(createPageUrl('HomeTecnico'));
+    } catch (err) {
+      setBiometricError(err?.name === 'NotAllowedError' ? 'Autenticación cancelada o denegada' : 'No se pudo verificar la huella');
+    } finally {
+      setBiometricChecking(false);
+    }
+  };
+
+  const handleBiometricCancel = () => {
+    setBiometricPending(false);
+    setBiometricError('');
+    setMode('technician');
+  };
+
   const logoUrl = null;
   const companyName = 'Clilux';
 
@@ -182,8 +211,36 @@ export default function MenuInicio() {
         {/* Panel */}
         <div className="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl">
 
+          {/* ── Desbloqueo biométrico ── */}
+          {biometricPending && (
+            <div className="space-y-6 text-center">
+              <div className="w-20 h-20 rounded-3xl bg-blue-500/20 flex items-center justify-center mx-auto">
+                <Fingerprint className="h-10 w-10 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-xl">Acceso con huella</p>
+                <p className="text-slate-400 text-sm mt-1">Verifica tu identidad para entrar a Clilux</p>
+              </div>
+              {biometricError && (
+                <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 text-sm">{biometricError}</p>
+                </div>
+              )}
+              <Button
+                onClick={handleBiometricUnlock}
+                disabled={biometricChecking}
+                className="w-full h-13 text-base bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl" style={{ height: '52px' }}>
+                {biometricChecking ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Fingerprint className="h-5 w-5 mr-2" />Usar huella dactilar</>}
+              </Button>
+              <Button type="button" variant="ghost" onClick={handleBiometricCancel}
+                className="w-full h-11 text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl text-base">
+                <ArrowLeft className="h-4 w-4 mr-2" />Entrar con contraseña
+              </Button>
+            </div>
+          )}
+
           {/* ── Selección de modo ── */}
-          {!mode && (
+          {!mode && !biometricPending && (
             <div className="space-y-4">
               <p className="text-slate-400 text-base text-center uppercase tracking-widest mb-6 font-semibold">¿Cómo deseas acceder?</p>
 
