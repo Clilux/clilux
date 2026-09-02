@@ -27,6 +27,7 @@ export default function ClientForm() {
   const [formData, setFormData] = useState({
     name: '',
     cif: '',
+    company_id: '',
     address: '',
     city: '',
     postal_code: '',
@@ -45,6 +46,11 @@ export default function ClientForm() {
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || null;
     },
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
   });
 
   const customFields = settings?.client_fields || [];
@@ -93,6 +99,10 @@ export default function ClientForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!technician?.company_id && !formData.company_id) {
+      toast.error('Selecciona la empresa a la que pertenece el cliente');
+      return;
+    }
     saveMutation.mutate(formData);
   };
 
@@ -141,6 +151,21 @@ export default function ClientForm() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {!technician?.company_id && (
+                <div className="md:col-span-2">
+                  <Label htmlFor="company_id">Empresa *</Label>
+                  <Select value={formData.company_id} onValueChange={(v) => handleChange('company_id', v)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Seleccionar empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.filter(c => c.status !== 'inactive').map(c => (
+                        <SelectItem key={c.id} value={c.company_id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="md:col-span-2">
                 <Label htmlFor="name">Nombre / Razón Social *</Label>
                 <Input

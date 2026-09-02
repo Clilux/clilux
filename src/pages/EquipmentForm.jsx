@@ -239,7 +239,7 @@ export default function EquipmentForm() {
 
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showNewBuildingDialog, setShowNewBuildingDialog] = useState(false);
-  const [newClient, setNewClient] = useState({ name: '', cif: '', city: '' });
+  const [newClient, setNewClient] = useState({ name: '', cif: '', city: '', company_id: '' });
   const [newBuilding, setNewBuilding] = useState({ name: '', address: '' });
 
   const [formData, setFormData] = useState({
@@ -380,6 +380,12 @@ export default function EquipmentForm() {
     }
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => base44.entities.Company.list(),
+    enabled: !isTechSession,
+  });
+
   const { data: allEquipment = [] } = useQuery({
     queryKey: ['all-equipment', sessionTechEmail],
     queryFn: async () => {
@@ -404,7 +410,7 @@ export default function EquipmentForm() {
   const camaraTco2eq = camaraGwp && camaraCargaKg ? +(Number(camaraCargaKg) * camaraGwp / 1000).toFixed(3) : null;
 
   const createClientMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.create(data),
+    mutationFn: (data) => base44.entities.Client.create({ ...data, company_id: data.company_id || currentTech?.company_id || '' }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setFormData((prev) => ({ ...prev, client_id: data.id }));
@@ -1721,6 +1727,21 @@ export default function EquipmentForm() {
                   className="bg-white border-gray-300 text-gray-900" />
                 
               </div>
+              {!currentTech?.company_id && (
+                <div>
+                  <Label className="text-gray-700">Empresa *</Label>
+                  <Select value={newClient.company_id} onValueChange={(v) => setNewClient({ ...newClient, company_id: v })}>
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Seleccionar empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.filter(c => c.status !== 'inactive').map(c => (
+                        <SelectItem key={c.id} value={c.company_id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button
                 onClick={() => createClientMutation.mutate(newClient)}
                 disabled={!newClient.name || !newClient.cif || createClientMutation.isPending}
