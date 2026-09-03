@@ -483,7 +483,6 @@ Deno.serve(async (req) => {
 
     // ── Actualizar equipo ────────────────────────────────────────
     if (entity === 'equipment_update') {
-      if (!permisos.editar_equipos) return deny('editar_equipos');
       const { equipment_id, updates } = body;
       if (!equipment_id || !updates) return Response.json({ error: 'equipment_id y updates requeridos' }, { status: 400 });
       const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: equipment_id });
@@ -491,6 +490,10 @@ Deno.serve(async (req) => {
       if (!eq || !(await assertCompanyClient(eq.client_id))) {
         return Response.json({ error: 'El equipo no pertenece a tu empresa' }, { status: 403 });
       }
+      // Notas y documentos adjuntos son de auto-servicio: cualquier técnico activo
+      // de la empresa puede actualizarlos. El resto de campos requiere editar_equipos.
+      const isSelfService = Object.keys(updates).every((k) => k === 'notes' || k === 'documents');
+      if (!isSelfService && !permisos.editar_equipos) return deny('editar_equipos');
       const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, updates);
       return Response.json({ data });
     }
