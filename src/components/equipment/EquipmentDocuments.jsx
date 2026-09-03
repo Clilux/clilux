@@ -52,17 +52,40 @@ export default function EquipmentDocuments({ equipment, onUpdate, isSessionTech,
     },
   });
 
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const result = await base44.integrations.Core.UploadFile({ file });
-      setNewDoc(prev => ({ ...prev, url: result.file_url, name: prev.name || file.name }));
+      let fileUrl;
+      if (isSessionTech) {
+        // Técnicos con sesión propia: subir por el canal seguro del servidor
+        // (la subida directa desde el navegador no está disponible sin usuario Base44)
+        const file_base64 = await fileToBase64(file);
+        const res = await base44.functions.invoke('uploadArchivo', {
+          technician_email: sessionTechEmail,
+          filename: file.name,
+          content_type: file.type,
+          file_base64,
+        });
+        fileUrl = res.data?.file_url;
+        if (!fileUrl) throw new Error(res?.data?.error || 'No se recibió la URL del archivo');
+      } else {
+        const result = await base44.integrations.Core.UploadFile({ file });
+        fileUrl = result.file_url;
+      }
+      setNewDoc(prev => ({ ...prev, url: fileUrl, name: prev.name || file.name }));
       toast.success('Archivo subido');
     } catch (error) {
-      toast.error('Error al subir el archivo');
+      toast.error('Error al subir el archivo: ' + (error?.response?.data?.error || error?.message || ''));
     } finally {
       setUploading(false);
     }
