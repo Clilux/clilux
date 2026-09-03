@@ -754,7 +754,12 @@ export default function EquipmentDetail() {
           <TabsContent value="documents">
             <EquipmentDocuments
               equipment={finalEquipment}
-              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] })} />
+              isSessionTech={isSessionTech}
+              sessionTechEmail={sessionTechEmail}
+              onUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
+                queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
+              }} />
             
           </TabsContent>
 

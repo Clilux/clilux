@@ -18,7 +18,7 @@ const documentTypes = [
   { value: 'other', label: 'Otro' },
 ];
 
-export default function EquipmentDocuments({ equipment, onUpdate }) {
+export default function EquipmentDocuments({ equipment, onUpdate, isSessionTech, sessionTechEmail }) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -27,10 +27,28 @@ export default function EquipmentDocuments({ equipment, onUpdate }) {
   const documents = equipment.documents || [];
 
   const updateMutation = useMutation({
-    mutationFn: (docs) => base44.entities.Equipment.update(equipment.id, { documents: docs }),
-    onSuccess: () => {
+    mutationFn: async ({ docs, successMsg }) => {
+      if (isSessionTech) {
+        // Técnicos con sesión propia: rutear por el proxy seguro (sin token Base44)
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'equipment_update',
+          equipment_id: equipment.id,
+          updates: { documents: docs },
+        });
+      } else {
+        await base44.entities.Equipment.update(equipment.id, { documents: docs });
+      }
+      return successMsg;
+    },
+    onSuccess: (successMsg) => {
       queryClient.invalidateQueries({ queryKey: ['equipment', equipment.id] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipment.id, sessionTechEmail] });
       onUpdate?.();
+      toast.success(successMsg);
+    },
+    onError: (err) => {
+      toast.error('Error al guardar: ' + (err?.response?.data?.error || err?.message || ''));
     },
   });
 
@@ -56,16 +74,14 @@ export default function EquipmentDocuments({ equipment, onUpdate }) {
       return;
     }
     const updatedDocs = [...documents, newDoc];
-    updateMutation.mutate(updatedDocs);
+    updateMutation.mutate({ docs: updatedDocs, successMsg: 'Documento añadido' });
     setNewDoc({ name: '', type: 'manual', url: '' });
     setShowAddForm(false);
-    toast.success('Documento añadido');
   };
 
   const handleRemoveDocument = (index) => {
     const updatedDocs = documents.filter((_, i) => i !== index);
-    updateMutation.mutate(updatedDocs);
-    toast.success('Documento eliminado');
+    updateMutation.mutate({ docs: updatedDocs, successMsg: 'Documento eliminado' });
   };
 
   const getTypeLabel = (type) => documentTypes.find(t => t.value === type)?.label || type;
