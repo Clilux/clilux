@@ -1,7 +1,6 @@
 // Acceso biométrico (huella dactilar / Face ID) vía WebAuthn (platform authenticator).
 // Modelo: la credencial se guarda localmente y se usa como barrera de desbloqueo
-// antes de restaurar la sesión persistente del técnico. Solo en dispositivos con
-// sensor biométrico y contexto seguro (https).
+// antes de restaurar la sesión persistente del técnico.
 
 const STORAGE_KEY = 'clilux_biometric';
 
@@ -9,8 +8,17 @@ function bufToArr(buf) {
   return Array.from(new Uint8Array(buf));
 }
 
+// ¿El navegador soporta WebAuthn y estamos en un contexto seguro (https)?
+// Esta es la única comprobación que bloquea. La API isUserVerifyingPlatformAuthenticatorAvailable()
+// devuelve "no disponible" en muchos móviles que SÍ tienen sensor (vista previa del editor,
+// WebViews, algunos Chrome Android), así que NO se usa como bloqueo duro: se intenta el
+// registro directamente y se muestra el error real si el dispositivo no puede completarlo.
+export function isWebAuthnSupported() {
+  return typeof window !== 'undefined' && !!window.PublicKeyCredential && window.isSecureContext !== false;
+}
+
 export async function isBiometricAvailable() {
-  if (typeof window === 'undefined' || !window.PublicKeyCredential) return false;
+  if (!isWebAuthnSupported()) return false;
   try {
     if (typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
       return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -43,9 +51,9 @@ export function clearBiometric() {
 }
 
 export async function registerBiometric(email) {
-  if (!window.PublicKeyCredential) throw new Error('Tu dispositivo no soporta acceso biométrico');
-  const available = await isBiometricAvailable();
-  if (!available) throw new Error('No se ha encontrado sensor biométrico en este dispositivo');
+  if (!isWebAuthnSupported()) {
+    throw new Error('Tu navegador no soporta acceso biométrico o la conexión no es segura (https)');
+  }
 
   const challenge = new Uint8Array(32);
   crypto.getRandomValues(challenge);
@@ -81,7 +89,7 @@ export async function registerBiometric(email) {
 export async function authenticateBiometric() {
   const cfg = getBiometricConfig();
   if (!cfg || !cfg.credentialId) throw new Error('Biometría no configurada');
-  if (!window.PublicKeyCredential) throw new Error('Tu dispositivo no soporta acceso biométrico');
+  if (!isWebAuthnSupported()) throw new Error('Tu navegador no soporta acceso biométrico');
 
   const challenge = new Uint8Array(32);
   crypto.getRandomValues(challenge);

@@ -66,7 +66,7 @@ export async function verifyPassword(plain: string, stored: string): Promise<boo
 
 // ── Session token (HMAC-SHA256) ────────────────────────────────
 export async function issueSessionToken(payload: { email: string; id?: string; kind: string }): Promise<string> {
-  const body = b64url(enc.encode(JSON.stringify({ ...payload, exp: Date.now() + 1000 * 60 * 60 * 12 })));
+  const body = b64url(enc.encode(JSON.stringify({ ...payload, exp: Date.now() + 1000 * 60 * 60 * 24 * 30 })));
   const key = await crypto.subtle.importKey('raw', signingKey(), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(body));
   return `${body}.${b64url(sig)}`;

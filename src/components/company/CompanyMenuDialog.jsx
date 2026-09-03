@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import {
   Building2, Pencil, Save, X, Loader2, Upload, Phone, Mail, Globe, MapPin, BadgeCheck,
 } from 'lucide-react';
+import ExportDatosGerente from '@/components/company/ExportDatosGerente';
 
 /**
  * Menú de empresa: muestra los datos de la empresa (logo + nombre arriba a la izquierda).
@@ -135,10 +136,16 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
               </div>
 
               {isGerente && (
-                <div className="flex justify-end mt-5 pt-4 border-t border-slate-200">
-                  <Button onClick={() => setEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white h-9">
-                    <Pencil className="h-4 w-4 mr-2" /> Editar datos
-                  </Button>
+                <div className="mt-5 pt-4 border-t border-slate-200 space-y-4">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">Exporta todos los datos de la empresa a Excel: trabajadores (con sus credenciales y PIN), clientes, edificios y equipos.</p>
+                    <ExportDatosGerente sessionTechEmail={sessionTechEmail} companyName={company.name} />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={() => setEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white h-9">
+                      <Pencil className="h-4 w-4 mr-2" /> Editar datos
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

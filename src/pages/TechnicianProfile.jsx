@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import NavHeader from '../components/navigation/NavHeader';
 import { Clock, Calendar, User, Building2, Shield, ChevronRight, Save, Loader2, HardHat, Briefcase, Camera, FileText, Download, Fingerprint } from 'lucide-react';
-import { isBiometricAvailable, isBiometricEnabled, registerBiometric, clearBiometric, getBiometricEmail } from '@/lib/biometricAuth';
+import { isWebAuthnSupported, isBiometricEnabled, registerBiometric, clearBiometric, getBiometricEmail } from '@/lib/biometricAuth';
+import { clearSessionToken } from '@/lib/passwordHash';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
@@ -46,6 +47,7 @@ export default function TechnicianProfile() {
     sessionStorage.removeItem('technician_name');
     localStorage.removeItem('clilux_tech_email');
     localStorage.removeItem('clilux_tech_password');
+    clearSessionToken();
     navigate(createPageUrl('MenuInicio'));
   };
 
@@ -102,7 +104,7 @@ export default function TechnicianProfile() {
   }, [tech]);
 
   useEffect(() => {
-    isBiometricAvailable().then(setBioAvailable);
+    setBioAvailable(isWebAuthnSupported());
     setBioEnabled(isBiometricEnabled() && getBiometricEmail() === techEmail);
   }, [techEmail]);
 
@@ -113,7 +115,10 @@ export default function TechnicianProfile() {
       setBioEnabled(true);
       toast.success('Acceso por huella activado');
     } catch (err) {
-      toast.error(err?.message || 'No se pudo activar la huella');
+      const msg = err?.name === 'NotAllowedError'
+        ? 'El sensor no respondió o se canceló. Si estás en la vista previa del editor, abre la app publicada en el navegador del móvil y vuelve a intentarlo.'
+        : (err?.message || 'No se pudo activar la huella');
+      toast.error(msg);
     } finally {
       setBioLoading(false);
     }
@@ -670,7 +675,7 @@ export default function TechnicianProfile() {
                 <p className="text-xs text-slate-400 mb-5">Activa el desbloqueo biométrico para entrar a la app sin escribir la contraseña. Usa el sensor de huella o Face ID de tu dispositivo.</p>
                 {!bioAvailable ? (
                   <div className="p-4 rounded-lg bg-amber-50 border border-amber-100">
-                    <p className="text-sm text-amber-700">Tu dispositivo no tiene sensor biométrico disponible o no es compatible. Necesitas un móvil con huella/Face ID y un navegador compatible (Chrome Android o Safari iOS).</p>
+                    <p className="text-sm text-amber-700">Tu navegador no soporta el acceso biométrico (WebAuthn) o la conexión no es segura. Ten en cuenta que dentro de la vista previa del editor o de navegadores integrados de otras apps el sensor nunca funciona: abre la app publicada con Chrome (Android) o Safari (iOS) en el propio móvil.</p>
                   </div>
                 ) : bioEnabled ? (
                   <div className="space-y-3">
