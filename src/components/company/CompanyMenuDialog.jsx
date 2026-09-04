@@ -138,7 +138,7 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
               {isGerente && (
                 <div className="mt-5 pt-4 border-t border-slate-200 space-y-4">
                   <div>
-                    <p className="text-xs text-slate-400 mb-2">Exporta todos los datos de la empresa a Excel: trabajadores (con sus credenciales y PIN), clientes, edificios y equipos.</p>
+                    <p className="text-xs text-slate-400 mb-2">Exporta todos los datos de la empresa (trabajadores con credenciales y PIN, clientes, edificios, equipos e incidencias) en formato Excel o CSV.</p>
                     <ExportDatosGerente sessionTechEmail={sessionTechEmail} companyName={company.name} />
                   </div>
                   <div className="flex justify-end">
