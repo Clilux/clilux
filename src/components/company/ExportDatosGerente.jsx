@@ -33,12 +33,21 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
       invoke('technicians'),
     ]);
     const all = allRes.data || {};
-    const workers = techsRes.data?.data || [];
+    const workers = all.technicians || techsRes.data?.data || [];
     const clients = all.clients || [];
     const buildings = all.buildings || [];
     const equipment = all.equipment || [];
     const incidents = all.incidents || [];
     const revisions = all.revisions || [];
+    const registrosHorarios = all.registros_horarios || [];
+    const ausencias = all.ausencias || [];
+    const obras = all.obras || [];
+    const albaranesTrabajo = all.albaranes_trabajo || [];
+    const albaranesObra = all.albaranes_obra || [];
+    const workerDocs = all.worker_documents || [];
+    const registrosLD = all.registros_ld || [];
+    const registrosFGas = all.registros_fgas || [];
+    const registrosInst = all.registros_instalador || [];
 
     const sheets = {
       'Trabajadores': workers.map(w => ({
@@ -85,8 +94,71 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
         'Estado': r.status || '', 'Técnico': r.technician_name || '',
         'Completada': r.completed_date || '',
       })),
+      'Registros horarios': registrosHorarios.map(h => ({
+        'Trabajador': h.technician_name || '', 'Fecha': h.fecha || '',
+        'Entrada': h.hora_entrada || '', 'Salida': h.hora_salida || '',
+        'Horas': h.horas_efectivas ?? h.horas_trabajadas ?? '',
+        'Extra': h.horas_extra ?? '', 'Tipo': h.tipo_jornada || '',
+        'Finalizada': h.finalizada ? 'Sí' : 'No',
+      })),
+      'Vacaciones/Ausencias': ausencias.map(a => ({
+        'Trabajador': a.technician_name || '', 'Tipo': a.tipo || '',
+        'Inicio': a.fecha_inicio || '', 'Fin': a.fecha_fin || '',
+        'Días': a.dias_totales ?? '', 'Estado': a.estado || '',
+        'Motivo': a.motivo || '',
+      })),
+      'Obras': obras.map(o => ({
+        'Cliente': clientName(o.client_id, clients), 'Nombre': o.nombre || '',
+        'Estado': o.estado || '', 'Inicio': o.fecha_inicio || '',
+        'Fin previsto': o.fecha_fin_prevista || '', 'Responsable': o.responsable_nombre || '',
+        'Presupuesto': o.presupuesto_inicial ?? '', 'Coste MO': o.costo_trabajadores ?? '',
+        'Coste mat.': o.costo_materiales ?? '',
+      })),
+      'Albaranes trabajo': albaranesTrabajo.map(a => ({
+        'Nº': a.numero || '', 'Fecha': a.fecha || '', 'Título': a.titulo || '',
+        'Cliente': a.client_name || '', 'Técnico': a.tecnico_nombre || '',
+        'Estado': a.estado || '', 'Total': a.total ?? '',
+      })),
+      'Albaranes obra': albaranesObra.map(a => ({
+        'Nº': a.numero || '', 'Fecha': a.fecha || '', 'Obra': a.obra_nombre || '',
+        'Cliente': a.client_name || '', 'Técnico': a.tecnico_nombre || '',
+        'Horas': a.horas_trabajadas ?? '', 'Estado': a.estado || '',
+      })),
+      'Documentos trabajadores': workerDocs.map(d => ({
+        'Trabajador': d.technician_name || '', 'Título': d.title || '',
+        'Tipo': d.document_type || '', 'Fecha': d.fecha || '',
+      })),
+      'Registros LD': registrosLD.map(r => ({
+        'Cliente': clientName(r.client_id, clients), 'Fecha': r.fecha || '',
+        'Tipo tratamiento': r.tipo_tratamiento || '', 'Protocolo': r.protocolo_id || '',
+        'Circuito': r.nombre_circuito || '', 'pH inicial': r.ph_inicial ?? '',
+        'Cloro inicial': r.cloro_libre_inicial ?? '', 'pH final': r.ph_final ?? '',
+        'Cloro final': r.cloro_libre_final ?? '', 'Responsable': r.responsable_tecnico_nombre || '',
+      })),
+      'Registros F-Gas': registrosFGas.map(r => ({
+        'Cliente': clientName(r.client_id, clients), 'Fecha': r.fecha_intervencion || '',
+        'Tipo': r.tipo_intervencion || '', 'Refrigerante': r.refrigerante_tipo || '',
+        'Carga total (kg)': r.carga_total_kg ?? '', 'Gas añadido (kg)': r.gas_anyadido_kg ?? '',
+        'Gas recuperado (kg)': r.gas_recuperado_kg ?? '', 'Técnico': r.tecnico_nombre || '',
+        'Próxima revisión': r.proxima_revision_fecha || '',
+      })),
+      'Registros instalador': registrosInst.map(r => ({
+        'Cliente': clientName(r.client_id, clients), 'Fecha': r.fecha_intervencion || '',
+        'Tipo': r.tipo_intervencion || '', 'Técnico': r.tecnico_nombre || '',
+        'Refrigerante': r.refrigerante_tipo || '', 'Gas cargado (kg)': r.gas_cargado_kg ?? '',
+        'Gas recuperado (kg)': r.gas_recuperado_kg ?? '', 'Control fugas': r.control_fugas_resultado || '',
+      })),
     };
-    return { sheets, raw: { clients, buildings, equipment, incidents, revisions } };
+    return {
+      sheets,
+      raw: {
+        clients, buildings, equipment, incidents, revisions,
+        registros_horarios: registrosHorarios, ausencias, obras,
+        albaranes_trabajo: albaranesTrabajo, albaranes_obra: albaranesObra,
+        worker_documents: workerDocs, registros_ld: registrosLD,
+        registros_fgas: registrosFGas, registros_instalador: registrosInst,
+      },
+    };
   };
 
   const downloadBlob = (blob, filename) => {

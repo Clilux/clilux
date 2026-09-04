@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
         : [];
       const companyClients = allClients.filter(c => c.company_id === tech.company_id);
       const clientIds = new Set(companyClients.map(c => c.id));
+      const cid = tech.company_id;
 
       const fetches = await Promise.all([
         Promise.resolve(companyClients),
@@ -98,9 +99,22 @@ Deno.serve(async (req) => {
         permisos.ver_incidencias? base44.asServiceRole.entities.Incident.list('-created_date')         : Promise.resolve([]),
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.list()               : Promise.resolve([]),
         base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' }),
+        // Trabajadores de la empresa
+        base44.asServiceRole.entities.Technician.filter({ company_id: cid }),
+        // Entidades con company_id directo
+        permisos.ver_horario     ? base44.asServiceRole.entities.RegistroHorario.filter({ company_id: cid }) : Promise.resolve([]),
+        permisos.ver_ausencias   ? base44.asServiceRole.entities.Ausencia.filter({ company_id: cid })         : Promise.resolve([]),
+        base44.asServiceRole.entities.Obra.filter({ company_id: cid }),
+        base44.asServiceRole.entities.AlbaranTrabajo.filter({ company_id: cid }),
+        base44.asServiceRole.entities.AlbaranObra.filter({ company_id: cid }),
+        permisos.ver_documentacion ? base44.asServiceRole.entities.WorkerDocument.filter({ company_id: cid }) : Promise.resolve([]),
+        // Registros ligados a cliente (LD, F-Gas, Instalador)
+        base44.asServiceRole.entities.RegistroLD.list(),
+        base44.asServiceRole.entities.RegistroFGas.list(),
+        base44.asServiceRole.entities.RegistroInstalador.list(),
       ]);
-      const companyRec = tech.company_id
-        ? (await base44.asServiceRole.entities.Company.filter({ company_id: tech.company_id }))[0] || null
+      const companyRec = cid
+        ? (await base44.asServiceRole.entities.Company.filter({ company_id: cid }))[0] || null
         : null;
       return Response.json({
         clients:   fetches[0],
@@ -109,8 +123,18 @@ Deno.serve(async (req) => {
         incidents: fetches[3].filter(i => clientIds.has(i.client_id)),
         revisions: fetches[4].filter(r => clientIds.has(r.client_id)),
         settings:  fetches[5][0] || null,
-        company:  companyRec,
-        tech:     tech,
+        company:   companyRec,
+        tech:      tech,
+        technicians:         fetches[6],
+        registros_horarios:  fetches[7],
+        ausencias:           fetches[8],
+        obras:               fetches[9],
+        albaranes_trabajo:   fetches[10],
+        albaranes_obra:      fetches[11],
+        worker_documents:    fetches[12],
+        registros_ld:        fetches[13].filter(r => clientIds.has(r.client_id)),
+        registros_fgas:      fetches[14].filter(r => clientIds.has(r.client_id)),
+        registros_instalador:fetches[15].filter(r => clientIds.has(r.client_id)),
       });
     }
 

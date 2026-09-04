@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import ExportDatosGerente from '@/components/company/ExportDatosGerente';
 import ImportDatosEmpresa from '@/components/company/ImportDatosEmpresa';
+import DriveSyncButton from '@/components/company/DriveSyncButton';
 
 /**
  * Menú de empresa: muestra los datos de la empresa (logo + nombre arriba a la izquierda).
@@ -146,6 +147,10 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
                     <div>
                       <p className="text-xs text-slate-400 mb-2">Importa una copia JSON para recuperar datos o migrarlos a esta empresa (remepea los IDs automáticamente).</p>
                       <ImportDatosEmpresa sessionTechEmail={sessionTechEmail} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-2">Sube una copia completa de la empresa a Google Drive (también se ejecuta automáticamente cada día).</p>
+                      <DriveSyncButton sessionTechEmail={sessionTechEmail} />
                     </div>
                   </div>
                   <div className="flex justify-end">
