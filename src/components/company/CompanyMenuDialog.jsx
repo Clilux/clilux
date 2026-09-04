@@ -10,6 +10,7 @@ import {
   Building2, Pencil, Save, X, Loader2, Upload, Phone, Mail, Globe, MapPin, BadgeCheck,
 } from 'lucide-react';
 import ExportDatosGerente from '@/components/company/ExportDatosGerente';
+import ImportDatosEmpresa from '@/components/company/ImportDatosEmpresa';
 
 /**
  * Menú de empresa: muestra los datos de la empresa (logo + nombre arriba a la izquierda).
@@ -137,9 +138,15 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
 
               {isGerente && (
                 <div className="mt-5 pt-4 border-t border-slate-200 space-y-4">
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Exporta todos los datos de la empresa (trabajadores con credenciales y PIN, clientes, edificios, equipos e incidencias) en formato Excel o CSV.</p>
-                    <ExportDatosGerente sessionTechEmail={sessionTechEmail} companyName={company.name} />
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-2">Exporta todos los datos de la empresa (trabajadores con credenciales y PIN, clientes, edificios, equipos, incidencias y revisiones) en Excel, CSV o como copia JSON completa para recuperar/migrar.</p>
+                      <ExportDatosGerente sessionTechEmail={sessionTechEmail} companyName={company.name} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-2">Importa una copia JSON para recuperar datos o migrarlos a esta empresa (remepea los IDs automáticamente).</p>
+                      <ImportDatosEmpresa sessionTechEmail={sessionTechEmail} />
+                    </div>
                   </div>
                   <div className="flex justify-end">
                     <Button onClick={() => setEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white h-9">

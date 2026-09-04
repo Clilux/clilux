@@ -17,7 +17,7 @@ export const base44 = createClient({
 // autenticación, sin necesidad de modificar cada punto de llamada.
 // Si el token ha caducado, limpia la sesión y devuelve al menú de acceso.
 const _origInvoke = base44.functions.invoke.bind(base44.functions);
-const SECURE_FUNCS = new Set(['getCompanyData', 'buzonNotificaciones', 'incidentNotifications', 'uploadArchivo']);
+const SECURE_FUNCS = new Set(['getCompanyData', 'buzonNotificaciones', 'incidentNotifications', 'uploadArchivo', 'importDatosEmpresa']);
 
 const _isExpiredSession = (obj) => {
   const msg = String(obj?.response?.data?.error || obj?.data?.error || obj?.message || obj?.error || '');
