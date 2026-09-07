@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Navigation } from 'lucide-react';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { notificar } from '@/lib/buzon';
-import { formatHoras } from '@/lib/horario-utils';
+import { formatHoras, getLastPosition } from '@/lib/horario-utils';
+import MapaEquipo from '@/components/horario/MapaEquipo';
+import MapaTrayecto from '@/components/horario/MapaTrayecto';
 
 const TIPO_LABELS = {
   vacaciones: 'Vacaciones',
@@ -217,11 +219,29 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
               </Card>
               <Card className="p-3 bg-slate-50 border-0">
                 <p className="text-xs text-slate-400">Ubicación</p>
-                <p className="font-semibold text-slate-700 flex items-center gap-1">
-                  {todayRec?.ubicacion_entrada ? <><MapPin className="h-3.5 w-3.5 text-emerald-500" />GPS</> : 'Sin GPS'}
-                </p>
+                {(() => {
+                  const pos = getLastPosition(todayRec);
+                  if (!pos) return <p className="font-semibold text-slate-400">Sin GPS</p>;
+                  return (
+                    <div>
+                      <p className="font-semibold flex items-center gap-1 text-emerald-600">
+                        <MapPin className="h-3.5 w-3.5" />{status.key === 'trabajando' ? 'En seguimiento' : 'Últ. posición'}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">{pos.hora || '—'}{pos.tipo === 'seguimiento' ? ' · auto' : ''}</p>
+                    </div>
+                  );
+                })()}
               </Card>
             </div>
+            {(() => {
+              const gps = todayRec?.geopoints || [];
+              if ((status.key !== 'trabajando' && status.key !== 'pausado') || gps.length === 0) return null;
+              return (
+                <div className="rounded-lg overflow-hidden border border-slate-100">
+                  <MapaTrayecto geopoints={gps} />
+                </div>
+              );
+            })()}
             {missingDays.length > 0 && (
               <div className="rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 overflow-hidden">
                 <button type="button" onClick={() => setShowMissing(v => !v)} className="w-full p-3 flex items-start gap-2 text-left">
@@ -426,6 +446,8 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
       return all.filter(r => r.fecha?.startsWith(monthStr) && techEmails.has(r.technician_email));
     },
     enabled: companyTechs.length > 0,
+    refetchInterval: 600000, // refresco automático cada 10 min para ubicación en vivo
+    refetchOnWindowFocus: true,
   });
 
   const { data: ausencias = [] } = useQuery({
@@ -488,6 +510,24 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
           </Card>
         ))}
       </div>
+
+      {/* Mapa de ubicación del equipo (solo si hay alguien en jornada o pausado) */}
+      {rows.some(r => r.status.key === 'trabajando' || r.status.key === 'pausado') && (
+        <Card className="bg-white border-0 shadow-sm overflow-hidden">
+          <div className="bg-slate-50 border-b border-slate-100 px-4 py-2.5 flex items-center gap-2">
+            <Navigation className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-slate-700">Ubicación del equipo</span>
+            <span className="text-xs text-slate-400">· última posición conocida</span>
+            <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs text-slate-500 gap-1"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] })}>
+              <RefreshCw className="h-3 w-3" />Actualizar
+            </Button>
+          </div>
+          <div className="p-3">
+            <MapaEquipo rows={rows} onSelect={(tech) => setSelected(tech)} />
+          </div>
+        </Card>
+      )}
 
       {/* Worker list */}
       {isLoading ? (

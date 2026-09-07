@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock, Navigation } from 'lucide-react';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calcularHoras, getGeoLocation, formatHoras, minutesToHours } from '@/lib/horario-utils';
+import { useSeguimientoJornada } from '@/hooks/useSeguimientoJornada';
 import EditarRegistroModal from '@/components/horario/EditarRegistroModal';
 import AdminHorarioDashboard from '@/components/horario/AdminHorarioDashboard';
 import JornadaAtrasadaModal from '@/components/horario/JornadaAtrasadaModal';
@@ -242,6 +243,9 @@ export default function ControlHorario() {
   const jornadaPausada = intervalos.length > 0 && !!ultimoIntervalo?.salida && !jornadaActiva && !jornadaFinalizada;
   const jornadaNoIniciada = !todayRecord || intervalos.length === 0;
 
+  // Seguimiento periódico de ubicación mientras la jornada está activa (intervalo abierto)
+  useSeguimientoJornada({ activo: jornadaActiva, record: todayRecord, onUpdate: updateRegistro });
+
   // Aviso de pausa mínima (Art. 34.3 ET): si la jornada continua > 6h debe haber
   // un descanso mínimo de 15 min. Se comprueba sobre los tramos cerrados de hoy.
   const minutosSinPausa = (() => {
@@ -380,6 +384,17 @@ export default function ControlHorario() {
           <p className="text-xs text-amber-700 leading-relaxed">
             <span className="font-semibold">Pausa obligatoria (Art. 34.3 ET).</span> Llevas más de 6 h
             de jornada continua sin registrar pausa. Debes tomar un descanso mínimo de 15 minutos.
+          </p>
+        </div>
+      )}
+
+      {jornadaActiva && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
+          <Navigation className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <p className="text-xs text-emerald-700 leading-relaxed">
+            <span className="font-semibold">Seguimiento de ubicación activo.</span> Tu posición se
+            comparte con la empresa cada 10 min mientras estás en jornada. Se detiene al pausar o
+            finalizar. Mantén la app abierta; en iOS el seguimiento se pausa en segundo plano.
           </p>
         </div>
       )}

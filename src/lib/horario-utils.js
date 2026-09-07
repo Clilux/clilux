@@ -80,3 +80,22 @@ export async function getGeoLocation() {
     );
   });
 }
+
+// Devuelve la última posición conocida de un registro horario (último geopoint o ubicacion_entrada)
+export function getLastPosition(rec) {
+  if (!rec) return null;
+  const gps = rec.geopoints || [];
+  if (gps.length > 0) {
+    const p = gps[gps.length - 1];
+    if (p && typeof p.lat === 'number' && typeof p.lng === 'number') {
+      return { lat: p.lat, lng: p.lng, hora: p.hora, tipo: p.tipo };
+    }
+  }
+  if (rec.ubicacion_entrada) {
+    const parts = String(rec.ubicacion_entrada).split(',').map(Number);
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return { lat: parts[0], lng: parts[1], hora: rec.hora_entrada, tipo: 'entrada' };
+    }
+  }
+  return null;
+}
