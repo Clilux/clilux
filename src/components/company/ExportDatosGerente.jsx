@@ -1,24 +1,54 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, FileSpreadsheet, FileText, FileJson } from 'lucide-react';
+import { Download, Loader2, FileSpreadsheet, FileText, FileJson, CheckSquare, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 
-/**
- * Exportación completa de los datos de la empresa (solo gerente).
- * Entidades: Trabajadores (con credenciales y PIN), Clientes, Edificios,
- * Equipos, Incidencias y Revisiones.
- * Formatos:
- *  - Excel (multi-hoja)
- *  - CSV (un archivo por entidad, descargados en secuencia)
- *  - JSON (copia completa con todos los campos, para recuperar/migrar a otra empresa)
- * Los datos se obtienen por el canal seguro getCompanyData, filtrados por empresa.
- */
+export const ENTITY_OPTIONS = [
+  { key: 'workers', label: 'Trabajadores' },
+  { key: 'clients', label: 'Clientes' },
+  { key: 'buildings', label: 'Edificios' },
+  { key: 'equipment', label: 'Equipos' },
+  { key: 'incidents', label: 'Incidencias' },
+  { key: 'revisions', label: 'Revisiones' },
+  { key: 'registros_horarios', label: 'Registros horarios' },
+  { key: 'ausencias', label: 'Vacaciones/Ausencias' },
+  { key: 'obras', label: 'Obras' },
+  { key: 'albaranes_trabajo', label: 'Albaranes trabajo' },
+  { key: 'albaranes_obra', label: 'Albaranes obra' },
+  { key: 'worker_documents', label: 'Documentos trabajadores' },
+  { key: 'registros_ld', label: 'Registros LD' },
+  { key: 'registros_fgas', label: 'Registros F-Gas' },
+  { key: 'registros_instalador', label: 'Registros instalador' },
+];
+
+const SHEET_TO_KEY = {
+  'Trabajadores': 'workers', 'Clientes': 'clients', 'Edificios': 'buildings',
+  'Equipos': 'equipment', 'Incidencias': 'incidents', 'Revisiones': 'revisions',
+  'Registros horarios': 'registros_horarios', 'Vacaciones/Ausencias': 'ausencias',
+  'Obras': 'obras', 'Albaranes trabajo': 'albaranes_trabajo',
+  'Albaranes obra': 'albaranes_obra', 'Documentos trabajadores': 'worker_documents',
+  'Registros LD': 'registros_ld', 'Registros F-Gas': 'registros_fgas',
+  'Registros instalador': 'registros_instalador',
+};
+
 export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
   const [exporting, setExporting] = useState(false);
-  const [formato, setFormato] = useState('xlsx'); // 'xlsx' | 'csv' | 'json'
+  const [formato, setFormato] = useState('xlsx');
+  const [selected, setSelected] = useState(new Set(ENTITY_OPTIONS.map(e => e.key)));
+
+  const toggleEntity = (key) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(ENTITY_OPTIONS.map(e => e.key)));
+  const selectNone = () => setSelected(new Set());
 
   const invoke = (entity, extra = {}) =>
     base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity, ...extra });
@@ -149,16 +179,31 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
         'Gas recuperado (kg)': r.gas_recuperado_kg ?? '', 'Control fugas': r.control_fugas_resultado || '',
       })),
     };
-    return {
-      sheets,
-      raw: {
-        clients, buildings, equipment, incidents, revisions,
-        registros_horarios: registrosHorarios, ausencias, obras,
-        albaranes_trabajo: albaranesTrabajo, albaranes_obra: albaranesObra,
-        worker_documents: workerDocs, registros_ld: registrosLD,
-        registros_fgas: registrosFGas, registros_instalador: registrosInst,
-      },
+
+    const rawAll = {
+      clients, buildings, equipment, incidents, revisions,
+      registros_horarios: registrosHorarios, ausencias, obras,
+      albaranes_trabajo: albaranesTrabajo, albaranes_obra: albaranesObra,
+      worker_documents: workerDocs, registros_ld: registrosLD,
+      registros_fgas: registrosFGas, registros_instalador: registrosInst,
     };
+
+    // Filtrar por selección del usuario
+    const filteredSheets = {};
+    for (const [sheetName, rows] of Object.entries(sheets)) {
+      const entityKey = SHEET_TO_KEY[sheetName];
+      if (entityKey && selected.has(entityKey)) {
+        filteredSheets[sheetName] = rows;
+      }
+    }
+    const filteredRaw = {};
+    for (const [key, val] of Object.entries(rawAll)) {
+      if (selected.has(key)) {
+        filteredRaw[key] = val;
+      }
+    }
+
+    return { sheets: filteredSheets, raw: filteredRaw };
   };
 
   const downloadBlob = (blob, filename) => {
@@ -173,6 +218,10 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
   };
 
   const handleExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Selecciona al menos una categoría');
+      return;
+    }
     setExporting(true);
     try {
       const { sheets, raw } = await gather();
@@ -191,8 +240,7 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
         XLSX.writeFile(wb, `datos_${fileBase}_${dateStr}.xlsx`);
         toast.success('Excel exportado');
       } else {
-        const entries = Object.entries(sheets);
-        for (const [name, rows] of entries) {
+        for (const [name, rows] of Object.entries(sheets)) {
           const ws = XLSX.utils.json_to_sheet(rows);
           const csv = XLSX.utils.sheet_to_csv(ws, { FS: ';', RS: '\n' });
           const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -215,7 +263,42 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
   ];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Selección de entidades */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-slate-600">Categorías a exportar</p>
+          <div className="flex gap-2">
+            <button onClick={selectAll} className="text-[11px] text-blue-600 hover:underline">Todas</button>
+            <span className="text-slate-300">·</span>
+            <button onClick={selectNone} className="text-[11px] text-slate-500 hover:underline">Ninguna</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {ENTITY_OPTIONS.map(opt => {
+            const checked = selected.has(opt.key);
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => toggleEntity(opt.key)}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition border ${
+                  checked
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-white border-slate-200 text-slate-400'
+                }`}
+              >
+                {checked
+                  ? <CheckSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                  : <Square className="h-3.5 w-3.5 flex-shrink-0" />}
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Formato */}
       <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg w-fit">
         {formats.map(f => {
           const Icon = f.icon;
@@ -232,13 +315,13 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
         })}
       </div>
       <p className="text-[11px] text-slate-400">
-        {formato === 'json'
-          ? 'Copia completa con todos los campos. Úsala para recuperar datos o migrarlos a otra empresa (botón Importar).'
-          : 'Hojas por entidad. Para abrir en Excel o importar parcialmente.'}
+        {selected.size} categoría(s) seleccionada(s) · {formato === 'json'
+          ? 'Copia con todos los campos. Úsala para importar datos.'
+          : 'Hojas por entidad para abrir en Excel.'}
       </p>
-      <Button onClick={handleExport} disabled={exporting} className="bg-blue-600 hover:bg-blue-700 text-white h-9">
+      <Button onClick={handleExport} disabled={exporting || selected.size === 0} className="bg-blue-600 hover:bg-blue-700 text-white h-9">
         {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-        {exporting ? 'Exportando...' : `Exportar a ${formato.toUpperCase()}`}
+        {exporting ? 'Exportando...' : `Exportar ${selected.size} categoría(s) a ${formato.toUpperCase()}`}
       </Button>
     </div>
   );
