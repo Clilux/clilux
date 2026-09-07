@@ -32,13 +32,20 @@ export default function ClientDetail() {
 
   const toggleClientStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      await base44.entities.Client.update(clientId, { status: newStatus });
-      return newStatus;
+      const activate = currentStatus === 'inactive';
+      const payload = isSessionTech
+        ? { technician_email: sessionTechEmail, entity_type: 'client', entity_id: clientId, activate }
+        : { entity_type: 'client', entity_id: clientId, activate };
+      await base44.functions.invoke('cascadeDeactivate', payload);
+      return activate;
     },
-    onSuccess: (newStatus) => {
+    onSuccess: (activate) => {
       queryClient.invalidateQueries({ queryKey: ['client', clientId] });
-      toast.success(newStatus === 'inactive' ? 'Cliente desactivado' : 'Cliente activado');
+      queryClient.invalidateQueries({ queryKey: ['buildings', clientId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-client', clientId] });
+      toast.success(activate
+        ? 'Cliente activado'
+        : 'Cliente desactivado. Edificios, equipos, incidencias y revisiones relacionadas también se han desactivado.');
     },
   });
 

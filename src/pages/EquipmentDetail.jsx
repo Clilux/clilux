@@ -135,13 +135,20 @@ export default function EquipmentDetail() {
 
   const toggleEquipmentStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
-      const newStatus = currentStatus === 'out_of_service' ? 'operational' : 'out_of_service';
-      await base44.entities.Equipment.update(equipmentId, { status: newStatus });
-      return newStatus;
+      const activate = currentStatus === 'out_of_service';
+      const payload = isSessionTech
+        ? { technician_email: sessionTechEmail, entity_type: 'equipment', entity_id: equipmentId, activate }
+        : { entity_type: 'equipment', entity_id: equipmentId, activate };
+      await base44.functions.invoke('cascadeDeactivate', payload);
+      return activate;
     },
-    onSuccess: (newStatus) => {
+    onSuccess: (activate) => {
       queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
-      toast.success(newStatus === 'out_of_service' ? 'Equipo desactivado' : 'Equipo activado');
+      queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions', equipmentId] });
+      toast.success(activate
+        ? 'Equipo activado'
+        : 'Equipo desactivado. Incidencias y revisiones relacionadas también se han desactivado.');
     }
   });
 

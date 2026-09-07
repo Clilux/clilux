@@ -32,19 +32,19 @@ export default function BuildingDetail() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (currentStatus) => {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      await base44.entities.Building.update(buildingId, { status: newStatus });
-      // Si se desactiva, marcar todos los equipos como inactivos
-      if (newStatus === 'inactive') {
-        const equips = await base44.entities.Equipment.filter({ building_id: buildingId });
-        await Promise.all(equips.map(eq => base44.entities.Equipment.update(eq.id, { status: 'out_of_service' })));
-        queryClient.invalidateQueries({ queryKey: ['equipment-building', buildingId] });
-      }
-      return newStatus;
+      const activate = currentStatus === 'inactive';
+      const payload = { entity_type: 'building', entity_id: buildingId, activate };
+      await base44.functions.invoke('cascadeDeactivate', payload);
+      return activate;
     },
-    onSuccess: (newStatus) => {
+    onSuccess: (activate) => {
       queryClient.invalidateQueries({ queryKey: ['building', buildingId] });
-      toast.success(newStatus === 'inactive' ? 'Edificio desactivado. Equipos marcados como fuera de servicio.' : 'Edificio activado');
+      queryClient.invalidateQueries({ queryKey: ['equipment-building', buildingId] });
+      queryClient.invalidateQueries({ queryKey: ['revisions-building', buildingId] });
+      queryClient.invalidateQueries({ queryKey: ['incidents-building', buildingId] });
+      toast.success(activate
+        ? 'Edificio activado'
+        : 'Edificio desactivado. Equipos, incidencias y revisiones relacionadas también se han desactivado.');
     },
   });
 
