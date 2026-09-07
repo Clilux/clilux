@@ -337,7 +337,7 @@ export default function HomeTecnico() {
 
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
-         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-800 shadow-sm">
+         <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-4 border-b border-brand-800 shadow-sm">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
@@ -345,7 +345,7 @@ export default function HomeTecnico() {
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Hola {myTechRecord?.name?.split(' ')[0] || currentUser?.full_name?.split(' ')[0] || 'Técnico'}</p>
-                <p className="text-blue-100 text-xs">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
+                <p className="text-brand-100 text-xs">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
               </div>
             </div>
             <div className="text-right">
@@ -364,7 +364,7 @@ export default function HomeTecnico() {
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all
-                    ${active ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                     ${active ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>

@@ -183,12 +183,12 @@ export default function FichajeRapido({ currentUser, techRecord }) {
 
   return (
     <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+      <div className="px-4 py-3 bg-gradient-to-r from-brand-600 to-brand-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-white/80" />
           <span className="text-white font-semibold text-sm">Mi Jornada</span>
         </div>
-        <span className="text-blue-100 text-xs capitalize">
+        <span className="text-brand-100 text-xs capitalize">
           {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
         </span>
       </div>
