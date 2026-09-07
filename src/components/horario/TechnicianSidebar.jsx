@@ -23,7 +23,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
   return (
     <>
     {/* Barra inferior móvil */}
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-blue-700 border-t border-blue-800 flex items-center justify-around px-1 py-2 shadow-lg overflow-x-auto no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-brand-700 border-t border-brand-800 flex items-center justify-around px-1 py-2 shadow-lg overflow-x-auto no-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <Link to={createPageUrl('HomeTecnico')}>
         <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
           <Home className="h-6 w-6" />
@@ -86,9 +86,9 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
     </div>
 
     {/* Sidebar desktop */}
-    <div className="hidden md:flex w-56 bg-blue-600 flex-col shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="hidden md:flex w-56 bg-brand-600 flex-col shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Empresa arriba a la izquierda */}
-      <div className="p-3 border-b border-blue-700">
+      <div className="p-3 border-b border-brand-700">
         {isPlatformAdmin ? (
           <div className="w-full flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
@@ -96,13 +96,13 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-white font-bold text-base leading-tight truncate">Administrador de la App</p>
-              <p className="text-blue-200 text-[11px]">Plataforma Clilux</p>
+              <p className="text-brand-200 text-[11px]">Plataforma Clilux</p>
             </div>
           </div>
         ) : (
           <button
             onClick={() => company && setCompanyMenuOpen(true)}
-            className={`w-full flex items-center gap-2.5 text-left ${company ? 'hover:bg-blue-700 rounded-lg p-1.5 -m-1 transition-colors' : 'cursor-default'}`}
+            className={`w-full flex items-center gap-2.5 text-left ${company ? 'hover:bg-brand-700 rounded-lg p-1.5 -m-1 transition-colors' : 'cursor-default'}`}
           >
             <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
               {company?.logo_url ? (
@@ -116,7 +116,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
                 {company?.name || 'Clilux'}
               </p>
               {company && (
-                <p className="text-blue-200 text-[11px] flex items-center gap-0.5">
+                <p className="text-brand-200 text-[11px] flex items-center gap-0.5">
                   {isGerente ? 'Gerente' : 'Trabajador'}
                   <ChevronDown className="h-3 w-3" />
                 </p>
@@ -130,7 +130,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
       <nav className="flex-1 p-3 space-y-1.5">
         {visibleLinks.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to === 'HomeTecnico' ? createPageUrl(to) : `/${to}`}>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-12 text-base font-medium">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-brand-700 h-12 text-base font-medium">
               <Icon className="h-5 w-5 mr-3 shrink-0" />
               <span className="truncate">{label}</span>
             </Button>
@@ -139,7 +139,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
 
         {techEmail && (isSessionTech || isPlatformAdmin) && (
           <Link to={`/TechnicianProfile?email=${techEmail}`}>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-blue-700 h-12 text-base font-medium">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-brand-700 h-12 text-base font-medium">
               <User className="h-5 w-5 mr-3" />
               <span>Mi Perfil</span>
             </Button>
@@ -148,10 +148,10 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
       </nav>
 
       {/* Bottom actions */}
-      <div className="p-3 border-t border-blue-700 space-y-2">
+      <div className="p-3 border-t border-brand-700 space-y-2">
         {isPlatformAdmin && (
           <Link to={createPageUrl('AdminPanel')}>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-amber-300 hover:bg-blue-700 h-10 text-sm">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-amber-300 hover:bg-brand-700 h-10 text-sm">
               <Shield className="h-4 w-4 mr-2" />
               Administración
             </Button>
@@ -163,7 +163,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             variant="ghost"
             size="sm"
             onClick={() => { window.location.href = createPageUrl('MenuInicio') + '?mode=technician'; }}
-            className="w-full justify-start text-white hover:bg-blue-700 h-10 text-sm"
+            className="w-full justify-start text-white hover:bg-brand-700 h-10 text-sm"
           >
             <Wrench className="h-4 w-4 mr-2" />
             Cambiar a Técnico
@@ -172,7 +172,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
 
         {techEmail && (
           <BuzonBell email={techEmail}
-            className="w-full flex items-center justify-center gap-2 h-10 text-white hover:bg-blue-700 rounded-md text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 h-10 text-white hover:bg-brand-700 rounded-md text-sm font-medium"
             iconClassName="h-4 w-4" label="Buzón" />
         )}
 
