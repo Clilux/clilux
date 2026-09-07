@@ -12,6 +12,20 @@ module.exports = {
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			brand: {
+  				50: 'hsl(201 45% 95%)',
+  				100: 'hsl(201 42% 88%)',
+  				200: 'hsl(201 38% 78%)',
+  				300: 'hsl(201 34% 65%)',
+  				400: 'hsl(201 32% 48%)',
+  				500: 'hsl(201 40% 31%)',
+  				600: 'hsl(201 45% 26%)',
+  				700: 'hsl(201 50% 21%)',
+  				800: 'hsl(201 50% 17%)',
+  				900: 'hsl(201 50% 13%)',
+  				DEFAULT: 'hsl(201 40% 31%)',
+  				foreground: 'hsl(0 0% 100%)'
+  			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'

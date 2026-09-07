@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { MapPin, Users, UserCheck, Coffee, Umbrella, HeartPulse, UserX, Clock, Check, X, Trash2, Save, Loader2, Shield, HardHat, Briefcase, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { notificar } from '@/lib/buzon';
@@ -24,7 +24,7 @@ const TIPO_LABELS = {
   otro: 'Otro',
 };
 const TIPO_BADGE = {
-  vacaciones: 'bg-blue-100 text-blue-700',
+  vacaciones: 'bg-brand-100 text-brand-700',
   baja_medica: 'bg-red-100 text-red-700',
   permiso: 'bg-yellow-100 text-yellow-700',
   asunto_propio: 'bg-purple-100 text-purple-700',
@@ -37,15 +37,37 @@ function computeStatus(worker, todayRec, activeAusencia) {
   if (activeAusencia) {
     const t = TIPO_LABELS[activeAusencia.tipo] || 'Ausencia';
     const badge = TIPO_BADGE[activeAusencia.tipo] || 'bg-slate-100 text-slate-700';
-    return { key: 'ausencia', label: t, badge, dot: 'bg-blue-400' };
+    return { key: 'ausencia', label: t, badge, dot: 'bg-brand-400' };
   }
   if (!todayRec) return { key: 'no_iniciado', label: 'No iniciado', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-300' };
   const intervalos = todayRec.intervalos || [];
   const ultimo = intervalos[intervalos.length - 1];
   if (ultimo && !ultimo.salida) return { key: 'trabajando', label: 'Trabajando', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' };
-  if (todayRec.finalizada) return { key: 'finalizada', label: 'Finalizada', badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-400' };
+  if (todayRec.finalizada) return { key: 'finalizada', label: 'Finalizada', badge: 'bg-brand-100 text-brand-700', dot: 'bg-brand-400' };
   if (intervalos.length > 0 && ultimo?.salida) return { key: 'pausado', label: 'Pausado', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' };
   return { key: 'no_iniciado', label: 'No iniciado', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-300' };
+}
+
+function computeMissingDays(email, worker, registrosMes, ausencias) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = startOfMonth(today);
+  if (start > today) return 0;
+  const days = eachDayOfInterval({ start, end: today });
+  const laborables = worker.dias_laborables || [1, 2, 3, 4, 5];
+  const workerRegDates = new Set(registrosMes.filter(r => r.technician_email === email).map(r => r.fecha));
+  const workerAus = ausencias.filter(a => a.technician_email === email && a.estado === 'aprobada');
+  let missing = 0;
+  for (const d of days) {
+    if (d.getTime() === today.getTime()) continue; // hoy aún no cuenta
+    if (!laborables.includes(d.getDay())) continue;
+    const ds = format(d, 'yyyy-MM-dd');
+    if (workerRegDates.has(ds)) continue;
+    const onAus = workerAus.some(a => a.fecha_inicio && a.fecha_fin &&
+      isWithinInterval(d, { start: parseISO(a.fecha_inicio), end: parseISO(a.fecha_fin) }));
+    if (onAus) continue;
+    missing++;
+  }
+  return missing;
 }
 
 function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, effectiveEmail, onClose }) {
@@ -61,6 +83,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
     isWithinInterval(new Date(), { start: parseISO(a.fecha_inicio), end: parseISO(a.fecha_fin) })
   );
   const status = computeStatus(worker, todayRec, activeAusencia);
+  const missingDays = computeMissingDays(email, worker, registrosMes, ausencias);
 
   // Vacaciones
   const yearStr = String(new Date().getFullYear());
@@ -77,13 +100,19 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
   const saveVac = async () => {
     setVacSaving(true);
     try {
-      await base44.entities.Technician.update(worker.id, {
+      const updates = {
         vacaciones_anuales: Number(vacForm.anuales),
         vacaciones_dias_usados_anteriores: Number(vacForm.anteriores),
         vacaciones_notas: vacForm.notas,
-      });
+      };
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'technician_update_vacaciones', target_id: worker.id, updates });
+      } else {
+        await base44.entities.Technician.update(worker.id, updates);
+      }
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-vacaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['technicians-proxy'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       toast.success('Vacaciones actualizadas');
     } catch { toast.error('Error al guardar vacaciones'); }
     finally { setVacSaving(false); }
@@ -146,7 +175,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 ${worker.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+            <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 ${worker.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'}`}>
               {worker.photo_url ? <img src={worker.photo_url} alt={worker.name} className="w-full h-full object-cover" /> : (worker.name?.charAt(0)?.toUpperCase() || '?')}
             </div>
             <div className="flex-1">
@@ -162,7 +191,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
         <div className="flex gap-1 border-b border-slate-100">
           {['estado', 'vacaciones', 'registros', 'peticiones'].map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              className={`px-3 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${tab === t ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
               {t === 'peticiones' ? `Peticiones${pendientes.length ? ` (${pendientes.length})` : ''}` : t === 'registros' ? 'Jornadas' : t}
             </button>
           ))}
@@ -183,7 +212,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
               </Card>
               <Card className="p-3 bg-slate-50 border-0">
                 <p className="text-xs text-slate-400">Horas efectivas hoy</p>
-                <p className="font-semibold text-blue-600">{todayRec?.horas_efectivas ? `${todayRec.horas_efectivas}h` : '—'}</p>
+                <p className="font-semibold text-brand-600">{todayRec?.horas_efectivas ? `${todayRec.horas_efectivas}h` : '—'}</p>
               </Card>
               <Card className="p-3 bg-slate-50 border-0">
                 <p className="text-xs text-slate-400">Ubicación</p>
@@ -192,6 +221,12 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
                 </p>
               </Card>
             </div>
+            {missingDays > 0 && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2 text-sm text-red-700">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Le faltan <strong>{missingDays} fichaje{missingDays > 1 ? 's' : ''}</strong> este mes (días laborables sin registrar).</span>
+              </div>
+            )}
             {activeAusencia && (
               <div className={`rounded-lg p-3 text-sm ${TIPO_BADGE[activeAusencia.tipo] || TIPO_BADGE.otro}`}>
                 {TIPO_LABELS[activeAusencia.tipo]} del {format(parseISO(activeAusencia.fecha_inicio), 'd MMM', { locale: es })} al {format(parseISO(activeAusencia.fecha_fin), 'd MMM yyyy', { locale: es })}
@@ -203,11 +238,11 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
         {tab === 'vacaciones' && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2 text-center">
-              <Card className="p-3 bg-blue-50 border-0"><p className="text-xl font-bold text-blue-600">{diasAnules}</p><p className="text-xs text-slate-500">Días anuales</p></Card>
+              <Card className="p-3 bg-brand-50 border-0"><p className="text-xl font-bold text-brand-600">{diasAnules}</p><p className="text-xs text-slate-500">Días anuales</p></Card>
               <Card className="p-3 bg-orange-50 border-0"><p className="text-xl font-bold text-orange-600">{diasAnteriores + diasSistema}</p><p className="text-xs text-slate-500">Usados</p></Card>
               <Card className="p-3 bg-emerald-50 border-0"><p className="text-xl font-bold text-emerald-600">{restantes}</p><p className="text-xs text-slate-500">Restantes</p></Card>
             </div>
-            <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-700">
+            <div className="rounded-lg bg-brand-50 border border-brand-100 p-3 text-xs text-brand-700">
               Si el trabajador viene de otra app o empieza a mitad de año, ajusta los días ya usados antes de incorporarse.
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -224,7 +259,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
               <Label className="mb-1">Notas</Label>
               <Textarea rows={2} value={vacForm.notas} onChange={e => setVacForm(p => ({ ...p, notas: e.target.value }))} placeholder="Ej: viene de Factorial, 5 días usados en enero" />
             </div>
-            <Button onClick={saveVac} disabled={vacSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={saveVac} disabled={vacSaving} className="bg-brand-600 hover:bg-brand-700 text-white">
               {vacSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}Guardar vacaciones
             </Button>
           </div>
@@ -244,7 +279,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
 
             <div className="grid grid-cols-3 gap-2">
               <Card className="p-2.5 bg-white border-0 shadow-sm text-center">
-                <p className="text-lg font-bold text-blue-600">{formatHoras(mesStats.normal)}</p>
+                <p className="text-lg font-bold text-brand-600">{formatHoras(mesStats.normal)}</p>
                 <p className="text-[11px] text-slate-500">H. normales</p>
               </Card>
               <Card className="p-2.5 bg-white border-0 shadow-sm text-center">
@@ -269,13 +304,13 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
                       const tramos = r.intervalos || [];
                       const isFinalizada = r.finalizada;
                       return (
-                        <div key={r.id} className={`flex gap-1.5 items-start py-2 pr-1 ${isToday ? 'bg-blue-50/40' : ''}`}>
+                        <div key={r.id} className={`flex gap-1.5 items-start py-2 pr-1 ${isToday ? 'bg-brand-50/40' : ''}`}>
                           <div className="w-9 flex-shrink-0 text-center pt-0.5">
-                            <p className={`text-xs font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>{r.fecha ? format(parseISO(r.fecha), 'd', { locale: es }) : '—'}</p>
-                            <p className={`text-[10px] uppercase leading-none mt-0.5 ${isToday ? 'text-blue-400' : 'text-slate-400'}`}>{r.fecha ? format(parseISO(r.fecha), 'EEE', { locale: es }) : ''}</p>
+                            <p className={`text-xs font-bold leading-none ${isToday ? 'text-brand-600' : 'text-slate-700'}`}>{r.fecha ? format(parseISO(r.fecha), 'd', { locale: es }) : '—'}</p>
+                            <p className={`text-[10px] uppercase leading-none mt-0.5 ${isToday ? 'text-brand-400' : 'text-slate-400'}`}>{r.fecha ? format(parseISO(r.fecha), 'EEE', { locale: es }) : ''}</p>
                           </div>
                           <div className="relative flex-shrink-0 w-4 flex items-start justify-center pt-1.5">
-                            <div className={`w-3 h-3 rounded-full border-2 z-10 ${isFinalizada ? 'bg-blue-500 border-blue-400' : tramos.length > 0 ? 'bg-amber-400 border-amber-400' : 'bg-slate-200 border-slate-300'}`} />
+                            <div className={`w-3 h-3 rounded-full border-2 z-10 ${isFinalizada ? 'bg-brand-500 border-brand-400' : tramos.length > 0 ? 'bg-amber-400 border-amber-400' : 'bg-slate-200 border-slate-300'}`} />
                           </div>
                           <div className="flex-1 min-w-0 ml-1">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -284,7 +319,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
                                 {' → '}
                                 <span className={r.hora_salida ? 'text-red-500' : 'text-slate-300'}>{r.hora_salida || (isToday ? 'en curso' : '—')}</span>
                               </span>
-                              {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">hoy</span>}
+                              {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">hoy</span>}
                               {isFinalizada && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">✓ cerrada</span>}
                               {(r.horas_extra || 0) > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600">+{formatHoras(r.horas_extra)} extra</span>}
                             </div>
@@ -300,7 +335,7 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
                               </div>
                             )}
                             <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
-                              {(r.horas_efectivas || r.horas_normales) > 0 && <span className="text-blue-600 font-semibold">{formatHoras(r.horas_efectivas || r.horas_normales || 0)}</span>}
+                              {(r.horas_efectivas || r.horas_normales) > 0 && <span className="text-brand-600 font-semibold">{formatHoras(r.horas_efectivas || r.horas_normales || 0)}</span>}
                               {r.minutos_pausa > 0 && <span>{r.minutos_pausa}m pausa</span>}
                               {r.ubicacion_entrada && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3 text-emerald-400" />GPS</span>}
                             </div>
@@ -401,7 +436,8 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
       a.technician_email === email
     );
     const pendientes = ausencias.filter(a => a.technician_email === email && a.estado === 'pendiente').length;
-    return { tech: t, email, todayRec, activeAusencia, pendientes, status: computeStatus(t, todayRec, activeAusencia) };
+    const missingDays = computeMissingDays(email, t, registrosMes, ausencias);
+    return { tech: t, email, todayRec, activeAusencia, pendientes, missingDays, status: computeStatus(t, todayRec, activeAusencia) };
   });
 
   const counts = rows.reduce((acc, r) => { acc[r.status.key] = (acc[r.status.key] || 0) + 1; return acc; }, {});
@@ -409,17 +445,23 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
   const summary = [
     { key: 'trabajando', label: 'Trabajando', icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { key: 'pausado', label: 'Pausado', icon: Coffee, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { key: 'ausencia', label: 'Vacaciones/Baja', icon: Umbrella, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { key: 'ausencia', label: 'Vacaciones/Baja', icon: Umbrella, color: 'text-brand-600', bg: 'bg-brand-50' },
     { key: 'no_iniciado', label: 'No iniciado', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-50' },
-    { key: 'finalizada', label: 'Finalizada', icon: Check, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { key: 'finalizada', label: 'Finalizada', icon: Check, color: 'text-brand-600', bg: 'bg-brand-50' },
     { key: 'inactive', label: 'Inactivo', icon: UserX, color: 'text-slate-400', bg: 'bg-slate-50' },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
-        <Users className="h-4 w-4 text-blue-500" />
+        <Users className="h-4 w-4 text-brand-500" />
         <h3 className="font-semibold text-slate-700">Estado del equipo · {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</h3>
+        {rows.some(r => r.missingDays > 0) && (
+          <Badge className="bg-red-100 text-red-700 border-0 text-xs ml-1 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            {rows.filter(r => r.missingDays > 0).length} con fichajes pendientes
+          </Badge>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -441,10 +483,10 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
       ) : (
         <Card className="bg-white border-0 shadow-sm overflow-hidden">
           <div className="divide-y divide-slate-50">
-            {rows.map(({ tech, email, todayRec, activeAusencia, pendientes, status }) => (
+            {rows.map(({ tech, email, todayRec, activeAusencia, pendientes, missingDays, status }) => (
               <button key={tech.id} onClick={() => setSelected(tech)}
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left">
-                <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 ${tech.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'}`}>
                   {tech.photo_url ? <img src={tech.photo_url} alt={tech.name} className="w-full h-full object-cover" /> : (tech.name?.charAt(0)?.toUpperCase() || '?')}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -453,6 +495,7 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
                     {tech.is_admin && <Shield className="h-3 w-3 text-amber-500" />}
                     {tech.worker_type === 'tecnico' ? <HardHat className="h-3 w-3 text-cyan-500" /> : tech.worker_type === 'administracion' ? <Briefcase className="h-3 w-3 text-purple-500" /> : null}
                     {pendientes > 0 && <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">{pendientes} pet.</Badge>}
+                    {missingDays > 0 && <Badge className="bg-red-100 text-red-700 border-0 text-[10px] flex items-center gap-0.5"><AlertTriangle className="h-2.5 w-2.5" />{missingDays}d</Badge>}
                   </div>
                   <p className="text-xs text-slate-400 truncate">
                     {todayRec ? `${todayRec.hora_entrada || '—'} → ${todayRec.hora_salida || (status.key === 'trabajando' ? 'en curso' : '—')}` : 'Sin fichaje hoy'}

@@ -479,6 +479,58 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Ausencias (admin): actualizar estado de una ausencia ──────
+    if (entity === 'ausencia_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const list = await base44.asServiceRole.entities.Ausencia.filter({ id: record_id });
+      const rec = list[0];
+      if (!rec) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      const companyEmails = new Set(companyTechs.map(t => (t.email || '').trim().toLowerCase()));
+      if (!companyEmails.has((rec.technician_email || '').trim().toLowerCase())) {
+        return Response.json({ error: 'La ausencia no pertenece a tu empresa' }, { status: 403 });
+      }
+      const data = await base44.asServiceRole.entities.Ausencia.update(record_id, updates);
+      return Response.json({ data });
+    }
+
+    // ── Ausencias (admin): eliminar una ausencia ───────────────────
+    if (entity === 'ausencia_delete') {
+      if (!tech.is_admin) return deny('admin');
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const list = await base44.asServiceRole.entities.Ausencia.filter({ id: record_id });
+      const rec = list[0];
+      if (!rec) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      const companyEmails = new Set(companyTechs.map(t => (t.email || '').trim().toLowerCase()));
+      if (!companyEmails.has((rec.technician_email || '').trim().toLowerCase())) {
+        return Response.json({ error: 'La ausencia no pertenece a tu empresa' }, { status: 403 });
+      }
+      await base44.asServiceRole.entities.Ausencia.delete(record_id);
+      return Response.json({ success: true });
+    }
+
+    // ── Admin: actualizar vacaciones de un trabajador ─────────────
+    if (entity === 'technician_update_vacaciones') {
+      if (!tech.is_admin) return deny('admin');
+      const { target_id, updates } = body;
+      if (!target_id || !updates) return Response.json({ error: 'target_id y updates requeridos' }, { status: 400 });
+      const list = await base44.asServiceRole.entities.Technician.filter({ id: target_id });
+      const target = list[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El trabajador no pertenece a tu empresa' }, { status: 403 });
+      }
+      const safe: any = {};
+      if (updates.vacaciones_anuales !== undefined) safe.vacaciones_anuales = Number(updates.vacaciones_anuales);
+      if (updates.vacaciones_dias_usados_anteriores !== undefined) safe.vacaciones_dias_usados_anteriores = Number(updates.vacaciones_dias_usados_anteriores);
+      if (updates.vacaciones_notas !== undefined) safe.vacaciones_notas = updates.vacaciones_notas;
+      const data = await base44.asServiceRole.entities.Technician.update(target_id, safe);
+      return Response.json({ data });
+    }
+
     // ── Fichaje (admin): actualizar registro de un trabajador ─────
     if (entity === 'registro_horario_admin_update') {
       if (!tech.is_admin) return deny('admin');

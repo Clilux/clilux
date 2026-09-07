@@ -314,7 +314,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       )}
 
       {mainTab === 'vacaciones' && (
-        <VacacionesPanel technicians={technicians} myTechRecord={myTechRecord} />
+        <VacacionesPanel technicians={technicians} myTechRecord={myTechRecord} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
       )}
 
       {mainTab === 'cumplimiento' && (
@@ -360,7 +360,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
-          <p className="text-2xl font-bold text-blue-600">{Math.round(totalNormal * 10) / 10}h</p>
+          <p className="text-2xl font-bold text-brand-600">{Math.round(totalNormal * 10) / 10}h</p>
           <p className="text-xs text-slate-500">H. normales</p>
         </Card>
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
@@ -423,7 +423,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                   <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="p-3 font-medium text-slate-700">{t.name}</td>
                     <td className="p-3 text-center text-slate-600">{t.dias}</td>
-                    <td className="p-3 text-center font-semibold text-blue-600">{formatHoras(t.normal)}</td>
+                    <td className="p-3 text-center font-semibold text-brand-600">{formatHoras(t.normal)}</td>
                     <td className="p-3 text-center font-semibold text-orange-500">{t.extra > 0 ? formatHoras(t.extra) : '—'}</td>
                     <td className="p-3 text-center font-bold text-slate-700">{formatHoras(t.normal + t.extra)}</td>
                   </tr>
@@ -466,14 +466,14 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                   const isExpanded = expandedRow === r.id;
                   return (
                     <React.Fragment key={r.id}>
-                      <tr className={`border-b border-slate-50 hover:bg-slate-50 ${isExpanded ? 'bg-blue-50/30' : ''}`}>
+                      <tr className={`border-b border-slate-50 hover:bg-slate-50 ${isExpanded ? 'bg-brand-50/30' : ''}`}>
                         <td className="p-3 font-medium text-slate-700">{r.technician_name || r.technician_email}</td>
                         <td className="p-3 text-slate-600 whitespace-nowrap">
                           {r.fecha ? format(parseISO(r.fecha), "EEE d MMM", { locale: es }) : '-'}
                         </td>
                         <td className="p-3 text-emerald-600 font-medium">{r.hora_entrada || '—'}</td>
                         <td className="p-3 text-red-500 font-medium">{r.hora_salida || '—'}</td>
-                        <td className="p-3 font-semibold text-blue-600">{r.horas_normales ? formatHoras(r.horas_normales) : '—'}</td>
+                        <td className="p-3 font-semibold text-brand-600">{r.horas_normales ? formatHoras(r.horas_normales) : '—'}</td>
                         <td className="p-3 font-semibold text-orange-500">{r.horas_extra > 0 ? formatHoras(r.horas_extra) : '—'}</td>
                         <td className="p-3">
                           {tieneGeo ? (
@@ -494,7 +494,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-xs gap-1 text-blue-600 hover:bg-blue-50 px-2"
+                            className="h-7 text-xs gap-1 text-brand-600 hover:bg-brand-50 px-2"
                             onClick={() => setAlbaranRecord(r)}
                             title="Crear albarán en STEL Order"
                           >
@@ -519,7 +519,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-slate-400 hover:text-blue-600"
+                              className="h-7 w-7 text-slate-400 hover:text-brand-600"
                               onClick={() => setEditingRecord(r)}
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -528,7 +528,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr className="bg-blue-50/20">
+                        <tr className="bg-brand-50/20">
                           <td colSpan={8} className="px-4 pb-4 pt-2">
                             <MapaRuta registro={r} />
                             {r.pausas?.length > 0 && (

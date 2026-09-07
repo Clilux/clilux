@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { Calendar, Pencil, Check, X, Info, CheckCircle, XCircle, Trash2, Bell } from 'lucide-react';
+import { Calendar, Pencil, Check, X, Info, CheckCircle, XCircle, Trash2, Bell, ChevronDown, ChevronRight } from 'lucide-react';
 import { notificar } from '@/lib/buzon';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 // Días laborables de vacaciones en España por defecto: 22 días/año
 const DIAS_VACACIONES_DEFECTO = 22;
 
-function EditVacacionesModal({ tech, onClose }) {
+function EditVacacionesModal({ tech, isSessionTech, effectiveEmail, onClose }) {
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
 
@@ -27,13 +27,22 @@ function EditVacacionesModal({ tech, onClose }) {
   const [notas, setNotas] = useState(tech.vacaciones_notas ?? '');
 
   const mutation = useMutation({
-    mutationFn: () => base44.entities.Technician.update(tech.id, {
-      vacaciones_anuales: Number(diasTotales),
-      vacaciones_dias_usados_anteriores: Number(diasUsadosAnteriores),
-      vacaciones_notas: notas,
-    }),
+    mutationFn: async () => {
+      const updates = {
+        vacaciones_anuales: Number(diasTotales),
+        vacaciones_dias_usados_anteriores: Number(diasUsadosAnteriores),
+        vacaciones_notas: notas,
+      };
+      if (isSessionTech && effectiveEmail) {
+        return base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'technician_update_vacaciones', target_id: tech.id, updates });
+      }
+      return base44.entities.Technician.update(tech.id, updates);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      queryClient.invalidateQueries({ queryKey: ['technicians-proxy'] });
+      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       toast.success('Vacaciones actualizadas');
       onClose();
     },
@@ -47,7 +56,7 @@ function EditVacacionesModal({ tech, onClose }) {
           <button onClick={onClose}><X className="h-5 w-5 text-slate-400" /></button>
         </div>
 
-        <div className="bg-blue-50 rounded-lg p-3 flex items-start gap-2 text-sm text-blue-700">
+        <div className="bg-brand-50 rounded-lg p-3 flex items-start gap-2 text-sm text-brand-700">
           <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>Si el trabajador viene de otra aplicación o empieza a mitad de año, indica los días ya utilizados antes de incorporarse a este sistema.</span>
         </div>
@@ -104,9 +113,32 @@ function EditVacacionesModal({ tech, onClose }) {
   );
 }
 
-export default function VacacionesPanel({ technicians, myTechRecord }) {
+function DiasDisfrutadosList({ ausencias, email }) {
+  const periodos = ausencias
+    .filter(a => a.technician_email === email)
+    .sort((a, b) => (b.fecha_inicio || '').localeCompare(a.fecha_inicio || ''));
+  if (periodos.length === 0) {
+    return <p className="text-xs text-slate-400 py-2">Sin vacaciones disfrutadas registradas en el sistema este año.</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {periodos.map(a => (
+        <div key={a.id} className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+            <Calendar className="h-3 w-3 text-brand-500" />
+            {a.fecha_inicio && format(parseISO(a.fecha_inicio), 'd MMM', { locale: es })} → {a.fecha_fin && format(parseISO(a.fecha_fin), 'd MMM yyyy', { locale: es })}
+          </div>
+          <p className="text-slate-400 mt-0.5">{a.dias_totales} día{a.dias_totales !== 1 ? 's' : ''}{a.motivo ? ` · ${a.motivo}` : ''}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function VacacionesPanel({ technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
   const [editingTech, setEditingTech] = useState(null);
+  const [expandedTechId, setExpandedTechId] = useState(null);
 
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
@@ -116,22 +148,31 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
   const currentYear = new Date().getFullYear();
   const yearStr = String(currentYear);
 
-  // Solicitudes pendientes (todos los tipos) — para que el gerente las vea al instante
-  const { data: pendientes = [] } = useQuery({
-    queryKey: ['ausencias-pendientes'],
+  // Cargar todas las ausencias de la empresa (proxy para sesión de técnico)
+  const { data: allAusencias = [] } = useQuery({
+    queryKey: ['ausencias-company', isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencias_admin_list' });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
-      return all.filter(a => a.estado === 'pendiente' && companyTechEmails.has(a.technician_email));
+      return all.filter(a => companyTechEmails.has(a.technician_email));
     },
   });
+  const pendientes = allAusencias.filter(a => a.estado === 'pendiente');
 
   const resolver = async (a, estado) => {
     try {
-      await base44.entities.Ausencia.update(a.id, { estado });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencia_update', record_id: a.id, updates: { estado } });
+      } else {
+        await base44.entities.Ausencia.update(a.id, { estado });
+      }
+      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-vacaciones', yearStr] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       notificar('vacacion_resuelta', {
         company_id: myTechRecord?.company_id || '',
         worker_email: a.technician_email,
@@ -148,26 +189,25 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
   const borrar = async (a) => {
     if (!confirm('¿Eliminar esta petición? No se puede deshacer.')) return;
     try {
-      await base44.entities.Ausencia.delete(a.id);
-      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencia_delete', record_id: a.id });
+      } else {
+        await base44.entities.Ausencia.delete(a.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       toast.success('Petición eliminada');
     } catch { toast.error('Error al eliminar'); }
   };
 
-  // Cargar todas las ausencias del año para calcular días usados
-  const { data: ausencias = [] } = useQuery({
-    queryKey: ['ausencias-vacaciones', yearStr],
-    queryFn: async () => {
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
-      return all.filter(a =>
-        a.tipo === 'vacaciones' &&
-        a.estado === 'aprobada' &&
-        a.fecha_inicio?.startsWith(yearStr)
-      );
-    },
-  });
+  // Vacaciones aprobadas del año (para calcular días usados y mostrar disfrutados)
+  const ausencias = allAusencias.filter(a =>
+    a.tipo === 'vacaciones' &&
+    a.estado === 'aprobada' &&
+    a.fecha_inicio?.startsWith(yearStr)
+  );
 
   const TIPO_AUS = {
     vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
@@ -183,7 +223,7 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Calendar className="h-4 w-4 text-blue-500" />
+        <Calendar className="h-4 w-4 text-brand-500" />
         <h3 className="font-semibold text-slate-700">Gestión de vacaciones · {currentYear}</h3>
       </div>
 
@@ -247,7 +287,8 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
                 const porcentaje = Math.round((totalUsados / diasAnuales) * 100);
 
                 return (
-                  <tr key={tech.id} className="border-b border-slate-50 hover:bg-slate-50">
+                  <React.Fragment key={tech.id}>
+                    <tr className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="p-3">
                       <div>
                         <p className="font-medium text-slate-700">{tech.name}</p>
@@ -260,7 +301,7 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
                     <td className="p-3 text-center text-orange-600 font-medium">
                       {diasAnteriores > 0 ? `${diasAnteriores}d` : '—'}
                     </td>
-                    <td className="p-3 text-center text-blue-600 font-medium">{diasSistema}d</td>
+                    <td className="p-3 text-center text-brand-600 font-medium">{diasSistema}d</td>
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`font-semibold ${totalUsados > diasAnuales ? 'text-red-500' : 'text-slate-700'}`}>
@@ -268,7 +309,7 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
                         </span>
                         <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${porcentaje >= 100 ? 'bg-red-500' : porcentaje >= 80 ? 'bg-orange-400' : 'bg-blue-500'}`}
+                            className={`h-full rounded-full ${porcentaje >= 100 ? 'bg-red-500' : porcentaje >= 80 ? 'bg-orange-400' : 'bg-brand-500'}`}
                             style={{ width: `${Math.min(100, porcentaje)}%` }}
                           />
                         </div>
@@ -280,16 +321,35 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
                       </Badge>
                     </td>
                     <td className="p-3">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-blue-600"
-                        onClick={() => setEditingTech(tech)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-slate-400 hover:text-brand-600"
+                          onClick={() => setExpandedTechId(expandedTechId === tech.id ? null : tech.id)}
+                          title="Ver días disfrutados"
+                        >
+                          {expandedTechId === tech.id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-slate-400 hover:text-brand-600"
+                          onClick={() => setEditingTech(tech)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
+                  {expandedTechId === tech.id && (
+                    <tr className="bg-slate-50/60">
+                      <td colSpan={7} className="p-3">
+                        <DiasDisfrutadosList ausencias={ausencias} email={tech.user_email || tech.email} />
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -301,7 +361,7 @@ export default function VacacionesPanel({ technicians, myTechRecord }) {
       </Card>
 
       {editingTech && (
-        <EditVacacionesModal tech={editingTech} onClose={() => setEditingTech(null)} />
+        <EditVacacionesModal tech={editingTech} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} onClose={() => setEditingTech(null)} />
       )}
     </div>
   );

@@ -50,7 +50,7 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
         <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
           <p className="font-semibold text-sm text-slate-700">Buzón</p>
           {noLeidas > 0 && (
-            <button onClick={todas} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            <button onClick={todas} className="text-xs text-brand-600 hover:underline flex items-center gap-1">
               <CheckCheck className="h-3.5 w-3.5" />Marcar todas
             </button>
           )}
@@ -63,8 +63,8 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
             </div>
           ) : notifs.slice(0, 30).map(n => (
             <button key={n.id} onClick={() => abrir(n)}
-              className={cn('w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors flex gap-2', !n.leida && 'bg-blue-50/40')}>
-              <span className={cn('mt-1.5 w-2 h-2 rounded-full shrink-0', n.leida ? 'bg-transparent' : 'bg-blue-500')} />
+              className={cn('w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors flex gap-2', !n.leida && 'bg-brand-50/40')}>
+              <span className={cn('mt-1.5 w-2 h-2 rounded-full shrink-0', n.leida ? 'bg-transparent' : 'bg-brand-500')} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-700">{n.titulo}</p>
                 <p className="text-xs text-slate-500 line-clamp-2">{n.mensaje}</p>

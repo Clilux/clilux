@@ -386,12 +386,12 @@ export default function ControlHorario() {
 
       {/* Fichaje card */}
       <Card className="bg-white border-0 shadow-sm mb-5 overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-white/80" />
             <span className="text-white font-semibold">Jornada de hoy</span>
           </div>
-          <span className="text-blue-100 text-xs capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</span>
+          <span className="text-brand-100 text-xs capitalize">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</span>
         </div>
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
@@ -409,16 +409,16 @@ export default function ControlHorario() {
             <div className="grid grid-cols-4 gap-3 mb-4 text-center">
               <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Inicio</p><p className="font-semibold text-emerald-600 text-sm">{intervalos[0]?.entrada || '—'}</p></div>
               <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Último fin</p><p className="font-semibold text-red-500 text-sm">{ultimoIntervalo?.salida || (jornadaActiva ? '—' : todayRecord.hora_salida || '—')}</p></div>
-              <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Normales</p><p className="font-semibold text-blue-600 text-sm">{todayRecord.horas_normales ? `${todayRecord.horas_normales}h` : '—'}</p></div>
+              <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Normales</p><p className="font-semibold text-brand-600 text-sm">{todayRecord.horas_normales ? `${todayRecord.horas_normales}h` : '—'}</p></div>
               <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Extra</p><p className={`font-semibold text-sm ${(todayRecord.horas_extra || 0) > 0 ? 'text-orange-500' : 'text-slate-300'}`}>{(todayRecord.horas_extra || 0) > 0 ? `${todayRecord.horas_extra}h` : '0h'}</p></div>
             </div>
           )}
           {intervalos.length > 0 && (
-            <div className="mb-4 text-xs bg-blue-50 rounded-lg p-2.5 space-y-1.5">
-              <p className="font-semibold text-blue-700 mb-1">Tramos del día ({intervalos.length})</p>
+            <div className="mb-4 text-xs bg-brand-50 rounded-lg p-2.5 space-y-1.5">
+              <p className="font-semibold text-brand-700 mb-1">Tramos del día ({intervalos.length})</p>
               {intervalos.map((t, i) => (
                 <div key={i} className="flex items-center gap-2 text-slate-600">
-                  <span className="bg-blue-200 text-blue-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                  <span className="bg-brand-200 text-brand-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
                   <span className="text-emerald-600 font-medium">{t.entrada}</span>
                   <span className="text-slate-400">→</span>
                   <span className={!t.salida ? 'text-emerald-500 font-medium animate-pulse' : 'text-red-500 font-medium'}>{t.salida || 'en curso'}</span>
@@ -446,7 +446,7 @@ export default function ControlHorario() {
               <p className="text-xs text-slate-400 text-center">Jornada finalizada · {todayRecord?.horas_efectivas || 0}h efectivas · Puedes reanudar si es necesario</p>
             )}
           </div>
-          {geoLoading && <p className="text-xs text-blue-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
+          {geoLoading && <p className="text-xs text-brand-500 flex items-center gap-1 mt-2"><MapPin className="h-3 w-3 animate-pulse" />Obteniendo ubicación GPS...</p>}
           <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
             {todayRecord && (
               <Button variant="ghost" size="sm" className="text-xs text-slate-500 gap-1.5" onClick={() => setEditingRecord(todayRecord)}>
@@ -469,7 +469,7 @@ export default function ControlHorario() {
       {/* Monthly stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
-          <p className="text-2xl font-bold text-blue-600">{formatHoras(totalNormal)}</p>
+          <p className="text-2xl font-bold text-brand-600">{formatHoras(totalNormal)}</p>
           <p className="text-xs text-slate-500 mt-0.5">Horas normales</p>
         </Card>
         <Card className="p-4 bg-white border-0 shadow-sm text-center">
@@ -515,13 +515,13 @@ export default function ControlHorario() {
                 const horasEfectivas = r.horas_efectivas || r.horas_normales || 0;
                 const horasExtra = r.horas_extra || 0;
                 return (
-                  <div key={r.id} className={`flex gap-0 items-start py-3 pr-3 pl-2 hover:bg-slate-50/80 transition-colors ${isToday ? 'bg-blue-50/40' : ''}`}>
+                  <div key={r.id} className={`flex gap-0 items-start py-3 pr-3 pl-2 hover:bg-slate-50/80 transition-colors ${isToday ? 'bg-brand-50/40' : ''}`}>
                     {/* Fecha */}
                     <div className="w-12 flex-shrink-0 text-center pt-0.5">
-                      <p className={`text-xs font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>
+                      <p className={`text-xs font-bold leading-none ${isToday ? 'text-brand-600' : 'text-slate-700'}`}>
                         {r.fecha ? format(parseISO(r.fecha), 'd', { locale: es }) : '—'}
                       </p>
-                      <p className={`text-xs uppercase leading-none mt-0.5 ${isToday ? 'text-blue-400' : 'text-slate-400'}`}>
+                      <p className={`text-xs uppercase leading-none mt-0.5 ${isToday ? 'text-brand-400' : 'text-slate-400'}`}>
                         {r.fecha ? format(parseISO(r.fecha), 'EEE', { locale: es }) : ''}
                       </p>
                     </div>
@@ -529,7 +529,7 @@ export default function ControlHorario() {
                     <div className="relative flex-shrink-0 w-4 flex items-start justify-center pt-1.5">
                       <div className={`w-3 h-3 rounded-full border-2 z-10 ${
                         isToday && jornadaActiva ? 'bg-emerald-400 border-emerald-500 animate-pulse' :
-                        isFinalizada ? 'bg-blue-500 border-blue-400' :
+                        isFinalizada ? 'bg-brand-500 border-brand-400' :
                         tramos.length > 0 ? 'bg-amber-400 border-amber-400' :
                         'bg-slate-200 border-slate-300'
                       }`} />
@@ -544,7 +544,7 @@ export default function ControlHorario() {
                           <span className={r.hora_salida ? 'text-red-500' : 'text-slate-300'}>{r.hora_salida || (jornadaActiva && isToday ? 'en curso' : '—')}</span>
                         </span>
                         {/* Badges */}
-                        {isToday && <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">hoy</span>}
+                        {isToday && <span className="text-xs px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 font-medium">hoy</span>}
                         {isFinalizada && <span className="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">✓ cerrada</span>}
                         {horasExtra > 0 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600">+{formatHoras(horasExtra)} extra</span>}
                         {r.historial_modificaciones?.length > 0 && <History className="h-3 w-3 text-amber-400" title="Modificado" />}
@@ -564,7 +564,7 @@ export default function ControlHorario() {
                       )}
                       {/* Resumen horas */}
                       <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
-                        {horasEfectivas > 0 && <span className="text-blue-600 font-semibold">{formatHoras(horasEfectivas)}</span>}
+                        {horasEfectivas > 0 && <span className="text-brand-600 font-semibold">{formatHoras(horasEfectivas)}</span>}
                         {r.minutos_pausa > 0 && <span>{r.minutos_pausa}m pausa</span>}
                       </div>
                       {/* Mapa trayecto expandible */}
@@ -577,14 +577,14 @@ export default function ControlHorario() {
                     {/* Acciones */}
                     <div className="flex items-center gap-0.5 flex-shrink-0 ml-1 pt-0.5">
                       {(r.geopoints?.length > 0 || r.ubicacion_entrada) && (
-                        <Button variant="ghost" size="icon" className={`h-7 w-7 ${expandedMapId === r.id ? 'text-blue-500' : 'text-emerald-300 hover:text-emerald-600'}`}
+                        <Button variant="ghost" size="icon" className={`h-7 w-7 ${expandedMapId === r.id ? 'text-brand-500' : 'text-emerald-300 hover:text-emerald-600'}`}
                           onClick={() => setExpandedMapId(expandedMapId === r.id ? null : r.id)} title="Ver trayecto">
                           <MapPin className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-orange-500" onClick={() => { setAlbaranRegistro(r); setShowAlbaranObra(true); }} title="Albarán de obra"><HardHat className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="PDF jornada"><FileDown className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-blue-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-brand-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                 );
