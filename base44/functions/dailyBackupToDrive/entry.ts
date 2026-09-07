@@ -42,6 +42,12 @@ Deno.serve(async (req) => {
       }
       companyId = tech.company_id;
       scopeLabel = (tech.company_name || tech.company_id || 'empresa').replace(/[^\w\-]+/g, '_');
+    } else {
+      // Copia global: operación restringida a administradores de la plataforma.
+      const me = await base44.auth.me().catch(() => null);
+      if (!me || me.role !== 'admin') {
+        return Response.json({ error: 'No autorizado' }, { status: 401 });
+      }
     }
 
     // ── Recolección de datos ──────────────────────────────────────

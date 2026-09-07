@@ -47,6 +47,47 @@ const EQUIPMENT_TYPES = [
   'Otro',
 ];
 
+// ── Validación anti-SSRF ─────────────────────────────────────────
+// Solo se permiten URLs http/https cuyo host no resuelva a IPs privadas
+// o reservadas (loopback, link-local, RFC1918, ULA, etc.).
+function isPrivateIp(ip: string): boolean {
+  const v4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = +v4[1], b = +v4[2];
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a >= 224) return true; // multicast / reservado
+    return false;
+  }
+  const v6 = ip.toLowerCase();
+  if (v6 === '::1' || v6 === '::') return true;
+  if (v6.startsWith('fc') || v6.startsWith('fd')) return true; // ULA fc00::/7
+  if (v6.startsWith('fe80')) return true; // link-local
+  return false;
+}
+
+async function assertSafeUrl(raw: string): Promise<void> {
+  let url: URL;
+  try { url = new URL(raw); } catch { throw new Error('URL inválida'); }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('Solo se permiten URLs http/https');
+  }
+  const host = url.hostname.toLowerCase();
+  if (host === 'localhost' || isPrivateIp(host)) {
+    throw new Error('No se permiten destinos privados o reservados');
+  }
+  const ips: string[] = [];
+  for (const t of ['A', 'AAAA'] as const) {
+    try { ips.push(...await Deno.resolveDns(host, t)); } catch { /* sin registros de este tipo */ }
+  }
+  if (ips.length === 0) throw new Error('No se pudo resolver el host de la URL');
+  for (const ip of ips) {
+    if (isPrivateIp(ip)) throw new Error('El host resuelve a una IP privada o reservada');
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -60,6 +101,11 @@ Deno.serve(async (req) => {
     const xlsxMod = await import('npm:xlsx@0.18.5');
     const XLSX = xlsxMod.default ?? xlsxMod;
 
+    try {
+      await assertSafeUrl(file_url);
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
     const fileRes = await fetch(file_url);
     const arrayBuffer = await fileRes.arrayBuffer();
     const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
