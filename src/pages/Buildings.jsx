@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, MapPin, Layers, Thermometer, ChevronRight } from 'lucide-react';
+import { Plus, Search, MapPin, Layers, Thermometer, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 
 export default function Buildings() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('buildings_view') || 'list');
 
   const handleViewChange = (mode) => {
@@ -52,9 +53,10 @@ export default function Buildings() {
   const isLoading = isSessionTech ? !proxyData : loadingDirect;
 
   const filteredBuildings = buildings.filter(building =>
-    building.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (showInactive || building.status !== 'inactive') &&
+    (building.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     building.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    building.city?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getEquipmentCount = (buildingId) => {
@@ -77,6 +79,13 @@ export default function Buildings() {
             />
           </div>
           <ViewModeToggle viewMode={viewMode} onChange={handleViewChange} />
+          <Button
+            variant={showInactive ? 'default' : 'outline'}
+            onClick={() => setShowInactive(s => !s)}
+            className="whitespace-nowrap"
+          >
+            {showInactive ? <><EyeOff className="h-4 w-4 mr-2" />Ocultar inactivos</> : <><Eye className="h-4 w-4 mr-2" />Ver inactivos</>}
+          </Button>
           <Link to={createPageUrl('BuildingForm')}>
             <Button className="bg-slate-800 hover:bg-slate-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />

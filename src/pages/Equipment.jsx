@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Search, Plus, Thermometer, MapPin,
-  Building2, LayoutGrid, List, LayoutList, Copy, Loader2, CalendarCheck, CalendarX } from 'lucide-react';
+  Building2, LayoutGrid, List, LayoutList, Copy, Loader2, CalendarCheck, CalendarX, Eye, EyeOff } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -59,6 +59,7 @@ function ContextMenu({ x, y, onDuplicate, onOpen, onClose }) {
 // 'grid' = tarjetas grandes, 'compact' = tarjetas pequeñas, 'list' = lista
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [viewMode, setViewMode] = useState(() => {
     const v = localStorage.getItem('equipment_view');
     return ['grid', 'compact', 'list'].includes(v) ? v : 'grid';
@@ -134,6 +135,8 @@ export default function Equipment() {
   const filteredEquipment = equipment.filter((eq) => {
     // Ocultar unidades interiores: solo se ven desde su unidad exterior
     if (eq.parent_equipment_id) return false;
+    // Ocultar equipos fuera de servicio salvo que se pidan explícitamente
+    if (!showInactive && eq.status === 'out_of_service') return false;
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     const building = buildings.find((b) => b.id === eq.building_id);
@@ -238,6 +241,14 @@ export default function Equipment() {
                 <List className="h-4 w-4" />
               </button>
             </div>
+
+            <Button
+              variant={showInactive ? 'default' : 'outline'}
+              onClick={() => setShowInactive(s => !s)}
+              className="whitespace-nowrap"
+            >
+              {showInactive ? <><EyeOff className="h-4 w-4 mr-2" />Ocultar inactivos</> : <><Eye className="h-4 w-4 mr-2" />Ver inactivos</>}
+            </Button>
 
             <Link to={createPageUrl('EquipmentForm')} className="flex-1 sm:flex-initial">
               <Button className="w-full sm:w-auto">

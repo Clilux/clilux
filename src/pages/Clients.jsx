@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Building2, MapPin, Phone } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone, Eye, EyeOff } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
@@ -16,6 +16,7 @@ import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
   const { technician, user } = useCurrentTechnician();
 
@@ -62,9 +63,10 @@ export default function Clients() {
   });
 
   const filteredClients = visibleClients.filter(client =>
-    client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (showInactive || client.status !== 'inactive') &&
+    (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.cif?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    client.city?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getBuildingCount = (clientId) => {
@@ -88,6 +90,13 @@ export default function Clients() {
           </div>
 
           <ViewModeToggle viewMode={viewMode} onChange={handleViewChange} />
+          <Button
+            variant={showInactive ? 'default' : 'outline'}
+            onClick={() => setShowInactive(s => !s)}
+            className="whitespace-nowrap"
+          >
+            {showInactive ? <><EyeOff className="h-4 w-4 mr-2" />Ocultar inactivos</> : <><Eye className="h-4 w-4 mr-2" />Ver inactivos</>}
+          </Button>
           <Link to={createPageUrl('ClientForm')}>
             <Button className="bg-slate-800 hover:bg-slate-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
