@@ -21,7 +21,7 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
         {showBack &&
         <Button
           onClick={handleBack}
-          className="rounded-full h-11 w-11 p-0 bg-[#1E40AF] text-white hover:bg-[#1E3A8A] shadow-md">
+          className="rounded-full h-11 w-11 p-0 bg-brand-600 text-white hover:bg-brand-700 shadow-md">
             <ArrowLeft className="h-6 w-6" />
           </Button>
         }
@@ -30,7 +30,7 @@ export default function NavHeader({ title, showBack = true, showHome = true, bac
       {showHome &&
       <Link to={createPageUrl(homeUrl)}>
           <Button
-          className="rounded-full h-11 w-11 p-0 bg-[#1E40AF] text-white hover:bg-[#1E3A8A] shadow-md">
+          className="rounded-full h-11 w-11 p-0 bg-brand-600 text-white hover:bg-brand-700 shadow-md">
             <Home className="h-6 w-6" />
           </Button>
         </Link>

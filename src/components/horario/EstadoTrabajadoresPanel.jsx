@@ -56,7 +56,7 @@ function computeMissingDays(email, worker, registrosMes, ausencias) {
   const laborables = worker.dias_laborables || [1, 2, 3, 4, 5];
   const workerRegDates = new Set(registrosMes.filter(r => r.technician_email === email).map(r => r.fecha));
   const workerAus = ausencias.filter(a => a.technician_email === email && a.estado === 'aprobada');
-  let missing = 0;
+  const missing = [];
   for (const d of days) {
     if (d.getTime() === today.getTime()) continue; // hoy aún no cuenta
     if (!laborables.includes(d.getDay())) continue;
@@ -65,7 +65,7 @@ function computeMissingDays(email, worker, registrosMes, ausencias) {
     const onAus = workerAus.some(a => a.fecha_inicio && a.fecha_fin &&
       isWithinInterval(d, { start: parseISO(a.fecha_inicio), end: parseISO(a.fecha_fin) }));
     if (onAus) continue;
-    missing++;
+    missing.push({ date: ds, label: format(d, "EEEE d 'de' MMMM", { locale: es }) });
   }
   return missing;
 }
@@ -73,6 +73,7 @@ function computeMissingDays(email, worker, registrosMes, ausencias) {
 function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, effectiveEmail, onClose }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('estado');
+  const [showMissing, setShowMissing] = useState(false);
   const email = worker.email || worker.user_email || '';
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todayRec = registrosMes.find(r => r.fecha === todayStr && r.technician_email === email);
@@ -221,10 +222,23 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
                 </p>
               </Card>
             </div>
-            {missingDays > 0 && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2 text-sm text-red-700">
-                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>Le faltan <strong>{missingDays} fichaje{missingDays > 1 ? 's' : ''}</strong> este mes (días laborables sin registrar).</span>
+            {missingDays.length > 0 && (
+              <div className="rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 overflow-hidden">
+                <button type="button" onClick={() => setShowMissing(v => !v)} className="w-full p-3 flex items-start gap-2 text-left">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span className="flex-1">Le faltan <strong>{missingDays.length} fichaje{missingDays.length > 1 ? 's' : ''}</strong> este mes (días laborables sin registrar). Pulsa para verlos.</span>
+                  <ChevronRight className={`h-4 w-4 mt-0.5 transition-transform ${showMissing ? 'rotate-90' : ''}`} />
+                </button>
+                {showMissing && (
+                  <div className="px-3 pb-3 pt-2 space-y-1.5 border-t border-red-100">
+                    {missingDays.map(m => (
+                      <div key={m.date} className="flex items-center gap-2 text-xs text-red-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                        <span className="capitalize">{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {activeAusencia && (
@@ -456,10 +470,10 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
       <div className="flex items-center gap-2 mb-1">
         <Users className="h-4 w-4 text-brand-500" />
         <h3 className="font-semibold text-slate-700">Estado del equipo · {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</h3>
-        {rows.some(r => r.missingDays > 0) && (
+        {rows.some(r => r.missingDays.length > 0) && (
           <Badge className="bg-red-100 text-red-700 border-0 text-xs ml-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            {rows.filter(r => r.missingDays > 0).length} con fichajes pendientes
+            {rows.filter(r => r.missingDays.length > 0).length} con fichajes pendientes
           </Badge>
         )}
       </div>
@@ -495,7 +509,7 @@ export default function EstadoTrabajadoresPanel({ technicians, myTechRecord, isS
                     {tech.is_admin && <Shield className="h-3 w-3 text-amber-500" />}
                     {tech.worker_type === 'tecnico' ? <HardHat className="h-3 w-3 text-cyan-500" /> : tech.worker_type === 'administracion' ? <Briefcase className="h-3 w-3 text-purple-500" /> : null}
                     {pendientes > 0 && <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">{pendientes} pet.</Badge>}
-                    {missingDays > 0 && <Badge className="bg-red-100 text-red-700 border-0 text-[10px] flex items-center gap-0.5"><AlertTriangle className="h-2.5 w-2.5" />{missingDays}d</Badge>}
+                    {missingDays.length > 0 && <Badge className="bg-red-100 text-red-700 border-0 text-[10px] flex items-center gap-0.5"><AlertTriangle className="h-2.5 w-2.5" />{missingDays.length}d</Badge>}
                   </div>
                   <p className="text-xs text-slate-400 truncate">
                     {todayRec ? `${todayRec.hora_entrada || '—'} → ${todayRec.hora_salida || (status.key === 'trabajando' ? 'en curso' : '—')}` : 'Sin fichaje hoy'}
