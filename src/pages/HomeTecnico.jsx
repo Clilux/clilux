@@ -390,7 +390,7 @@ export default function HomeTecnico() {
               {/* Panel de edificios */}
               <div className="mb-4">
                 <Link to={createPageUrl('PanelEdificios')}>
-                  <Card className="from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#19b9d2]">
+                  <Card className="from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#087f91]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
