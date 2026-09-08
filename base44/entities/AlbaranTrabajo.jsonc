@@ -27,6 +27,23 @@
       "type": "string",
       "description": "Email del cliente para env\u00edo del documento"
     },
+    "client_source": {
+      "type": "string",
+      "enum": [
+        "local",
+        "stel"
+      ],
+      "default": "local",
+      "description": "Origen del cliente: local o STEL Order"
+    },
+    "stel_client_id": {
+      "type": "string",
+      "description": "ID del cliente en STEL Order (si proviene de STEL)"
+    },
+    "stel_albaran_id": {
+      "type": "string",
+      "description": "ID del albar\u00e1n creado en STEL Order (si se clon\u00f3)"
+    },
     "obra_id": {
       "type": "string",
       "description": "Obra vinculada \u2014 su total genera un gasto en la obra"
@@ -66,6 +83,18 @@
           "subtotal": {
             "type": "number",
             "description": "Subtotal con descuento aplicado"
+          },
+          "stel_product_id": {
+            "type": "string",
+            "description": "ID del producto/servicio en STEL Order"
+          },
+          "stel_product_ref": {
+            "type": "string",
+            "description": "Referencia del producto en STEL"
+          },
+          "stel_tax_id": {
+            "type": "number",
+            "description": "ID del impuesto en STEL"
           }
         }
       }

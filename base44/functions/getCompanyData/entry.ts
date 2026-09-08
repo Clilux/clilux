@@ -195,6 +195,21 @@ Deno.serve(async (req) => {
       return Response.json({ data: settings[0] || null });
     }
 
+    // ── Actualizar configuración (solo gerente) ───────────────────
+    if (entity === 'settings_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { updates } = body;
+      if (!updates) return Response.json({ error: 'updates requerido' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
+      let saved;
+      if (existing[0]?.id) {
+        saved = await base44.asServiceRole.entities.AppSettings.update(existing[0].id, updates);
+      } else {
+        saved = await base44.asServiceRole.entities.AppSettings.create({ ...updates, setting_key: 'main' });
+      }
+      return Response.json({ data: saved });
+    }
+
     // ── Obras de la empresa ──────────────────────────────────────
     if (entity === 'obras') {
       const data = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
@@ -1126,6 +1141,111 @@ Deno.serve(async (req) => {
       }
       await base44.asServiceRole.entities.WorkerDocument.delete(document_id);
       return Response.json({ success: true });
+    }
+
+    // ── Proxy STEL Order (para técnicos en sesión propia) ──────────
+    // Permite a los trabajadores acceder a clientes, artículos y crear albaranes
+    // en STEL Order sin necesidad de sesión Base44, usando la API key configurada
+    // por el gerente en AppSettings.
+    if (entity === 'stel_proxy') {
+      const { action, payload = {} } = body;
+      const settingsList = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
+      const stelCfg = settingsList?.[0]?.integrations?.stel_order;
+      if (!stelCfg?.enabled) return Response.json({ error: 'STEL Order no activado' }, { status: 400 });
+      const apiKey = Deno.env.get('STEL_API_KEY') || stelCfg.api_key;
+      if (!apiKey) return Response.json({ error: 'STEL API Key no configurada' }, { status: 400 });
+
+      const STEL_BASE = 'https://app.stelorder.com/app';
+      const stelGet = async (path, params = {}) => {
+        const qs = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
+        const res = await fetch(`${STEL_BASE}${path}${qs}`, { headers: { 'APIKEY': apiKey } });
+        const text = await res.text();
+        if (!res.ok) throw new Error(`STEL ${res.status}: ${text.substring(0, 200)}`);
+        return JSON.parse(text);
+      };
+      const stelPost = async (path, body) => {
+        const res = await fetch(`${STEL_BASE}${path}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'APIKEY': apiKey }, body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        if (!res.ok) throw new Error(`STEL ${res.status}: ${text.substring(0, 200)}`);
+        return JSON.parse(text);
+      };
+      const mapClient = (c) => ({
+        id: c.id, name: c['legal-name'] || c.name || '', tradeName: c['trade-name'] || '',
+        fiscalId: c['fiscal-id'] || '', email: c.email || '', phone: c.phone || '',
+        address: c.address || '', city: c.city || '', postalCode: c['postal-code'] || '',
+        province: c.province || '', country: c.country || '', notes: c.notes || '', reference: c.reference || '',
+        source: 'stel',
+      });
+
+      if (action === 'testConnection') {
+        await stelGet('/clients', {});
+        return Response.json({ data: { ok: true, message: 'Conexión correcta con STEL Order' } });
+      }
+
+      if (action === 'listClients') {
+        const data = await stelGet('/clients', {});
+        const list = Array.isArray(data) ? data : (data.clients || data.data || []);
+        return Response.json({ data: list.map(mapClient) });
+      }
+
+      if (action === 'searchProducts') {
+        const { query = '' } = payload;
+        const [prodData, svcData] = await Promise.all([
+          stelGet('/products', {}).catch(() => []),
+          stelGet('/services', {}).catch(() => []),
+        ]);
+        let products = Array.isArray(prodData) ? prodData : (prodData.products || prodData.data || []);
+        let services = Array.isArray(svcData) ? svcData : (svcData.services || svcData.data || []);
+        products = products.map(p => ({ ...p, _type: 'product' }));
+        services = services.map(s => ({ ...s, _type: 'service' }));
+        let list = [...products, ...services];
+        if (query.trim()) {
+          const q = query.toLowerCase();
+          list = list.filter(p => {
+            const name = (p.name || '').toLowerCase();
+            const ref = (p.reference || p['full-reference'] || '').toLowerCase();
+            return name.includes(q) || ref.includes(q);
+          });
+        }
+        return Response.json({ data: list.slice(0, 50).map(p => {
+          const taxPath = p['primary-tax-path'] || '';
+          const taxIdMatch = taxPath.match(/\/taxLines\/(\d+)/);
+          return {
+            id: p.id, type: p._type, name: p.name || '', description: p.description || '',
+            price: p['sales-price'] ?? 0,
+            taxId: p['primary-tax-id'] || (taxIdMatch ? parseInt(taxIdMatch[1]) : null),
+            reference: p['full-reference'] || p.reference || '', source: 'stel',
+          };
+        }) });
+      }
+
+      if (action === 'createAlbaran') {
+        const { clientId, fecha, titulo, lineas, notas } = payload;
+        const fechaISO = fecha && fecha.includes('T') ? fecha : `${fecha}T00:00:00+0000`;
+        const lines = lineas.map(l => ({
+          'line-type': 'ITEM',
+          'item-id': l.productId,
+          description: l.concepto || undefined,
+          units: l.cantidad,
+          quantity: l.cantidad,
+          price: l.precio,
+          'unit-price': l.precio,
+          ...(l.taxId ? { 'primary-tax-id': l.taxId } : {}),
+        }));
+        const stelBody = {
+          'account-id': clientId, date: fechaISO, notes: notas || '', lines,
+        };
+        if (titulo && titulo.trim()) {
+          stelBody.subject = titulo.trim();
+          stelBody.name = titulo.trim();
+        }
+        const albaran = await stelPost('/workDeliveryNotes', stelBody);
+        return Response.json({ data: albaran });
+      }
+
+      return Response.json({ error: 'Acción STEL no válida' }, { status: 400 });
     }
 
     return Response.json({ error: 'entity no válida' }, { status: 400 });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown, ClipboardList } from 'lucide-react';
+import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown, ClipboardList, Plug } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 import BuzonBell from '@/components/buzon/BuzonBell';
@@ -154,6 +154,15 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             <Button variant="ghost" size="sm" className="w-full justify-start text-amber-300 hover:bg-brand-700 h-10 text-sm">
               <Shield className="h-4 w-4 mr-2" />
               Administración
+            </Button>
+          </Link>
+        )}
+
+        {(isGerente || isPlatformAdmin) && (
+          <Link to={createPageUrl('Integraciones')}>
+            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-brand-700 h-10 text-sm">
+              <Plug className="h-4 w-4 mr-2" />
+              Integraciones
             </Button>
           </Link>
         )}

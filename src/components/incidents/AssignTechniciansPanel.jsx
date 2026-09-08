@@ -27,26 +27,6 @@ export default function AssignTechniciansPanel({
     setSelected((incident?.assigned_technicians || []).map(a => a.technician_id));
   }, [incident?.id, incident?.assigned_technicians]);
 
-  if (!canAssign) {
-    // Solo lectura: mostrar asignados
-    const assigned = incident?.assigned_technicians || [];
-    if (assigned.length === 0) return null;
-    return (
-      <div className="rounded-xl border border-slate-200 bg-card p-4">
-        <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
-          <Users className="h-4 w-4 text-brand-600" /> Técnicos asignados
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {assigned.map(a => (
-            <span key={a.technician_id} className="inline-flex items-center gap-1 bg-brand-50 text-brand-700 text-xs px-2.5 py-1 rounded-full border border-brand-200">
-              {a.technician_name}
-            </span>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   const assignMutation = useMutation({
     mutationFn: async (assignedList) => {
       const payload = {
@@ -90,6 +70,26 @@ export default function AssignTechniciansPanel({
     },
     onError: (err) => toast.error('Error al asignar: ' + (err?.message || 'desconocido')),
   });
+
+  if (!canAssign) {
+    // Solo lectura: mostrar asignados
+    const assigned = incident?.assigned_technicians || [];
+    if (assigned.length === 0) return null;
+    return (
+      <div className="rounded-xl border border-slate-200 bg-card p-4">
+        <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <Users className="h-4 w-4 text-brand-600" /> Técnicos asignados
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {assigned.map(a => (
+            <span key={a.technician_id} className="inline-flex items-center gap-1 bg-brand-50 text-brand-700 text-xs px-2.5 py-1 rounded-full border border-brand-200">
+              {a.technician_name}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const toggleTech = (id) => {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);

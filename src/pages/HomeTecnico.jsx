@@ -184,8 +184,6 @@ export default function HomeTecnico() {
     }
   });
 
-  const stelEnabled = appSettings?.integrations?.stel_order?.enabled === true;
-
   // Registro del técnico actual:
   // - Sesión propia (portal de técnico): la ficha llega vía proxy (no hay sesión Base44
   //   para hacer lecturas directas). El proxy valida al técnico con service role.
@@ -635,28 +633,11 @@ export default function HomeTecnico() {
                   </Link>
               )}
 
-                {/* STEL Order — solo si está habilitado */}
-                {stelEnabled &&
-              <Link to="/StelClientes">
-                    <Card className="bg-gradient-to-br from-blue-500/30 to-indigo-500/30 border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm">
-                      <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
-                        <Plug className="h-9 w-9 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-slate-800 text-lg font-semibold">STEL Order</p>
-                        <p className="text-slate-600 text-sm mt-0.5">Clientes y albaranes ERP</p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-400 ml-auto shrink-0" />
-                    </Card>
-                  </Link>
-              }
-
-                {/* Si no hay integraciones activas y STEL está desactivado */}
-                {!stelEnabled && AUTOMATIZACION.length === 0 &&
+                {/* Si no hay integraciones activas */}
+                {AUTOMATIZACION.length === 0 &&
               <div className="col-span-2 text-center py-10 text-slate-400">
-                  <Plug className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No hay integraciones activas.</p>
-                  <p className="text-xs mt-1">Actívalas en Configuración → Integraciones</p>
+                  <Zap className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No hay automatizaciones disponibles.</p>
                 </div>
               }
                 </div>

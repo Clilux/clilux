@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Trash2, Save, FileDown, Send, PenLine, Loader2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, FileDown, Send, PenLine, Loader2, Search, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
@@ -14,7 +16,7 @@ import SignaturePad from './SignaturePad';
 
 const UNIDADES = ['ud', 'h', 'kg', 'm', 'm²', 'm³', 'l', 'mes'];
 
-const lineaVacia = () => ({ descripcion: '', cantidad: 1, unidad: 'ud', precio_unitario: 0, descuento: 0, subtotal: 0 });
+const lineaVacia = () => ({ descripcion: '', cantidad: 1, unidad: 'ud', precio_unitario: 0, descuento: 0, subtotal: 0, stel_product_id: null, stel_tax_id: null });
 
 function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
 
@@ -24,6 +26,47 @@ export default function AlbaranTrabajoForm({
   const isEdit = !!record;
   const [createdId, setCreatedId] = useState(null);
   const isEditView = isEdit || !!createdId;
+
+  // ── STEL Order: clientes y artículos ──
+  const { data: appSettings } = useQuery({
+    queryKey: ['settings', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) { const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'settings' }); return res.data?.data || null; }
+      const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
+      return all[0] || null;
+    },
+  });
+  const stelEnabled = appSettings?.integrations?.stel_order?.enabled === true;
+
+  const { data: stelClients = [] } = useQuery({
+    queryKey: ['stel-clients', effectiveEmail],
+    queryFn: async () => {
+      if (!stelEnabled) return [];
+      if (isSessionTech) { const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'stel_proxy', action: 'listClients' }); return res.data?.data || []; }
+      const res = await base44.functions.invoke('stelProxy', { action: 'listClients', payload: {} });
+      return res.data?.clients || [];
+    },
+    enabled: stelEnabled,
+  });
+
+  // Clientes combinados: locales + STEL
+  const allClients = useMemo(() => {
+    const locals = (clients || []).map(c => ({ ...c, source: 'local' }));
+    const stels = stelClients.map(c => ({ ...c, source: 'stel' }));
+    return [...locals, ...stels];
+  }, [clients, stelClients]);
+
+  const [stelProductSearch, setStelProductSearch] = useState({ open: false, lineIdx: null, query: '' });
+  const { data: stelProducts = [], isFetching: searchingProducts } = useQuery({
+    queryKey: ['stel-products', stelProductSearch.query],
+    queryFn: async () => {
+      if (!stelEnabled || !stelProductSearch.query) return [];
+      if (isSessionTech) { const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'stel_proxy', action: 'searchProducts', payload: { query: stelProductSearch.query } }); return res.data?.data || []; }
+      const res = await base44.functions.invoke('stelProxy', { action: 'searchProducts', payload: { query: stelProductSearch.query } });
+      return res.data?.products || [];
+    },
+    enabled: stelEnabled && stelProductSearch.open && stelProductSearch.query.length >= 2,
+  });
   const [form, setForm] = useState(() => ({
     numero: record?.numero || `ALB-${new Date().getFullYear()}-${String((existingCount || 0) + 1).padStart(4, '0')}`,
     fecha: record?.fecha || format(new Date(), 'yyyy-MM-dd'),
@@ -31,6 +74,8 @@ export default function AlbaranTrabajoForm({
     client_id: record?.client_id || prefill?.client_id || '',
     client_name: record?.client_name || '',
     client_email: record?.client_email || '',
+    client_source: record?.client_source || 'local',
+    stel_client_id: record?.stel_client_id || null,
     obra_id: record?.obra_id || '',
     obra_nombre: record?.obra_nombre || '',
     capitulo: record?.capitulo || '',
@@ -66,12 +111,14 @@ export default function AlbaranTrabajoForm({
   }, [form.lineas]);
 
   const onClientChange = (clientId) => {
-    const c = clients.find(c => c.id === clientId);
+    const c = allClients.find(c => c.id === clientId);
     setForm(p => ({
       ...p,
       client_id: clientId,
       client_name: c?.name || '',
       client_email: c?.email || p.client_email,
+      client_source: c?.source || 'local',
+      stel_client_id: c?.source === 'stel' ? c.id : null,
     }));
   };
 
@@ -89,6 +136,33 @@ export default function AlbaranTrabajoForm({
   const addLinea = () => setForm(p => ({ ...p, lineas: [...p.lineas, lineaVacia()] }));
   const removeLinea = (idx) => setForm(p => ({ ...p, lineas: p.lineas.filter((_, i) => i !== idx) }));
 
+  const cloneToStel = async (savedRecord) => {
+    if (!stelEnabled || form.client_source !== 'stel' || !form.stel_client_id) return null;
+    try {
+      const stelLineas = (savedRecord.lineas || []).map(l => ({
+        productId: l.stel_product_id || null,
+        concepto: l.descripcion,
+        cantidad: l.cantidad,
+        precio: l.precio_unitario,
+        taxId: l.stel_tax_id || null,
+      })).filter(l => l.productId);
+      if (!stelLineas.length) return null;
+      const payload = {
+        clientId: form.stel_client_id, fecha: savedRecord.fecha, titulo: savedRecord.titulo,
+        lineas: stelLineas, notas: savedRecord.notas || '',
+      };
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'stel_proxy', action: 'createAlbaran', payload });
+        return res.data?.data || null;
+      }
+      const res = await base44.functions.invoke('stelProxy', { action: 'createAlbaran', payload });
+      return res.data?.albaran || null;
+    } catch (e) {
+      toast.error('No se pudo clonar el albarán en STEL Order: ' + (e.message || ''));
+      return null;
+    }
+  };
+
   const buildRecord = (extra = {}) => ({
     numero: form.numero,
     fecha: form.fecha,
@@ -96,6 +170,8 @@ export default function AlbaranTrabajoForm({
     client_id: form.client_id,
     client_name: form.client_name,
     client_email: form.client_email,
+    client_source: form.client_source,
+    stel_client_id: form.stel_client_id,
     obra_id: form.obra_id || null,
     obra_nombre: form.obra_nombre,
     capitulo: form.capitulo,
@@ -123,6 +199,14 @@ export default function AlbaranTrabajoForm({
       if (!editing && res?.data?.id) setCreatedId(res.data.id);
       if (res?.data) {
         setForm(p => ({ ...p, ...extra, documento_url: res.data.documento_url || p.documento_url }));
+      }
+      // Clonar a STEL Order si el cliente proviene de STEL
+      if (!editing && form.client_source === 'stel') {
+        toast.info('Clonando albarán en STEL Order...');
+        const stelResult = await cloneToStel(payload);
+        if (stelResult?.id) {
+          toast.success('Albarán clonado en STEL Order');
+        }
       }
       toast.success(editing ? 'Albarán actualizado' : 'Albarán creado');
       return res;
@@ -294,12 +378,19 @@ export default function AlbaranTrabajoForm({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs">Cliente</Label>
-            {clients.length > 0 ? (
+            <Label className="text-xs">Cliente {stelEnabled && <span className="text-blue-500">(local + STEL)</span>}</Label>
+            {allClients.length > 0 ? (
               <Select value={form.client_id} onValueChange={onClientChange}>
                 <SelectTrigger className="mt-1 bg-white"><SelectValue placeholder="Selecciona cliente" /></SelectTrigger>
                 <SelectContent>
-                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {allClients.map(c => (
+                    <SelectItem key={`${c.source}-${c.id}`} value={c.id}>
+                      <span className="flex items-center gap-2">
+                        {c.name}
+                        {c.source === 'stel' && <Badge variant="outline" className="text-[9px] py-0 px-1 text-blue-600 border-blue-300">STEL</Badge>}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -339,10 +430,19 @@ export default function AlbaranTrabajoForm({
                   placeholder="Descripción de la línea"
                   className="flex-1 bg-white"
                 />
+                {stelEnabled && (
+                  <Button size="icon" variant="outline" className="shrink-0 text-blue-600 border-blue-200 hover:bg-blue-50" title="Buscar en STEL Order"
+                    onClick={() => setStelProductSearch({ open: true, lineIdx: idx, query: '' })}>
+                    <Cloud className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button size="icon" variant="ghost" className="text-red-400 hover:text-red-600 shrink-0" onClick={() => removeLinea(idx)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
+              {l.stel_product_id && (
+                <Badge variant="outline" className="text-[9px] py-0 px-1 text-blue-600 border-blue-300 mt-1">STEL: {l.stel_product_ref || 'producto'}</Badge>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
                 <div>
                   <Label className="text-[10px] text-slate-400">Cantidad</Label>
@@ -422,6 +522,54 @@ export default function AlbaranTrabajoForm({
         </Button>
         <Button variant="ghost" onClick={onBack}>Cancelar</Button>
       </div>
+
+      {/* Modal búsqueda productos STEL */}
+      {stelProductSearch.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setStelProductSearch({ open: false, lineIdx: null, query: '' })}>
+          <Card className="p-4 bg-white w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <Search className="h-4 w-4 text-blue-600" />
+              <h3 className="font-semibold text-slate-800 text-sm">Buscar en STEL Order</h3>
+            </div>
+            <Input
+              autoFocus
+              value={stelProductSearch.query}
+              onChange={e => setStelProductSearch(p => ({ ...p, query: e.target.value }))}
+              placeholder="Nombre o referencia del artículo..."
+              className="mb-3"
+            />
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {searchingProducts && <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>}
+              {!searchingProducts && stelProductSearch.query.length >= 2 && stelProducts.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-4">Sin resultados</p>
+              )}
+              {stelProducts.map(p => (
+                <button key={`${p.type}-${p.id}`} type="button"
+                  className="w-full text-left p-2.5 rounded-lg hover:bg-blue-50 border border-slate-100 transition-colors"
+                  onClick={() => {
+                    const idx = stelProductSearch.lineIdx;
+                    updateLinea(idx, 'descripcion', p.name);
+                    updateLinea(idx, 'precio_unitario', p.price || 0);
+                    updateLinea(idx, 'stel_product_id', p.id);
+                    updateLinea(idx, 'stel_tax_id', p.taxId);
+                    updateLinea(idx, 'stel_product_ref', p.reference);
+                    setStelProductSearch({ open: false, lineIdx: null, query: '' });
+                    toast.success(`Producto "${p.name}" añadido`);
+                  }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{p.name}</p>
+                      <p className="text-xs text-slate-400">{p.reference} · {p.type === 'service' ? 'Servicio' : 'Producto'}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700">{(p.price || 0).toFixed(2)}€</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setStelProductSearch({ open: false, lineIdx: null, query: '' })}>Cerrar</Button>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
