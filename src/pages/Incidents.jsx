@@ -8,17 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, LayoutGrid, List as ListIcon } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import IncidentCard from '../components/incidents/IncidentCard';
+import KanbanBoard from '../components/incidents/KanbanBoard';
 import { toast } from 'sonner';
 import PullToRefresh from '@/components/PullToRefresh';
+
+const STATUS_LABELS = {
+  pending: 'Pendiente',
+  in_progress: 'En curso',
+  resolved: 'Resuelto',
+  closed: 'Cerrado',
+};
 
 export default function Incidents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [deleteId, setDeleteId] = useState(null);
+  const [viewMode, setViewMode] = useState('list');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
@@ -81,6 +90,43 @@ export default function Incidents() {
       setDeleteId(null);
     },
     onError: () => toast.error('Error al eliminar la incidencia'),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'incident_update',
+          incident_id: id,
+          updates: { status },
+        });
+        if (res.data?.error) throw new Error(res.data.error);
+        return res.data?.data;
+      }
+      return base44.entities.Incident.update(id, { status });
+    },
+    onMutate: async ({ id, status }) => {
+      // Optimistic update: mover la incidencia al nuevo estado en caché
+      await queryClient.cancelQueries({ queryKey: ['incidents'] });
+      const queryKey = ['incidents', isSessionTech ? 'proxy' : 'direct'];
+      const previous = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, (old = []) =>
+        old.map(i => (i.id === id ? { ...i, status } : i))
+      );
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) {
+        const queryKey = ['incidents', isSessionTech ? 'proxy' : 'direct'];
+        queryClient.setQueryData(queryKey, ctx.previous);
+      }
+      toast.error('No se pudo cambiar el estado: ' + (err.message || ''));
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      toast.success(`Movido a "${STATUS_LABELS[vars.status] || vars.status}"`);
+    },
   });
 
   const { data: equipment = [] } = useQuery({
@@ -153,7 +199,23 @@ export default function Incidents() {
               className="pl-10 bg-card"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            <div className="flex rounded-lg border border-slate-200 bg-card overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                title="Vista de lista"
+              >
+                <ListIcon className="h-4 w-4" /> Lista
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${viewMode === 'kanban' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                title="Vista Kanban"
+              >
+                <LayoutGrid className="h-4 w-4" /> Kanban
+              </button>
+            </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-36 bg-card">
                 <Filter className="h-4 w-4 mr-2" />
@@ -196,6 +258,15 @@ export default function Incidents() {
           <div className="text-center py-12">
             <p className="text-slate-500">No hay incidencias</p>
           </div>
+        ) : viewMode === 'kanban' ? (
+          <KanbanBoard
+            incidents={filteredIncidents}
+            getEquipmentName={getEquipmentName}
+            getBuildingName={getBuildingName}
+            getClientName={getClientName}
+            onDrop={(id, status) => statusMutation.mutate({ id, status })}
+            onDelete={(id) => setDeleteId(id)}
+          />
         ) : (
           <div className="space-y-4">
             {filteredIncidents.map(incident => (
