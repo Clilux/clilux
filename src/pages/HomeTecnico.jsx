@@ -11,8 +11,8 @@ import {
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine, BarChart3,
   Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc,
-  LayoutDashboard, Monitor, ClipboardList
-} from 'lucide-react';
+  LayoutDashboard, Monitor, ClipboardList } from
+'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -25,51 +25,51 @@ import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
-  { id: 'inicio',        label: 'Inicio',        icon: Home },
-  { id: 'calendario',    label: 'Calendario',    icon: Calendar },
-  { id: 'funciones',     label: 'Funciones',     icon: Sparkles },
-  { id: 'automatizacion',label: 'Automatización',icon: Zap },
-  { id: 'estadisticas', label: 'Estadísticas',   icon: BarChart3 },
-];
+{ id: 'inicio', label: 'Inicio', icon: Home },
+{ id: 'calendario', label: 'Calendario', icon: Calendar },
+{ id: 'funciones', label: 'Funciones', icon: Sparkles },
+{ id: 'automatizacion', label: 'Automatización', icon: Zap },
+{ id: 'estadisticas', label: 'Estadísticas', icon: BarChart3 }];
+
 
 // ── Quick actions (sin Nuevo Cliente, Incidencias, Climatización, Loxone) ──
 const FUNCIONES = [
-  { id: '1',  label: 'Escanear',         page: 'ScanEquipmentTech',    icon: ScanLine,  color: 'from-blue-500/30 to-purple-500/30',  iconCls: 'text-blue-300' },
-  { id: '2',  label: 'Leer NFC',         page: 'NfcReader',            icon: Nfc,       color: 'from-teal-500/30 to-cyan-500/30',    iconCls: 'text-teal-300' },
-  { id: '3',  label: 'Formulario Equipos',page: 'EquipmentForm',        icon: FileCheck, color: 'from-cyan-500/30 to-teal-500/30',    iconCls: 'text-cyan-300' },
-  { id: '8',  label: 'Documentación',    page: 'Documentacion',         icon: FileText,  color: 'from-indigo-500/30 to-blue-500/30',  iconCls: 'text-indigo-300' },
-  { id: '10', label: 'Asistencia Virtual',page: 'AIConsulta',           icon: Bot,       color: 'from-purple-500/30 to-pink-500/30',  iconCls: 'text-purple-300' },
-  { id: '12', label: 'Contrato',         page: 'ContratoMantenimiento', icon: FileText,  color: 'from-green-500/30 to-teal-500/30',   iconCls: 'text-green-300' },
-  { id: '13', label: 'Control Horario',  page: 'ControlHorario',        icon: Clock,     color: 'from-blue-500/30 to-cyan-500/30',    iconCls: 'text-blue-300' },
-  { id: '14', label: 'Mis Ausencias',    page: 'GestionAusencias',      icon: Calendar,  color: 'from-purple-500/30 to-violet-500/30',iconCls: 'text-purple-300' },
-  { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',   icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300', gerenteOnly: true },
-  { id: '16', label: 'Control de Obras',   page: 'ControlObras',       icon: HardHat,         color: 'from-orange-500/30 to-amber-500/30',  iconCls: 'text-orange-300' },
-  { id: '17', label: 'Panel Edificios',    page: 'PanelEdificios',     icon: LayoutDashboard, color: 'from-blue-500/30 to-indigo-500/30',   iconCls: 'text-blue-300' },
-  { id: '18', label: 'Equipos',            page: 'Equipment',          icon: Wrench,          color: 'from-slate-500/30 to-gray-500/30',    iconCls: 'text-slate-300' },
-  { id: '19', label: 'Clientes',           page: 'Clients',            icon: Users,           color: 'from-emerald-500/30 to-teal-500/30',  iconCls: 'text-emerald-300' },
-  { id: '20', label: 'Edificios',          page: 'Buildings',          icon: Building2,       color: 'from-cyan-500/30 to-blue-500/30',     iconCls: 'text-cyan-300' },
-  { id: '21', label: 'Incidencias',        page: 'Incidents',           icon: AlertTriangle,   color: 'from-red-500/30 to-rose-500/30',      iconCls: 'text-red-300' },
-  { id: '22', label: 'Kiosko Fichaje',     page: 'KioskoFichaje',       icon: Monitor,         color: 'from-cyan-500/30 to-teal-500/30',     iconCls: 'text-cyan-300' },
-  { id: '23', label: 'Gestión de Trabajo',  page: 'GestionTrabajo',     icon: ClipboardList,   color: 'from-indigo-500/30 to-blue-500/30',    iconCls: 'text-indigo-300' },
-];
+{ id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: ScanLine, color: 'from-blue-500/30 to-purple-500/30', iconCls: 'text-blue-300' },
+{ id: '2', label: 'Leer NFC', page: 'NfcReader', icon: Nfc, color: 'from-teal-500/30 to-cyan-500/30', iconCls: 'text-teal-300' },
+{ id: '3', label: 'Formulario Equipos', page: 'EquipmentForm', icon: FileCheck, color: 'from-cyan-500/30 to-teal-500/30', iconCls: 'text-cyan-300' },
+{ id: '8', label: 'Documentación', page: 'Documentacion', icon: FileText, color: 'from-indigo-500/30 to-blue-500/30', iconCls: 'text-indigo-300' },
+{ id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: Bot, color: 'from-purple-500/30 to-pink-500/30', iconCls: 'text-purple-300' },
+{ id: '12', label: 'Contrato', page: 'ContratoMantenimiento', icon: FileText, color: 'from-green-500/30 to-teal-500/30', iconCls: 'text-green-300' },
+{ id: '13', label: 'Control Horario', page: 'ControlHorario', icon: Clock, color: 'from-blue-500/30 to-cyan-500/30', iconCls: 'text-blue-300' },
+{ id: '14', label: 'Mis Ausencias', page: 'GestionAusencias', icon: Calendar, color: 'from-purple-500/30 to-violet-500/30', iconCls: 'text-purple-300' },
+{ id: '15', label: 'Importar / Exportar', page: 'ImportEquipment', icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300', gerenteOnly: true },
+{ id: '16', label: 'Control de Obras', page: 'ControlObras', icon: HardHat, color: 'from-orange-500/30 to-amber-500/30', iconCls: 'text-orange-300' },
+{ id: '17', label: 'Panel Edificios', page: 'PanelEdificios', icon: LayoutDashboard, color: 'from-blue-500/30 to-indigo-500/30', iconCls: 'text-blue-300' },
+{ id: '18', label: 'Equipos', page: 'Equipment', icon: Wrench, color: 'from-slate-500/30 to-gray-500/30', iconCls: 'text-slate-300' },
+{ id: '19', label: 'Clientes', page: 'Clients', icon: Users, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300' },
+{ id: '20', label: 'Edificios', page: 'Buildings', icon: Building2, color: 'from-cyan-500/30 to-blue-500/30', iconCls: 'text-cyan-300' },
+{ id: '21', label: 'Incidencias', page: 'Incidents', icon: AlertTriangle, color: 'from-red-500/30 to-rose-500/30', iconCls: 'text-red-300' },
+{ id: '22', label: 'Kiosko Fichaje', page: 'KioskoFichaje', icon: Monitor, color: 'from-cyan-500/30 to-teal-500/30', iconCls: 'text-cyan-300' },
+{ id: '23', label: 'Gestión de Trabajo', page: 'GestionTrabajo', icon: ClipboardList, color: 'from-indigo-500/30 to-blue-500/30', iconCls: 'text-indigo-300' }];
+
 
 const AUTOMATIZACION = [
-  { id: 'clim', label: 'Climatización Airzone', page: 'ControlClimatizacion', icon: Wind,        color: 'from-cyan-500/30 to-blue-500/30',   iconCls: 'text-cyan-300',  desc: 'Control Airzone Cloud' },
-  { id: 'lox',  label: 'Control Loxone',        page: 'ControlLoxone',        icon: Zap,         color: 'from-green-500/30 to-emerald-500/30',iconCls: 'text-green-300', desc: 'Miniservers Loxone' },
-];
+{ id: 'clim', label: 'Climatización Airzone', page: 'ControlClimatizacion', icon: Wind, color: 'from-cyan-500/30 to-blue-500/30', iconCls: 'text-cyan-300', desc: 'Control Airzone Cloud' },
+{ id: 'lox', label: 'Control Loxone', page: 'ControlLoxone', icon: Zap, color: 'from-green-500/30 to-emerald-500/30', iconCls: 'text-green-300', desc: 'Miniservers Loxone' }];
+
 
 // ── Mini Calendar (inline month view) ───────────────────────
 function MiniCalendar({ revisions, clients, buildings, equipment }) {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
-  const [year, setYear]   = useState(today.getFullYear());
+  const [year, setYear] = useState(today.getFullYear());
 
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const offset = (firstDay + 6) % 7; // Mon-start
 
   const revsByDay = {};
-  revisions.forEach(r => {
+  revisions.forEach((r) => {
     if (!r.scheduled_date) return;
     const d = parseISO(r.scheduled_date);
     if (d.getMonth() === month && d.getFullYear() === year) {
@@ -79,8 +79,8 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
     }
   });
 
-  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); };
-  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); };
+  const prevMonth = () => {if (month === 0) {setMonth(11);setYear((y) => y - 1);} else setMonth((m) => m - 1);};
+  const nextMonth = () => {if (month === 11) {setMonth(0);setYear((y) => y + 1);} else setMonth((m) => m + 1);};
 
   const monthName = new Date(year, month, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
@@ -94,9 +94,9 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
       </div>
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-2">
-        {['L','M','X','J','V','S','D'].map(d => (
-          <div key={d} className="text-center text-xs text-slate-400 font-medium py-1">{d}</div>
-        ))}
+        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) =>
+        <div key={d} className="text-center text-xs text-slate-400 font-medium py-1">{d}</div>
+        )}
       </div>
       {/* Days */}
       <div className="grid grid-cols-7 gap-1 flex-1">
@@ -105,41 +105,41 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
           const day = i + 1;
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
           const dayRevs = revsByDay[day] || [];
-          const hasPending = dayRevs.some(r => r.status === 'pending');
-          const hasDone   = dayRevs.some(r => r.status === 'completed');
+          const hasPending = dayRevs.some((r) => r.status === 'pending');
+          const hasDone = dayRevs.some((r) => r.status === 'completed');
           return (
             <Link key={day} to={createPageUrl('Calendar')} className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
                 ${isToday ? 'bg-blue-500 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
                 {day}
               </div>
-              {dayRevs.length > 0 && (
-                <div className="flex gap-0.5 mt-0.5">
+              {dayRevs.length > 0 &&
+              <div className="flex gap-0.5 mt-0.5">
                   {hasPending && <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
-                  {hasDone    && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                  {hasDone && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                 </div>
-              )}
-            </Link>
-          );
+              }
+            </Link>);
+
         })}
       </div>
 
       {/* Upcoming list */}
       <div className="mt-4 border-t border-slate-200 pt-3 space-y-2 max-h-48 overflow-y-auto">
         <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-2">Próximas revisiones</p>
-        {revisions
-          .filter(r => r.status === 'pending' && isAfter(parseISO(r.scheduled_date), new Date()))
-          .sort((a,b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
-          .slice(0, 8)
-          .map(rev => {
-            const client = clients.find(c => c.id === rev.client_id);
-            const equip  = equipment.find(e => e.id === rev.equipment_id);
-            return (
-              <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+        {revisions.
+        filter((r) => r.status === 'pending' && isAfter(parseISO(r.scheduled_date), new Date())).
+        sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date)).
+        slice(0, 8).
+        map((rev) => {
+          const client = clients.find((c) => c.id === rev.client_id);
+          const equip = equipment.find((e) => e.id === rev.equipment_id);
+          return (
+            <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                 <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 text-center">
                   <p className="text-blue-600 text-xs font-bold leading-none">
-                    {format(parseISO(rev.scheduled_date), 'dd')}<br/>
+                    {format(parseISO(rev.scheduled_date), 'dd')}<br />
                     <span className="uppercase">{format(parseISO(rev.scheduled_date), 'MMM', { locale: es })}</span>
                   </p>
                 </div>
@@ -147,12 +147,12 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
                   <p className="text-slate-800 text-xs font-medium truncate">{equip?.reference_name || 'Equipo'}</p>
                   <p className="text-slate-500 text-xs truncate">{client?.name}</p>
                 </div>
-              </Link>
-            );
-          })}
+              </Link>);
+
+        })}
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 // ── Main component ───────────────────────────────────────────
@@ -169,7 +169,7 @@ export default function HomeTecnico() {
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
     enabled: !isSessionTech, // Solo si no hay sesión de técnico propio
-    retry: false,
+    retry: false
   });
 
   const { data: appSettings } = useQuery({
@@ -181,7 +181,7 @@ export default function HomeTecnico() {
       }
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || null;
-    },
+    }
   });
 
   const stelEnabled = appSettings?.integrations?.stel_order?.enabled === true;
@@ -197,13 +197,13 @@ export default function HomeTecnico() {
       const techs = await base44.entities.Technician.filter({ email: base44User.email });
       return techs[0] || null;
     },
-    enabled: !isSessionTech && !!base44User?.email,
+    enabled: !isSessionTech && !!base44User?.email
   });
 
   // Sesión de técnico → siempre proxy. Usuario Base44 con ficha de técnico → proxy.
   // El admin de la app (role=admin) ve datos directos aunque tenga ficha de técnico.
   const isPlatformAdmin = !isSessionTech && base44User?.role === 'admin';
-  const useProxy = isSessionTech || (!!myTechRecordDirect && !!base44User?.email && !isPlatformAdmin);
+  const useProxy = isSessionTech || !!myTechRecordDirect && !!base44User?.email && !isPlatformAdmin;
   const effectiveTechEmail = sessionTechEmail || (myTechRecordDirect ? base44User.email : null);
 
   // Helper: carga todo en una sola llamada para evitar rate limit
@@ -217,64 +217,64 @@ export default function HomeTecnico() {
     staleTime: 30000,
     gcTime: 300000,
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true
   });
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients', 'direct'],
     queryFn: () => base44.entities.Client.list('-created_date'),
     enabled: !useProxy,
-    staleTime: 60000,
+    staleTime: 60000
   });
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings', 'direct'],
     queryFn: () => base44.entities.Building.list(),
     enabled: !useProxy,
-    staleTime: 60000,
+    staleTime: 60000
   });
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment', 'direct'],
     queryFn: () => base44.entities.Equipment.list(),
     enabled: !useProxy,
-    staleTime: 60000,
+    staleTime: 60000
   });
   const { data: scheduledRevisions = [] } = useQuery({
     queryKey: ['scheduledRevisions', 'direct'],
     queryFn: () => base44.entities.ScheduledRevision.list(),
     enabled: !useProxy,
-    staleTime: 60000,
+    staleTime: 60000
   });
   const { data: incidents = [] } = useQuery({
     queryKey: ['incidents', 'direct'],
     queryFn: () => base44.entities.Incident.list('-created_date'),
     enabled: !useProxy,
-    staleTime: 60000,
+    staleTime: 60000
   });
 
   // Ficha del técnico actual: vía proxy (sesión de técnico) o directa (usuario Base44)
-  const myTechRecord = isSessionTech ? (proxyData?.tech || null) : myTechRecordDirect;
+  const myTechRecord = isSessionTech ? proxyData?.tech || null : myTechRecordDirect;
   const isGerente = !isPlatformAdmin && !!myTechRecord?.is_admin && !!myTechRecord?.company_id;
   const isAdmin = isGerente || isPlatformAdmin;
   // Para compatibilidad con FichajeRapido que usa currentUser
-  const currentUser = isSessionTech
-    ? { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail }
-    : base44User;
+  const currentUser = isSessionTech ?
+  { email: sessionTechEmail, full_name: myTechRecord?.name || sessionTechEmail } :
+  base44User;
 
   // Datos finales: proxy (gerente/trabajador, aislado por empresa) o direct (admin de la app)
-  const isLoadingData  = useProxy ? proxyLoading : loadingClients;
-  const finalClients   = useProxy ? (proxyData?.clients   ?? []) : (clients   ?? []);
-  const finalBuildings = useProxy ? (proxyData?.buildings ?? []) : (buildings ?? []);
-  const finalEquipment = useProxy ? (proxyData?.equipment ?? []) : (equipment ?? []);
-  const finalRevisions = useProxy ? (proxyData?.revisions ?? []) : (scheduledRevisions ?? []);
-  const finalIncidents = useProxy ? (proxyData?.incidents ?? []) : (incidents ?? []);
+  const isLoadingData = useProxy ? proxyLoading : loadingClients;
+  const finalClients = useProxy ? proxyData?.clients ?? [] : clients ?? [];
+  const finalBuildings = useProxy ? proxyData?.buildings ?? [] : buildings ?? [];
+  const finalEquipment = useProxy ? proxyData?.equipment ?? [] : equipment ?? [];
+  const finalRevisions = useProxy ? proxyData?.revisions ?? [] : scheduledRevisions ?? [];
+  const finalIncidents = useProxy ? proxyData?.incidents ?? [] : incidents ?? [];
 
-  const pendingIncidents = finalIncidents.filter(i => i.status === 'pending' || i.status === 'in_progress');
+  const pendingIncidents = finalIncidents.filter((i) => i.status === 'pending' || i.status === 'in_progress');
   const today = new Date();
   const next30Days = addDays(today, 30);
-  const upcomingRevisions = finalRevisions
-    .filter(sr => sr.status === 'pending')
-    .filter(sr => { const d = parseISO(sr.scheduled_date); return isAfter(d, today) && isBefore(d, next30Days); })
-    .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+  const upcomingRevisions = finalRevisions.
+  filter((sr) => sr.status === 'pending').
+  filter((sr) => {const d = parseISO(sr.scheduled_date);return isAfter(d, today) && isBefore(d, next30Days);}).
+  sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
   // ── Onboarding de primera configuración (gerente nuevo) ──
   const myCompany = proxyData?.company || null;
@@ -315,13 +315,13 @@ export default function HomeTecnico() {
 
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
-      {showOnboarding && (
-        <OnboardingWizard
-          techRecord={myTechRecord}
-          sessionTechEmail={sessionTechEmail}
-          onDismiss={dismissOnboarding}
-        />
-      )}
+      {showOnboarding &&
+      <OnboardingWizard
+        techRecord={myTechRecord}
+        sessionTechEmail={sessionTechEmail}
+        onDismiss={dismissOnboarding} />
+
+      }
       {/* Sidebar */}
       <TechnicianSidebar
         isSessionTech={isSessionTech}
@@ -332,8 +332,8 @@ export default function HomeTecnico() {
         techEmail={sessionTechEmail || base44User?.email}
         company={isSessionTech ? myCompany : null}
         isGerente={isGerente}
-        sessionTechEmail={sessionTechEmail}
-      />
+        sessionTechEmail={sessionTechEmail} />
+      
 
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
@@ -358,17 +358,17 @@ export default function HomeTecnico() {
         {/* Tab bar */}
         <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
           <div className="max-w-7xl mx-auto flex">
-            {TABS.map(tab => {
+            {TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all
                      ${active ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              );
+                </button>);
+
             })}
           </div>
         </div>
@@ -377,20 +377,20 @@ export default function HomeTecnico() {
          <div className="flex-1 w-full p-6 pb-24 md:pb-10 bg-slate-50 overflow-y-auto overflow-x-hidden">
 
           {/* ── INICIO ── */}
-          {activeTab === 'inicio' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {activeTab === 'inicio' &&
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <div className="space-y-5">
               {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
-              {isSessionTech && (
-                <div className="mb-6">
+              {isSessionTech &&
+              <div className="mb-6">
                   <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
                 </div>
-              )}
+              }
 
               {/* Panel de edificios */}
               <div className="mb-4">
                 <Link to={createPageUrl('PanelEdificios')}>
-                  <Card className="bg-gradient-to-r from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md">
+                  <Card className="from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#19b9d2]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
@@ -410,12 +410,12 @@ export default function HomeTecnico() {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Clientes',    value: finalClients.length,     icon: Users,         color: 'bg-blue-500/10 border-blue-200',       iconBg: 'bg-blue-100',    iconCls: 'text-blue-500',    page: 'Clients',   loading: isLoadingData },
-                  { label: 'Edificios',   value: finalBuildings.length,   icon: Building2,     color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings', loading: isLoadingData },
-                  { label: 'Equipos',     value: finalEquipment.length,   icon: Wrench,        color: 'bg-purple-500/10 border-purple-200',   iconBg: 'bg-purple-100',  iconCls: 'text-purple-500',  page: 'Equipment', loading: isLoadingData },
-                  { label: 'Incidencias', value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: isLoadingData },
-                ].map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) => (
-                  <Link key={label} to={createPageUrl(page)}>
+                { label: 'Clientes', value: finalClients.length, icon: Users, color: 'bg-blue-500/10 border-blue-200', iconBg: 'bg-blue-100', iconCls: 'text-blue-500', page: 'Clients', loading: isLoadingData },
+                { label: 'Edificios', value: finalBuildings.length, icon: Building2, color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings', loading: isLoadingData },
+                { label: 'Equipos', value: finalEquipment.length, icon: Wrench, color: 'bg-purple-500/10 border-purple-200', iconBg: 'bg-purple-100', iconCls: 'text-purple-500', page: 'Equipment', loading: isLoadingData },
+                { label: 'Incidencias', value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: isLoadingData }].
+                map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) =>
+                <Link key={label} to={createPageUrl(page)}>
                     <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
                       <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center mb-3`}>
                         <Icon className={`h-7 w-7 ${iconCls}`} />
@@ -424,7 +424,7 @@ export default function HomeTecnico() {
                       <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
                     </Card>
                   </Link>
-                ))}
+                )}
               </div>
 
               {/* Próximas revisiones */}
@@ -440,18 +440,18 @@ export default function HomeTecnico() {
                     </Button>
                   </Link>
                 </div>
-                {upcomingRevisions.length === 0 ? (
-                  <Card className="bg-slate-50 border-slate-200 p-4 text-center">
+                {upcomingRevisions.length === 0 ?
+                <Card className="bg-slate-50 border-slate-200 p-4 text-center">
                     <p className="text-slate-400 text-sm">No hay revisiones próximas</p>
-                  </Card>
-                ) : (
-                  <div className="space-y-2">
-                    {upcomingRevisions.slice(0, 6).map(rev => {
-                      const client = finalClients.find(c => c.id === rev.client_id);
-                      const building = finalBuildings.find(b => b.id === rev.building_id);
-                      const equip = finalEquipment.find(e => e.id === rev.equipment_id);
-                      return (
-                        <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
+                  </Card> :
+
+                <div className="space-y-2">
+                    {upcomingRevisions.slice(0, 6).map((rev) => {
+                    const client = finalClients.find((c) => c.id === rev.client_id);
+                    const building = finalBuildings.find((b) => b.id === rev.building_id);
+                    const equip = finalEquipment.find((e) => e.id === rev.equipment_id);
+                    return (
+                      <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
                           <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -469,23 +469,23 @@ export default function HomeTecnico() {
                               </div>
                             </div>
                           </Card>
-                        </Link>
-                      );
-                    })}
+                        </Link>);
+
+                  })}
                   </div>
-                )}
+                }
               </div>
 
               </div>
               <div className="space-y-5">
               {/* Alertas F-Gas / RSIF — solo admins */}
-              {isAdmin && !isSessionTech && (
-                <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
-              )}
+              {isAdmin && !isSessionTech &&
+              <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
+              }
 
               {/* Incidencias pendientes */}
-              {pendingIncidents.length > 0 && (
-                <div>
+              {pendingIncidents.length > 0 &&
+              <div>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-slate-800 font-semibold flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-red-500" />
@@ -498,10 +498,10 @@ export default function HomeTecnico() {
                     </Link>
                   </div>
                   <div className="space-y-2">
-                    {pendingIncidents.slice(0, 3).map(inc => {
-                      const client = finalClients.find(c => c.id === inc.client_id);
-                      return (
-                        <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
+                    {pendingIncidents.slice(0, 3).map((inc) => {
+                    const client = finalClients.find((c) => c.id === inc.client_id);
+                    return (
+                      <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
                           <Card className="bg-red-50 border-red-200 p-3 hover:bg-red-100 transition-colors cursor-pointer shadow-sm">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -516,12 +516,12 @@ export default function HomeTecnico() {
                               </span>
                             </div>
                           </Card>
-                        </Link>
-                      );
-                    })}
+                        </Link>);
+
+                  })}
                   </div>
                 </div>
-              )}
+              }
 
               {/* Clientes recientes */}
               <div>
@@ -536,19 +536,19 @@ export default function HomeTecnico() {
                     </Button>
                   </Link>
                 </div>
-                {isLoadingData ? (
-                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
-                ) : (
+                {isLoadingData ?
+                <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div> :
+
                 <div className="space-y-2">
-                  {finalClients.slice(0, 5).map(client => (
-                    <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
+                  {finalClients.slice(0, 5).map((client) =>
+                  <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
                       <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 overflow-hidden">
-                              {client.photo_url
-                                ? <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" />
-                                : <Users className="h-4 w-4 text-emerald-600" />}
+                              {client.photo_url ?
+                            <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" /> :
+                            <Users className="h-4 w-4 text-emerald-600" />}
                             </div>
                             <div>
                               <p className="text-slate-800 text-sm font-medium">{client.name}</p>
@@ -559,17 +559,17 @@ export default function HomeTecnico() {
                           </div>
                         </Card>
                       </Link>
-                    ))}
+                  )}
                   </div>
-                )}
+                }
               </div>
             </div>
             </div>
-            )}
+          }
 
             {/* ── CALENDARIO ── */}
-            {activeTab === 'calendario' && (
-            <div className="h-full">
+            {activeTab === 'calendario' &&
+          <div className="h-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-semibold text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
@@ -582,24 +582,24 @@ export default function HomeTecnico() {
                 </Link>
               </div>
               <MiniCalendar
-                revisions={finalRevisions}
-                clients={finalClients}
-                buildings={finalBuildings}
-                equipment={finalEquipment}
-              />
+              revisions={finalRevisions}
+              clients={finalClients}
+              buildings={finalBuildings}
+              equipment={finalEquipment} />
+            
             </div>
-          )}
+          }
 
           {/* ── FUNCIONES ── */}
-          {activeTab === 'funciones' && (
-            <div>
+          {activeTab === 'funciones' &&
+          <div>
               <h2 className="text-slate-800 font-semibold text-lg mb-5 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
                 Funciones
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {FUNCIONES.filter(f => !f.gerenteOnly || isGerente).map(({ id, label, page, icon: Icon, color, iconCls }) => (
-                  <Link key={id} to={createPageUrl(page)}>
+                {FUNCIONES.filter((f) => !f.gerenteOnly || isGerente).map(({ id, label, page, icon: Icon, color, iconCls }) =>
+              <Link key={id} to={createPageUrl(page)}>
                     <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
                         <Icon className={`h-9 w-9 ${iconCls}`} />
@@ -607,21 +607,21 @@ export default function HomeTecnico() {
                       <p className="text-slate-800 text-sm text-center font-semibold leading-tight">{label}</p>
                     </Card>
                   </Link>
-                ))}
+              )}
               </div>
             </div>
-          )}
+          }
 
           {/* ── AUTOMATIZACIÓN ── */}
-          {activeTab === 'automatizacion' && (
-            <div>
+          {activeTab === 'automatizacion' &&
+          <div>
               <h2 className="text-slate-800 font-semibold text-lg mb-5 flex items-center gap-2">
                 <Zap className="h-5 w-5 text-green-600" />
                 Automatización
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {AUTOMATIZACION.map(({ id, label, page, icon: Icon, color, iconCls, desc }) => (
-                  <Link key={id} to={createPageUrl(page)}>
+                {AUTOMATIZACION.map(({ id, label, page, icon: Icon, color, iconCls, desc }) =>
+              <Link key={id} to={createPageUrl(page)}>
                     <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
                         <Icon className={`h-9 w-9 ${iconCls}`} />
@@ -633,11 +633,11 @@ export default function HomeTecnico() {
                       <ChevronRight className="h-5 w-5 text-slate-400 ml-auto shrink-0" />
                     </Card>
                   </Link>
-                ))}
+              )}
 
                 {/* STEL Order — solo si está habilitado */}
-                {stelEnabled && (
-                  <Link to="/StelClientes">
+                {stelEnabled &&
+              <Link to="/StelClientes">
                     <Card className="bg-gradient-to-br from-blue-500/30 to-indigo-500/30 border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm">
                       <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
                         <Plug className="h-9 w-9 text-blue-500" />
@@ -649,31 +649,31 @@ export default function HomeTecnico() {
                       <ChevronRight className="h-5 w-5 text-slate-400 ml-auto shrink-0" />
                     </Card>
                   </Link>
-                )}
+              }
 
                 {/* Si no hay integraciones activas y STEL está desactivado */}
-                {!stelEnabled && AUTOMATIZACION.length === 0 && (
-                <div className="col-span-2 text-center py-10 text-slate-400">
+                {!stelEnabled && AUTOMATIZACION.length === 0 &&
+              <div className="col-span-2 text-center py-10 text-slate-400">
                   <Plug className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">No hay integraciones activas.</p>
                   <p className="text-xs mt-1">Actívalas en Configuración → Integraciones</p>
                 </div>
-                )}
+              }
                 </div>
                 </div>
-                )}
+          }
 
                 {/* ── ESTADÍSTICAS ── */}
-                {activeTab === 'estadisticas' && (
-                <EstadisticasTab
-                incidents={finalIncidents}
-                revisions={finalRevisions}
-                isLoading={isLoadingData}
-                />
-                )}
+                {activeTab === 'estadisticas' &&
+          <EstadisticasTab
+            incidents={finalIncidents}
+            revisions={finalRevisions}
+            isLoading={isLoadingData} />
+
+          }
 
                 </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
