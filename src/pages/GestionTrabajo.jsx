@@ -46,6 +46,7 @@ export default function GestionTrabajo() {
     enabled: !!effEmail,
   });
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || techRecord?.is_admin === true;
+  const hideRates = isSessionTech && !techRecord?.is_admin;
 
   const proxyCall = async (payload) => base44.functions.invoke('getCompanyData', { technician_email: effEmail, ...payload });
 
@@ -161,6 +162,7 @@ export default function GestionTrabajo() {
             isSessionTech={isSessionTech}
             effectiveEmail={effEmail}
             techRecord={techRecord}
+            hideRates={hideRates}
             onBack={() => { setView('list'); setEditing(null); setPrefill(null); window.history.replaceState({}, '', '/GestionTrabajo'); }}
             onSaved={handleSaved}
           />
@@ -201,7 +203,7 @@ export default function GestionTrabajo() {
           ) : (
             <div className="space-y-3">
               {filtered.map(a => (
-                <AlbaranTrabajoCard key={a.id} albaran={a} onEdit={(al) => { setEditing(al); setPrefill(null); setView('form'); }} onDelete={(al) => setDeleteTarget(al)} />
+                <AlbaranTrabajoCard key={a.id} albaran={a} hideRates={hideRates} onEdit={(al) => { setEditing(al); setPrefill(null); setView('form'); }} onDelete={(al) => setDeleteTarget(al)} />
               ))}
             </div>
           )}

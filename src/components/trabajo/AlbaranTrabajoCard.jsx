@@ -13,7 +13,7 @@ const ESTADO = {
   firmado: { label: 'Firmado', color: 'bg-emerald-100 text-emerald-700' },
 };
 
-export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete }) {
+export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete, hideRates }) {
   const navigate = useNavigate();
   const est = ESTADO[albaran.estado] || ESTADO.borrador;
   const fecha = albaran.fecha && isValid(parseISO(albaran.fecha))
@@ -42,7 +42,7 @@ export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete }) {
               <HardHat className="h-3 w-3" />{albaran.obra_nombre}
             </button>
           )}
-          <p className="text-sm font-bold text-slate-800 mt-1">{(albaran.total || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+          {!hideRates && <p className="text-sm font-bold text-slate-800 mt-1">{(albaran.total || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>}
         </div>
         <div className="flex flex-col gap-1 shrink-0">
           <Button size="sm" variant="ghost" className="h-8 text-xs text-blue-600 gap-1" onClick={() => onEdit(albaran)}>

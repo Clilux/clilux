@@ -27,6 +27,9 @@ export default function AlbaranTrabajoForm({
   const [createdId, setCreatedId] = useState(null);
   const isEditView = isEdit || !!createdId;
 
+  // Los técnicos de campo no ven tarifas; los administradores sí.
+  const hideRates = isSessionTech && !techRecord?.is_admin;
+
   // ── STEL Order: clientes y artículos ──
   const { data: appSettings } = useQuery({
     queryKey: ['settings', isSessionTech ? 'proxy' : 'direct'],
@@ -47,6 +50,8 @@ export default function AlbaranTrabajoForm({
       return res.data?.clients || [];
     },
     enabled: stelEnabled,
+    retry: false,
+    // Si STEL falla, los clientes locales siguen disponibles (integración opcional)
   });
 
   // Clientes combinados: locales + STEL
@@ -256,9 +261,11 @@ export default function AlbaranTrabajoForm({
       doc.setFont(undefined, 'bold'); doc.setFontSize(9);
       doc.text('Descripción', 14, y);
       doc.text('Cant.', 120, y);
-      doc.text('Precio', 140, y);
-      doc.text('Dto.%', 160, y);
-      doc.text('Subtotal', 176, y);
+      if (!hideRates) {
+        doc.text('Precio', 140, y);
+        doc.text('Dto.%', 160, y);
+        doc.text('Subtotal', 176, y);
+      }
       y += 4;
       doc.line(14, y, 196, y); y += 5;
       doc.setFont(undefined, 'normal');
@@ -267,19 +274,23 @@ export default function AlbaranTrabajoForm({
         const desc = doc.splitTextToSize(l.descripcion || '', 100);
         doc.text(desc[0] || '', 14, y);
         doc.text(String(l.cantidad || 0), 120, y);
-        doc.text(`${(l.precio_unitario || 0).toFixed(2)}`, 140, y);
-        doc.text(`${(l.descuento || 0)}%`, 160, y);
-        doc.text(`${(l.subtotal || 0).toFixed(2)}€`, 176, y);
+        if (!hideRates) {
+          doc.text(`${(l.precio_unitario || 0).toFixed(2)}`, 140, y);
+          doc.text(`${(l.descuento || 0)}%`, 160, y);
+          doc.text(`${(l.subtotal || 0).toFixed(2)}€`, 176, y);
+        }
         y += 6;
       });
       y += 2; doc.line(14, y, 196, y); y += 6;
-      doc.setFont(undefined, 'bold');
-      doc.text('Base:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`${totales.base.toFixed(2)}€`, 176, y); y += 6;
-      if (totales.descuento_total > 0) {
-        doc.text('Descuento:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`-${totales.descuento_total.toFixed(2)}€`, 176, y); y += 6;
+      if (!hideRates) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Base:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`${totales.base.toFixed(2)}€`, 176, y); y += 6;
+        if (totales.descuento_total > 0) {
+          doc.text('Descuento:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`-${totales.descuento_total.toFixed(2)}€`, 176, y); y += 6;
+        }
+        doc.setFont(undefined, 'bold'); doc.setFontSize(12);
+        doc.text('TOTAL:', 150, y); doc.text(`${totales.total.toFixed(2)}€`, 176, y);
       }
-      doc.setFont(undefined, 'bold'); doc.setFontSize(12);
-      doc.text('TOTAL:', 150, y); doc.text(`${totales.total.toFixed(2)}€`, 176, y);
 
       // Firma
       if (form.firma_url) {
@@ -337,7 +348,7 @@ export default function AlbaranTrabajoForm({
       await base44.integrations.Core.SendEmail({
         to: form.client_email,
         subject: `Albarán ${form.numero} - ${form.titulo}`,
-        body: `Estimado cliente,\n\nLe adjuntamos el enlace a su albarán de trabajo Nº ${form.numero} con título "${form.titulo}" por un importe total de ${totales.total.toFixed(2)}€.\n\nPuede consultarlo en el siguiente enlace:\n${docUrl}\n\nAtentamente.`,
+        body: `Estimado cliente,\n\nLe adjuntamos el enlace a su albarán de trabajo Nº ${form.numero} con título "${form.titulo}".${hideRates ? '' : ` por un importe total de ${totales.total.toFixed(2)}€.`}\n\nPuede consultarlo en el siguiente enlace:\n${docUrl}\n\nAtentamente.`,
       });
       await doSave({ estado: 'enviado', documento_url: docUrl });
       toast.success('Albarán enviado al cliente');
@@ -443,7 +454,7 @@ export default function AlbaranTrabajoForm({
               {l.stel_product_id && (
                 <Badge variant="outline" className="text-[9px] py-0 px-1 text-blue-600 border-blue-300 mt-1">STEL: {l.stel_product_ref || 'producto'}</Badge>
               )}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
+              <div className={`grid gap-2 mt-2 ${hideRates ? 'grid-cols-2 md:grid-cols-2' : 'grid-cols-2 md:grid-cols-5'}`}>
                 <div>
                   <Label className="text-[10px] text-slate-400">Cantidad</Label>
                   <Input type="number" min="0" step="0.01" value={l.cantidad} onChange={e => updateLinea(idx, 'cantidad', parseFloat(e.target.value) || 0)} className="bg-white" />
@@ -457,25 +468,30 @@ export default function AlbaranTrabajoForm({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label className="text-[10px] text-slate-400">Precio €</Label>
-                  <Input type="number" min="0" step="0.01" value={l.precio_unitario} onChange={e => updateLinea(idx, 'precio_unitario', parseFloat(e.target.value) || 0)} className="bg-white" />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-slate-400">Dto. %</Label>
-                  <Input type="number" min="0" max="100" step="0.1" value={l.descuento} onChange={e => updateLinea(idx, 'descuento', parseFloat(e.target.value) || 0)} className="bg-white" />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-slate-400">Subtotal</Label>
-                  <div className="h-9 flex items-center px-3 rounded-md bg-white border border-slate-200 text-sm font-semibold text-slate-700">
-                    {(l.subtotal || 0).toFixed(2)}€
-                  </div>
-                </div>
+                {!hideRates && (
+                  <>
+                    <div>
+                      <Label className="text-[10px] text-slate-400">Precio €</Label>
+                      <Input type="number" min="0" step="0.01" value={l.precio_unitario} onChange={e => updateLinea(idx, 'precio_unitario', parseFloat(e.target.value) || 0)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-slate-400">Dto. %</Label>
+                      <Input type="number" min="0" max="100" step="0.1" value={l.descuento} onChange={e => updateLinea(idx, 'descuento', parseFloat(e.target.value) || 0)} className="bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-slate-400">Subtotal</Label>
+                      <div className="h-9 flex items-center px-3 rounded-md bg-white border border-slate-200 text-sm font-semibold text-slate-700">
+                        {(l.subtotal || 0).toFixed(2)}€
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
         {/* Totales */}
+        {!hideRates && (
         <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col items-end gap-1">
           <div className="flex gap-6 text-sm text-slate-500"><span>Base:</span><span>{totales.base.toFixed(2)}€</span></div>
           {totales.descuento_total > 0 && (
@@ -483,6 +499,7 @@ export default function AlbaranTrabajoForm({
           )}
           <div className="flex gap-6 text-base font-bold text-slate-800"><span>TOTAL:</span><span>{totales.total.toFixed(2)}€</span></div>
         </div>
+        )}
       </Card>
 
       {/* Firma */}
@@ -561,7 +578,7 @@ export default function AlbaranTrabajoForm({
                       <p className="text-sm font-medium text-slate-800">{p.name}</p>
                       <p className="text-xs text-slate-400">{p.reference} · {p.type === 'service' ? 'Servicio' : 'Producto'}</p>
                     </div>
-                    <span className="text-sm font-semibold text-slate-700">{(p.price || 0).toFixed(2)}€</span>
+                    {!hideRates && <span className="text-sm font-semibold text-slate-700">{(p.price || 0).toFixed(2)}€</span>}
                   </div>
                 </button>
               ))}
