@@ -73,6 +73,27 @@ function mapClient(c) {
   };
 }
 
+// STEL Order limita /clients a 100 por defecto (máx 500 con limit). Paginamos.
+async function stelGetAllClients(apiKey, search = '') {
+  const all = [];
+  const seen = new Set();
+  let offset = 0;
+  const limit = 500;
+  for (let i = 0; i < 20; i++) {
+    const params = { limit, offset };
+    if (search) params['legal-name'] = search;
+    const data = await stelGet('/clients', params, apiKey);
+    const list = Array.isArray(data) ? data : (data.clients || data.data || []);
+    let newCount = 0;
+    for (const c of list) {
+      if (c.id && !seen.has(c.id)) { seen.add(c.id); all.push(c); newCount++; }
+    }
+    if (list.length < limit || newCount === 0) break;
+    offset += limit;
+  }
+  return all;
+}
+
 Deno.serve(async (req) => {
   try {
     console.log('[stelProxy] ===== REQUEST START =====');
@@ -98,19 +119,13 @@ Deno.serve(async (req) => {
     // --- CLIENTS ---
     if (action === 'searchClients') {
       const { query = '' } = payload;
-      const params = {};
-      if (query) params['legal-name'] = query;
-      const data = await stelGet('/clients', params, apiKey);
-      const list = Array.isArray(data) ? data : (data.clients || []);
+      const list = await stelGetAllClients(apiKey, query);
       return Response.json({ clients: list.map(mapClient) });
     }
 
     if (action === 'listClients') {
       const { search = '' } = payload;
-      const params = {};
-      if (search) params['legal-name'] = search;
-      const data = await stelGet('/clients', params, apiKey);
-      const list = Array.isArray(data) ? data : (data.clients || data.data || []);
+      const list = await stelGetAllClients(apiKey, search);
       return Response.json({ clients: list.map(mapClient) });
     }
 

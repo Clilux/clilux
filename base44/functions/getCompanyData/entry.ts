@@ -1185,9 +1185,21 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'listClients') {
-        const data = await stelGet('/clients', {});
-        const list = Array.isArray(data) ? data : (data.clients || data.data || []);
-        return Response.json({ data: list.map(mapClient) });
+        // STEL limita a 100 por defecto; paginamos con limit=500 + offset
+        const all = [];
+        const seen = new Set();
+        let offset = 0;
+        for (let p = 0; p < 20; p++) {
+          const data = await stelGet('/clients', { limit: 500, offset });
+          const list = Array.isArray(data) ? data : (data.clients || data.data || []);
+          let newCount = 0;
+          for (const c of list) {
+            if (c.id && !seen.has(c.id)) { seen.add(c.id); all.push(c); newCount++; }
+          }
+          if (list.length < 500 || newCount === 0) break;
+          offset += 500;
+        }
+        return Response.json({ data: all.map(mapClient) });
       }
 
       if (action === 'searchProducts') {

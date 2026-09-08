@@ -92,11 +92,24 @@ export default function AlbaranTrabajoForm({
     fecha_firma: record?.fecha_firma || null,
     documento_url: record?.documento_url || null,
     incident_id: record?.incident_id || prefill?.incident_id || '',
+    stel_albaran_id: record?.stel_albaran_id || null,
   }));
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [signing, setSigning] = useState(false);
+  const [linkingStel, setLinkingStel] = useState(false);
+  const [stelClientPicker, setStelClientPicker] = useState({ open: false, query: '' });
+  const { data: stelSearchClients = [], isFetching: searchingStelClients } = useQuery({
+    queryKey: ['stel-clients-search', stelClientPicker.query],
+    queryFn: async () => {
+      if (!stelEnabled || !stelClientPicker.query) return [];
+      if (isSessionTech) { const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'stel_proxy', action: 'searchClients', payload: { query: stelClientPicker.query } }); return res.data?.data || []; }
+      const res = await base44.functions.invoke('stelProxy', { action: 'searchClients', payload: { query: stelClientPicker.query } });
+      return res.data?.clients || [];
+    },
+    enabled: stelEnabled && stelClientPicker.open && stelClientPicker.query.length >= 2,
+  });
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -141,30 +154,49 @@ export default function AlbaranTrabajoForm({
   const addLinea = () => setForm(p => ({ ...p, lineas: [...p.lineas, lineaVacia()] }));
   const removeLinea = (idx) => setForm(p => ({ ...p, lineas: p.lineas.filter((_, i) => i !== idx) }));
 
-  const cloneToStel = async (savedRecord) => {
-    if (!stelEnabled || form.client_source !== 'stel' || !form.stel_client_id) return null;
+  // Vincular manualmente el albarán a STEL Order (crea el albarán en STEL y guarda el ID)
+  const vincularStel = async (stelClientId) => {
+    const id = record?.id || createdId;
+    if (!id) { toast.error('Guarda el albarán primero antes de vincularlo a STEL Order'); return; }
+    if (!stelClientId) { toast.error('Selecciona un cliente de STEL Order'); return; }
+    setLinkingStel(true);
     try {
-      const stelLineas = (savedRecord.lineas || []).map(l => ({
+      const stelLineas = (totales.lineas || []).map(l => ({
         productId: l.stel_product_id || null,
         concepto: l.descripcion,
         cantidad: l.cantidad,
         precio: l.precio_unitario,
         taxId: l.stel_tax_id || null,
-      })).filter(l => l.productId);
-      if (!stelLineas.length) return null;
+      }));
+      const withProducts = stelLineas.filter(l => l.productId);
+      if (!withProducts.length) {
+        toast.error('Ninguna línea tiene un producto de STEL Order vinculado. Usa el botón de búsqueda STEL en cada línea.');
+        return;
+      }
       const payload = {
-        clientId: form.stel_client_id, fecha: savedRecord.fecha, titulo: savedRecord.titulo,
-        lineas: stelLineas, notas: savedRecord.notas || '',
+        clientId: stelClientId, fecha: form.fecha, titulo: form.titulo,
+        lineas: withProducts, notas: form.notas || '',
       };
+      let stelResult;
       if (isSessionTech) {
         const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'stel_proxy', action: 'createAlbaran', payload });
-        return res.data?.data || null;
+        stelResult = res.data?.data || null;
+      } else {
+        const res = await base44.functions.invoke('stelProxy', { action: 'createAlbaran', payload });
+        stelResult = res.data?.albaran || null;
       }
-      const res = await base44.functions.invoke('stelProxy', { action: 'createAlbaran', payload });
-      return res.data?.albaran || null;
+      if (stelResult?.id) {
+        await doSave({ stel_albaran_id: String(stelResult.id) });
+        setForm(p => ({ ...p, stel_albaran_id: String(stelResult.id), stel_client_id: stelClientId, client_source: 'stel' }));
+        toast.success(`Albarán vinculado a STEL Order (ID: ${stelResult.id})`);
+        setStelClientPicker({ open: false, query: '' });
+      } else {
+        toast.error('STEL Order no devolvió un ID de albarán');
+      }
     } catch (e) {
-      toast.error('No se pudo clonar el albarán en STEL Order: ' + (e.message || ''));
-      return null;
+      toast.error('No se pudo vincular a STEL Order: ' + (e.message || ''));
+    } finally {
+      setLinkingStel(false);
     }
   };
 
@@ -203,15 +235,7 @@ export default function AlbaranTrabajoForm({
       const res = await onSaved(payload, editing, id);
       if (!editing && res?.data?.id) setCreatedId(res.data.id);
       if (res?.data) {
-        setForm(p => ({ ...p, ...extra, documento_url: res.data.documento_url || p.documento_url }));
-      }
-      // Clonar a STEL Order si el cliente proviene de STEL
-      if (!editing && form.client_source === 'stel') {
-        toast.info('Clonando albarán en STEL Order...');
-        const stelResult = await cloneToStel(payload);
-        if (stelResult?.id) {
-          toast.success('Albarán clonado en STEL Order');
-        }
+        setForm(p => ({ ...p, ...extra, documento_url: res.data.documento_url || p.documento_url, stel_albaran_id: res.data.stel_albaran_id || p.stel_albaran_id }));
       }
       toast.success(editing ? 'Albarán actualizado' : 'Albarán creado');
       return res;
@@ -537,6 +561,21 @@ export default function AlbaranTrabajoForm({
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
           Enviar al cliente
         </Button>
+        {stelEnabled && isEditView && (
+          form.stel_albaran_id ? (
+            <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 px-3 py-1.5">
+              <Cloud className="h-3.5 w-3.5 mr-1" />Vinculado STEL #{form.stel_albaran_id}
+            </Badge>
+          ) : (
+            <Button variant="outline" onClick={() => {
+              if (form.stel_client_id) vincularStel(form.stel_client_id);
+              else setStelClientPicker({ open: true, query: '' });
+            }} disabled={linkingStel} className="text-blue-600 border-blue-200 hover:bg-blue-50">
+              {linkingStel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4 mr-1" />}
+              Vincular con STEL Order
+            </Button>
+          )
+        )}
         <Button variant="ghost" onClick={onBack}>Cancelar</Button>
       </div>
 
@@ -584,6 +623,47 @@ export default function AlbaranTrabajoForm({
               ))}
             </div>
             <Button variant="ghost" size="sm" className="mt-2" onClick={() => setStelProductSearch({ open: false, lineIdx: null, query: '' })}>Cerrar</Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal: seleccionar cliente STEL para vincular */}
+      {stelClientPicker.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setStelClientPicker({ open: false, query: '' })}>
+          <Card className="p-4 bg-white w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <Cloud className="h-4 w-4 text-blue-600" />
+              <h3 className="font-semibold text-slate-800 text-sm">Vincular con cliente de STEL Order</h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Busca el cliente en STEL Order para crear el albarán allí.</p>
+            <Input
+              autoFocus
+              value={stelClientPicker.query}
+              onChange={e => setStelClientPicker(p => ({ ...p, query: e.target.value }))}
+              placeholder="Nombre o CIF del cliente en STEL..."
+              className="mb-3"
+            />
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {searchingStelClients && <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>}
+              {!searchingStelClients && stelClientPicker.query.length >= 2 && stelSearchClients.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-4">Sin resultados</p>
+              )}
+              {stelSearchClients.map(c => (
+                <button key={`stel-${c.id}`} type="button"
+                  className="w-full text-left p-2.5 rounded-lg hover:bg-blue-50 border border-slate-100 transition-colors"
+                  onClick={() => vincularStel(String(c.id))}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{c.name || c.tradeName}</p>
+                      {c.fiscalId && <p className="text-xs text-slate-400">CIF: {c.fiscalId}</p>}
+                      {c.email && <p className="text-xs text-slate-400">{c.email}</p>}
+                    </div>
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 text-blue-600 border-blue-300">STEL</Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setStelClientPicker({ open: false, query: '' })}>Cerrar</Button>
           </Card>
         </div>
       )}
