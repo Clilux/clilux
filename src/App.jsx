@@ -27,6 +27,7 @@ import PanelEdificios from './pages/PanelEdificios';
 import NfcReader from './pages/NfcReader';
 import KioskoFichaje from './pages/KioskoFichaje';
 import GestionTrabajo from './pages/GestionTrabajo';
+import Buzon from './pages/Buzon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -109,6 +110,7 @@ const AuthenticatedApp = () => {
       <Route path="/NfcReader" element={<LayoutWrapper currentPageName="NfcReader"><NfcReader /></LayoutWrapper>} />
       <Route path="/KioskoFichaje" element={<PageTransition><KioskoFichaje /></PageTransition>} />
       <Route path="/GestionTrabajo" element={<LayoutWrapper currentPageName="GestionTrabajo"><GestionTrabajo /></LayoutWrapper>} />
+      <Route path="/Buzon" element={<LayoutWrapper currentPageName="Buzon"><Buzon /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </AnimatePresence>

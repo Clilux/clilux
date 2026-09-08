@@ -35,7 +35,8 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
     enabled: !!email,
     refetchInterval: 30000,
   });
-  const noLeidas = notifs.filter(n => !n.leida).length;
+  const noLeidas = notifs.filter(n => !n.leida && !n.archived).length;
+  const visibles = notifs.filter(n => !n.archived);
 
   const abrir = async (n) => {
     if (!n.leida) await marcarNotificacionLeida(email, n.id);
@@ -74,13 +75,16 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
             </button>
           )}
         </div>
+        <button onClick={() => { setOpen(false); navigate('/Buzon'); }} className="w-full text-center text-xs text-brand-600 hover:bg-brand-50 py-2 border-b border-slate-100 transition-colors">
+          Ver todas las notificaciones
+        </button>
         <div className="max-h-80 overflow-y-auto">
-          {notifs.length === 0 ? (
+          {visibles.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-sm">
               <Inbox className="h-8 w-8 mx-auto mb-2 text-slate-300" />
               Sin notificaciones
             </div>
-          ) : notifs.slice(0, 30).map(n => (
+          ) : visibles.slice(0, 30).map(n => (
             <button key={n.id} onClick={() => abrir(n)}
               className={cn('w-full text-left px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors flex gap-2', !n.leida && 'bg-brand-50/40')}>
               <span className={cn('mt-1.5 w-2 h-2 rounded-full shrink-0', n.leida ? 'bg-transparent' : 'bg-brand-500')} />

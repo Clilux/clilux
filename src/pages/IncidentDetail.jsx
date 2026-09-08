@@ -19,6 +19,7 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 import { notificar } from '@/lib/buzon';
+import AssignTechniciansPanel from '@/components/incidents/AssignTechniciansPanel';
 
 const priorityConfig = {
   low: { label: 'Baja', color: 'bg-slate-100 text-slate-700' },
@@ -74,6 +75,16 @@ export default function IncidentDetail() {
       return res.data?.data || null;
     },
     enabled: isSessionTech && !!incidentId,
+  });
+
+  // Técnico actual (sesión propia) para permisos de asignación
+  const { data: sessionTech } = useQuery({
+    queryKey: ['proxy-me', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'me' });
+      return res.data?.data || null;
+    },
+    enabled: isSessionTech,
   });
 
   const { data: incidentDirect, isLoading } = useQuery({
@@ -132,6 +143,29 @@ export default function IncidentDetail() {
   const finalEquipment = isSessionTech ? equipment : equipmentDirect;
   const finalBuilding = isSessionTech ? building : buildingDirect;
   const finalClient = isSessionTech ? client : clientDirect;
+
+  // Lista de técnicos de la empresa (para el selector de asignación)
+  const companyCompanyId = isSessionTech ? null : finalClient?.company_id;
+  const { data: assignTechnicians = [] } = useQuery({
+    queryKey: ['technicians-assign', isSessionTech ? 'proxy' : companyCompanyId],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'technicians' });
+        return res.data?.data || [];
+      }
+      if (!companyCompanyId) return [];
+      return await base44.entities.Technician.filter({ company_id: companyCompanyId });
+    },
+    enabled: isSessionTech || !!companyCompanyId,
+  });
+
+  // Permisos: gerente (is_admin) o administración pueden asignar; técnico asignado puede comentar
+  const canAssign = isSessionTech
+    ? (sessionTech?.is_admin || sessionTech?.worker_type === 'administracion')
+    : (currentUser?.role === 'admin');
+  const currentTechId = sessionTech?.id || null;
+  const isAssigned = !!(incident?.assigned_technicians || []).some(a => a.technician_id === currentTechId);
+  const canComment = canAssign || isAssigned;
 
   // Helper: resolver usuario actual (sesión técnica o Base44)
   const resolveUser = async () => {
@@ -517,6 +551,17 @@ export default function IncidentDetail() {
           )}
         </Card>
 
+        {(canAssign || (incident.assigned_technicians || []).length > 0) && (
+          <AssignTechniciansPanel
+            incident={incident}
+            technicians={assignTechnicians}
+            isSessionTech={isSessionTech}
+            sessionTechEmail={sessionTechEmail}
+            canAssign={canAssign}
+            onAssigned={invalidateIncidentQueries}
+          />
+        )}
+
         {/* Historial de comentarios */}
         {(incident.history && incident.history.length > 0) && (
           <Card className="p-6 bg-white border-0 shadow-sm mb-4">
@@ -524,7 +569,7 @@ export default function IncidentDetail() {
               <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Historial
               </h3>
-              {userRole === 'technician' && (
+              {canAssign && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -567,7 +612,7 @@ export default function IncidentDetail() {
           </Card>
         )}
 
-        {userRole === 'technician' && (
+        {canComment && (
           <>
             {/* Añadir comentario con etiqueta */}
             <Card className="p-6 bg-white border-0 shadow-sm mb-4">

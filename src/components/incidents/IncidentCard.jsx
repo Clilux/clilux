@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, User, Trash2, FileText } from 'lucide-react';
+import { AlertTriangle, Clock, User, Trash2, FileText, Users } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -93,10 +93,17 @@ export default function IncidentCard({ incident, equipmentName, buildingName, sh
             <Clock className="h-3 w-3" />{safeDate(incident.created_date)}
           </span>
         )}
-        {incident.assigned_technician_name && (
-          <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
-            <User className="h-3 w-3" />{incident.assigned_technician_name}
+        {(incident.assigned_technicians && incident.assigned_technicians.length > 0) ? (
+          <span className="inline-flex items-center gap-1 truncate max-w-[160px]">
+            <Users className="h-3 w-3" />
+            {incident.assigned_technicians.map(a => a.technician_name).filter(Boolean).join(', ')}
           </span>
+        ) : (
+          incident.assigned_technician_name && (
+            <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
+              <User className="h-3 w-3" />{incident.assigned_technician_name}
+            </span>
+          )
         )}
       </div>
 

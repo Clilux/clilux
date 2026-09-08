@@ -25,6 +25,20 @@ export async function marcarTodasLeidas(email) {
   } catch {}
 }
 
+export async function archivarNotificacion(email, id, archived = true) {
+  if (!email || !id) return;
+  try {
+    await base44.functions.invoke('buzonNotificaciones', { action: 'archivar', email, id, archived });
+  } catch {}
+}
+
+export async function eliminarNotificacion(email, id) {
+  if (!email || !id) return;
+  try {
+    await base44.functions.invoke('buzonNotificaciones', { action: 'eliminar', email, id });
+  } catch {}
+}
+
 export async function notificar(tipo, datos) {
   try {
     await base44.functions.invoke('buzonNotificaciones', { action: 'notificar', tipo, datos });

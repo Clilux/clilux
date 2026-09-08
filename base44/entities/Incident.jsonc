@@ -64,7 +64,34 @@
     },
     "assigned_technician_id": {
       "type": "string",
-      "description": "ID del t\u00e9cnico asignado"
+      "description": "ID del t\u00e9cnico principal asignado (compatibilidad)"
+    },
+    "assigned_technicians": {
+      "type": "array",
+      "default": [],
+      "description": "Lista actual de t\u00e9cnicos asignados a la incidencia",
+      "items": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "string"
+          },
+          "technician_name": {
+            "type": "string"
+          },
+          "technician_email": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "all_assignees": {
+      "type": "array",
+      "default": [],
+      "description": "IDs de todos los t\u00e9cnicos asignados alguna vez (acumulado, no se vac\u00eda). Determina la visibilidad de la incidencia para cada trabajador.",
+      "items": {
+        "type": "string"
+      }
     },
     "technician_notes": {
       "type": "string",

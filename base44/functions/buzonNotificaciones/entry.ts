@@ -150,6 +150,32 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Archivar / restaurar notificación ─────────────────────────
+    if (action === 'archivar') {
+      if (!emailNorm) return Response.json({ error: 'email requerido' }, { status: 400 });
+      if (!canAccess(emailNorm)) return Response.json({ error: 'No autorizado' }, { status: 403 });
+      if (!body.id) return Response.json({ error: 'id requerido' }, { status: 400 });
+      const items = await base44.asServiceRole.entities.Notificacion.filter({ id: body.id });
+      const n = items[0];
+      if (n && (n.recipient_email || '').trim().toLowerCase() === emailNorm) {
+        await base44.asServiceRole.entities.Notificacion.update(body.id, { archived: !!body.archived });
+      }
+      return Response.json({ success: true });
+    }
+
+    // ── Eliminar notificación (borrado real) ──────────────────────
+    if (action === 'eliminar') {
+      if (!emailNorm) return Response.json({ error: 'email requerido' }, { status: 400 });
+      if (!canAccess(emailNorm)) return Response.json({ error: 'No autorizado' }, { status: 403 });
+      if (!body.id) return Response.json({ error: 'id requerido' }, { status: 400 });
+      const items = await base44.asServiceRole.entities.Notificacion.filter({ id: body.id });
+      const n = items[0];
+      if (n && (n.recipient_email || '').trim().toLowerCase() === emailNorm) {
+        await base44.asServiceRole.entities.Notificacion.delete(body.id);
+      }
+      return Response.json({ success: true });
+    }
+
     return Response.json({ error: 'action no válida' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

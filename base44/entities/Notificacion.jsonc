@@ -21,7 +21,7 @@
     },
     "tipo": {
       "type": "string",
-      "description": "Tipo de evento (vacacion_solicitud, vacacion_resuelta, incidencia_nueva, incidencia_estado, ...)"
+      "description": "Tipo de evento (vacacion_solicitud, vacacion_resuelta, incidencia_nueva, incidencia_estado, incidencia_asignacion, ...)"
     },
     "titulo": {
       "type": "string"
@@ -36,6 +36,11 @@
     "leida": {
       "type": "boolean",
       "default": false
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si la notificaci\u00f3n ha sido archivada por el destinatario"
     },
     "datos": {
       "type": "object",

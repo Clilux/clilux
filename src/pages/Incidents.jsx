@@ -45,6 +45,25 @@ export default function Incidents() {
     refetchOnWindowFocus: true,
   });
 
+  // Técnico actual (sesión propia) para filtrar incidencias asignadas
+  const { data: sessionTech } = useQuery({
+    queryKey: ['proxy-me', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'me' });
+      return res.data?.data || null;
+    },
+    enabled: isSessionTech,
+  });
+
+  // Trabajadores de campo: solo ven incidencias donde alguna vez fueron asignados.
+  // Gerente/administración y admins ven todas las de la empresa.
+  const canSeeAllIncidents = isSessionTech
+    ? (sessionTech?.is_admin || sessionTech?.worker_type === 'administracion')
+    : true;
+  const visibleIncidents = (isSessionTech && !canSeeAllIncidents && sessionTech)
+    ? incidents.filter(i => (i.all_assignees || []).includes(sessionTech.id))
+    : incidents;
+
   // Sincronización en tiempo real
   useEffect(() => {
     if (isSessionTech) return; // proxy mode no soporta subscribe
@@ -110,7 +129,7 @@ export default function Incidents() {
     return clients.find(c => c.id === clientId)?.name || '';
   };
 
-  const filteredIncidents = incidents.filter(incident => {
+  const filteredIncidents = visibleIncidents.filter(incident => {
     const matchesSearch = incident.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           incident.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || incident.status === filterStatus;

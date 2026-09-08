@@ -807,6 +807,73 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Asignar / reasignar técnicos a una incidencia ─────────────
+    // Gerente (is_admin) o administración (worker_type='administracion') pueden asignar.
+    // Recibe: incident_id, assigned (array de {technician_id, technician_name, technician_email})
+    // Acumula all_assignees (nunca se vacía), actualiza assigned_technicians y registra history.
+    if (entity === 'incident_assign') {
+      const canAssign = tech.is_admin || tech.worker_type === 'administracion';
+      if (!canAssign) return Response.json({ error: 'Sin permiso para asignar incidencias' }, { status: 403 });
+      const { incident_id, assigned } = body;
+      if (!incident_id) return Response.json({ error: 'incident_id requerido' }, { status: 400 });
+      if (!Array.isArray(assigned)) return Response.json({ error: 'assigned debe ser un array' }, { status: 400 });
+      const incList = await base44.asServiceRole.entities.Incident.filter({ id: incident_id });
+      const inc = incList[0];
+      if (!inc || !(await assertCompanyClient(inc.client_id))) {
+        return Response.json({ error: 'La incidencia no pertenece a tu empresa' }, { status: 403 });
+      }
+
+      const prevAssigned: any[] = Array.isArray(inc.assigned_technicians) ? inc.assigned_technicians : [];
+      const prevIds = new Set(prevAssigned.map((a: any) => a.technician_id));
+      // Validar que todos los técnicos asignados pertenecen a la empresa
+      const companyTechs = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id });
+      const companyTechIds = new Set(companyTechs.map(t => t.id));
+      const assignedClean = assigned.filter(a => companyTechIds.has(a.technician_id));
+      const newIds = new Set(assignedClean.map(a => a.technician_id));
+      const newlyAdded = assignedClean.filter(a => !prevIds.has(a.technician_id));
+
+      // Acumular all_assignees (nunca se vacía)
+      const allAssignees = Array.from(new Set([
+        ...(Array.isArray(inc.all_assignees) ? inc.all_assignees : []),
+        ...assignedClean.map(a => a.technician_id),
+      ]));
+
+      const historyEntry = {
+        date: new Date().toISOString(),
+        technician: creatorName,
+        label: prevAssigned.length === 0 ? 'asignacion' : 'reasignacion',
+        comment: `Asignación actualizada a: ${assignedClean.map(a => a.technician_name).join(', ') || 'sin asignar'}`,
+      };
+
+      const updates: any = {
+        assigned_technicians: assignedClean,
+        assigned_technician_id: assignedClean[0]?.technician_id || null,
+        all_assignees: allAssignees,
+        history: [...(Array.isArray(inc.history) ? inc.history : []), historyEntry],
+      };
+      const data = await base44.asServiceRole.entities.Incident.update(incident_id, updates);
+
+      // Notificar a los técnicos recién asignados
+      for (const a of newlyAdded) {
+        const e = (a.technician_email || '').trim().toLowerCase();
+        if (!e) continue;
+        await base44.asServiceRole.entities.Notificacion.create({
+          recipient_email: e,
+          recipient_type: 'trabajador',
+          company_id: tech.company_id,
+          tipo: 'incidencia_asignacion',
+          titulo: `Incidencia asignada: ${inc.title || ''}`,
+          mensaje: `${creatorName} te ha asignado la incidencia "${inc.title || ''}".`,
+          link: `/IncidentDetail?id=${incident_id}`,
+          leida: false,
+          archived: false,
+          datos: { incident_id, assigned_by: creatorEmail },
+        });
+      }
+
+      return Response.json({ data });
+    }
+
     // ── Incidencias por equipo ───────────────────────────────────
     if (entity === 'incidents_by_equipment') {
       if (!permisos.ver_incidencias) return deny('ver_incidencias');
