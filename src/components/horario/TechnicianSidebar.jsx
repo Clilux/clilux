@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown, ClipboardList, Plug } from 'lucide-react';
+import { Shield, LogOut, Home, Clock, Calendar, HardHat, User, Wrench, Building2, ChevronDown, ClipboardList, Plug, BookOpen } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 import BuzonBell from '@/components/buzon/BuzonBell';
@@ -16,6 +16,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
     { to: 'Calendar',       label: 'Agenda',           icon: Calendar, sessionOnly: true },
     { to: 'GestionTrabajo', label: 'Gestión de Trabajo', icon: ClipboardList, sessionOnly: true },
     { to: 'ControlObras',   label: 'Obras',            icon: HardHat,  sessionOnly: true },
+    { to: 'LibroRegistroFGas', label: 'Libro F-Gas',   icon: BookOpen, sessionOnly: true },
   ];
 
   const visibleLinks = NAV_LINKS.filter(l => !l.sessionOnly || isSessionTech || isPlatformAdmin);
@@ -54,6 +55,12 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
               <ClipboardList className="h-6 w-6" />
               <span className="text-[10px]">Trabajo</span>
+            </button>
+          </Link>
+          <Link to="/LibroRegistroFGas">
+            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
+              <BookOpen className="h-6 w-6" />
+              <span className="text-[10px]">F-Gas</span>
             </button>
           </Link>
           {techEmail && (

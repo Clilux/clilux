@@ -4,11 +4,15 @@
   "properties": {
     "equipment_id": {
       "type": "string",
-      "description": "ID del equipo"
+      "description": "ID del equipo (opcional para trasvases/eliminaciones sin equipo asociado)"
     },
     "client_id": {
       "type": "string",
-      "description": "ID del cliente"
+      "description": "ID del cliente (opcional para operaciones standalone)"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa para filtrado a nivel de Libro de Registro"
     },
     "fecha_intervencion": {
       "type": "string",
@@ -24,9 +28,11 @@
         "mantenimiento",
         "reparacion",
         "instalacion",
-        "desguace"
+        "desguace",
+        "trasvase",
+        "eliminacion"
       ],
-      "description": "Tipo de intervenci\u00f3n realizada"
+      "description": "Tipo de intervenci\u00f3n: control de fugas, carga, recuperaci\u00f3n, mantenimiento, reparaci\u00f3n, instalaci\u00f3n, desguace, trasvase entre recipientes, eliminaci\u00f3n en gestor autorizado"
     },
     "tecnico_nombre": {
       "type": "string",
@@ -70,6 +76,24 @@
       "type": "number",
       "default": 0,
       "description": "Cantidad de gas recuperado en kg"
+    },
+    "cilindro_origen": {
+      "type": "string",
+      "description": "Identificaci\u00f3n del cilindro/recipientes de origen (para trasvases)"
+    },
+    "cilindro_destino": {
+      "type": "string",
+      "description": "Identificaci\u00f3n del cilindro/recipientes de destino (para trasvases)"
+    },
+    "destino_gas_recuperado": {
+      "type": "string",
+      "enum": [
+        "reciclado",
+        "regenerado",
+        "destruido",
+        "reutilizado"
+      ],
+      "description": "Destino final del gas recuperado: reciclado, regenerado, destruido o reutilizado en otro equipo"
     },
     "control_fugas_resultado": {
       "type": "string",
@@ -125,8 +149,6 @@
     }
   },
   "required": [
-    "equipment_id",
-    "client_id",
     "fecha_intervencion",
     "tipo_intervencion",
     "tecnico_nombre",

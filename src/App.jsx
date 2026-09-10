@@ -29,6 +29,7 @@ import KioskoFichaje from './pages/KioskoFichaje';
 import GestionTrabajo from './pages/GestionTrabajo';
 import Buzon from './pages/Buzon';
 import Integraciones from './pages/Integraciones';
+import LibroRegistroFGas from './pages/LibroRegistroFGas';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -113,6 +114,7 @@ const AuthenticatedApp = () => {
       <Route path="/GestionTrabajo" element={<LayoutWrapper currentPageName="GestionTrabajo"><GestionTrabajo /></LayoutWrapper>} />
       <Route path="/Buzon" element={<LayoutWrapper currentPageName="Buzon"><Buzon /></LayoutWrapper>} />
       <Route path="/Integraciones" element={<LayoutWrapper currentPageName="Integraciones"><Integraciones /></LayoutWrapper>} />
+      <Route path="/LibroRegistroFGas" element={<LayoutWrapper currentPageName="LibroRegistroFGas"><LibroRegistroFGas /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </AnimatePresence>

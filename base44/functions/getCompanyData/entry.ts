@@ -261,6 +261,36 @@ Deno.serve(async (req) => {
       return Response.json({ data: true });
     }
 
+    // ── Libro de Registro de Gases Fluorados (RD 115/2017) ────────
+    if (entity === 'fgas_list') {
+      const all = await base44.asServiceRole.entities.RegistroFGas.list('-fecha_intervencion');
+      const companyIds = await getCompanyClientIds();
+      const data = all.filter(r => (r.client_id && companyIds.has(r.client_id)) || r.company_id === tech.company_id);
+      return Response.json({ data });
+    }
+    if (entity === 'fgas_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.RegistroFGas.create({
+        ...record,
+        tecnico_nombre: record.tecnico_nombre || creatorName,
+        company_id: tech.company_id,
+      });
+      return Response.json({ data });
+    }
+    if (entity === 'fgas_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.RegistroFGas.update(record_id, updates);
+      return Response.json({ data });
+    }
+    if (entity === 'fgas_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      await base44.asServiceRole.entities.RegistroFGas.delete(record_id);
+      return Response.json({ data: true });
+    }
+
     // ── Datos del propio técnico (auto-servicio) ──────────────────
     if (entity === 'me') {
       return Response.json({ data: tech });
