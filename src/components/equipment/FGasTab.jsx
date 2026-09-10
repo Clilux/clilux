@@ -12,70 +12,7 @@ import {
   Plus, Wind, AlertTriangle, CheckCircle2, Clock,
   Droplet, Trash2, Edit, ChevronDown, ChevronUp, Info
 } from 'lucide-react';
-
-// GWP values según Reglamento (UE) 2024/573 – Anexo I (AR4 para HFCs)
-// Para mezclas: PCG calculado por media ponderada (Anexo VI)
-const GWP_TABLE = {
-  // HFC puros – Sección 1 Anexo I
-  'R23':    14800,  // HFC-23 trifluorometano
-  'R32':    675,    // HFC-32 difluorometano
-  'R125':   3500,   // HFC-125 pentafluoretano
-  'R134a':  1430,   // HFC-134a 1,1,1,2-tetrafluoroetano
-  'R143a':  4470,   // HFC-143a 1,1,1-trifluoroetano
-  'R152a':  124,    // HFC-152a 1,1-difluoroetano
-  'R227ea': 3220,   // HFC-227ea heptafluoropropano
-  'R236fa': 9810,   // HFC-236fa hexafluoropropano
-  'R245fa': 1030,   // HFC-245fa pentafluoropropano
-  'R365mfc':794,    // HFC-365mfc pentafluorobutano
-
-  // Mezclas zeótropas – GWP calculado por media ponderada Anexo VI
-  // Fuente: fabricantes (Honeywell, Chemours, Arkema) y Gas Servei
-  'R404A':  3922,   // 44% R125 + 52% R143a + 4% R134a
-  'R407A':  2107,   // 20% R32 + 40% R125 + 40% R134a
-  'R407C':  1774,   // 23% R32 + 25% R125 + 52% R134a
-  'R407F':  1825,   // 30% R32 + 30% R125 + 40% R134a
-  'R407H':  1495,   // 32.5% R32 + 15% R125 + 52.5% R134a
-  'R410A':  2088,   // 50% R32 + 50% R125
-  'R410B':  2229,   // 45% R32 + 55% R125
-  'R417A':  2346,   // 46.6% R125 + 50% R134a + 3.4% R600
-  'R422A':  3143,   // 85.1% R125 + 11.5% R134a + 3.4% R600a
-  'R422D':  2729,   // 65.1% R125 + 31.5% R134a + 3.4% R600a
-  'R427A':  2138,   // 15% R32 + 25% R125 + 10% R143a + 50% R134a
-  'R437A':  1805,   // 19.5% R125 + 78.5% R134a + 1.4% R600 + 0.6% R601
-  'R438A':  2265,   // 8.5% R32 + 45% R125 + 44.2% R134a + 1.7% R600 + 0.6% R601a
-  'R442A':  1888,   // 31% R32 + 31% R125 + 30% R134a + 3% R152a + 5% R1234ze
-  'R448A':  1387,   // 26% R32 + 26% R125 + 20% R134a + 21% R1234ze + 7% R1234yf
-  'R449A':  1397,   // 24.3% R32 + 24.7% R125 + 25.3% R1234yf + 25.7% R134a
-  'R449B':  1412,   // 25.2% R32 + 24.3% R125 + 26.3% R1234yf + 24.2% R134a
-  'R449C':  1396,   // 20% R32 + 28% R125 + 27% R1234yf + 25% R134a
-  'R450A':  601,    // 42% R134a + 58% R1234ze
-  'R452A':  2140,   // 11% R32 + 59% R125 + 30% R1234yf
-  'R452B':  676,    // 67% R32 + 7% R125 + 26% R1234yf
-  'R454A':  239,    // 35% R32 + 65% R1234yf
-  'R454B':  466,    // 68.9% R32 + 31.1% R1234yf
-  'R454C':  148,    // 21.5% R32 + 78.5% R1234yf
-  'R455A':  148,    // 3% R744 + 21.5% R32 + 75.5% R1234yf
-  'R457A':  139,    // 18% R32 + 77.5% R1234yf + 4.5% R152a
-  'R458A':  702,    // 20.5% R32 + 4% R125 + 61.4% R134a + 13.5% R227ea + 0.6% R236fa
-  'R459A':  444,    // 68% R32 + 31% R1234yf + 1% R125
-  'R459B':  544,    // 21% R32 + 69% R1234yf + 10% R125  -- datos Gas Servei
-  'R466A':  733,    // 49% R32 + 11.5% R125 + 39.5% R13I1
-  'R507A':  3985,   // 50% R125 + 50% R143a (azeótropo)
-  'R513A':  631,    // 56% R1234yf + 44% R134a
-
-  // Refrigerantes naturales – GWP por defecto Anexo VI Reg. 2024/573
-  'R290':   0,      // propano (PCG < 1 per Reg.)
-  'R600a':  0,      // isobutano
-  'R600':   0,      // butano
-  'R601':   0,      // pentano
-  'R601a':  0,      // isopentano
-  'R744':   1,      // CO2
-  'R717':   0,      // amoniaco
-  'R170':   0,      // etano (< 1 per Reg.)
-  'R1234yf':0.501,  // HFO-1234yf (Anexo II Reg. 2024/573)
-  'R1234ze':1.37,   // HFO-1234ze (Anexo II Reg. 2024/573)
-  'R1336mzz(Z)': 2.08, // HFO-1336mzz(Z)
-};
+import { getGWP } from '@/lib/refrigerantes';
 
 // Frecuencia de control de fugas según Reglamento (UE) 2024/573 Art. 5 apdo. 6
 // ≥ 5 tCO₂eq → obligatorio control de fugas (Art. 5 apdo. 1)
@@ -134,7 +71,7 @@ export default function FGasTab({ equipment, equipmentId }) {
   const [expandedId, setExpandedId] = useState(null);
 
   // Calcular tCO2eq desde datos del equipo (auto)
-  const gwp = GWP_TABLE[equipment?.refrigerant_type] || equipment?.gwp || 0;
+  const gwp = getGWP(equipment?.refrigerant_type) ?? equipment?.gwp ?? 0;
   const cargaKg = equipment?.refrigerant_charge_kg || 0;
   const tco2eq = (cargaKg * gwp) / 1000;
   const freq = getLeakCheckFrequency(tco2eq);
@@ -157,7 +94,7 @@ export default function FGasTab({ equipment, equipmentId }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      const gwpVal = GWP_TABLE[data.refrigerante_tipo] || equipment?.gwp || 0;
+      const gwpVal = getGWP(data.refrigerante_tipo) ?? equipment?.gwp ?? 0;
       const tco2 = data.carga_total_kg ? (Number(data.carga_total_kg) * gwpVal) / 1000 : tco2eq;
       const freqData = getLeakCheckFrequency(tco2);
       let proxima = null;
