@@ -18,6 +18,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'technician_email requerido' }, { status: 400 });
     }
 
+    // ── Helper: próxima fecha de control de fugas (Art. 5 Reg. UE 2024/573) ──
+    // Replica la lógica de src/lib/fgas-plazos.js para uso backend.
+    const calcLeakCheckDate = (tco2eq: number, hasDetector: boolean, hermetic: boolean, baseDate: string): string | null => {
+      const t = Number(tco2eq) || 0;
+      const umbral = hermetic ? 10 : 5;
+      if (t < umbral) return null;
+      let baseMonths: number;
+      if (t >= 500) baseMonths = 3;
+      else if (t >= 50) baseMonths = 6;
+      else baseMonths = 12;
+      const months = hasDetector ? baseMonths * 2 : baseMonths;
+      const base = new Date(baseDate);
+      if (isNaN(base.getTime())) return null;
+      const next = new Date(base);
+      next.setMonth(base.getMonth() + months);
+      return next.toISOString().split('T')[0];
+    };
+
     // ── Autenticación del llamante ────────────────────────────────
     // Se exige un token de sesión firmado (técnico/cliente) cuya identidad coincida
     // con el technician_email solicitado, o bien un administrador de la plataforma
@@ -276,12 +294,48 @@ Deno.serve(async (req) => {
         tecnico_nombre: record.tecnico_nombre || creatorName,
         company_id: tech.company_id,
       });
+      // Recalcular next_leak_check_date del equipo (salvo fijación manual)
+      if (record.equipment_id) {
+        const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: record.equipment_id });
+        const eq = eqList[0];
+        if (eq && !(eq as any).leak_check_date_manual) {
+          const tco2 = Number((data as any).co2_equivalent_tons) || Number(eq.co2_equivalent_tons) || 0;
+          const baseDate = (data as any).fecha_intervencion || (eq as any).registration_date;
+          const proxima = calcLeakCheckDate(tco2, !!(eq as any).has_leak_detection_system, !!(eq as any).is_hermetically_sealed, baseDate);
+          if (proxima) {
+            await base44.asServiceRole.entities.Equipment.update(record.equipment_id, {
+              next_leak_check_date: proxima,
+              co2_equivalent_tons: tco2,
+              gwp: (data as any).gwp ?? (eq as any).gwp,
+            });
+          }
+        }
+      }
       return Response.json({ data });
     }
     if (entity === 'fgas_update') {
       const { record_id, updates } = body;
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
       const data = await base44.asServiceRole.entities.RegistroFGas.update(record_id, updates);
+      // Recalcular next_leak_check_date del equipo tras edición
+      const recList = await base44.asServiceRole.entities.RegistroFGas.filter({ id: record_id });
+      const rec = recList[0];
+      if (rec?.equipment_id) {
+        const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: rec.equipment_id });
+        const eq = eqList[0];
+        if (eq && !(eq as any).leak_check_date_manual) {
+          const tco2 = Number(rec.co2_equivalent_tons) || Number(eq.co2_equivalent_tons) || 0;
+          const baseDate = rec.fecha_intervencion || (eq as any).registration_date;
+          const proxima = calcLeakCheckDate(tco2, !!(eq as any).has_leak_detection_system, !!(eq as any).is_hermetically_sealed, baseDate);
+          if (proxima) {
+            await base44.asServiceRole.entities.Equipment.update(rec.equipment_id, {
+              next_leak_check_date: proxima,
+              co2_equivalent_tons: tco2,
+              gwp: rec.gwp ?? (eq as any).gwp,
+            });
+          }
+        }
+      }
       return Response.json({ data });
     }
     if (entity === 'fgas_delete') {

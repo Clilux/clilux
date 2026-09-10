@@ -11,11 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Save, Plus, Camera, ArrowLeft, ArrowRight, Upload, Scan } from 'lucide-react';
+import { Loader2, Save, Plus, Camera, ArrowLeft, ArrowRight, Upload, Scan, Wind } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { REFRIGERANTES, gwpDe, tco2eq } from '@/lib/refrigerantes';
+import { calcularPlazoControlFugas, proximaFechaControl } from '@/lib/fgas-plazos';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
 // Campos según RITE-IT3 por tipo de equipo
@@ -270,7 +271,14 @@ export default function EquipmentForm() {
     // Paso 4: Primera revisión
     first_revision_date: new Date().toISOString().split('T')[0],
     last_revision_date: '',
-    starting_period: ''
+    starting_period: '',
+
+    // Cumplimiento F-Gas (Art. 5 Reg. UE 2024/573)
+    has_fluorinated_gas: false,
+    has_leak_detection_system: false,
+    is_hermetically_sealed: false,
+    next_leak_check_date: '',
+    leak_check_date_manual: false
   });
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -324,7 +332,12 @@ export default function EquipmentForm() {
         filter((v, i, a) => a.findIndex((f) => f.field_key === v.field_key) === i),
         first_revision_date: existingEquipment.first_revision_date || new Date().toISOString().split('T')[0],
         last_revision_date: existingEquipment.last_revision_date || '',
-        starting_period: ''
+        starting_period: '',
+        has_fluorinated_gas: existingEquipment.has_fluorinated_gas ?? !!existingEquipment.refrigerant_type,
+        has_leak_detection_system: existingEquipment.has_leak_detection_system || false,
+        is_hermetically_sealed: existingEquipment.is_hermetically_sealed || false,
+        next_leak_check_date: existingEquipment.next_leak_check_date || '',
+        leak_check_date_manual: existingEquipment.leak_check_date_manual || false
       });
     }
   }, [existingEquipment]);
@@ -437,7 +450,35 @@ export default function EquipmentForm() {
     }
   };
 
+  // Cálculo de cumplimiento F-Gas (Art. 5 Reg. UE 2024/573)
+  const computeFgasCompliance = (data) => {
+    const refrigerante = data.technical_data?.tipo_refrigerante;
+    const cargaKg = Number(data.technical_data?.carga_refrigerante) || 0;
+    const gwp = refrigerante ? (gwpDe(refrigerante) ?? null) : null;
+    const tco2 = (gwp != null && cargaKg) ? +(cargaKg * gwp / 1000).toFixed(3) : 0;
+    const plazo = calcularPlazoControlFugas(tco2, data.has_leak_detection_system, data.is_hermetically_sealed);
+    let nextLeak = data.next_leak_check_date;
+    // Auto-calcular próxima fecha salvo que el técnico la haya fijado manualmente
+    if (!data.leak_check_date_manual) {
+      if (plazo.obligatorio && plazo.periodicidadMeses) {
+        const base = data.installation_date || data.registration_date || new Date().toISOString().split('T')[0];
+        nextLeak = proximaFechaControl(base, plazo.periodicidadMeses);
+      } else {
+        nextLeak = '';
+      }
+    }
+    return {
+      has_fluorinated_gas: !!(refrigerante && tco2 >= 5),
+      has_leak_detection_system: !!data.has_leak_detection_system,
+      is_hermetically_sealed: !!data.is_hermetically_sealed,
+      leak_check_date_manual: !!data.leak_check_date_manual,
+      next_leak_check_date: nextLeak,
+      plazo
+    };
+  };
+
   const buildEquipmentPayload = (data) => ({
+    ...computeFgasCompliance(data),
     reference_name: data.reference_name,
     client_id: data.client_id,
     building_id: data.building_id,
@@ -571,6 +612,7 @@ export default function EquipmentForm() {
 
       // Crear equipo
       const equipmentData = {
+        ...computeFgasCompliance(data),
         reference_name: data.reference_name,
         client_id: data.client_id,
         building_id: data.building_id,
@@ -1253,14 +1295,78 @@ export default function EquipmentForm() {
             }
             </div>
 
+            {/* Cumplimiento F-Gas — Art. 5 Reg. (UE) 2024/573 */}
+            {(() => {
+              const refrigerante = formData.technical_data?.tipo_refrigerante;
+              const cargaKg = Number(formData.technical_data?.carga_refrigerante) || 0;
+              const gwpVal = refrigerante ? gwpDe(refrigerante) : undefined;
+              const tco2 = (gwpVal != null && cargaKg) ? +(cargaKg * gwpVal / 1000).toFixed(3) : 0;
+              const plazo = calcularPlazoControlFugas(tco2, formData.has_leak_detection_system, formData.is_hermetically_sealed);
+              if (!refrigerante) return null;
+              return (
+                <div className="mt-6 p-4 rounded-xl border-2 border-[#2F586E]/30 bg-[#2F586E]/5">
+                  <h4 className="text-sm font-bold text-[#2F586E] mb-3 flex items-center gap-2">
+                    <Wind className="h-4 w-4" /> Cumplimiento F-Gas — Reg. (UE) 2024/573
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div className="text-center p-2 rounded-lg bg-white border border-slate-200">
+                      <p className="text-[10px] text-slate-500">GWP</p>
+                      <p className="text-sm font-bold text-slate-800">{gwpVal ?? '—'}</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-white border border-slate-200">
+                      <p className="text-[10px] text-slate-500">Carga</p>
+                      <p className="text-sm font-bold text-slate-800">{cargaKg} kg</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-white border border-slate-200">
+                      <p className="text-[10px] text-slate-500">tCO₂eq</p>
+                      <p className={`text-sm font-bold ${tco2 >= 5 ? 'text-amber-700' : 'text-slate-800'}`}>{tco2.toFixed(3)}</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-white border border-slate-200">
+                      <p className="text-[10px] text-slate-500">Periodicidad</p>
+                      <p className="text-sm font-bold text-[#2F586E]">{plazo.label}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                      <Checkbox
+                        checked={!!formData.has_leak_detection_system}
+                        onCheckedChange={(v) => handleChange('has_leak_detection_system', !!v)} />
+                      <span className="text-xs text-slate-700">Sistema de detección de fugas instalado <span className="text-slate-400">(duplica el plazo)</span></span>
+                    </label>
+                    <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                      <Checkbox
+                        checked={!!formData.is_hermetically_sealed}
+                        onCheckedChange={(v) => handleChange('is_hermetically_sealed', !!v)} />
+                      <span className="text-xs text-slate-700">Equipo sellado herméticamente <span className="text-slate-400">(umbral 10 tCO₂eq)</span></span>
+                    </label>
+                  </div>
+                  {plazo.obligatorio ? (
+                    <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                      <strong>Control de fugas obligatorio:</strong> {plazo.label}. {plazo.sublabel}.
+                      {!formData.leak_check_date_manual && (
+                        <span className="block mt-0.5 text-amber-600">
+                          Se calculará automáticamente la fecha del próximo control al guardar
+                          {formData.installation_date ? ` (base: ${format(new Date(formData.installation_date), 'dd/MM/yyyy')})` : ''}.
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
+                      ✓ {plazo.sublabel}. El equipo no requiere control de fugas obligatorio.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex justify-between mt-6">
               <div>
                 {equipmentId &&
-              <Button onClick={savePartial} variant="outline" className="bg-emerald-50 border-emerald-400 text-emerald-700 hover:bg-emerald-100">
+                <Button onClick={savePartial} variant="outline" className="bg-emerald-50 border-emerald-400 text-emerald-700 hover:bg-emerald-100">
                     <Save className="h-4 w-4 mr-2" />
                     Guardar cambios
                   </Button>
-              }
+                }
               </div>
               <Button onClick={handleNext} disabled={!canProceedStep1} className="bg-blue-700 hover:bg-blue-800 text-white">
                 <ArrowRight className="h-4 w-4 mr-2" />

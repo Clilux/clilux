@@ -32,6 +32,7 @@ import FGasTab from '../components/equipment/FGasTab';
 import LDTab from '../components/equipment/LDTab';
 import LibroRegistroTab from '../components/equipment/LibroRegistroTab';
 import NfcAssignButton from '../components/equipment/NfcAssignButton';
+import CumplimientoTab from '../components/equipment/CumplimientoTab';
 
 import { format, isValid } from 'date-fns';
 
@@ -685,6 +686,7 @@ export default function EquipmentDetail() {
             <TabsList className="flex w-max min-w-full h-auto bg-transparent p-0 gap-0 rounded-none">
               {[
                 { value: 'plan', label: 'Plan Mant.' },
+                { value: 'cumplimiento', label: 'Cumplimiento' },
                 { value: 'revisions', label: 'Revisiones' },
                 { value: 'interventions', label: 'Intervenciones' },
                 { value: 'incidents', label: 'Incidencias' },
@@ -717,7 +719,21 @@ export default function EquipmentDetail() {
                 equipmentId={equipmentId}
                 clientId={finalEquipment.client_id}
                 buildingId={finalEquipment.building_id} />
-              
+
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cumplimiento">
+            <Card className="p-6 bg-white border-0 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#2F586E]" />Cumplimiento Normativo
+              </h3>
+              <CumplimientoTab
+                equipment={finalEquipment}
+                equipmentId={equipmentId}
+                building={finalBuilding}
+                client={finalClient}
+                companyInfo={null} />
             </Card>
           </TabsContent>
 

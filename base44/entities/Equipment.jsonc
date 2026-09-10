@@ -206,6 +206,21 @@
       "type": "number",
       "description": "Toneladas equivalentes de CO2"
     },
+    "has_leak_detection_system": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el equipo dispone de sistema fijo de detecci\u00f3n de fugas (duplica el intervalo de control seg\u00fan Art. 5 Reg. UE 2024/573)"
+    },
+    "is_hermetically_sealed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el equipo es sellado herm\u00e9ticamente (umbral m\u00ednimo 10 tCO\u2082eq en lugar de 5)"
+    },
+    "leak_check_date_manual": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si la fecha del pr\u00f3ximo control de fugas fue fijada manualmente y no debe sobrescribirse en rec\u00e1lculos autom\u00e1ticos"
+    },
     "next_leak_check_date": {
       "type": "string",
       "format": "date"
