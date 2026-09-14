@@ -88,18 +88,24 @@ export default function IncidentForm() {
     enabled: userRole === 'technician',
   });
 
-  const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings', isTechSession],
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
+    queryKey: ['buildings', isTechSession, sessionTechEmail],
     queryFn: () => isTechSession
       ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' }).then(r => r.data?.data || [])
       : base44.entities.Building.list(),
+    enabled: isTechSession || userRole !== null,
+    staleTime: 0,
+    retry: 2,
   });
 
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment', isTechSession],
+  const { data: equipment = [], isLoading: loadingEquipment } = useQuery({
+    queryKey: ['equipment', isTechSession, sessionTechEmail],
     queryFn: () => isTechSession
       ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' }).then(r => r.data?.data || [])
       : base44.entities.Equipment.list(),
+    enabled: isTechSession || userRole !== null,
+    staleTime: 0,
+    retry: 2,
   });
 
   const { data: technicians = [] } = useQuery({
@@ -237,7 +243,7 @@ export default function IncidentForm() {
                   handleChange('equipment_id', '');
                 }}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Seleccionar edificio" />
+                    <SelectValue placeholder={loadingBuildings ? 'Cargando...' : 'Seleccionar edificio'} />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredBuildings.map(b => (
@@ -251,11 +257,11 @@ export default function IncidentForm() {
                 <Label>Equipo (opcional)</Label>
                 <Select value={formData.equipment_id} onValueChange={(v) => handleChange('equipment_id', v)}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Seleccionar equipo" />
+                    <SelectValue placeholder={loadingEquipment ? 'Cargando...' : 'Seleccionar equipo'} />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredEquipment.map(eq => (
-                      <SelectItem key={eq.id} value={eq.id}>{eq.brand} {eq.model} - {eq.location}</SelectItem>
+                      <SelectItem key={eq.id} value={eq.id}>{eq.reference_name || `${eq.brand} ${eq.model}`}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
