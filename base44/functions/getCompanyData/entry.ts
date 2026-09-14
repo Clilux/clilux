@@ -892,6 +892,46 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Crear incidencia (para técnicos de sesión propia) ─────────
+    if (entity === 'incident_create') {
+      if (!permisos.editar_incidencias) return deny('editar_incidencias');
+      const { record, equipment_status } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!record.client_id) return Response.json({ error: 'client_id requerido' }, { status: 400 });
+      if (!(await assertCompanyClient(record.client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
+      const data = await base44.asServiceRole.entities.Incident.create({
+        ...record,
+        reported_by: record.reported_by || creatorEmail,
+        reported_by_name: record.reported_by_name || creatorName,
+        status: record.status || 'pending',
+      });
+      // Actualizar estado del equipo si se solicitó
+      if (equipment_status && record.equipment_id) {
+        await base44.asServiceRole.entities.Equipment.update(record.equipment_id, { status: equipment_status });
+      }
+      // Notificar a gerentes de la empresa
+      const admins = await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id, is_admin: true });
+      for (const a of admins) {
+        const e = (a.email || a.user_email || '').trim().toLowerCase();
+        if (!e) continue;
+        await base44.asServiceRole.entities.Notificacion.create({
+          recipient_email: e,
+          recipient_type: 'gerente',
+          company_id: tech.company_id,
+          tipo: 'incidencia_nueva',
+          titulo: `Nueva incidencia: ${record.title || ''}`,
+          mensaje: `${creatorName} ha reportado la incidencia "${record.title || ''}".`,
+          link: `/IncidentDetail?id=${data.id}`,
+          leida: false,
+          archived: false,
+          datos: { incident_id: data.id, client_id: record.client_id },
+        });
+      }
+      return Response.json({ data });
+    }
+
     // ── Eliminar incidencia (para técnicos de sesión propia) ─────
     if (entity === 'incident_delete') {
       if (!permisos.editar_incidencias) return deny('editar_incidencias');

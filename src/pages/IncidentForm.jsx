@@ -40,60 +40,90 @@ export default function IncidentForm() {
     photos: [],
   });
 
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+
   useEffect(() => {
     const loadUser = async () => {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      
-      const clients = await base44.entities.Client.filter({ user_email: currentUser.email });
-      if (clients.length > 0) {
-        setUserRole('client');
-        setClientData(clients[0]);
-        setFormData(prev => ({
-          ...prev,
-          client_id: clients[0].id,
-          reported_by: currentUser.email,
-          reported_by_name: currentUser.full_name || '',
-        }));
-      } else {
+      // Técnico con sesión propia (proxy getCompanyData) — no usa base44.auth
+      if (sessionTechEmail) {
         setUserRole('technician');
+        try {
+          const meRes = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'me' });
+          const meTech = meRes?.data || meRes?.tech;
+          if (meTech) {
+            setUser(meTech);
+          }
+        } catch { /* ignore */ }
+        return;
       }
+      // Cliente o admin base44
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+        const clients = await base44.entities.Client.filter({ user_email: currentUser.email });
+        if (clients.length > 0) {
+          setUserRole('client');
+          setClientData(clients[0]);
+          setFormData(prev => ({
+            ...prev,
+            client_id: clients[0].id,
+            reported_by: currentUser.email,
+            reported_by_name: currentUser.full_name || '',
+          }));
+        } else {
+          setUserRole('technician');
+        }
+      } catch { /* sin sesión base44 */ }
     };
     loadUser();
   }, []);
 
+  const isTechSession = !!sessionTechEmail;
+
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list(),
+    queryKey: ['clients', isTechSession],
+    queryFn: () => isTechSession
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' }).then(r => r.data || [])
+      : base44.entities.Client.list(),
     enabled: userRole === 'technician',
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list(),
+    queryKey: ['buildings', isTechSession],
+    queryFn: () => isTechSession
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' }).then(r => r.data || [])
+      : base44.entities.Building.list(),
   });
 
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
+    queryKey: ['equipment', isTechSession],
+    queryFn: () => isTechSession
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' }).then(r => r.data || [])
+      : base44.entities.Equipment.list(),
   });
 
   const { data: technicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.filter({ status: 'active' }),
+    queryKey: ['technicians', isTechSession],
+    queryFn: () => isTechSession
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' }).then(r => r.technicians || [])
+      : base44.entities.Technician.filter({ status: 'active' }),
     enabled: userRole === 'technician',
   });
 
   useEffect(() => {
-    if (incidentId) {
-      const loadIncident = async () => {
-        const incidents = await base44.entities.Incident.filter({ id: incidentId });
-        if (incidents.length > 0) {
-          setFormData(incidents[0]);
+    if (!incidentId) return;
+    const loadIncident = async () => {
+      try {
+        if (isTechSession) {
+          const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'incident_detail', incident_id: incidentId });
+          if (res?.data?.incident) setFormData(res.data.incident);
+        } else {
+          const incidents = await base44.entities.Incident.filter({ id: incidentId });
+          if (incidents.length > 0) setFormData(incidents[0]);
         }
-      };
-      loadIncident();
-    }
+      } catch { /* ignore */ }
+    };
+    loadIncident();
   }, [incidentId]);
 
   const filteredBuildings = formData.client_id 
@@ -108,18 +138,31 @@ export default function IncidentForm() {
     mutationFn: async (data) => {
       const { equipment_status, ...incidentData } = data;
       let result;
-      if (isEditing) {
-        result = await base44.entities.Incident.update(incidentId, incidentData);
+      if (isTechSession) {
+        if (isEditing) {
+          result = (await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'incident_update', incident_id: incidentId, updates: incidentData,
+          })).data;
+        } else {
+          result = (await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'incident_create',
+            record: { ...incidentData, reported_by: user?.email || sessionTechEmail, reported_by_name: user?.name || user?.full_name || '' },
+            equipment_status,
+          })).data;
+        }
       } else {
-        result = await base44.entities.Incident.create({
-          ...incidentData,
-          reported_by: user?.email,
-          reported_by_name: user?.full_name || '',
-        });
-      }
-      // Actualizar estado del equipo si se seleccionó uno
-      if (equipment_status && incidentData.equipment_id) {
-        await base44.entities.Equipment.update(incidentData.equipment_id, { status: equipment_status });
+        if (isEditing) {
+          result = await base44.entities.Incident.update(incidentId, incidentData);
+        } else {
+          result = await base44.entities.Incident.create({
+            ...incidentData,
+            reported_by: user?.email,
+            reported_by_name: user?.full_name || '',
+          });
+        }
+        if (equipment_status && incidentData.equipment_id) {
+          await base44.entities.Equipment.update(incidentData.equipment_id, { status: equipment_status });
+        }
       }
       return result;
     },
