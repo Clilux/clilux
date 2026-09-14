@@ -49,7 +49,7 @@ export default function IncidentForm() {
         setUserRole('technician');
         try {
           const meRes = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'me' });
-          const meTech = meRes?.data || meRes?.tech;
+          const meTech = meRes?.data?.data || meRes?.data;
           if (meTech) {
             setUser(meTech);
           }
@@ -83,7 +83,7 @@ export default function IncidentForm() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients', isTechSession],
     queryFn: () => isTechSession
-      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' }).then(r => r.data || [])
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'clients' }).then(r => r.data?.data || [])
       : base44.entities.Client.list(),
     enabled: userRole === 'technician',
   });
@@ -91,21 +91,21 @@ export default function IncidentForm() {
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings', isTechSession],
     queryFn: () => isTechSession
-      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' }).then(r => r.data || [])
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' }).then(r => r.data?.data || [])
       : base44.entities.Building.list(),
   });
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment', isTechSession],
     queryFn: () => isTechSession
-      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' }).then(r => r.data || [])
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' }).then(r => r.data?.data || [])
       : base44.entities.Equipment.list(),
   });
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians', isTechSession],
     queryFn: () => isTechSession
-      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' }).then(r => r.technicians || [])
+      ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' }).then(r => r.data?.technicians || [])
       : base44.entities.Technician.filter({ status: 'active' }),
     enabled: userRole === 'technician',
   });
@@ -116,7 +116,8 @@ export default function IncidentForm() {
       try {
         if (isTechSession) {
           const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'incident_detail', incident_id: incidentId });
-          if (res?.data?.incident) setFormData(res.data.incident);
+          const inc = res?.data?.data?.incident || res?.data?.incident;
+          if (inc) setFormData(inc);
         } else {
           const incidents = await base44.entities.Incident.filter({ id: incidentId });
           if (incidents.length > 0) setFormData(incidents[0]);
@@ -142,13 +143,13 @@ export default function IncidentForm() {
         if (isEditing) {
           result = (await base44.functions.invoke('getCompanyData', {
             technician_email: sessionTechEmail, entity: 'incident_update', incident_id: incidentId, updates: incidentData,
-          })).data;
+          })).data?.data;
         } else {
           result = (await base44.functions.invoke('getCompanyData', {
             technician_email: sessionTechEmail, entity: 'incident_create',
             record: { ...incidentData, reported_by: user?.email || sessionTechEmail, reported_by_name: user?.name || user?.full_name || '' },
             equipment_status,
-          })).data;
+          })).data?.data;
         }
       } else {
         if (isEditing) {
