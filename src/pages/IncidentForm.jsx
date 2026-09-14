@@ -93,9 +93,6 @@ export default function IncidentForm() {
     queryFn: () => isTechSession
       ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'buildings' }).then(r => r.data?.data || [])
       : base44.entities.Building.list(),
-    enabled: isTechSession || userRole !== null,
-    staleTime: 0,
-    retry: 2,
   });
 
   const { data: equipment = [], isLoading: loadingEquipment } = useQuery({
@@ -103,9 +100,6 @@ export default function IncidentForm() {
     queryFn: () => isTechSession
       ? base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'equipment' }).then(r => r.data?.data || [])
       : base44.entities.Equipment.list(),
-    enabled: isTechSession || userRole !== null,
-    staleTime: 0,
-    retry: 2,
   });
 
   const { data: technicians = [] } = useQuery({
