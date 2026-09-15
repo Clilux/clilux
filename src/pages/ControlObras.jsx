@@ -51,29 +51,45 @@ export default function ControlObras() {
 
   const effectiveEmail = sessionTechEmail || base44User?.email;
 
+  // Sesión de técnico: cargar su ficha vía proxy (bypass RLS)
+  const { data: myTechRecord } = useQuery({
+    queryKey: ['tech-me', sessionTechEmail],
+    queryFn: () => base44.functions.invoke('getCompanyData', {
+      technician_email: sessionTechEmail, entity: 'me',
+    }).then(r => r.data?.data || null),
+    enabled: isSessionTech,
+  });
+
+  // Lista de técnicos solo para admin de plataforma (encontrar ficha por email)
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list(),
+    enabled: !isSessionTech,
   });
 
-  const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
+  const adminTechRecord = !isSessionTech ? technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail) : null;
   const isPlatformAdmin = !isSessionTech && base44User?.role === 'admin';
-  const isGerente = !!myTechRecord?.is_admin;
+  const isGerente = !!(myTechRecord?.is_admin || adminTechRecord?.is_admin);
   const isAdmin = isPlatformAdmin || isGerente;
 
+  // Helper para queries: proxy si técnico, directo si admin
+  const proxyList = (entity) => base44.functions.invoke('getCompanyData', {
+    technician_email: sessionTechEmail, entity,
+  }).then(r => r.data?.data || []);
+
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list('-created_date'),
+    queryKey: ['clients', isSessionTech ? 'tech' : 'admin'],
+    queryFn: () => isSessionTech ? proxyList('clients') : base44.entities.Client.list('-created_date'),
   });
 
   const { data: buildings = [] } = useQuery({
-    queryKey: ['buildings'],
-    queryFn: () => base44.entities.Building.list(),
+    queryKey: ['buildings', isSessionTech ? 'tech' : 'admin'],
+    queryFn: () => isSessionTech ? proxyList('buildings') : base44.entities.Building.list(),
   });
 
   const { data: obras = [], isLoading } = useQuery({
-    queryKey: ['obras'],
-    queryFn: () => base44.entities.Obra.list('-created_date'),
+    queryKey: ['obras', isSessionTech ? 'tech' : 'admin'],
+    queryFn: () => isSessionTech ? proxyList('obras') : base44.entities.Obra.list('-created_date'),
   });
 
   const filteredBuildings = buildings.filter(b => b.client_id === newObra.client_id);
@@ -90,37 +106,59 @@ export default function ControlObras() {
       let buildingId = newObra.building_id;
       let buildingName = buildings.find(b => b.id === buildingId)?.name || '';
 
-      if (newObra.building_nueva && newObra.nuevo_building_nombre && newObra.client_id) {
-        const nb = await base44.entities.Building.create({
-          client_id: newObra.client_id,
-          name: newObra.nuevo_building_nombre,
-          address: newObra.building_address || '',
-          status: 'active',
-        });
-        buildingId = nb.id;
-        buildingName = nb.name;
-      }
-
-      const client = clients.find(c => c.id === newObra.client_id);
-      await base44.entities.Obra.create({
+      const techRecord = myTechRecord || adminTechRecord;
+      const baseRecord = {
         nombre: newObra.nombre,
         descripcion: newObra.descripcion,
         estado: newObra.estado,
         client_id: newObra.client_id,
-        client_name: client?.name || '',
+        client_name: clients.find(c => c.id === newObra.client_id)?.name || '',
         building_id: buildingId,
         building_name: buildingName,
         building_address: newObra.building_address,
         fecha_inicio: newObra.fecha_inicio,
         fecha_fin_prevista: newObra.fecha_fin_prevista || null,
         presupuesto_inicial: parseFloat(newObra.presupuesto_inicial) || 0,
-        responsable_nombre: newObra.responsable_nombre || myTechRecord?.name || '',
-        responsable_id: myTechRecord?.id || '',
-        company_id: myTechRecord?.company_id || '',
+        responsable_nombre: newObra.responsable_nombre || techRecord?.name || '',
+        responsable_id: techRecord?.id || '',
+        company_id: techRecord?.company_id || '',
         notas: newObra.notas,
         facturas: [], documentos: [], fotos: [],
         costo_trabajadores: 0, costo_materiales: 0, total_facturado: 0,
-      });
+      };
+
+      if (isSessionTech) {
+        // Edificio nuevo vía proxy
+        if (newObra.building_nueva && newObra.nuevo_building_nombre && newObra.client_id) {
+          const nbRes = await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'building_create',
+            record: {
+              client_id: newObra.client_id,
+              name: newObra.nuevo_building_nombre,
+              address: newObra.building_address || '',
+              status: 'active',
+            },
+          });
+          const nb = nbRes.data?.data;
+          if (nb) { buildingId = nb.id; buildingName = nb.name; baseRecord.building_id = buildingId; baseRecord.building_name = buildingName; }
+        }
+        // Obra vía proxy
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'obra_create', record: baseRecord,
+        });
+      } else {
+        if (newObra.building_nueva && newObra.nuevo_building_nombre && newObra.client_id) {
+          const nb = await base44.entities.Building.create({
+            client_id: newObra.client_id,
+            name: newObra.nuevo_building_nombre,
+            address: newObra.building_address || '',
+            status: 'active',
+          });
+          baseRecord.building_id = nb.id;
+          baseRecord.building_name = nb.name;
+        }
+        await base44.entities.Obra.create(baseRecord);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
@@ -333,7 +371,7 @@ export default function ControlObras() {
             <div>
               <Label>Responsable</Label>
               <Input value={newObra.responsable_nombre} onChange={e => setNewObra(p => ({ ...p, responsable_nombre: e.target.value }))}
-                placeholder={myTechRecord?.name || 'Nombre del responsable'} className="mt-1" />
+                placeholder={(myTechRecord || adminTechRecord)?.name || 'Nombre del responsable'} className="mt-1" />
             </div>
             <div>
               <Label>Descripción / Notas</Label>

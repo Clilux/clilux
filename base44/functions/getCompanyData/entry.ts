@@ -239,6 +239,45 @@ Deno.serve(async (req) => {
       const all = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
       return Response.json({ data: all.find(o => o.id === obra_id) || null });
     }
+    if (entity === 'obra_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.Obra.create({
+        ...record,
+        company_id: tech.company_id,
+        responsable_nombre: record.responsable_nombre || creatorName,
+        responsable_id: record.responsable_id || creatorId,
+      });
+      return Response.json({ data });
+    }
+    if (entity === 'obra_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.Obra.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      const data = await base44.asServiceRole.entities.Obra.update(record_id, updates);
+      return Response.json({ data });
+    }
+    if (entity === 'obra_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.Obra.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      await base44.asServiceRole.entities.Obra.delete(record_id);
+      return Response.json({ data: true });
+    }
+    if (entity === 'building_create') {
+      const { record } = body;
+      if (!record || !record.client_id) return Response.json({ error: 'record y client_id requeridos' }, { status: 400 });
+      const allowed = await assertCompanyClient(record.client_id);
+      if (!allowed) return Response.json({ error: 'Cliente fuera de tu empresa' }, { status: 403 });
+      const data = await base44.asServiceRole.entities.Building.create({
+        ...record,
+        status: record.status || 'active',
+        created_by_name: record.created_by_name || creatorName,
+      });
+      return Response.json({ data });
+    }
 
     // ── Albaranes de trabajo (gestión comercial) ──────────────────
     if (entity === 'albaran_trabajo_list') {
