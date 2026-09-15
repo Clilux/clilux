@@ -12,7 +12,7 @@ import {
   Plus, Wind, AlertTriangle, CheckCircle2, Clock,
   Droplet, Trash2, Edit, ChevronDown, ChevronUp, Info
 } from 'lucide-react';
-import { getGWP } from '@/lib/refrigerantes';
+import { getGWP, GWP_TABLE } from '@/lib/refrigerantes';
 
 // Frecuencia de control de fugas según Reglamento (UE) 2024/573 Art. 5 apdo. 6
 // ≥ 5 tCO₂eq → obligatorio control de fugas (Art. 5 apdo. 1)
