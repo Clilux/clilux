@@ -24,6 +24,22 @@ export default function ClientForm() {
   const isEditing = !!clientId;
   const { technician, user } = useCurrentTechnician();
 
+  // Sesión de técnico (portal propio, sin sesión Base44)
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  // Cargar ficha del técnico vía proxy cuando es sesión propia
+  const { data: sessionTech } = useQuery({
+    queryKey: ['tech-me', sessionTechEmail],
+    queryFn: () => base44.functions.invoke('getCompanyData', {
+      technician_email: sessionTechEmail, entity: 'me',
+    }).then(r => r.data?.data || null),
+    enabled: isSessionTech,
+  });
+
+  // Técnico efectivo: el de sesión (proxy) o el de Base44
+  const effectiveTech = isSessionTech ? sessionTech : technician;
+
   const [formData, setFormData] = useState({
     name: '',
     cif: '',
@@ -43,14 +59,23 @@ export default function ClientForm() {
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'settings',
+        });
+        return res.data?.data || null;
+      }
       const all = await base44.entities.AppSettings.filter({ setting_key: 'main' });
       return all[0] || null;
     },
   });
 
+  // Lista de empresas: solo para admin de plataforma (los técnicos de sesión
+  // propia no la necesitan, su empresa se toma del perfil del técnico)
   const { data: companies = [] } = useQuery({
     queryKey: ['companies'],
     queryFn: () => base44.entities.Company.list(),
+    enabled: !isSessionTech,
   });
 
   const customFields = settings?.client_fields || [];
@@ -59,32 +84,65 @@ export default function ClientForm() {
   const [isInviting, setIsInviting] = useState(false);
 
   useEffect(() => {
-    if (clientId) {
-      const loadClient = async () => {
-        const clients = await base44.entities.Client.filter({ id: clientId });
-        if (clients.length > 0) {
-          setFormData(clients[0]);
+    if (!clientId) return;
+    const loadClient = async () => {
+      try {
+        if (isSessionTech) {
+          const res = await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'client_get',
+            client_id: clientId,
+          });
+          if (res.data?.data) setFormData(res.data.data);
+        } else {
+          const clients = await base44.entities.Client.filter({ id: clientId });
+          if (clients.length > 0) setFormData(clients[0]);
         }
-      };
-      loadClient();
-    }
-  }, [clientId]);
+      } catch (e) { /* ignore */ }
+    };
+    loadClient();
+  }, [clientId, isSessionTech, sessionTechEmail]);
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      const assignedEmail = data.assigned_technician || (isSessionTech ? sessionTechEmail : user?.email);
+      const assignedName = data.assigned_technician_name || effectiveTech?.name || user?.full_name;
+      const companyId = data.company_id || effectiveTech?.company_id || '';
+      if (isSessionTech) {
+        // Sesión de técnico: crear/actualizar vía proxy
+        if (isEditing) {
+          const res = await base44.functions.invoke('getCompanyData', {
+            technician_email: sessionTechEmail, entity: 'client_update',
+            record_id: clientId,
+            updates: { ...data, assigned_technician: assignedEmail, assigned_technician_name: assignedName },
+          });
+          return res.data?.data;
+        }
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'client_create',
+          record: {
+            ...data,
+            created_by_name: effectiveTech?.name || assignedName,
+            assigned_technician: assignedEmail,
+            assigned_technician_name: assignedName,
+            company_id: companyId,
+          },
+        });
+        return res.data?.data;
+      }
+      // Admin de plataforma: acceso directo
       if (isEditing) {
         return base44.entities.Client.update(clientId, {
           ...data,
-          assigned_technician: data.assigned_technician || user?.email,
-          assigned_technician_name: data.assigned_technician_name || technician?.name || user?.full_name,
+          assigned_technician: assignedEmail,
+          assigned_technician_name: assignedName,
         });
       }
       return base44.entities.Client.create({
         ...data,
-        created_by_name: technician?.name || user?.full_name || user?.email,
-        assigned_technician: data.assigned_technician || user?.email,
-        assigned_technician_name: data.assigned_technician_name || technician?.name || user?.full_name,
-        company_id: data.company_id || technician?.company_id || '',
+        created_by_name: effectiveTech?.name || user?.full_name || user?.email,
+        assigned_technician: assignedEmail,
+        assigned_technician_name: assignedName,
+        company_id: companyId,
       });
     },
     onSuccess: () => {
@@ -99,7 +157,7 @@ export default function ClientForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!technician?.company_id && !formData.company_id) {
+    if (!effectiveTech?.company_id && !formData.company_id) {
       toast.error('Selecciona la empresa a la que pertenece el cliente');
       return;
     }
@@ -110,9 +168,15 @@ export default function ClientForm() {
     if (!inviteEmail) return;
     setIsInviting(true);
     try {
-      await base44.users.inviteUser(inviteEmail, 'user');
-      // Vincular el email al cliente
-      await base44.entities.Client.update(clientId, { user_email: inviteEmail });
+      if (isSessionTech) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'client_update',
+          record_id: clientId, updates: { user_email: inviteEmail.trim().toLowerCase() },
+        });
+      } else {
+        await base44.users.inviteUser(inviteEmail, 'user');
+        await base44.entities.Client.update(clientId, { user_email: inviteEmail });
+      }
       toast.success('Invitación enviada al cliente');
       setInviteEmail('');
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -151,7 +215,7 @@ export default function ClientForm() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {!technician?.company_id && (
+              {!effectiveTech?.company_id && !isSessionTech && (
                 <div className="md:col-span-2">
                   <Label htmlFor="company_id">Empresa *</Label>
                   <Select value={formData.company_id} onValueChange={(v) => handleChange('company_id', v)}>

@@ -177,6 +177,26 @@ Deno.serve(async (req) => {
       _companyClientIds = null;
       return Response.json({ data });
     }
+    // ── Obtener un cliente por id (dentro de la empresa) ──────────
+    if (entity === 'client_get') {
+      const { client_id } = body;
+      if (!client_id) return Response.json({ data: null });
+      if (!(await assertCompanyClient(client_id))) return Response.json({ error: 'Cliente fuera de tu empresa' }, { status: 403 });
+      const list = await base44.asServiceRole.entities.Client.filter({ id: client_id });
+      return Response.json({ data: list[0] || null });
+    }
+    // ── Actualizar cliente (solo gerente, dentro de la empresa) ───
+    if (entity === 'client_update') {
+      if (!tech.is_admin) return deny('admin');
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      if (!(await assertCompanyClient(record_id))) return Response.json({ error: 'Cliente fuera de tu empresa' }, { status: 403 });
+      // No permitir cambiar company_id desde el proxy
+      const safe = { ...updates };
+      delete safe.company_id;
+      const data = await base44.asServiceRole.entities.Client.update(record_id, safe);
+      return Response.json({ data });
+    }
 
     if (entity === 'buildings') {
       if (!permisos.ver_edificios) return deny('ver_edificios');
