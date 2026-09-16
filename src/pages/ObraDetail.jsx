@@ -78,8 +78,15 @@ export default function ObraDetail() {
   });
 
   const { data: albaranes = [] } = useQuery({
-    queryKey: ['albaranes-obra', obraId],
-    queryFn: () => base44.entities.AlbaranObra.filter({ obra_id: obraId }),
+    queryKey: ['albaranes-obra', obraId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (!obraId) return [];
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'albaran_obra_by_obra', obra_id: obraId });
+        return res.data?.data || [];
+      }
+      return base44.entities.AlbaranObra.filter({ obra_id: obraId });
+    },
     enabled: !!obraId,
   });
 
@@ -100,7 +107,16 @@ export default function ObraDetail() {
   const gastosTrabajoTotal = gastosAlbaranes.reduce((s, a) => s + (a.total || 0), 0);
 
   const updateObra = useMutation({
-    mutationFn: (data) => base44.entities.Obra.update(obraId, data),
+    mutationFn: async (data) => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'obra_update',
+          record_id: obraId, updates: data,
+        });
+        return res.data?.data;
+      }
+      return base44.entities.Obra.update(obraId, data);
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['obra', obraId] }); queryClient.invalidateQueries({ queryKey: ['obras'] }); },
   });
 
@@ -129,26 +145,59 @@ export default function ObraDetail() {
     updateObra.mutate({ facturas, total_facturado: totalFacturado });
   };
 
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const uploadFileViaProxy = async (file) => {
+    const file_base64 = await fileToBase64(file);
+    const res = await base44.functions.invoke('uploadArchivo', {
+      technician_email: effectiveEmail,
+      filename: file.name,
+      file_base64,
+      content_type: file.type || 'application/octet-stream',
+    });
+    if (!res.data?.file_url) throw new Error('Error al subir archivo');
+    return res.data.file_url;
+  };
+
   const uploadDoc = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingDoc(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const documentos = [...(obra.documentos || []), { nombre: file.name, url: file_url, tipo: file.type, fecha: format(new Date(), 'yyyy-MM-dd') }];
-    updateObra.mutate({ documentos });
-    setUploadingDoc(false);
-    toast.success('Documento subido');
+    try {
+      const file_url = isSessionTech
+        ? await uploadFileViaProxy(file)
+        : (await base44.integrations.Core.UploadPublicFile({ file })).file_url;
+      const documentos = [...(obra.documentos || []), { nombre: file.name, url: file_url, tipo: file.type, fecha: format(new Date(), 'yyyy-MM-dd') }];
+      updateObra.mutate({ documentos });
+      toast.success('Documento subido');
+    } catch (err) {
+      toast.error('Error al subir el documento');
+    } finally {
+      setUploadingDoc(false);
+    }
   };
 
   const uploadFoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingFoto(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const fotos = [...(obra.fotos || []), file_url];
-    updateObra.mutate({ fotos });
-    setUploadingFoto(false);
-    toast.success('Foto añadida');
+    try {
+      const file_url = isSessionTech
+        ? await uploadFileViaProxy(file)
+        : (await base44.integrations.Core.UploadPublicFile({ file })).file_url;
+      const fotos = [...(obra.fotos || []), file_url];
+      updateObra.mutate({ fotos });
+      toast.success('Foto añadida');
+    } catch (err) {
+      toast.error('Error al subir la foto');
+    } finally {
+      setUploadingFoto(false);
+    }
   };
 
   const removeDoc = (idx) => {
@@ -306,7 +355,20 @@ export default function ObraDetail() {
                         <div className="flex gap-1 shrink-0">
                           {a.estado !== 'firmado' && (
                             <Button size="sm" variant="ghost" className="h-8 text-xs text-emerald-600 gap-1"
-                              onClick={() => { base44.entities.AlbaranObra.update(a.id, { estado: 'firmado' }); queryClient.invalidateQueries({ queryKey: ['albaranes-obra'] }); toast.success('Marcado como firmado'); }}>
+                              onClick={async () => {
+                                try {
+                                  if (isSessionTech && effectiveEmail) {
+                                    await base44.functions.invoke('getCompanyData', {
+                                      technician_email: effectiveEmail, entity: 'albaran_obra_update',
+                                      record_id: a.id, updates: { estado: 'firmado' },
+                                    });
+                                  } else {
+                                    await base44.entities.AlbaranObra.update(a.id, { estado: 'firmado' });
+                                  }
+                                  queryClient.invalidateQueries({ queryKey: ['albaranes-obra'] });
+                                  toast.success('Marcado como firmado');
+                                } catch { toast.error('Error al firmar'); }
+                              }}>
                               <CheckCircle className="h-3.5 w-3.5" />Firmar
                             </Button>
                           )}

@@ -286,6 +286,22 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Obra.delete(record_id);
       return Response.json({ data: true });
     }
+    // ── Albaranes de obra por obra_id ──────────────────────────────
+    if (entity === 'albaran_obra_by_obra') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: [] });
+      const all = await base44.asServiceRole.entities.AlbaranObra.filter({ company_id: tech.company_id });
+      return Response.json({ data: all.filter(a => a.obra_id === obra_id) });
+    }
+    // ── Actualizar albarán de obra (firmar, etc.) ─────────────────
+    if (entity === 'albaran_obra_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.AlbaranObra.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const data = await base44.asServiceRole.entities.AlbaranObra.update(record_id, updates);
+      return Response.json({ data });
+    }
     if (entity === 'building_create') {
       const { record } = body;
       if (!record || !record.client_id) return Response.json({ error: 'record y client_id requeridos' }, { status: 400 });

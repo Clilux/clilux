@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const file = new File([bytes], filename, { type: content_type || 'application/octet-stream' });
 
-    const up = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+    const up = await base44.asServiceRole.integrations.Core.UploadPublicFile({ file });
     return Response.json({ file_url: up.file_url });
   } catch (error) {
     return Response.json({ error: error?.message || String(error) }, { status: 500 });
