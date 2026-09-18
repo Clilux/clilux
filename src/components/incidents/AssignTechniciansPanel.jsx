@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, X, Check, Loader2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { notificar } from '@/lib/buzon';
 
 /**
  * Panel de asignación múltiple de técnicos a una incidencia.
@@ -53,7 +54,7 @@ export default function AssignTechniciansPanel({
         label: prevAssigned.length === 0 ? 'asignacion' : 'reasignacion',
         comment: `Asignación actualizada: ${assignedList.length} técnico(s)`,
       };
-      return await base44.entities.Incident.update(incident.id, {
+      const updated = await base44.entities.Incident.update(incident.id, {
         assigned_technicians: assignedList.map(id => {
           const t = technicians.find(t => t.id === id);
           return { technician_id: id, technician_name: t?.name || '', technician_email: t?.email || '' };
@@ -62,6 +63,21 @@ export default function AssignTechniciansPanel({
         all_assignees: allAssignees,
         history: [...(incident.history || []), historyEntry],
       });
+      // Notificar internamente a los técnicos recién asignados (sin email)
+      const nuevos = assignedList
+        .filter(id => !prevAssigned.includes(id))
+        .map(id => technicians.find(t => t.id === id))
+        .filter(Boolean);
+      if (nuevos.length) {
+        await notificar('incidencia_asignacion', {
+          technician_emails: nuevos.map(t => t.email).filter(Boolean),
+          title: incident.title,
+          incident_id: incident.id,
+          company_id: nuevos[0].company_id || '',
+          assigned_by: 'Administración',
+        });
+      }
+      return updated;
     },
     onSuccess: () => {
       setPickerOpen(false);

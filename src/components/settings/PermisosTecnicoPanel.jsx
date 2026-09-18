@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Shield, Save } from 'lucide-react';
+import { FUNCIONES } from '@/lib/funciones';
 
 const PERMISOS_CONFIG = [
   { key: 'ver_clientes',      label: 'Ver clientes',         group: 'Clientes' },
@@ -42,6 +43,15 @@ export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoC
     onPermisoChange?.(updated);
   };
 
+  // Acceso por función: si la clave no existe, se considera permitida.
+  const toggleFuncion = (page) => {
+    const funciones = { ...(local.funciones || {}) };
+    funciones[page] = funciones[page] === false;
+    const updated = { ...local, funciones };
+    setLocal(updated);
+    onPermisoChange?.(updated);
+  };
+
   // Agrupar
   const groups = {};
   PERMISOS_CONFIG.forEach(p => {
@@ -72,6 +82,34 @@ export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoC
           </div>
         </div>
       ))}
+
+      {/* Acceso a funciones */}
+      <div>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Acceso a funciones</p>
+        {[
+          { key: 'campo', title: 'Trabajo de campo' },
+          { key: 'administracion', title: 'Administración' },
+        ].map(({ key, title }) => {
+          const items = FUNCIONES.filter(f => f.categoria === key);
+          if (items.length === 0) return null;
+          return (
+            <div key={key} className="mb-3">
+              <p className="text-[11px] font-medium text-slate-500 mb-1">{title}</p>
+              <div className="space-y-2">
+                {items.map(({ id, label, page }) => (
+                  <div key={id} className="flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-50">
+                    <span className="text-sm text-slate-700">{label}</span>
+                    <Switch
+                      checked={local.funciones?.[page] !== false}
+                      onCheckedChange={() => toggleFuncion(page)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

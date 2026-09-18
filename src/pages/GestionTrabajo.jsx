@@ -84,7 +84,13 @@ export default function GestionTrabajo() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get('new') === '1') {
-      setPrefill({
+      // Prefill enriquecido (parte de trabajo desde una incidencia) guardado en sesión
+      let stored = null;
+      try {
+        const raw = sessionStorage.getItem('albaran_prefill');
+        if (raw) { stored = JSON.parse(raw); sessionStorage.removeItem('albaran_prefill'); }
+      } catch { /* prefill inválido */ }
+      setPrefill(stored || {
         client_id: p.get('client_id') || '',
         titulo: p.get('titulo') || '',
         incident_id: p.get('incident_id') || '',
