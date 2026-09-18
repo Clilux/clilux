@@ -286,6 +286,18 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Obra.delete(record_id);
       return Response.json({ data: true });
     }
+    // ── Crear albarán de obra ─────────────────────────────────────
+    if (entity === 'albaran_obra_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.AlbaranObra.create({
+        ...record,
+        tecnico_nombre: record.tecnico_nombre || creatorName,
+        tecnico_email: record.tecnico_email || creatorEmail,
+        company_id: tech.company_id,
+      });
+      return Response.json({ data });
+    }
     // ── Albaranes de obra por obra_id ──────────────────────────────
     if (entity === 'albaran_obra_by_obra') {
       const { obra_id } = body;
