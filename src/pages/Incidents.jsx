@@ -27,7 +27,7 @@ export default function Incidents() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [deleteId, setDeleteId] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('kanban');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;

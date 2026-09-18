@@ -125,6 +125,24 @@ Deno.serve(async (req) => {
           `Incidencia actualizada: ${estadoTxt}`,
           `${datos.title || 'Incidencia'} — nuevo estado: ${estadoTxt}.`,
           '/ClientIncidents', companyId);
+      } else if (tipo === 'incidencia_asignacion') {
+        const emails = Array.isArray(datos.technician_emails)
+          ? datos.technician_emails
+          : (datos.technician_email ? [datos.technician_email] : []);
+        for (const em of emails) {
+          await crear(em, 'trabajador',
+            `Nueva incidencia asignada`,
+            `${datos.assigned_by ? `${datos.assigned_by} te ha asignado` : 'Se te ha asignado'} la incidencia "${datos.title || ''}".`,
+            `/IncidentDetail?id=${datos.incident_id || ''}`, datos.company_id);
+        }
+      } else if (tipo === 'incidencia_modificacion') {
+        const gerentes = await gerentesDe(datos.company_id);
+        for (const g of gerentes) {
+          await crear(g.email, 'gerente',
+            `Incidencia modificada`,
+            `${datos.changed_by ? `${datos.changed_by}: ` : ''}${datos.change || 'Actualización'} — "${datos.title || ''}".`,
+            `/IncidentDetail?id=${datos.incident_id || ''}`, datos.company_id);
+        }
       } else if (tipo === 'amonestacion_fichaje_tardio') {
         const { worker_email, worker_name, company_id, fecha, observaciones } = datos;
         const titulo = `Amonestación: fichaje tardío del ${fecha}`;

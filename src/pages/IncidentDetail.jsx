@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2, Tag, MessageSquare, Clock, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Building2, Thermometer, CheckCircle, Loader2, Trash2, Tag, MessageSquare, Clock, ExternalLink, ClipboardList } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import IncidentReport from '../components/reports/IncidentReport';
@@ -272,14 +272,8 @@ export default function IncidentDetail() {
       await updateIncident(incidentId, updateData);
       await syncEquipmentOnResolve(data.status);
 
-      // Notify client if status changed
+      // Notificar al cliente solo si cambia el estado (notificación interna, sin email)
       if (data.status && data.status !== prevStatus) {
-        base44.functions.invoke('incidentNotifications', {
-          type: 'status_changed',
-          incidentId,
-          oldStatus: prevStatus,
-          newStatus: data.status,
-        }).catch(() => {});
         notificar('incidencia_estado', {
           client_email: finalClient?.user_email || finalClient?.email || '',
           client_name: finalClient?.name || '',
@@ -287,18 +281,20 @@ export default function IncidentDetail() {
           oldStatus: prevStatus,
           newStatus: data.status,
           client_id: incident.client_id,
+          company_id: finalClient?.company_id || '',
         });
       }
 
-      // Notify technician if newly assigned
-      const wasAssigned = !incident.assigned_technician;
-      if (wasAssigned) {
-        base44.functions.invoke('incidentNotifications', {
-          type: 'technician_assigned',
-          incidentId,
-          technicianEmail: user.email,
-        }).catch(() => {});
-      }
+      // Notificar al gerente de cada modificación
+      notificar('incidencia_modificacion', {
+        company_id: finalClient?.company_id || '',
+        title: incident.title,
+        incident_id: incidentId,
+        changed_by: user.full_name || user.email,
+        change: data.status && data.status !== prevStatus
+          ? `Estado: ${statusConfig[prevStatus]?.label || prevStatus} → ${statusConfig[data.status]?.label || data.status}`
+          : 'Datos de la incidencia actualizados',
+      });
     },
     onSuccess: () => {
       invalidateIncidentQueries();
@@ -345,14 +341,8 @@ export default function IncidentDetail() {
       await updateIncident(incidentId, updateData);
       await syncEquipmentOnResolve(newStatus);
 
-      // Notify client if status changed
+      // Notificar al cliente si cambia el estado (interno, sin email)
       if (newStatus && newStatus !== prevStatus) {
-        base44.functions.invoke('incidentNotifications', {
-          type: 'status_changed',
-          incidentId,
-          oldStatus: prevStatus,
-          newStatus,
-        }).catch(() => {});
         notificar('incidencia_estado', {
           client_email: finalClient?.user_email || finalClient?.email || '',
           client_name: finalClient?.name || '',
@@ -360,8 +350,18 @@ export default function IncidentDetail() {
           oldStatus: prevStatus,
           newStatus,
           client_id: incident.client_id,
+          company_id: finalClient?.company_id || '',
         });
       }
+
+      // Notificar al gerente de cada modificación (comentario/etiqueta/estado)
+      notificar('incidencia_modificacion', {
+        company_id: finalClient?.company_id || '',
+        title: incident.title,
+        incident_id: incidentId,
+        changed_by: user.full_name || user.email,
+        change: newComment ? `Comentario: ${newComment.slice(0, 140)}` : 'Historial actualizado',
+      });
     },
     onSuccess: () => {
       invalidateIncidentQueries();
@@ -406,6 +406,34 @@ export default function IncidentDetail() {
     resuelta: { label: 'Resuelta', color: 'bg-green-100 text-green-700 border-green-300' },
     recambio: { label: 'Recambio', color: 'bg-blue-100 text-blue-700 border-blue-300' },
     irreparable: { label: 'Irreparable', color: 'bg-gray-900 text-white border-gray-700' },
+  };
+
+  // Crea un parte de trabajo / albarán a partir de la incidencia,
+  // incluyendo en las líneas las últimas modificaciones del historial.
+  const crearParteTrabajo = () => {
+    const lineas = [];
+    if (incident.description) {
+      lineas.push({ descripcion: `Avería: ${incident.description}`.slice(0, 300), cantidad: 1, unidad: 'ud', precio_unitario: 0, descuento: 0, subtotal: 0 });
+    }
+    [...(incident.history || [])].slice(-10).forEach((h) => {
+      const partes = [];
+      if (h.status && statusConfig[h.status]) partes.push(`Estado: ${statusConfig[h.status].label}`);
+      if (h.label && labelConfig[h.label]) partes.push(`Etiqueta: ${labelConfig[h.label].label}`);
+      if (h.comment) partes.push(h.comment);
+      if (partes.length === 0) return;
+      lineas.push({
+        descripcion: `${h.technician ? `${h.technician}: ` : ''}${partes.join(' — ')}`.slice(0, 300),
+        cantidad: 1, unidad: 'ud', precio_unitario: 0, descuento: 0, subtotal: 0,
+      });
+    });
+    sessionStorage.setItem('albaran_prefill', JSON.stringify({
+      client_id: incident.client_id || '',
+      titulo: `Parte de trabajo — ${incident.title}`,
+      incident_id: incident.id,
+      notas: `Incidencia: ${incident.title}${incident.description ? `\n${incident.description}` : ''}`,
+      lineas,
+    }));
+    navigate('/GestionTrabajo?new=1');
   };
 
   if (isLoadingFinal) {
@@ -467,6 +495,12 @@ export default function IncidentDetail() {
               </div>
             </div>
             <div className="flex gap-2">
+              {canComment && (
+                <Button variant="outline" size="sm" onClick={crearParteTrabajo} className="gap-1.5">
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="hidden sm:inline">Parte de trabajo</span>
+                </Button>
+              )}
               <IncidentReport
                 incident={incident}
                 equipment={finalEquipment}

@@ -166,6 +166,10 @@
         "ver_scada": {
           "type": "boolean",
           "default": false
+        },
+        "funciones": {
+          "type": "object",
+          "description": "Acceso por funci\u00f3n del portal: clave = p\u00e1gina (ej. 'Incidents'), valor = true/false. Si falta la clave, el acceso est\u00e1 permitido."
         }
       }
     }

@@ -22,6 +22,8 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
 import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import MisIncidencias from '@/components/dashboard/MisIncidencias';
+import { FUNCIONES, AUTOMATIZACION } from '@/lib/funciones';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -32,30 +34,7 @@ const TABS = [
 { id: 'estadisticas', label: 'Estadísticas', icon: BarChart3 }];
 
 
-// ── Quick actions (sin Nuevo Cliente, Incidencias, Climatización, Loxone) ──
-const FUNCIONES = [
-{ id: '1', label: 'Escanear', page: 'ScanEquipmentTech', icon: ScanLine, color: 'from-blue-500/30 to-purple-500/30', iconCls: 'text-blue-300' },
-{ id: '2', label: 'Leer NFC', page: 'NfcReader', icon: Nfc, color: 'from-teal-500/30 to-cyan-500/30', iconCls: 'text-teal-300' },
-{ id: '3', label: 'Formulario Equipos', page: 'EquipmentForm', icon: FileCheck, color: 'from-cyan-500/30 to-teal-500/30', iconCls: 'text-cyan-300' },
-{ id: '8', label: 'Documentación', page: 'Documentacion', icon: FileText, color: 'from-indigo-500/30 to-blue-500/30', iconCls: 'text-indigo-300' },
-{ id: '10', label: 'Asistencia Virtual', page: 'AIConsulta', icon: Bot, color: 'from-purple-500/30 to-pink-500/30', iconCls: 'text-purple-300' },
-{ id: '12', label: 'Contrato', page: 'ContratoMantenimiento', icon: FileText, color: 'from-green-500/30 to-teal-500/30', iconCls: 'text-green-300' },
-{ id: '13', label: 'Control Horario', page: 'ControlHorario', icon: Clock, color: 'from-blue-500/30 to-cyan-500/30', iconCls: 'text-blue-300' },
-{ id: '14', label: 'Mis Ausencias', page: 'GestionAusencias', icon: Calendar, color: 'from-purple-500/30 to-violet-500/30', iconCls: 'text-purple-300' },
-{ id: '15', label: 'Importar / Exportar', page: 'ImportEquipment', icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300', gerenteOnly: true },
-{ id: '16', label: 'Control de Obras', page: 'ControlObras', icon: HardHat, color: 'from-orange-500/30 to-amber-500/30', iconCls: 'text-orange-300' },
-{ id: '17', label: 'Panel Edificios', page: 'PanelEdificios', icon: LayoutDashboard, color: 'from-blue-500/30 to-indigo-500/30', iconCls: 'text-blue-300' },
-{ id: '18', label: 'Equipos', page: 'Equipment', icon: Wrench, color: 'from-slate-500/30 to-gray-500/30', iconCls: 'text-slate-300' },
-{ id: '19', label: 'Clientes', page: 'Clients', icon: Users, color: 'from-emerald-500/30 to-teal-500/30', iconCls: 'text-emerald-300' },
-{ id: '20', label: 'Edificios', page: 'Buildings', icon: Building2, color: 'from-cyan-500/30 to-blue-500/30', iconCls: 'text-cyan-300' },
-{ id: '21', label: 'Incidencias', page: 'Incidents', icon: AlertTriangle, color: 'from-red-500/30 to-rose-500/30', iconCls: 'text-red-300' },
-{ id: '22', label: 'Kiosko Fichaje', page: 'KioskoFichaje', icon: Monitor, color: 'from-cyan-500/30 to-teal-500/30', iconCls: 'text-cyan-300' },
-{ id: '23', label: 'Gestión de Trabajo', page: 'GestionTrabajo', icon: ClipboardList, color: 'from-indigo-500/30 to-blue-500/30', iconCls: 'text-indigo-300' }];
-
-
-const AUTOMATIZACION = [
-{ id: 'clim', label: 'Climatización Airzone', page: 'ControlClimatizacion', icon: Wind, color: 'from-cyan-500/30 to-blue-500/30', iconCls: 'text-cyan-300', desc: 'Control Airzone Cloud' },
-{ id: 'lox', label: 'Control Loxone', page: 'ControlLoxone', icon: Zap, color: 'from-green-500/30 to-emerald-500/30', iconCls: 'text-green-300', desc: 'Miniservers Loxone' }];
+// Funciones y automatizaciones: definidas en @/lib/funciones
 
 
 // ── Mini Calendar (inline month view) ───────────────────────
@@ -266,7 +245,14 @@ export default function HomeTecnico() {
   const finalRevisions = useProxy ? proxyData?.revisions ?? [] : scheduledRevisions ?? [];
   const finalIncidents = useProxy ? proxyData?.incidents ?? [] : incidents ?? [];
 
-  const pendingIncidents = finalIncidents.filter((i) => i.status === 'pending' || i.status === 'in_progress');
+  // Incidencias visibles para el usuario: los técnicos de campo solo ven las suyas;
+  // gerentes/administración ven todas las de la empresa.
+  const myTechId = myTechRecord?.id;
+  const canSeeAllIncidents = isAdmin || isPlatformAdmin || !myTechId;
+  const myIncidents = canSeeAllIncidents
+    ? finalIncidents
+    : finalIncidents.filter((i) => (i.all_assignees || []).includes(myTechId));
+  const pendingIncidents = myIncidents.filter((i) => i.status === 'pending' || i.status === 'in_progress');
   const today = new Date();
   const next30Days = addDays(today, 30);
   const upcomingRevisions = finalRevisions.
@@ -376,7 +362,9 @@ export default function HomeTecnico() {
 
           {/* ── INICIO ── */}
           {activeTab === 'inicio' &&
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <MisIncidencias incidents={myIncidents} isAdmin={isAdmin} loading={isLoadingData} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <div className="space-y-5">
               {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
               {isSessionTech &&
@@ -563,6 +551,7 @@ export default function HomeTecnico() {
               </div>
             </div>
             </div>
+            </div>
           }
 
             {/* ── CALENDARIO ── */}
@@ -595,18 +584,34 @@ export default function HomeTecnico() {
                 <Sparkles className="h-5 w-5 text-yellow-500" />
                 Funciones
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {FUNCIONES.filter((f) => !f.gerenteOnly || isGerente).map(({ id, label, page, icon: Icon, color, iconCls }) =>
-              <Link key={id} to={createPageUrl(page)}>
-                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
-                      <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
-                        <Icon className={`h-9 w-9 ${iconCls}`} />
-                      </div>
-                      <p className="text-slate-800 text-sm text-center font-semibold leading-tight">{label}</p>
-                    </Card>
-                  </Link>
-              )}
-              </div>
+              {[
+                { key: 'campo', title: 'Trabajo de campo' },
+                { key: 'administracion', title: 'Administración' },
+              ].map(({ key, title }) => {
+                const items = FUNCIONES.filter((f) =>
+                  f.categoria === key &&
+                  (!f.gerenteOnly || isGerente) &&
+                  (isAdmin || myTechRecord?.permisos?.funciones?.[f.page] !== false)
+                );
+                if (items.length === 0) return null;
+                return (
+                  <div key={key} className="mb-8">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">{title}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {items.map(({ id, label, page, icon: Icon, color, iconCls }) =>
+                        <Link key={id} to={createPageUrl(page)}>
+                          <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
+                            <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
+                              <Icon className={`h-9 w-9 ${iconCls}`} />
+                            </div>
+                            <p className="text-slate-800 text-sm text-center font-semibold leading-tight">{label}</p>
+                          </Card>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           }
 
