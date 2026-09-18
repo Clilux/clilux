@@ -18,6 +18,8 @@ import { createPageUrl } from '@/utils';
 import NavHeader from '../components/navigation/NavHeader';
 import UnifyRevisionsModal from '../components/calendar/UnifyRevisionsModal';
 import UnifiedRevisionModal from '../components/calendar/UnifiedRevisionModal';
+import AgendaLegend from '../components/calendar/AgendaLegend';
+import { colorRevision, claveTecnico, esColectiva, nombreTecnico } from '@/lib/agenda-utils';
 
 const revisionTypeLabels = {
   monthly: 'Mensual',
@@ -43,6 +45,9 @@ export default function Calendar() {
   const [syncing, setSyncing] = useState(false);
   const [showUnifyModal, setShowUnifyModal] = useState(false);
   const [selectedUnifiedRevision, setSelectedUnifiedRevision] = useState(null);
+  // Agenda personalizada: 'all' | 'mine' | 'none' | email del técnico
+  const [filterTech, setFilterTech] = useState(() => sessionStorage.getItem('technician_email') ? 'mine' : 'all');
+  const [incluirColectivos, setIncluirColectivos] = useState(true);
 
   const queryClient = useQueryClient();
 
@@ -87,9 +92,25 @@ export default function Calendar() {
     queryFn: async () => isSessionTech ? proxyFetch('buildings') : base44.entities.Building.list(),
   });
 
-  const filteredRevisions = scheduledRevisions.filter(rev =>
-    filterClient === 'all' || rev.client_id === filterClient
-  );
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => isSessionTech ? proxyFetch('technicians') : base44.entities.Technician.filter({ status: 'active' }),
+  });
+
+  // Filtra por cliente y por técnico. Los trabajos colectivos (sin técnico
+  // asignado) se incluyen al ver la agenda de un trabajador concreto.
+  const filteredRevisions = scheduledRevisions
+    .filter(rev => filterClient === 'all' || rev.client_id === filterClient)
+    .filter(rev => {
+      if (filterTech === 'all') return true;
+      if (filterTech === 'none') return esColectiva(rev);
+      const clave = claveTecnico(rev);
+      const objetivo = filterTech === 'mine'
+        ? (sessionTechEmail || '').toLowerCase()
+        : filterTech.toLowerCase();
+      if (clave && clave === objetivo) return true;
+      return incluirColectivos && esColectiva(rev);
+    });
 
   const getRevisionsForDay = (day) =>
     filteredRevisions.filter(rev => isSameDay(new Date(rev.scheduled_date), day));
@@ -161,10 +182,11 @@ export default function Calendar() {
                   <div className="space-y-0.5">
                     {dayRevs.slice(0, 2).map(rev => {
                       const bld = rev.is_unified_revision ? getBuildingInfo(rev.building_id) : null;
+                      const c = colorRevision(rev);
                       return (
                         <div
                           key={rev.id}
-                          className={`text-xs px-1 py-0.5 rounded truncate ${rev.status === 'completed' ? 'bg-green-100 text-green-700' : revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}
+                          className={`text-xs px-1 py-0.5 rounded truncate ${c.bg} ${c.text}`}
                           onClick={rev.is_unified_revision ? (e) => { e.stopPropagation(); setSelectedUnifiedRevision(rev); } : undefined}
                         >
                           {rev.is_unified_revision ? `🏢 ${bld?.name || 'Edificio'}` : revisionTypeLabels[rev.revision_type]}
@@ -224,11 +246,16 @@ export default function Calendar() {
                         </div>
                       );
                     }
+                    const c = colorRevision(rev);
                     return (
                       <Link key={rev.id} to={createPageUrl(`RevisionForm?id=${rev.id}`)} onClick={e => e.stopPropagation()}>
-                        <div className={`text-xs p-1.5 rounded-lg mb-1 cursor-pointer hover:opacity-80 ${rev.status === 'completed' ? 'bg-green-100 text-green-700' : revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
+                        <div
+                          className={`text-xs p-1.5 rounded-lg mb-1 cursor-pointer hover:opacity-80 border-l-4 ${c.bg} ${c.text}`}
+                          style={{ borderLeftColor: c.hex }}
+                        >
                           <div className="font-medium">{revisionTypeLabels[rev.revision_type]}</div>
                           {eq && <div className="truncate opacity-80">{eq.reference_name || `${eq.brand} ${eq.model}`}</div>}
+                          <div className="truncate opacity-70">{nombreTecnico(rev)}</div>
                         </div>
                       </Link>
                     );
@@ -313,7 +340,9 @@ export default function Calendar() {
 
     return (
       <Card className="p-6 bg-white">
-        <h2 className="text-lg font-semibold text-slate-800 mb-6">Próximas Revisiones Pendientes</h2>
+        <h2 className="text-lg font-semibold text-slate-800 mb-6">
+          {filterTech === 'all' ? 'Próximas revisiones pendientes' : 'Próximas revisiones de la agenda'}
+        </h2>
         {Object.keys(grouped).length === 0 && <p className="text-slate-400 text-center py-8">No hay revisiones pendientes</p>}
         {Object.entries(grouped).map(([month, revs]) => (
           <div key={month} className="mb-8">
@@ -344,8 +373,13 @@ export default function Calendar() {
                     </div>
                   );
                 }
+                const c = colorRevision(rev);
                 return (
-                  <div key={rev.id} className="p-4 border rounded-xl hover:bg-slate-50 flex items-center justify-between gap-4">
+                  <div
+                    key={rev.id}
+                    className="p-4 border border-l-4 rounded-xl hover:bg-slate-50 flex items-center justify-between gap-4"
+                    style={{ borderLeftColor: c.hex }}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="text-center min-w-12">
                         <div className="text-xl font-bold text-slate-700">{format(new Date(rev.scheduled_date), 'd')}</div>
@@ -356,6 +390,10 @@ export default function Calendar() {
                           <Badge className={revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}>
                             {revisionTypeLabels[rev.revision_type]}
                           </Badge>
+                          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <span className={`w-2.5 h-2.5 rounded-full ${c.dot}`} />
+                            {nombreTecnico(rev)}
+                          </span>
                         </div>
                         {eq && <p className="text-sm font-medium text-slate-700">{eq.reference_name || `${eq.brand} ${eq.model}`}</p>}
                         {bld && <p className="text-xs text-slate-400">{bld.name}</p>}
@@ -417,14 +455,23 @@ export default function Calendar() {
                 </div>
               );
             }
+            const c = colorRevision(rev);
             return (
-              <div key={rev.id} className="p-3 border rounded-lg hover:bg-slate-50">
+              <div
+                key={rev.id}
+                className="p-3 border border-l-4 rounded-lg hover:bg-slate-50"
+                style={{ borderLeftColor: c.hex }}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <Badge className={`text-xs ${revisionTypeColors[rev.revision_type] || 'bg-blue-100 text-blue-700'}`}>
                     {revisionTypeLabels[rev.revision_type]}
                   </Badge>
                   {rev.status === 'completed' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Clock className="h-4 w-4 text-blue-500" />}
                 </div>
+                <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+                  {nombreTecnico(rev)}
+                </p>
                 {eq && <p className="text-xs font-medium text-slate-700">{eq.reference_name || `${eq.brand} ${eq.model}`}</p>}
                 {bld && <p className="text-xs text-slate-400">{bld.name}</p>}
                 {!selectedDate && <p className="text-xs text-slate-400 mt-0.5">{format(new Date(rev.scheduled_date), "d MMM", { locale: es })}</p>}
@@ -460,6 +507,35 @@ export default function Calendar() {
               {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          {/* Agenda personalizada por trabajador */}
+          <Select value={filterTech} onValueChange={setFilterTech}>
+            <SelectTrigger className="w-56 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los técnicos</SelectItem>
+              {isSessionTech && <SelectItem value="mine">Mi agenda</SelectItem>}
+              <SelectItem value="none">Solo colectivos (sin asignar)</SelectItem>
+              {technicians.filter(t => t.email).map(t => (
+                <SelectItem key={t.id || t.email} value={t.email.toLowerCase()}>
+                  {t.name || t.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filterTech !== 'all' && filterTech !== 'none' && (
+            <label className="flex items-center gap-2 text-sm text-slate-600 bg-white border rounded-lg px-3 h-9">
+              <input
+                type="checkbox"
+                checked={incluirColectivos}
+                onChange={e => setIncluirColectivos(e.target.checked)}
+                className="accent-blue-600"
+              />
+              Incluir colectivos
+            </label>
+          )}
 
           <div className="flex items-center gap-2 ml-auto flex-wrap">
             {/* Unify button */}
@@ -499,6 +575,8 @@ export default function Calendar() {
             </Button>
           </div>
         </div>
+
+        <AgendaLegend technicians={technicians.filter(t => t.email)} miEmail={sessionTechEmail || ''} />
 
         {/* Navigation bar (not for agenda) */}
         {viewMode !== 'agenda' && (

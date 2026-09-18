@@ -157,6 +157,13 @@ Deno.serve(async (req) => {
     }
 
     // ── Operaciones de lectura individuales ───────────────────────
+    if (entity === 'technicians') {
+      const list = tech.company_id
+        ? await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id })
+        : [];
+      return Response.json({ data: list });
+    }
+
     if (entity === 'clients') {
       if (!permisos.ver_clientes) return deny('ver_clientes');
       const data = await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id });
