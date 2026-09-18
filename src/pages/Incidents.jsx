@@ -12,8 +12,10 @@ import { Plus, Search, Filter, LayoutGrid, List as ListIcon } from 'lucide-react
 import NavHeader from '../components/navigation/NavHeader';
 import IncidentCard from '../components/incidents/IncidentCard';
 import KanbanBoard from '../components/incidents/KanbanBoard';
+import CargaEquipo from '../components/incidents/CargaEquipo';
 import { toast } from 'sonner';
 import PullToRefresh from '@/components/PullToRefresh';
+import { notificar } from '@/lib/buzon';
 
 const STATUS_LABELS = {
   pending: 'Pendiente',
@@ -63,6 +65,16 @@ export default function Incidents() {
     },
     enabled: isSessionTech,
   });
+
+  // Usuario Base44 (gerente/admin) para firmar los avisos internos
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me(),
+    enabled: !isSessionTech,
+    retry: false,
+  });
+  const miEmail = sessionTechEmail || me?.email || '';
+  const miNombre = sessionTech?.name || me?.full_name || miEmail;
 
   // Trabajadores de campo: solo ven incidencias donde alguna vez fueron asignados.
   // Gerente/administración y admins ven todas las de la empresa.
@@ -123,11 +135,43 @@ export default function Incidents() {
       }
       toast.error('No se pudo cambiar el estado: ' + (err.message || ''));
     },
-    onSuccess: (_data, vars) => {
+    onSuccess: (_data, vars, ctx) => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       toast.success(`Movido a "${STATUS_LABELS[vars.status] || vars.status}"`);
+      // Avisos internos (sin email): gerente, cliente y técnicos asignados
+      const prev = (ctx?.previous || []).find(i => i.id === vars.id);
+      if (prev) avisarCambioEstado(prev, vars.status);
     },
   });
+
+  // Notifica dentro de la plataforma el cambio de estado de una incidencia.
+  const avisarCambioEstado = (inc, newStatus) => {
+    const client = clients.find(c => c.id === inc.client_id);
+    const technicianEmails = (inc.assigned_technicians || [])
+      .map(a => a.technician_email)
+      .filter(Boolean);
+
+    notificar('incidencia_estado', {
+      client_email: client?.user_email || client?.email || '',
+      client_name: client?.name || '',
+      title: inc.title,
+      oldStatus: inc.status,
+      newStatus,
+      client_id: inc.client_id,
+      company_id: client?.company_id || '',
+    });
+
+    notificar('incidencia_modificacion', {
+      company_id: client?.company_id || '',
+      client_id: inc.client_id,
+      title: inc.title,
+      incident_id: inc.id,
+      changed_by: miNombre,
+      changed_by_email: miEmail,
+      change: `Estado: ${STATUS_LABELS[inc.status] || inc.status} → ${STATUS_LABELS[newStatus] || newStatus}`,
+      technician_emails: technicianEmails,
+    });
+  };
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment', isSessionTech ? 'proxy' : 'direct'],
@@ -159,6 +203,17 @@ export default function Incidents() {
         return res.data?.data || [];
       }
       return base44.entities.Client.list();
+    },
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'technicians' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Technician.filter({ status: 'active' });
     },
   });
 
@@ -259,14 +314,21 @@ export default function Incidents() {
             <p className="text-slate-500">No hay incidencias</p>
           </div>
         ) : viewMode === 'kanban' ? (
-          <KanbanBoard
-            incidents={filteredIncidents}
-            getEquipmentName={getEquipmentName}
-            getBuildingName={getBuildingName}
-            getClientName={getClientName}
-            onDrop={(id, status) => statusMutation.mutate({ id, status })}
-            onDelete={(id) => setDeleteId(id)}
-          />
+          <>
+            <CargaEquipo
+              incidents={filteredIncidents}
+              technicians={technicians}
+              miEmail={miEmail}
+            />
+            <KanbanBoard
+              incidents={filteredIncidents}
+              getEquipmentName={getEquipmentName}
+              getBuildingName={getBuildingName}
+              getClientName={getClientName}
+              onDrop={(id, status) => statusMutation.mutate({ id, status })}
+              onDelete={(id) => setDeleteId(id)}
+            />
+          </>
         ) : (
           <div className="space-y-4">
             {filteredIncidents.map(incident => (

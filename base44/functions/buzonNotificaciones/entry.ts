@@ -136,12 +136,28 @@ Deno.serve(async (req) => {
             `/IncidentDetail?id=${datos.incident_id || ''}`, datos.company_id);
         }
       } else if (tipo === 'incidencia_modificacion') {
-        const gerentes = await gerentesDe(datos.company_id);
+        // Aviso al gerente de cada modificación hecha por un técnico.
+        let companyId = datos.company_id;
+        if (!companyId && datos.client_id) {
+          const c = (await base44.asServiceRole.entities.Client.filter({ id: datos.client_id }))[0];
+          if (c) companyId = c.company_id;
+        }
+        const actor = (datos.changed_by_email || '').trim().toLowerCase();
+        const cambio = datos.change || 'Actualización';
+        const texto = `${datos.changed_by ? `${datos.changed_by}: ` : ''}${cambio} — "${datos.title || ''}".`;
+        const link = `/IncidentDetail?id=${datos.incident_id || ''}`;
+
+        const gerentes = await gerentesDe(companyId);
         for (const g of gerentes) {
-          await crear(g.email, 'gerente',
-            `Incidencia modificada`,
-            `${datos.changed_by ? `${datos.changed_by}: ` : ''}${datos.change || 'Actualización'} — "${datos.title || ''}".`,
-            `/IncidentDetail?id=${datos.incident_id || ''}`, datos.company_id);
+          if (actor && (g.email || '').trim().toLowerCase() === actor) continue;
+          await crear(g.email, 'gerente', 'Incidencia modificada', texto, link, companyId);
+        }
+
+        // Avisar también a los técnicos asignados (excepto a quien hizo el cambio)
+        const asignados = Array.isArray(datos.technician_emails) ? datos.technician_emails : [];
+        for (const em of asignados) {
+          if (actor && (em || '').trim().toLowerCase() === actor) continue;
+          await crear(em, 'trabajador', 'Incidencia actualizada', texto, link, companyId);
         }
       } else if (tipo === 'amonestacion_fichaje_tardio') {
         const { worker_email, worker_name, company_id, fecha, observaciones } = datos;

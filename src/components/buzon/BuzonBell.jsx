@@ -33,7 +33,8 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
     queryKey: ['buzon', email],
     queryFn: () => listarNotificaciones(email),
     enabled: !!email,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
   const noLeidas = notifs.filter(n => !n.leida && !n.archived).length;
   const visibles = notifs.filter(n => !n.archived);
