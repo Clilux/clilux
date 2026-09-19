@@ -1,4 +1,4 @@
-import { parseISO, isBefore, addDays, format } from 'date-fns';
+import { parseISO, isBefore, endOfMonth, format } from 'date-fns';
 
 // 4 niveles de prioridad con palabras descriptivas
 // Niveles por severidad: Crítico (4) > Atención (3) > Mantenimiento (2) > Operativo (1)
@@ -40,12 +40,14 @@ export function calcularNivelEdificio({ incidents = [], equipment = [], revision
 
   const eqReview = equipment.filter(eq => equipoNecesitaRevision(eq, eqWithOpenIncident, today));
 
-  const next30 = addDays(today, 30);
+  // Solo cuentan las revisiones a realizar hasta el final del mes en curso
+  // (incluidas las vencidas de meses anteriores). Las de meses futuros no suman.
+  const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
   const revPending = (revisions || []).filter(
-    r => r.status === 'pending' && isBefore(parseISO(r.scheduled_date), next30)
+    r => r.status === 'pending' && r.scheduled_date <= monthEnd
   );
   // Solo las revisiones vencidas (fecha pasada y pendientes) marcan "requiere mantenimiento".
-  // Las próximas programadas dentro de 30 días son planificación, no alerta.
+  // Las programadas para más adelante en el mes en curso son planificación, no alerta.
   const todayStr = format(today, 'yyyy-MM-dd');
   const revOverdue = revPending.filter(r => r.scheduled_date < todayStr);
 

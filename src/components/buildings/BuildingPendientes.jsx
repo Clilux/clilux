@@ -61,7 +61,7 @@ export default function BuildingPendientes({ building, equipment = [], revisions
       box: 'bg-amber-50/60 border-amber-200 hover:border-amber-300',
       boxActive: 'bg-white border-amber-500 ring-1 ring-amber-500',
       num: revPending.length > 0 ? 'text-amber-600' : 'text-slate-400', iconCls: 'text-amber-500',
-      note: revOverdue.length > 0 ? `${revOverdue.length} vencidas` : (revPending.length > 0 ? 'pendientes' : 'ninguna'),
+      note: revOverdue.length > 0 ? `${revOverdue.length} vencidas` : (revPending.length > 0 ? 'este mes' : 'ninguna'),
     },
   ];
 
@@ -145,7 +145,7 @@ export default function BuildingPendientes({ building, equipment = [], revisions
                 const eq = equipmentById[r.equipment_id];
                 const eqName = eq ? (eq.reference_name || `${eq.brand} ${eq.model}`) : '';
                 return (
-                  <Link key={r.id} to={`${createPageUrl('EditScheduledRevision')}?id=${r.id}`} className={ROW_CLS}>
+                  <Link key={r.id} to={`${createPageUrl('RevisionForm')}?id=${r.id}`} className={ROW_CLS}>
                     <ClipboardCheck className={`h-4 w-4 shrink-0 ${vencida ? 'text-red-400' : 'text-amber-400'}`} />
                     <span className="flex-1 min-w-0">
                       <span className="block text-slate-700 truncate">
