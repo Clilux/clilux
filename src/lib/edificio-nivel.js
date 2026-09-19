@@ -20,6 +20,8 @@ export function tienePlanMantenimientoActivo(eq) {
 // openIncidentEquipmentIds: IDs de equipos con incidencia abierta. Sirve para
 // ignorar estados `maintenance_needed` huérfanos (sin incidencia real).
 export function equipoNecesitaRevision(eq, openIncidentEquipmentIds = new Set(), today = new Date()) {
+  // 'sin_contrato' congela el equipo (cliente o edificio de baja): nunca genera requerimientos.
+  if (eq.status === 'sin_contrato') return false;
   if (eq.status === 'out_of_service') return true;
   if (eq.status === 'maintenance_needed' && openIncidentEquipmentIds.has(eq.id)) return true;
   // El seguimiento de revisiones se basa en los registros de revisión (vencidos).

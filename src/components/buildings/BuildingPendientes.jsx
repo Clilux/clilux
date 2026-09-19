@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import {
   AlertTriangle, Wrench, ClipboardCheck, ChevronRight,
-  Thermometer, CheckCircle2,
+  Thermometer, CheckCircle2, Ban,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,9 +28,10 @@ const REVISION_TYPE_LABEL = {
 
 const ROW_CLS = 'flex items-center gap-2 text-sm py-2 px-2 rounded-lg hover:bg-slate-50 transition-colors';
 
-export default function BuildingPendientes({ building, equipment = [], revisions = [], incidents = [] }) {
+export default function BuildingPendientes({ building, client, equipment = [], revisions = [], incidents = [] }) {
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
+
   const { level, openIncidents, eqReview, revPending } = calcularNivelEdificio({
     incidents, equipment, revisions, today,
   });
@@ -69,6 +70,26 @@ export default function BuildingPendientes({ building, equipment = [], revisions
     : revPending.length > 0 ? 'revisions'
     : 'equipment';
   const [active, setActive] = useState(defaultKey);
+
+  // Cliente de baja o edificio desactivado/sin contrato: no se generan requerimientos
+  const sinContrato = building?.status === 'inactive' || building?.status === 'sin_contrato' ||
+    (client?.status && client.status !== 'active');
+  if (sinContrato) {
+    return (
+      <Card className="border border-slate-200 rounded-2xl p-5 bg-slate-50 mb-6">
+        <div className="flex items-center gap-3">
+          <Ban className="h-5 w-5 text-slate-400 shrink-0" />
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700">Sin contrato</h3>
+            <p className="text-xs text-slate-500">
+              {client?.status && client.status !== 'active' ? 'El cliente está de baja' : 'El edificio está desactivado'}
+              {' · '}no se generan requerimientos de mantenimiento para sus equipos.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`border ${cfg.ring} rounded-2xl p-5 bg-white mb-6`}>

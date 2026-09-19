@@ -293,6 +293,7 @@ export default function BuildingDetail() {
 
         <BuildingPendientes
           building={finalBuilding}
+          client={finalClient}
           equipment={finalEquipment}
           revisions={finalRevisions}
           incidents={finalIncidents}

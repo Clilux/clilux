@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Card } from "@/components/ui/card";
 import { MapPin, Calendar, ChevronRight, Wind, Flame, Snowflake, User } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import StatusBadge from '../ui/StatusBadge';
+import StatusChanger, { equipmentStatusLabel } from '../equipment/StatusChanger';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -41,7 +44,28 @@ const equipmentTypeLabels = {
 
 export default function EquipmentCard({ equipment }) {
   const Icon = equipmentTypeIcons[equipment.equipment_type] || Wind;
-  
+  const queryClient = useQueryClient();
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
+  // Cambiar el estado del equipo directamente desde la tarjeta
+  const changeStatusMutation = useMutation({
+    mutationFn: (newStatus) => base44.functions.invoke('cascadeDeactivate', {
+      technician_email: sessionTechEmail || undefined,
+      entity_type: 'equipment',
+      entity_id: equipment.id,
+      status: newStatus,
+    }),
+    onSuccess: (_res, newStatus) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-building'] });
+      queryClient.invalidateQueries({ queryKey: ['building'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
+      toast.success(`Estado actualizado: ${equipmentStatusLabel(newStatus)}`);
+    },
+    onError: () => toast.error('No se pudo cambiar el estado del equipo'),
+  });
+
   return (
     <Link to={createPageUrl(`EquipmentDetail?id=${equipment.id}`)}>
       <Card className="p-5 bg-white border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer group">
@@ -55,7 +79,17 @@ export default function EquipmentCard({ equipment }) {
                 {equipment.reference_name && (
                   <h3 className="font-bold text-slate-900 text-base">{equipment.reference_name}</h3>
                 )}
-                <StatusBadge status={equipment.status || 'operational'} />
+                <span
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  className="inline-flex"
+                >
+                  <StatusChanger
+                    status={equipment.status || 'operational'}
+                    canEdit={!isSessionTech}
+                    isPending={changeStatusMutation.isPending}
+                    onChange={(newStatus) => changeStatusMutation.mutate(newStatus)}
+                  />
+                </span>
               </div>
               <p className="text-sm font-medium text-slate-700 mb-1">{equipment.brand} {equipment.model}</p>
               <p className="text-sm text-slate-500 mb-2">
