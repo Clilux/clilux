@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
+import CompartirButton from '@/components/compartir/CompartirButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -146,12 +147,21 @@ export default function EditScheduledRevision() {
         <NavHeader title="Editar Revisión Programada" />
 
         <Card className="p-6 mb-6">
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-slate-800">
-              {equipment?.brand} {equipment?.model}
-            </h2>
-            {client && <p className="text-slate-600">{client.name}</p>}
-            {building && <p className="text-slate-500 text-sm">{building.name}</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold text-slate-800">
+                {equipment?.brand} {equipment?.model}
+              </h2>
+              {client && <p className="text-slate-600">{client.name}</p>}
+              {building && <p className="text-slate-500 text-sm">{building.name}</p>}
+            </div>
+            <CompartirButton
+              record={revision}
+              entityName="ScheduledRevision"
+              idParam="revision_id"
+              proxyEntity="revision_update"
+              canEdit={true}
+              onSaved={() => queryClient.invalidateQueries({ queryKey: ['scheduled-revision', revisionId] })} />
           </div>
         </Card>
 

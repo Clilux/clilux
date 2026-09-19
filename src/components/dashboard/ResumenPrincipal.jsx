@@ -25,7 +25,13 @@ export default function ResumenPrincipal({
   const misIncidencias = filtrarCompartidos(incidents, opts).filter(
     (i) => i.status === 'pending' || i.status === 'in_progress'
   );
-  const misMantenimientos = filtrarCompartidos(revisions, opts).filter((r) => r.status === 'pending');
+  // Solo mantenimientos del mes en curso y anteriores (no los programados a futuro)
+  const hoy = new Date();
+  const finDeMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+  const finDeMesStr = `${finDeMes.getFullYear()}-${String(finDeMes.getMonth() + 1).padStart(2, '0')}-${String(finDeMes.getDate()).padStart(2, '0')}`;
+  const misMantenimientos = filtrarCompartidos(revisions, opts).filter(
+    (r) => r.status === 'pending' && r.scheduled_date && r.scheduled_date <= finDeMesStr
+  );
 
   const enCurso = misIncidencias.filter((i) => i.status === 'in_progress').length;
   const pendientes = misIncidencias.length - enCurso;
@@ -61,7 +67,7 @@ export default function ResumenPrincipal({
       key: 'mantenimientos',
       label: 'Mantenimientos pendientes',
       value: misMantenimientos.length,
-      detalle: 'Revisiones programadas sin realizar',
+      detalle: 'Programados hasta este mes sin realizar',
       icon: ClipboardCheck,
       page: 'Calendar',
       cardCls: 'bg-blue-50 border-blue-200',

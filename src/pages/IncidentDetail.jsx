@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 import { notificar } from '@/lib/buzon';
 import AssignTechniciansPanel from '@/components/incidents/AssignTechniciansPanel';
+import CompartirButton from '@/components/compartir/CompartirButton';
 
 const priorityConfig = {
   low: { label: 'Baja', color: 'bg-slate-100 text-slate-700' },
@@ -495,6 +496,13 @@ export default function IncidentDetail() {
               </div>
             </div>
             <div className="flex gap-2">
+              <CompartirButton
+                record={incident}
+                entityName="Incident"
+                idParam="incident_id"
+                proxyEntity="incident_update"
+                canEdit={canComment}
+                onSaved={invalidateIncidentQueries} />
               {canComment && (
                 <Button variant="outline" size="sm" onClick={crearParteTrabajo} className="gap-1.5">
                   <ClipboardList className="h-4 w-4" />
