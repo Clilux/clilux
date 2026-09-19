@@ -136,6 +136,13 @@
         }
       },
       "description": "Historial de comentarios y cambios de estado"
+    },
+    "shared_with": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de los trabajadores con acceso a esta incidencia. Vac\u00edo = compartida con todos los usuarios (por defecto)."
     }
   },
   "required": [

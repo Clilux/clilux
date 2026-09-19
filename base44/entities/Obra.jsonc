@@ -140,6 +140,13 @@
     },
     "notas": {
       "type": "string"
+    },
+    "shared_with": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de los trabajadores con acceso a esta obra. Vac\u00edo = compartida con todos los usuarios (por defecto)."
     }
   },
   "required": [

@@ -86,6 +86,13 @@
         }
       },
       "description": "Lista de equipos agrupados en esta revisi\u00f3n unificada"
+    },
+    "shared_with": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de los trabajadores con acceso a este mantenimiento. Vac\u00edo = compartido con todos los usuarios (por defecto)."
     }
   },
   "required": [

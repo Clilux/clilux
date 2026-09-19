@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
+import CompartirButton from '@/components/compartir/CompartirButton';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save } from 'lucide-react';
@@ -302,12 +303,21 @@ export default function ObraDetail() {
                   )}
                 </div>
               </div>
-              <Select value={obra.estado} onValueChange={v => updateObra.mutate({ estado: v })}>
-                <SelectTrigger className="w-36 shrink-0"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ESTADO_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 shrink-0">
+                <CompartirButton
+                  record={obra}
+                  entityName="Obra"
+                  idParam="record_id"
+                  proxyEntity="obra_update"
+                  canEdit={isAdmin}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ['obra', obraId] })} />
+                <Select value={obra.estado} onValueChange={v => updateObra.mutate({ estado: v })}>
+                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ESTADO_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {obra.descripcion && <p className="text-sm text-slate-600 mt-3 pt-3 border-t border-slate-100">{obra.descripcion}</p>}
           </Card>

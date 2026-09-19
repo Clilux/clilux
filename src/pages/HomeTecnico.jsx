@@ -22,7 +22,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
 import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import MisIncidencias from '@/components/dashboard/MisIncidencias';
+import ResumenPrincipal from '@/components/dashboard/ResumenPrincipal';
 import { FUNCIONES, AUTOMATIZACION } from '@/lib/funciones';
 
 // ── Tab config ──────────────────────────────────────────────
@@ -227,6 +227,12 @@ export default function HomeTecnico() {
     enabled: !useProxy,
     staleTime: 60000
   });
+  const { data: obras = [] } = useQuery({
+    queryKey: ['obras', 'direct'],
+    queryFn: () => base44.entities.Obra.list('-created_date'),
+    enabled: !useProxy,
+    staleTime: 60000
+  });
 
   // Ficha del técnico actual: vía proxy (sesión de técnico) o directa (usuario Base44)
   const myTechRecord = isSessionTech ? proxyData?.tech || null : myTechRecordDirect;
@@ -244,6 +250,7 @@ export default function HomeTecnico() {
   const finalEquipment = useProxy ? proxyData?.equipment ?? [] : equipment ?? [];
   const finalRevisions = useProxy ? proxyData?.revisions ?? [] : scheduledRevisions ?? [];
   const finalIncidents = useProxy ? proxyData?.incidents ?? [] : incidents ?? [];
+  const finalObras = useProxy ? proxyData?.obras ?? [] : obras ?? [];
 
   // Incidencias visibles para el usuario: los técnicos de campo solo ven las suyas;
   // gerentes/administración ven todas las de la empresa.
@@ -363,195 +370,84 @@ export default function HomeTecnico() {
           {/* ── INICIO ── */}
           {activeTab === 'inicio' &&
           <div className="space-y-6">
-            <MisIncidencias incidents={myIncidents} isAdmin={isAdmin} loading={isLoadingData} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             <div className="space-y-5">
-              {/* Fichaje rápido — solo técnicos de sesión propia, NO admins */}
-              {isSessionTech &&
-              <div className="mb-6">
-                  <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
-                </div>
-              }
 
-              {/* Panel de edificios */}
-              <div className="mb-4">
-                <Link to={createPageUrl('PanelEdificios')}>
-                  <Card className="from-blue-600 to-blue-700 border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#087f91]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
-                          <Building2 className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-white font-semibold text-sm">Panel de Edificios</p>
-                          <p className="text-blue-100 text-xs">Estado global, alertas y revisiones por edificio</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-white/70" />
-                    </div>
-                  </Card>
+            {/* 1. Resumen: obras abiertas, incidencias y mantenimientos pendientes */}
+            <ResumenPrincipal
+              obras={finalObras}
+              incidents={finalIncidents}
+              revisions={finalRevisions}
+              loading={isLoadingData}
+              techId={myTechId}
+              isAdmin={isAdmin} />
+
+            {/* 2. Mi agenda */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-slate-800 font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  Mi agenda
+                </h2>
+                <Link to={createPageUrl('Calendar')}>
+                  <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
+                    Abrir calendario <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
                 </Link>
               </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                { label: 'Clientes', value: finalClients.length, icon: Users, color: 'bg-blue-500/10 border-blue-200', iconBg: 'bg-blue-100', iconCls: 'text-blue-500', page: 'Clients', loading: isLoadingData },
-                { label: 'Edificios', value: finalBuildings.length, icon: Building2, color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings', loading: isLoadingData },
-                { label: 'Equipos', value: finalEquipment.length, icon: Wrench, color: 'bg-purple-500/10 border-purple-200', iconBg: 'bg-purple-100', iconCls: 'text-purple-500', page: 'Equipment', loading: isLoadingData },
-                { label: 'Incidencias', value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: isLoadingData }].
-                map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) =>
-                <Link key={label} to={createPageUrl(page)}>
-                    <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
-                      <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center mb-3`}>
-                        <Icon className={`h-7 w-7 ${iconCls}`} />
-                      </div>
-                      {loading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-3xl font-bold text-slate-800">{value}</p>}
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
-                    </Card>
-                  </Link>
-                )}
-              </div>
-
-              {/* Próximas revisiones */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-slate-800 font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    Próximas revisiones (30 días)
-                  </h2>
-                  <Link to={createPageUrl('Calendar')}>
-                    <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
-                      Ver todas <ChevronRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-                {upcomingRevisions.length === 0 ?
-                <Card className="bg-slate-50 border-slate-200 p-4 text-center">
-                    <p className="text-slate-400 text-sm">No hay revisiones próximas</p>
-                  </Card> :
-
-                <div className="space-y-2">
-                    {upcomingRevisions.slice(0, 6).map((rev) => {
-                    const client = finalClients.find((c) => c.id === rev.client_id);
-                    const building = finalBuildings.find((b) => b.id === rev.building_id);
-                    const equip = finalEquipment.find((e) => e.id === rev.equipment_id);
-                    return (
-                      <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}>
-                          <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                  <ClipboardCheck className="h-4 w-4 text-blue-600" />
-                                </div>
-                                <div>
-                                  <p className="text-slate-800 text-sm font-medium">{equip?.reference_name || equip?.brand || 'Equipo'}</p>
-                                  <p className="text-slate-500 text-xs">{client?.name} · {building?.name}</p>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0 ml-2">
-                                <p className="text-blue-600 text-sm font-medium">{format(parseISO(rev.scheduled_date), 'dd MMM', { locale: es })}</p>
-                                <p className="text-slate-400 text-xs capitalize">{rev.revision_type}</p>
-                              </div>
-                            </div>
-                          </Card>
-                        </Link>);
-
-                  })}
-                  </div>
-                }
-              </div>
-
-              </div>
-              <div className="space-y-5">
-              {/* Alertas F-Gas / RSIF — solo admins */}
-              {isAdmin && !isSessionTech &&
-              <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
-              }
-
-              {/* Incidencias pendientes */}
-              {pendingIncidents.length > 0 &&
-              <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-slate-800 font-semibold flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      Incidencias pendientes
-                    </h2>
-                    <Link to={createPageUrl('Incidents')}>
-                      <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
-                        Ver todas <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="space-y-2">
-                    {pendingIncidents.slice(0, 3).map((inc) => {
-                    const client = finalClients.find((c) => c.id === inc.client_id);
-                    return (
-                      <Link key={inc.id} to={createPageUrl('IncidentDetail') + `?id=${inc.id}`}>
-                          <Card className="bg-red-50 border-red-200 p-3 hover:bg-red-100 transition-colors cursor-pointer shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-                                <div>
-                                  <p className="text-slate-800 text-sm font-medium">{inc.title}</p>
-                                  <p className="text-slate-500 text-xs">{client?.name}</p>
-                                </div>
-                              </div>
-                              <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${inc.priority === 'urgent' ? 'bg-red-500/20 text-red-300' : inc.priority === 'high' ? 'bg-orange-500/20 text-orange-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
-                                {inc.priority}
-                              </span>
-                            </div>
-                          </Card>
-                        </Link>);
-
-                  })}
-                  </div>
-                </div>
-              }
-
-              {/* Clientes recientes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-slate-800 font-semibold flex items-center gap-2">
-                    <Users className="h-4 w-4 text-emerald-600" />
-                    Clientes recientes
-                  </h2>
-                  <Link to={createPageUrl('Clients')}>
-                    <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 text-xs">
-                      Ver todos <ChevronRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-                {isLoadingData ?
-                <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div> :
-
-                <div className="space-y-2">
-                  {finalClients.slice(0, 5).map((client) =>
-                  <Link key={client.id} to={createPageUrl('ClientDetail') + `?id=${client.id}`}>
-                      <Card className="bg-white border-slate-200 p-3 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 overflow-hidden">
-                              {client.photo_url ?
-                            <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" /> :
-                            <Users className="h-4 w-4 text-emerald-600" />}
-                            </div>
-                            <div>
-                              <p className="text-slate-800 text-sm font-medium">{client.name}</p>
-                              <p className="text-slate-500 text-xs">{client.city || client.email || ''}</p>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-slate-400" />
-                          </div>
-                        </Card>
-                      </Link>
-                  )}
-                  </div>
-                }
-              </div>
+              <MiniCalendar
+                revisions={finalRevisions}
+                clients={finalClients}
+                buildings={finalBuildings}
+                equipment={finalEquipment} />
             </div>
+
+            {/* 3. Fichaje — solo técnicos de sesión propia, NO admins */}
+            {isSessionTech &&
+            <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
+            }
+
+            {/* 4. Panel de edificios */}
+            <Link to={createPageUrl('PanelEdificios')}>
+              <Card className="border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#087f91]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">Panel de Edificios</p>
+                      <p className="text-blue-100 text-xs">Estado global, alertas y revisiones por edificio</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-white/70" />
+                </div>
+              </Card>
+            </Link>
+
+            {/* 5. Accesos rápidos: clientes, edificios, equipos e incidencias */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+              { label: 'Clientes', value: finalClients.length, icon: Users, color: 'bg-blue-500/10 border-blue-200', iconBg: 'bg-blue-100', iconCls: 'text-blue-500', page: 'Clients', loading: isLoadingData },
+              { label: 'Edificios', value: finalBuildings.length, icon: Building2, color: 'bg-emerald-500/10 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600', page: 'Buildings', loading: isLoadingData },
+              { label: 'Equipos', value: finalEquipment.length, icon: Wrench, color: 'bg-purple-500/10 border-purple-200', iconBg: 'bg-purple-100', iconCls: 'text-purple-500', page: 'Equipment', loading: isLoadingData },
+              { label: 'Incidencias', value: pendingIncidents.length, icon: AlertTriangle, color: pendingIncidents.length > 0 ? 'bg-red-500/10 border-red-200' : 'bg-slate-100 border-slate-200', iconBg: pendingIncidents.length > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: pendingIncidents.length > 0 ? 'text-red-500' : 'text-slate-400', page: 'Incidents', loading: isLoadingData }].
+              map(({ label, value, icon: Icon, color, iconBg, iconCls, page, loading }) =>
+              <Link key={label} to={createPageUrl(page)}>
+                  <Card className={`${color} border p-4 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer shadow-sm`}>
+                    <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center mb-3`}>
+                      <Icon className={`h-7 w-7 ${iconCls}`} />
+                    </div>
+                    {loading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-3xl font-bold text-slate-800">{value}</p>}
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
+                  </Card>
+                </Link>
+              )}
             </div>
-            </div>
+
+            {/* Alertas F-Gas / RSIF — solo admins */}
+            {isAdmin && !isSessionTech &&
+            <FGasAlertas equipment={finalEquipment} isAdmin={isAdmin} />
+            }
+          </div>
           }
 
             {/* ── CALENDARIO ── */}

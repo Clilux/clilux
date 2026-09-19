@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Building2, MapPin, Phone, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone, Eye, EyeOff, Users } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
@@ -77,6 +77,29 @@ export default function Clients() {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
         <NavHeader title="Clientes" />
+
+        {!searchTerm && visibleClients.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Clientes recientes</h2>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {visibleClients.slice(0, 5).map(client => (
+                <Link key={client.id} to={createPageUrl(`ClientDetail?id=${client.id}`)} className="shrink-0">
+                  <Card className="p-3 bg-white border hover:shadow-md transition-all cursor-pointer flex items-center gap-3 min-w-[210px]">
+                    <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 overflow-hidden">
+                      {client.photo_url
+                        ? <img src={client.photo_url} alt={client.name} className="w-9 h-9 object-cover" />
+                        : <Users className="h-4 w-4 text-emerald-600" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{client.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{client.city || client.email || ''}</p>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
