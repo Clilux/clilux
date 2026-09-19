@@ -6,6 +6,7 @@ const statusConfig = {
   operational: { label: 'Operativo', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   maintenance_needed: { label: 'Requiere mantenimiento', color: 'bg-amber-100 text-amber-700 border-amber-200' },
   out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-700 border-red-200' },
+  sin_contrato: { label: 'Sin contrato', color: 'bg-slate-200 text-slate-600 border-slate-300' },
   active: { label: 'Activo', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   inactive: { label: 'Inactivo', color: 'bg-slate-100 text-slate-600 border-slate-200' },
   good: { label: 'Bueno', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },

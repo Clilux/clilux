@@ -94,9 +94,11 @@
       "enum": [
         "operational",
         "maintenance_needed",
-        "out_of_service"
+        "out_of_service",
+        "sin_contrato"
       ],
-      "default": "operational"
+      "default": "operational",
+      "description": "Estado del equipo. 'sin_contrato' lo congela: anula revisiones pendientes y lo a\u00edsla de los equipos en servicio."
     },
     "documents": {
       "type": "array",
@@ -175,7 +177,7 @@
     },
     "technical_data": {
       "type": "object",
-      "description": "Datos t\u00e9cnicos espec\u00edf\u00edficos del equipo"
+      "description": "Datos t\u00e9cnicos espec\u00edficos del equipo"
     },
     "parent_equipment_id": {
       "type": "string",

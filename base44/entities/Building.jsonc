@@ -62,9 +62,11 @@
       "type": "string",
       "enum": [
         "active",
-        "inactive"
+        "inactive",
+        "sin_contrato"
       ],
-      "default": "active"
+      "default": "active",
+      "description": "'sin_contrato' cuando todos sus equipos est\u00e1n sin contrato: el edificio queda congelado."
     },
     "created_by_name": {
       "type": "string",

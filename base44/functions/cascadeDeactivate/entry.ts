@@ -41,6 +41,49 @@ Deno.serve(async (req) => {
     const svc = base44.asServiceRole.entities;
     const OPEN_INCIDENT_STATUSES = ['pending', 'in_progress'];
 
+    // ── Cambio de estado manual de un equipo ──
+    // 'sin_contrato' y 'out_of_service' congelan el equipo: anulan revisiones
+    // pendientes y cierran incidencias abiertas (sin borrar nada).
+    if (body.status && entity_type === 'equipment') {
+      const newStatus = body.status;
+      const freeze = newStatus === 'sin_contrato' || newStatus === 'out_of_service';
+
+      await svc.Equipment.update(entity_id, { status: newStatus });
+
+      if (freeze) {
+        await svc.Incident.updateMany(
+          { equipment_id: entity_id, status: { $in: OPEN_INCIDENT_STATUSES } },
+          { $set: { status: 'closed' } }
+        );
+        await svc.ScheduledRevision.updateMany(
+          { equipment_id: entity_id, status: 'pending' },
+          { $set: { status: 'cancelled' } }
+        );
+      }
+
+      // El edificio sigue el estado de sus equipos: si todos quedan sin
+      // contrato se congela; si alguno vuelve al servicio, se reactiva.
+      const current = (await svc.Equipment.filter({ id: entity_id }))[0];
+      if (current?.building_id) {
+        const siblings = await svc.Equipment.filter({ building_id: current.building_id });
+        const allSinContrato = siblings.length > 0 &&
+          siblings.every((e) => (e.status || 'operational') === 'sin_contrato');
+        const building = (await svc.Building.filter({ id: current.building_id }))[0];
+
+        if (allSinContrato && building?.status !== 'sin_contrato') {
+          await svc.Building.update(current.building_id, { status: 'sin_contrato' });
+          await svc.ScheduledRevision.updateMany(
+            { building_id: current.building_id, status: 'pending' },
+            { $set: { status: 'cancelled' } }
+          );
+        } else if (!allSinContrato && building?.status === 'sin_contrato') {
+          await svc.Building.update(current.building_id, { status: 'active' });
+        }
+      }
+
+      return Response.json({ ok: true, status: newStatus });
+    }
+
     // ── Reactivación: solo la propia entidad ──
     if (activate) {
       if (entity_type === 'client') {

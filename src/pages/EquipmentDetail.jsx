@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input";
 import {
   Edit, MapPin, Calendar, FileText,
   Snowflake, Flame, Wind, Droplet,
-  Shield, Trash2, Wrench, ToggleLeft, ToggleRight, Save, X, AlertTriangle, User } from
+  Shield, Trash2, Wrench, Save, X, AlertTriangle, User } from
 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
-import StatusBadge from '../components/ui/StatusBadge';
+import StatusChanger, { equipmentStatusLabel } from '../components/equipment/StatusChanger';
 import EquipmentDocuments from '../components/equipment/EquipmentDocuments';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ScheduledRevisionsList from '../components/equipment/ScheduledRevisionsList';
@@ -76,7 +76,15 @@ const equipmentTypeLabels = {
 const statusInfo = {
   operational: { label: 'Operativo', color: 'bg-emerald-100 text-emerald-800', icon: '✓' },
   maintenance_needed: { label: 'Requiere mantenimiento', color: 'bg-amber-100 text-amber-800', icon: '⚠' },
-  out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-800', icon: '✕' }
+  out_of_service: { label: 'Fuera de servicio', color: 'bg-red-100 text-red-800', icon: '✕' },
+  sin_contrato: { label: 'Sin contrato', color: 'bg-slate-200 text-slate-600', icon: '—' }
+};
+
+const statusStyle = {
+  operational: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+  maintenance_needed: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  out_of_service: { bg: 'bg-red-100', text: 'text-red-600' },
+  sin_contrato: { bg: 'bg-slate-200', text: 'text-slate-500' }
 };
 
 export default function EquipmentDetail() {
@@ -134,22 +142,23 @@ export default function EquipmentDetail() {
     }
   };
 
-  const toggleEquipmentStatusMutation = useMutation({
-    mutationFn: async (currentStatus) => {
-      const activate = currentStatus === 'out_of_service';
-      const payload = isSessionTech
-        ? { technician_email: sessionTechEmail, entity_type: 'equipment', entity_id: equipmentId, activate }
-        : { entity_type: 'equipment', entity_id: equipmentId, activate };
-      await base44.functions.invoke('cascadeDeactivate', payload);
-      return activate;
+  const changeStatusMutation = useMutation({
+    mutationFn: async (newStatus) => {
+      await base44.functions.invoke('cascadeDeactivate', {
+        technician_email: sessionTechEmail || undefined,
+        entity_type: 'equipment',
+        entity_id: equipmentId,
+        status: newStatus
+      });
+      return newStatus;
     },
-    onSuccess: (activate) => {
+    onSuccess: (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['proxy-equipment-detail', equipmentId, sessionTechEmail] });
       queryClient.invalidateQueries({ queryKey: ['scheduled-revisions', equipmentId] });
-      toast.success(activate
-        ? 'Equipo activado'
-        : 'Equipo desactivado. Incidencias y revisiones relacionadas también se han desactivado.');
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      queryClient.invalidateQueries({ queryKey: ['building'] });
+      toast.success(`Estado actualizado: ${equipmentStatusLabel(newStatus)}`);
     }
   });
 
@@ -320,6 +329,8 @@ export default function EquipmentDetail() {
 
   }
 
+  const statusStyleFinal = statusStyle[finalEquipment.status] || statusStyle.operational;
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
@@ -348,7 +359,11 @@ export default function EquipmentDetail() {
                     <h2 className="text-2xl font-bold text-slate-800">
                       {finalEquipment.reference_name || `${finalEquipment.brand} ${finalEquipment.model}`}
                     </h2>
-                    <StatusBadge status={finalEquipment.status || 'operational'} />
+                    <StatusChanger
+                      status={finalEquipment.status}
+                      canEdit={!isSessionTech}
+                      isPending={changeStatusMutation.isPending}
+                      onChange={(newStatus) => changeStatusMutation.mutate(newStatus)} />
                   </div>
                   {finalEquipment.reference_name &&
                   <p className="text-base text-slate-600 font-medium mb-1">
@@ -401,19 +416,6 @@ export default function EquipmentDetail() {
                       Editar
                     </Button>
                   </Link>
-                  {!isSessionTech &&
-                  <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleEquipmentStatusMutation.mutate(finalEquipment.status || 'operational')}
-                      disabled={toggleEquipmentStatusMutation.isPending}
-                      className={finalEquipment.status === 'out_of_service' ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-600'}>
-                      {finalEquipment.status === 'out_of_service' ?
-                      <><ToggleRight className="h-4 w-4 mr-2" />Activar</> :
-                      <><ToggleLeft className="h-4 w-4 mr-2" />Desactivar</>
-                      }
-                  </Button>
-                  }
                   <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
                     <Trash2 className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Eliminar</span>
@@ -424,14 +426,8 @@ export default function EquipmentDetail() {
               {/* Status Summary */}
               <div className="grid grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-slate-50">
                 <div className="text-center">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
-                  finalEquipment.status === 'operational' ? 'bg-emerald-100' :
-                  finalEquipment.status === 'maintenance_needed' ? 'bg-amber-100' : 'bg-red-100'}`
-                  }>
-                    <Shield className={`h-5 w-5 ${
-                    finalEquipment.status === 'operational' ? 'text-emerald-600' :
-                    finalEquipment.status === 'maintenance_needed' ? 'text-amber-600' : 'text-red-600'}`
-                    } />
+                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-1 ${statusStyleFinal.bg}`}>
+                    <Shield className={`h-5 w-5 ${statusStyleFinal.text}`} />
                   </div>
                   <p className="text-xs text-slate-500">Estado</p>
                   <p className="text-sm font-medium text-slate-700">
