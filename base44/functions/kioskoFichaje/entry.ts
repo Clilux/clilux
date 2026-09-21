@@ -54,13 +54,22 @@ function calcularHoras(registro, jornadaDiaria = 8) {
 }
 
 function pad(n) { return String(n).padStart(2, '0'); }
+// Hora local de la empresa (Europe/Madrid). El servidor corre en UTC, por lo que
+// usar new Date() directamente desplazaba los fichajes 1-2 horas.
+function madridNow() {
+  const s = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date());
+  const [fecha, hora] = s.split(' ');
+  return { fecha, hora: (hora || '00:00').slice(0, 5) };
+}
 function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return madridNow().fecha;
 }
 function nowStr() {
-  const d = new Date();
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return madridNow().hora;
 }
 
 // ── Resumen del trabajador: últimos fichajes, horas del mes, alertas y vacaciones ──
@@ -68,8 +77,7 @@ async function buildSummary(base44, tech, allRecords) {
   const sorted = [...allRecords].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   const recentRecords = sorted.slice(0, 6);
 
-  const now = new Date();
-  const monthPrefix = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  const monthPrefix = todayStr().slice(0, 7);
   const monthRecords = allRecords.filter(r => (r.fecha || '').startsWith(monthPrefix));
   const monthHours = monthRecords.reduce((acc, r) => acc + (r.horas_efectivas || 0), 0);
 
@@ -77,7 +85,7 @@ async function buildSummary(base44, tech, allRecords) {
   const diasLaborables = tech.dias_laborables || [1, 2, 3, 4, 5];
   const missing = [];
   for (let i = 1; i <= 7; i++) {
-    const d = new Date();
+    const d = new Date(`${todayStr()}T12:00:00`);
     d.setDate(d.getDate() - i);
     if (!diasLaborables.includes(d.getDay())) continue;
     const f = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -92,7 +100,7 @@ async function buildSummary(base44, tech, allRecords) {
     const ausencias = await base44.asServiceRole.entities.Ausencia.filter({
       technician_email: tech.email, tipo: 'vacaciones', estado: 'aprobada',
     });
-    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const today0 = new Date(`${todayStr()}T00:00:00`);
     const future = ausencias
       .filter(a => a.fecha_inicio && new Date(a.fecha_inicio) > today0)
       .sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));

@@ -336,8 +336,12 @@ export default function ClientDetail() {
                       <Card className="p-4 bg-white border-0 shadow-sm hover:shadow-md transition-all cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-medium text-slate-800">{eq.brand} {eq.model}</h3>
-                            <p className="text-sm text-slate-500">{eq.location} · {building?.name}</p>
+                            <h3 className="font-medium text-slate-800">
+                              {eq.reference_name || `${eq.brand} ${eq.model}`}
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                              {eq.brand} {eq.model}{eq.location ? ` · ${eq.location}` : ''}{building?.name ? ` · ${building.name}` : ''}
+                            </p>
                           </div>
                           <StatusBadge status={eq.status || 'operational'} />
                         </div>
