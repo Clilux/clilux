@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import LineasEditor from '@/components/erp/LineasEditor';
+import { parseBC3 } from '@/lib/bc3';
 import { DOCS, ESTADOS, FORMAS_PAGO, IVA_DEFECTO, calcTotales } from '@/lib/erp-config';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
 const inicial = (tipo, numero) => ({
   numero,
+  titulo: '',
   fecha: hoy(),
   fecha_validez: '',
   fecha_entrega: '',
@@ -25,11 +28,25 @@ const inicial = (tipo, numero) => ({
 });
 
 /** Formulario de alta/edición de presupuestos, pedidos y compras. */
-export default function DocumentoErpForm({ tipo, open, onClose, registro, numero, clients = [], proveedores = [], onSave }) {
+export default function DocumentoErpForm({ tipo, open, onClose, registro, numero, clients = [], proveedores = [], articulos = [], familias = [], onSave }) {
   const cfg = DOCS[tipo];
   const esPresupuesto = tipo === 'presupuesto';
   const [form, setForm] = useState(inicial(tipo, numero));
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef(null);
+
+  const importarBC3 = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const { lineas: nuevas, titulo } = parseBC3(await file.text());
+    if (nuevas.length === 0) {
+      toast.error('El fichero no contiene partidas BC3');
+      return;
+    }
+    setForm(p => ({ ...p, lineas: nuevas, titulo: p.titulo || titulo || '' }));
+    toast.success(`${nuevas.length} partidas importadas de Presto`);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +72,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
     : (partido?.nombre || '');
 
   const lineasOk = form.lineas.some(l => (l.concepto || '').trim());
-  const puedeGuardar = !!form._partyId && lineasOk;
+  const puedeGuardar = !!form._partyId && lineasOk && (!esPresupuesto || !!form.titulo.trim());
 
   const guardar = async () => {
     setSaving(true);
@@ -64,7 +81,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
       const base = {
         numero: form.numero,
         fecha: form.fecha,
-        lineas: form.lineas.map(l => ({ ...l, cantidad: Number(l.cantidad) || 0, precio_unitario: Number(l.precio_unitario) || 0, descuento: Number(l.descuento) || 0, total: Math.round((Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0) * (1 - (Number(l.descuento) || 0) / 100) * 100) / 100 })),
+        lineas: form.lineas.map(l => ({ ...l, unidad: l.unidad || 'ud', cantidad: Number(l.cantidad) || 0, precio_unitario: Number(l.precio_unitario) || 0, descuento: Number(l.descuento) || 0, total: Math.round((Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0) * (1 - (Number(l.descuento) || 0) / 100) * 100) / 100 })),
         subtotal: t.subtotal,
         iva: Number(form.iva) || 0,
         total: t.total,
@@ -73,6 +90,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
       const record = esPresupuesto
         ? {
             ...base,
+            titulo: form.titulo.trim(),
             client_id: form._partyId,
             cliente_nombre: partidoNombre,
             fecha_validez: form.fecha_validez || null,
@@ -123,6 +141,13 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
               <Input type="date" value={form.fecha || ''} onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))} className="mt-1" />
             </div>
           </div>
+
+          {esPresupuesto && (
+            <div>
+              <Label>Título *</Label>
+              <Input value={form.titulo || ''} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} className="mt-1" placeholder="Ej. Sustitución de enfriadora en cubierta" />
+            </div>
+          )}
 
           <div>
             <Label>{esPresupuesto ? 'Cliente *' : 'Proveedor *'}</Label>
@@ -184,7 +209,23 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
             )}
           </div>
 
-          <LineasEditor lineas={form.lineas} onChange={l => setForm(p => ({ ...p, lineas: l }))} iva={form.iva} />
+          <LineasEditor
+            lineas={form.lineas}
+            onChange={l => setForm(p => ({ ...p, lineas: l }))}
+            iva={form.iva}
+            articulos={articulos}
+            familias={familias}
+          />
+
+          {esPresupuesto && (
+            <div className="flex flex-wrap items-center gap-2">
+              <input ref={fileRef} type="file" accept=".bc3,text/plain" onChange={importarBC3} className="hidden" />
+              <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" />Importar BC3 (Presto)
+              </Button>
+              <span className="text-xs text-slate-400">Sustituye las líneas actuales por las del fichero.</span>
+            </div>
+          )}
 
           <div>
             <Label>Notas</Label>

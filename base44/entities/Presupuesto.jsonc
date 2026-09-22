@@ -6,6 +6,10 @@
       "type": "string",
       "description": "N\u00famero de presupuesto"
     },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo / objeto del presupuesto"
+    },
     "client_id": {
       "type": "string",
       "description": "ID del cliente"
@@ -28,13 +32,30 @@
       "format": "date",
       "description": "V\u00e1lido hasta"
     },
+    "fecha_envio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo env\u00edo al cliente"
+    },
+    "enviado_a": {
+      "type": "string",
+      "description": "Email al que se envi\u00f3 el presupuesto"
+    },
     "lineas": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "codigo": {
+            "type": "string",
+            "description": "C\u00f3digo del art\u00edculo (cat\u00e1logo o BC3)"
+          },
           "concepto": {
             "type": "string"
+          },
+          "unidad": {
+            "type": "string",
+            "default": "ud"
           },
           "cantidad": {
             "type": "number"

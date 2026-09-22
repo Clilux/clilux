@@ -12,6 +12,8 @@ const TIPOS: Record<string, string> = {
   pedido: 'Pedido',
   compra: 'Compra',
   proveedor: 'Proveedor',
+  articulo: 'CatalogoProducto',
+  familia: 'FamiliaProducto',
 };
 
 Deno.serve(async (req) => {
@@ -57,11 +59,13 @@ Deno.serve(async (req) => {
 
     // ── Carga completa del módulo ─────────────────────────────────
     if (entity === 'erp_list') {
-      const [proveedores, pedidos, compras, presupuestos, clientIds] = await Promise.all([
+      const [proveedores, pedidos, compras, presupuestos, articulos, familias, clientIds] = await Promise.all([
         sr.Proveedor.filter({ company_id: companyId }),
         sr.Pedido.filter({ company_id: companyId }),
         sr.Compra.filter({ company_id: companyId }),
         sr.Presupuesto.list('-created_date'),
+        sr.CatalogoProducto.filter({ company_id: companyId }),
+        sr.FamiliaProducto.filter({ company_id: companyId }),
         companyClientIds(),
       ]);
       return Response.json({
@@ -70,6 +74,8 @@ Deno.serve(async (req) => {
           pedidos,
           compras,
           presupuestos: presupuestos.filter((p: any) => clientIds.has(p.client_id)),
+          articulos,
+          familias,
         },
       });
     }
@@ -84,8 +90,8 @@ Deno.serve(async (req) => {
       if (tipo === 'presupuesto' && !(await companyClientIds()).has(record.client_id)) {
         return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
       }
-      if (tipo === 'proveedor') {
-        const data = await sr.Proveedor.create({ ...record, company_id: companyId, created_by_name: creatorName });
+      if (tipo === 'proveedor' || tipo === 'articulo' || tipo === 'familia') {
+        const data = await sr[entityName].create({ ...record, company_id: companyId, created_by_name: creatorName });
         return Response.json({ data });
       }
       const data = await sr[entityName].create({ ...record, company_id: companyId, created_by_name: creatorName });

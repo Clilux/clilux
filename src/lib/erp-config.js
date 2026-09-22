@@ -49,7 +49,25 @@ export const ENTIDADES = {
   pedido: 'Pedido',
   compra: 'Compra',
   proveedor: 'Proveedor',
+  articulo: 'CatalogoProducto',
+  familia: 'FamiliaProducto',
 };
+
+export const UNIDADES = ['ud', 'm', 'm2', 'm3', 'kg', 'l', 'h', 'pa', 'global'];
+
+// Precio de compra = PVP menos el descuento de compra
+export function precioCompra(a) {
+  const pvp = Number(a?.pvp) || 0;
+  const dto = Number(a?.descuento_compra) || 0;
+  return Math.round(pvp * (1 - dto / 100) * 100) / 100;
+}
+
+// Precio de venta = precio de compra más el porcentaje de venta
+export function precioVenta(a) {
+  const compra = precioCompra(a);
+  const pct = Number(a?.porcentaje_venta) || 0;
+  return Math.round(compra * (1 + pct / 100) * 100) / 100;
+}
 
 export const IVA_DEFECTO = 21;
 

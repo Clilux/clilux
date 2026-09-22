@@ -2,6 +2,57 @@
   "name": "CatalogoProducto",
   "type": "object",
   "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre del art\u00edculo"
+    },
+    "codigo": {
+      "type": "string",
+      "description": "C\u00f3digo/referencia del art\u00edculo"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del art\u00edculo"
+    },
+    "familia": {
+      "type": "string",
+      "description": "Familia del art\u00edculo"
+    },
+    "familia_id": {
+      "type": "string",
+      "description": "ID de la familia (FamiliaProducto)"
+    },
+    "fabricante": {
+      "type": "string",
+      "description": "Fabricante/Marca"
+    },
+    "unidad": {
+      "type": "string",
+      "default": "ud",
+      "description": "Unidad de medida"
+    },
+    "pvp": {
+      "type": "number",
+      "description": "Precio de venta al p\u00fablico (sin IVA)"
+    },
+    "descuento_compra": {
+      "type": "number",
+      "default": 0,
+      "description": "Descuento de compra en porcentaje sobre PVP"
+    },
+    "porcentaje_venta": {
+      "type": "number",
+      "default": 0,
+      "description": "Porcentaje de margen de venta sobre el precio de compra"
+    },
+    "precio_compra": {
+      "type": "number",
+      "description": "Precio de compra calculado"
+    },
+    "precio_venta": {
+      "type": "number",
+      "description": "Precio de venta calculado"
+    },
     "tipo": {
       "type": "string",
       "enum": [
@@ -11,48 +62,9 @@
       "default": "producto",
       "description": "Tipo: Producto o Servicio"
     },
-    "fabricante": {
-      "type": "string",
-      "description": "Fabricante/Marca del producto"
-    },
-    "codigo": {
-      "type": "string",
-      "description": "C\u00f3digo/referencia del producto"
-    },
-    "descripcion": {
-      "type": "string",
-      "description": "Descripci\u00f3n del producto"
-    },
-    "familia": {
-      "type": "string",
-      "description": "Familia del producto"
-    },
-    "pvp": {
-      "type": "number",
-      "description": "Precio de venta al p\u00fablico base"
-    },
-    "descuento_compra": {
-      "type": "number",
-      "default": 0,
-      "description": "Descuento de compra en porcentaje"
-    },
-    "porcentaje_venta": {
-      "type": "number",
-      "default": 0,
-      "description": "Porcentaje de margen sobre precio de compra"
-    },
-    "precio_venta": {
-      "type": "number",
-      "description": "Precio de venta calculado"
-    },
     "a\u00f1o_tarifa": {
       "type": "number",
       "description": "A\u00f1o de la tarifa"
-    },
-    "unidad": {
-      "type": "string",
-      "default": "ud",
-      "description": "Unidad de medida"
     },
     "nombre_catalogo": {
       "type": "string",
@@ -62,16 +74,20 @@
       "type": "string",
       "description": "ID del cat\u00e1logo importado al que pertenece"
     },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa propietaria"
+    },
+    "created_by_name": {
+      "type": "string"
+    },
     "activo": {
       "type": "boolean",
       "default": true
     }
   },
   "required": [
-    "fabricante",
-    "codigo",
-    "descripcion",
-    "pvp"
+    "nombre"
   ],
   "rls": {
     "create": {

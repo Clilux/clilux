@@ -9,6 +9,13 @@
     "descripcion": {
       "type": "string",
       "description": "Descripci\u00f3n de la familia"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa propietaria"
+    },
+    "created_by_name": {
+      "type": "string"
     }
   },
   "required": [

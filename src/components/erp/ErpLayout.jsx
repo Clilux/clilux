@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Boxes, LayoutDashboard, FileText, ShoppingCart, Receipt, Truck } from 'lucide-react';
+import { Boxes, LayoutDashboard, FileText, ShoppingCart, Receipt, Truck, Package } from 'lucide-react';
 import ModoSwitchButton from '@/components/modo/ModoSwitchButton';
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { id: 'pedidos', label: 'Pedidos', ruta: '/ErpPedidos', icon: ShoppingCart },
   { id: 'compras', label: 'Compras', ruta: '/ErpCompras', icon: Receipt },
   { id: 'proveedores', label: 'Proveedores', ruta: '/ErpProveedores', icon: Truck },
+  { id: 'articulos', label: 'Artículos', ruta: '/ErpArticulos', icon: Package },
 ];
 
 export default function ErpLayout({ active, children }) {

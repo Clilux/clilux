@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { getSessionToken } from '@/lib/passwordHash';
 import { ENTIDADES } from '@/lib/erp-config';
 
-const VACIO = { proveedores: [], pedidos: [], compras: [], presupuestos: [] };
+const VACIO = { proveedores: [], pedidos: [], compras: [], presupuestos: [], articulos: [], familias: [] };
 
 /**
  * Datos del módulo ERP. Con sesión de trabajador propio carga vía erpProxy
@@ -41,13 +41,15 @@ export function useErpData() {
         if (res.data?.error) throw new Error(res.data.error);
         return { ...VACIO, ...(res.data?.data || {}) };
       }
-      const [proveedores, pedidos, compras, presupuestos] = await Promise.all([
+      const [proveedores, pedidos, compras, presupuestos, articulos, familias] = await Promise.all([
         base44.entities.Proveedor.list('-created_date'),
         base44.entities.Pedido.list('-created_date'),
         base44.entities.Compra.list('-created_date'),
         base44.entities.Presupuesto.list('-created_date'),
+        base44.entities.CatalogoProducto.list('-created_date'),
+        base44.entities.FamiliaProducto.list('nombre'),
       ]);
-      return { proveedores, pedidos, compras, presupuestos };
+      return { proveedores, pedidos, compras, presupuestos, articulos, familias };
     },
   });
 
@@ -104,7 +106,12 @@ export function useErpData() {
     effectiveEmail: sessionTechEmail || base44User?.email,
     saveDocumento,
     deleteDocumento,
+    refresh: invalidate,
     saveProveedor: (record, id) => saveDocumento('proveedor', record, id),
     deleteProveedor: (id) => deleteDocumento('proveedor', id),
+    saveArticulo: (record, id) => saveDocumento('articulo', record, id),
+    deleteArticulo: (id) => deleteDocumento('articulo', id),
+    saveFamilia: (record, id) => saveDocumento('familia', record, id),
+    deleteFamilia: (id) => deleteDocumento('familia', id),
   };
 }

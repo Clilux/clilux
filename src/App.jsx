@@ -35,6 +35,7 @@ import ErpPresupuestos from './pages/ErpPresupuestos';
 import ErpPedidos from './pages/ErpPedidos';
 import ErpCompras from './pages/ErpCompras';
 import ErpProveedores from './pages/ErpProveedores';
+import ErpArticulos from './pages/ErpArticulos';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
       <Route path="/ErpPedidos" element={<LayoutWrapper currentPageName="ErpPedidos"><ErpPedidos /></LayoutWrapper>} />
       <Route path="/ErpCompras" element={<LayoutWrapper currentPageName="ErpCompras"><ErpCompras /></LayoutWrapper>} />
       <Route path="/ErpProveedores" element={<LayoutWrapper currentPageName="ErpProveedores"><ErpProveedores /></LayoutWrapper>} />
+      <Route path="/ErpArticulos" element={<LayoutWrapper currentPageName="ErpArticulos"><ErpArticulos /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </AnimatePresence>
