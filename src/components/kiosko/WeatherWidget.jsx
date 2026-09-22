@@ -127,12 +127,12 @@ export default function WeatherWidget({ size = 'sm' }) {
           <p className="text-8xl font-bold text-white leading-none">
             {weather?.current?.temperature_2m != null ? `${Math.round(weather.current.temperature_2m)}°` : '--°'}
           </p>
-          <p className="text-3xl text-white/80 font-medium">{info.label}</p>
-          <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 text-white/70 hover:text-white text-2xl mt-1 transition-colors">
+          <p className="text-3xl text-white/90 font-medium">{info.label}</p>
+          <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 text-white/90 hover:text-white text-2xl mt-1 transition-colors">
             <MapPin className="h-5 w-5" />{weather?.name || city}
           </button>
           {weather?.daily && (
-            <p className="text-white/50 text-xl">
+            <p className="text-white/80 text-xl">
               {Math.round(weather.daily.temperature_2m_max[0])}° / {Math.round(weather.daily.temperature_2m_min[0])}°
             </p>
           )}
@@ -157,12 +157,12 @@ export default function WeatherWidget({ size = 'sm' }) {
           <p className="text-white text-lg font-bold leading-none">
             {weather?.current?.temperature_2m != null ? `${Math.round(weather.current.temperature_2m)}°` : '--°'}
           </p>
-          <p className="text-white/60 text-xs mt-0.5 flex items-center gap-1">
+          <p className="text-white/80 text-xs mt-0.5 flex items-center gap-1">
             <MapPin className="h-3 w-3" />{weather?.name || city}
           </p>
         </div>
         {weather?.daily && (
-          <div className="text-white/50 text-xs ml-1 border-l border-white/20 pl-3">
+          <div className="text-white/80 text-xs ml-1 border-l border-white/30 pl-3">
             <p>{info.label}</p>
             <p className="mt-0.5">{Math.round(weather.daily.temperature_2m_max[0])}° / {Math.round(weather.daily.temperature_2m_min[0])}°</p>
           </div>

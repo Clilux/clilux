@@ -437,10 +437,21 @@ export default function ContratoMantenimiento() {
     addText('EL CLIENTE', col2 + 15, y + 16, { size: 8, bold: true, color: [100, 100, 100] });
     addText(form.cliente_nombre, col2 + 15, y + 21, { size: 8, color: [100, 100, 100] });
 
-    doc.save(`Contrato_${form.numero_contrato}_${form.cliente_nombre || 'cliente'}.pdf`);
+    const nombreArchivo = `Contrato_${form.numero_contrato}_${form.cliente_nombre || 'cliente'}.pdf`;
+    doc.save(nombreArchivo);
 
-    // Guardar en la carpeta de contratos
+    // Guardar en la carpeta de contratos (incluido el PDF para poder verlo/descargarlo después)
     try {
+      let pdf_url = null;
+      try {
+        const blob = doc.output('blob');
+        const file = new File([blob], nombreArchivo, { type: 'application/pdf' });
+        const up = await base44.integrations.Core.UploadFile({ file });
+        pdf_url = up.file_url;
+      } catch (e) {
+        console.error('Error subiendo el PDF del contrato:', e);
+      }
+
       const existing = await base44.entities.Contrato.filter({ numero_contrato: form.numero_contrato });
       const fechaFin = form.fecha_fin || calcFechaFin(form.fecha_inicio, form.duracion_meses);
       const contratoData = {
@@ -455,6 +466,7 @@ export default function ContratoMantenimiento() {
         precio_anual: form.precio_anual ? Number(form.precio_anual) : null,
         forma_pago: form.forma_pago,
         form_data: { ...form, tipoContrato },
+        ...(pdf_url ? { pdf_url } : {}),
       };
       if (existing.length > 0) {
         await base44.entities.Contrato.update(existing[0].id, contratoData);

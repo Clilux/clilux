@@ -148,6 +148,22 @@ export default function CarpetaContratos() {
     load();
   };
 
+  const descargarPDF = async (url, nombre) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
   const statsRealizado = contratos.filter(c => c.estado === 'realizado').length;
   const statsFirmado = contratos.filter(c => c.estado === 'firmado').length;
 
@@ -229,26 +245,26 @@ export default function CarpetaContratos() {
           {/* Tabla */}
           <Card className="border-slate-200 shadow-sm overflow-hidden">
             {/* Cabecera ordenable */}
-            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 bg-slate-100 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-              <button className="col-span-2 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('numero_contrato')}>
+            <div className="hidden md:flex items-center gap-3 px-4 py-3 bg-slate-100 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <button className="md:w-32 md:shrink-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('numero_contrato')}>
                 Nº Contrato <SortIcon field="numero_contrato" />
               </button>
-              <button className="col-span-1 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('tipo_contrato')}>
+              <button className="md:w-28 md:shrink-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('tipo_contrato')}>
                 Tipo <SortIcon field="tipo_contrato" />
               </button>
-              <button className="col-span-3 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('cliente_nombre')}>
+              <button className="flex-1 min-w-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('cliente_nombre')}>
                 Cliente <SortIcon field="cliente_nombre" />
               </button>
-              <button className="col-span-2 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('fecha_inicio')}>
+              <button className="md:w-32 md:shrink-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('fecha_inicio')}>
                 Inicio <SortIcon field="fecha_inicio" />
               </button>
-              <button className="col-span-1 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('precio_anual')}>
+              <button className="md:w-24 md:shrink-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('precio_anual')}>
                 Importe <SortIcon field="precio_anual" />
               </button>
-              <button className="col-span-1 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('estado')}>
+              <button className="md:w-28 md:shrink-0 flex items-center gap-1 hover:text-slate-800 text-left" onClick={() => handleSort('estado')}>
                 Estado <SortIcon field="estado" />
               </button>
-              <div className="col-span-2 text-right">Acciones</div>
+              <div className="md:w-56 md:shrink-0 text-right">Acciones</div>
             </div>
 
             {loading ? (
@@ -276,47 +292,47 @@ export default function CarpetaContratos() {
                   const EstadoIcon = EstadoConf.icon;
 
                   return (
-                    <div key={contrato.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-4 hover:bg-slate-50 transition-colors items-center">
+                    <div key={contrato.id} className="flex flex-col md:flex-row md:items-center gap-3 px-4 py-4 hover:bg-slate-50 transition-colors">
                       {/* Nº Contrato */}
-                      <div className="md:col-span-2">
-                        <p className="font-mono text-sm font-semibold text-slate-800">{contrato.numero_contrato}</p>
+                      <div className="md:w-32 md:shrink-0 min-w-0">
+                        <p className="font-mono text-sm font-semibold text-slate-800 truncate">{contrato.numero_contrato}</p>
                         <p className="text-xs text-slate-400 md:hidden">{formatDate(contrato.created_date?.split('T')[0])}</p>
                       </div>
 
                       {/* Tipo */}
-                      <div className="md:col-span-1">
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${TipoConf.color}`}>
-                          <TipoIcon className="w-3 h-3" />
-                          <span className="hidden lg:inline">{TipoConf.label}</span>
+                      <div className="md:w-28 md:shrink-0 min-w-0">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium max-w-full ${TipoConf.color}`}>
+                          <TipoIcon className="w-3 h-3 shrink-0" />
+                          <span className="hidden lg:inline truncate">{TipoConf.label}</span>
                         </span>
                       </div>
 
                       {/* Cliente */}
-                      <div className="md:col-span-3">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{contrato.cliente_nombre || '—'}</p>
-                        {contrato.cliente_cif && <p className="text-xs text-slate-400">{contrato.cliente_cif}</p>}
+                        {contrato.cliente_cif && <p className="text-xs text-slate-400 truncate">{contrato.cliente_cif}</p>}
                       </div>
 
                       {/* Fecha inicio */}
-                      <div className="md:col-span-2">
+                      <div className="md:w-32 md:shrink-0 min-w-0">
                         <p className="text-sm text-slate-600">{formatDate(contrato.fecha_inicio)}</p>
-                        {contrato.fecha_fin && <p className="text-xs text-slate-400">hasta {formatDate(contrato.fecha_fin)}</p>}
+                        {contrato.fecha_fin && <p className="text-xs text-slate-400 truncate">hasta {formatDate(contrato.fecha_fin)}</p>}
                       </div>
 
                       {/* Importe */}
-                      <div className="md:col-span-1">
-                        <p className="text-sm font-medium text-slate-700">
+                      <div className="md:w-24 md:shrink-0 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">
                           {contrato.precio_anual ? `${Number(contrato.precio_anual).toLocaleString('es-ES')} €` : '—'}
                         </p>
                       </div>
 
                       {/* Estado */}
-                      <div className="md:col-span-1">
+                      <div className="md:w-28 md:shrink-0">
                         <Select
                           value={contrato.estado || 'realizado'}
                           onValueChange={(val) => handleEstadoChange(contrato, val)}
                         >
-                          <SelectTrigger className={`h-7 text-xs px-2 border-0 shadow-none ${EstadoConf.color} rounded-full`}>
+                          <SelectTrigger className={`h-7 w-full text-xs px-2 shadow-none ${EstadoConf.color} rounded-full`}>
                             <EstadoIcon className="w-3 h-3 mr-1" />
                             <SelectValue />
                           </SelectTrigger>
@@ -332,23 +348,45 @@ export default function CarpetaContratos() {
                       </div>
 
                       {/* Acciones */}
-                      <div className="md:col-span-2 flex items-center gap-1 justify-end flex-wrap">
+                      <div className="md:w-56 md:shrink-0 flex items-center gap-1 justify-end flex-wrap">
                         {/* PDF generado */}
                         {contrato.pdf_url && (
-                          <a href={contrato.pdf_url} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="Ver PDF">
-                              <Eye className="w-3.5 h-3.5" />
+                          <>
+                            <a href={contrato.pdf_url} target="_blank" rel="noreferrer">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="Ver informe">
+                                <Eye className="w-3.5 h-3.5" />
+                              </Button>
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                              title="Descargar informe"
+                              onClick={() => descargarPDF(contrato.pdf_url, `Contrato_${contrato.numero_contrato}.pdf`)}
+                            >
+                              <Download className="w-3.5 h-3.5" />
                             </Button>
-                          </a>
+                          </>
                         )}
 
                         {/* PDF firmado */}
                         {contrato.pdf_firmado_url ? (
-                          <a href={contrato.pdf_firmado_url} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Ver PDF firmado">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
+                          <>
+                            <a href={contrato.pdf_firmado_url} target="_blank" rel="noreferrer">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Ver contrato firmado">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
+                              title="Descargar contrato firmado"
+                              onClick={() => descargarPDF(contrato.pdf_firmado_url, `Contrato_${contrato.numero_contrato}_firmado.pdf`)}
+                            >
+                              <Download className="w-3.5 h-3.5" />
                             </Button>
-                          </a>
+                          </>
                         ) : (
                           <label title="Subir PDF firmado">
                             <input

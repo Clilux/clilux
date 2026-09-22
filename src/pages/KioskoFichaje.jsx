@@ -171,28 +171,28 @@ export default function KioskoFichaje() {
           <div className="text-center mb-8">
             <Settings className="h-12 w-12 text-blue-400 mx-auto mb-3" />
             <h1 className="text-3xl font-bold text-white">Activar kiosko</h1>
-            <p className="text-white/60 mt-2 text-sm">Introduce las credenciales de gerente. El kiosko quedará asignado a su empresa y solo sus trabajadores podrán fichar aquí.</p>
+            <p className="text-white/80 mt-2 text-sm">Introduce las credenciales de gerente. El kiosko quedará asignado a su empresa y solo sus trabajadores podrán fichar aquí.</p>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="text-white/60 text-sm mb-1 block">Email del gerente</label>
+              <label className="text-white/85 text-sm mb-1 block">Email del gerente</label>
               <input
                 type="email"
                 value={setupEmail}
                 onChange={e => setSetupEmail(e.target.value)}
                 placeholder="gerente@empresa.com"
-                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/30"
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/50"
               />
             </div>
             <div>
-              <label className="text-white/60 text-sm mb-1 block">Contraseña</label>
+              <label className="text-white/85 text-sm mb-1 block">Contraseña</label>
               <input
                 type="password"
                 value={setupPassword}
                 onChange={e => setSetupPassword(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSetupLogin(); }}
                 placeholder="••••••••"
-                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/30"
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-white text-lg outline-none placeholder:text-white/50"
               />
             </div>
             {setupError && <p className="text-red-300 text-sm text-center">{setupError}</p>}
@@ -226,25 +226,25 @@ export default function KioskoFichaje() {
           )}
           <div className="text-center">
             <p className="text-white font-mono text-9xl font-bold tracking-tight leading-none">{timeNoSeconds}</p>
-            <p className="text-white/70 capitalize text-3xl mt-4">{dateStr}</p>
+            <p className="text-white/90 capitalize text-3xl mt-4">{dateStr}</p>
           </div>
           <WeatherWidget size="lg" />
         </div>
-        <div className="absolute bottom-12 flex items-center gap-2 text-white/40 animate-pulse">
+        <div className="absolute bottom-12 flex items-center gap-2 text-white/85 animate-pulse">
           <Hand className="h-6 w-6" />
           <span className="text-xl">Toca la pantalla para fichar</span>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); setShowChangeCompany(true); }}
           title="Cambiar empresa"
-          className="absolute top-6 left-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors z-10"
+          className="absolute top-6 left-6 flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors z-10"
         >
           <Settings className="h-5 w-5" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); navigate('/'); }}
           title="Salir del kiosco"
-          className="absolute top-6 right-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+          className="absolute top-6 right-6 flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors"
         >
           <DoorOpen className="h-5 w-5" /> Salir
         </button>
@@ -253,14 +253,14 @@ export default function KioskoFichaje() {
           <div onClick={(e) => e.stopPropagation()} className="absolute inset-0 bg-black/80 flex items-center justify-center z-20 p-6">
             <div className="bg-slate-800 border border-white/20 rounded-3xl p-8 max-w-sm w-full">
               <h2 className="text-xl font-bold text-white mb-1">Cambiar de empresa</h2>
-              <p className="text-white/60 text-sm mb-4">Introduce las credenciales de gerente de la nueva empresa para reasignar este kiosko.</p>
+              <p className="text-white/80 text-sm mb-4">Introduce las credenciales de gerente de la nueva empresa para reasignar este kiosko.</p>
               <div className="space-y-3">
                 <input
                   type="email"
                   value={changeEmail}
                   onChange={e => setChangeEmail(e.target.value)}
                   placeholder="Email del gerente"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/30"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/50"
                 />
                 <input
                   type="password"
@@ -268,14 +268,14 @@ export default function KioskoFichaje() {
                   onChange={e => setChangePassword(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') tryChangeCompany(); }}
                   placeholder="Contraseña"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/30"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none placeholder:text-white/50"
                 />
                 {changeError && <p className="text-red-300 text-sm text-center">{changeError}</p>}
                 <button onClick={tryChangeCompany} disabled={changeLoading} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl py-3 font-bold text-white flex items-center justify-center gap-2">
                   {changeLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <LogIn className="h-4 w-4" />}
                   Reasignar kiosko
                 </button>
-                <button onClick={() => { setShowChangeCompany(false); setChangeEmail(''); setChangePassword(''); setChangeError(''); }} className="w-full text-white/50 hover:text-white text-sm">Cancelar</button>
+                <button onClick={() => { setShowChangeCompany(false); setChangeEmail(''); setChangePassword(''); setChangeError(''); }} className="w-full text-white/80 hover:text-white text-sm">Cancelar</button>
               </div>
             </div>
           </div>
@@ -289,18 +289,18 @@ export default function KioskoFichaje() {
     const firstName = technician.name?.split(' ')[0] || 'Técnico';
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none overflow-y-auto">
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40 z-10">
+        <div className="absolute top-6 right-6 flex items-center gap-2 text-white/70 z-10">
           <Clock className="h-4 w-4" />
           <span className="text-lg font-mono">{timeStr}</span>
         </div>
         <div className="absolute top-6 left-6 z-10 flex flex-col gap-1.5">
-          <button onClick={resetSession} className="text-white/40 hover:text-white/80 text-sm underline underline-offset-2">
+          <button onClick={resetSession} className="text-white/70 hover:text-white text-sm underline underline-offset-2">
             Cerrar sesión
           </button>
           <button
             onClick={() => navigate('/')}
             title="Salir del kiosco"
-            className="flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+            className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors"
           >
             <DoorOpen className="h-4 w-4" /> Salir del kiosco
           </button>
@@ -355,26 +355,26 @@ export default function KioskoFichaje() {
               <div className="bg-white/10 border border-white/20 rounded-2xl p-5 text-center">
                 <Clock className="h-7 w-7 text-blue-300 mx-auto mb-2" />
                 <p className="text-3xl font-bold text-white">{todayHours}h</p>
-                <p className="text-xs text-white/60 mt-1">Hoy (efectivas)</p>
+                <p className="text-xs text-white/80 mt-1">Hoy (efectivas)</p>
               </div>
               <div className="bg-white/10 border border-white/20 rounded-2xl p-5 text-center">
                 <Briefcase className="h-7 w-7 text-emerald-300 mx-auto mb-2" />
                 <p className="text-3xl font-bold text-white">{summary.monthHours}h</p>
-                <p className="text-xs text-white/60 mt-1">Este mes</p>
+                <p className="text-xs text-white/80 mt-1">Este mes</p>
               </div>
             </div>
 
             <div className="bg-white/10 border border-white/20 rounded-2xl p-5">
-              <p className="text-sm font-semibold text-white/80 mb-3">Últimos fichajes</p>
+              <p className="text-sm font-semibold text-white/90 mb-3">Últimos fichajes</p>
               <div className="space-y-2">
                 {summary.recentRecords.length === 0 && (
-                  <p className="text-sm text-white/40 text-center py-2">Sin registros previos</p>
+                  <p className="text-sm text-white/70 text-center py-2">Sin registros previos</p>
                 )}
                 {summary.recentRecords.map(r => (
                   <div key={r.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
                     <div className="min-w-0">
                       <p className="text-sm text-white font-medium capitalize">{fmtFecha(r.fecha)}</p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-white/75">
                         {r.hora_entrada || '--'} → {r.hora_salida || (r.finalizada ? '--' : 'abierta')}
                       </p>
                     </div>
@@ -403,7 +403,7 @@ export default function KioskoFichaje() {
                 <p className="text-3xl font-bold text-white">{firstName}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`w-2.5 h-2.5 rounded-full ${jornadaActiva ? 'bg-emerald-400 animate-pulse' : jornadaPausada ? 'bg-amber-400' : jornadaFinalizada ? 'bg-slate-400' : 'bg-red-400'}`} />
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-white/85">
                     {jornadaActiva ? `En jornada desde ${ultimo?.entrada}` :
                      jornadaPausada ? 'En pausa' :
                      jornadaFinalizada ? `Finalizada · ${todayRecord?.horas_efectivas || 0}h` :
@@ -457,7 +457,7 @@ export default function KioskoFichaje() {
           </div>
         )}
 
-        <p className="absolute bottom-5 text-white/30 text-xs">
+        <p className="absolute bottom-5 text-white/60 text-xs">
           La sesión se cierra automáticamente por inactividad · RD-ley 8/2019
         </p>
 
@@ -476,10 +476,10 @@ export default function KioskoFichaje() {
   // ── Pantalla de PIN ───────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-6 select-none">
-      <button onClick={() => setScreen('screensaver')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors z-10">
+      <button onClick={() => setScreen('screensaver')} className="absolute top-6 left-6 flex items-center gap-1.5 text-white/80 hover:text-white text-sm transition-colors z-10">
         <ArrowLeft className="h-4 w-4" /> Volver
       </button>
-      <div className="absolute top-6 right-6 flex items-center gap-2 text-white/40">
+      <div className="absolute top-6 right-6 flex items-center gap-2 text-white/70">
         <Clock className="h-4 w-4" />
         <span className="text-lg font-mono">{timeStr}</span>
       </div>
@@ -487,7 +487,7 @@ export default function KioskoFichaje() {
       <div className="text-center mb-2">
         <h1 className="text-5xl font-bold text-white tracking-tight">Control Horario</h1>
         {kioskoCompany && <p className="text-blue-300 font-semibold mt-1 text-lg">{kioskoCompany.name}</p>}
-        <p className="text-white/60 capitalize mt-2 text-xl">{dateStr}</p>
+        <p className="text-white/85 capitalize mt-2 text-xl">{dateStr}</p>
       </div>
 
       <div className="flex items-center gap-3 my-6">
@@ -550,13 +550,13 @@ export default function KioskoFichaje() {
         </button>
       </div>
 
-      <p className="absolute bottom-6 text-white/40 text-sm flex items-center gap-1.5">
+      <p className="absolute bottom-6 text-white/75 text-sm flex items-center gap-1.5">
         <User className="h-4 w-4" />Introduce tu PIN personal · Créalo desde tu perfil si no lo tienes
       </p>
       <button
         onClick={() => navigate('/')}
         title="Salir del kiosco"
-        className="absolute bottom-6 left-6 flex items-center gap-1.5 text-white/30 hover:text-white/70 text-sm transition-colors"
+        className="absolute bottom-6 left-6 flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors"
       >
         <DoorOpen className="h-4 w-4" /> Salir del kiosco
       </button>

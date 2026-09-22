@@ -26,7 +26,7 @@ export default function HoraConfirmModal({ tipo, horaActual, onConfirm, onClose 
           <h3 className="text-2xl font-bold text-white flex items-center gap-2">
             <Clock className="h-6 w-6 text-blue-400" /> {titulo}
           </h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white">
+          <button onClick={onClose} className="text-white/70 hover:text-white">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -34,9 +34,9 @@ export default function HoraConfirmModal({ tipo, horaActual, onConfirm, onClose 
         {mode === 'pregunta' ? (
           <>
             <div className="text-center py-6">
-              <p className="text-white/70 text-lg mb-3">¿Es esta la hora real?</p>
+              <p className="text-white/90 text-lg mb-3">¿Es esta la hora real?</p>
               <p className="text-6xl font-bold text-white font-mono">{horaActual}</p>
-              <p className="text-white/40 text-sm mt-3">Hora actual del sistema</p>
+              <p className="text-white/70 text-sm mt-3">Hora actual del sistema</p>
             </div>
             <div className="space-y-3">
               <button
@@ -57,7 +57,7 @@ export default function HoraConfirmModal({ tipo, horaActual, onConfirm, onClose 
           <>
             <div className="space-y-5">
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">Hora real de {tipo === 'entrada' ? 'entrada' : 'salida'}</label>
+                <label className="block text-white/90 text-sm font-medium mb-2">Hora real de {tipo === 'entrada' ? 'entrada' : 'salida'}</label>
                 <input
                   type="time"
                   value={hora}
@@ -67,7 +67,7 @@ export default function HoraConfirmModal({ tipo, horaActual, onConfirm, onClose 
                 />
               </div>
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">
+                <label className="block text-white/90 text-sm font-medium mb-2">
                   Motivo del ajuste <span className="text-amber-400">(obligatorio)</span>
                 </label>
                 <textarea
@@ -77,7 +77,7 @@ export default function HoraConfirmModal({ tipo, horaActual, onConfirm, onClose 
                   rows={3}
                   className="w-full bg-slate-900 border border-white/20 rounded-xl px-4 py-3 text-white text-sm resize-none"
                 />
-                <p className="text-white/40 text-xs mt-1.5 flex items-center gap-1.5">
+                <p className="text-white/70 text-xs mt-1.5 flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   El ajuste queda registrado en el historial para auditoría (cumplimiento legal).
                 </p>
