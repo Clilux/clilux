@@ -41,6 +41,13 @@
       "type": "string",
       "description": "Email al que se envi\u00f3 el presupuesto"
     },
+    "arbol": {
+      "type": "array",
+      "description": "Estructura jer\u00e1rquica compatible con Presto (FIEBDC-3). Cada nodo: { id, tipo: 'capitulo'|'subcapitulo'|'partida', natc (1 cap\u00edtulo / 2 partida), codigo, resumen, texto, unidad, precio, mediciones: [{ etiqueta, unidades, longitud, ancho, alto }], hijos: [] }. Regla de oro: un nodo contiene solo cap\u00edtulos o solo partidas, nunca mezclados.",
+      "items": {
+        "type": "object"
+      }
+    },
     "lineas": {
       "type": "array",
       "items": {
@@ -72,7 +79,7 @@
           }
         }
       },
-      "description": "L\u00edneas del presupuesto"
+      "description": "Partidas aplanadas del \u00e1rbol (se mantiene sincronizada para listados y totales)"
     },
     "subtotal": {
       "type": "number",

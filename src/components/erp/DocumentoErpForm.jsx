@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import LineasEditor from '@/components/erp/LineasEditor';
-import { parseBC3 } from '@/lib/bc3';
+import ArbolPresupuesto from '@/components/erp/ArbolPresupuesto';
+import { lineasDesdeArbol, migrarLineasAArbol } from '@/lib/presto-arbol';
 import { DOCS, ESTADOS, FORMAS_PAGO, IVA_DEFECTO, calcTotales } from '@/lib/erp-config';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -24,6 +24,7 @@ const inicial = (tipo, numero) => ({
   iva: IVA_DEFECTO,
   notas: '',
   lineas: [],
+  arbol: [],
   _partyId: '',
 });
 
@@ -33,20 +34,9 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
   const esPresupuesto = tipo === 'presupuesto';
   const [form, setForm] = useState(inicial(tipo, numero));
   const [saving, setSaving] = useState(false);
-  const fileRef = useRef(null);
 
-  const importarBC3 = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    const { lineas: nuevas, titulo } = parseBC3(await file.text());
-    if (nuevas.length === 0) {
-      toast.error('El fichero no contiene partidas BC3');
-      return;
-    }
-    setForm(p => ({ ...p, lineas: nuevas, titulo: p.titulo || titulo || '' }));
-    toast.success(`${nuevas.length} partidas importadas de Presto`);
-  };
+  // El árbol es la fuente de verdad del presupuesto; `lineas` se mantiene aplanada
+  const cambiarArbol = (nuevoArbol) => setForm(p => ({ ...p, arbol: nuevoArbol, lineas: lineasDesdeArbol(nuevoArbol) }));
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +47,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
         estado: registro.estado || registro.status || (tipo === 'compra' ? 'pendiente' : 'borrador'),
         iva: registro.iva ?? IVA_DEFECTO,
         lineas: registro.lineas || [],
+        arbol: registro.arbol?.length ? registro.arbol : migrarLineasAArbol(registro.lineas || []),
         _partyId: esPresupuesto ? registro.client_id : registro.proveedor_id,
       });
     } else {
@@ -91,6 +82,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
         ? {
             ...base,
             titulo: form.titulo.trim(),
+            arbol: form.arbol,
             client_id: form._partyId,
             cliente_nombre: partidoNombre,
             fecha_validez: form.fecha_validez || null,
@@ -209,22 +201,23 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
             )}
           </div>
 
-          <LineasEditor
-            lineas={form.lineas}
-            onChange={l => setForm(p => ({ ...p, lineas: l }))}
-            iva={form.iva}
-            articulos={articulos}
-            familias={familias}
-          />
-
-          {esPresupuesto && (
-            <div className="flex flex-wrap items-center gap-2">
-              <input ref={fileRef} type="file" accept=".bc3,text/plain" onChange={importarBC3} className="hidden" />
-              <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileRef.current?.click()}>
-                <Upload className="h-3.5 w-3.5" />Importar BC3 (Presto)
-              </Button>
-              <span className="text-xs text-slate-400">Sustituye las líneas actuales por las del fichero.</span>
-            </div>
+          {esPresupuesto ? (
+            <ArbolPresupuesto
+              arbol={form.arbol}
+              onChange={cambiarArbol}
+              iva={form.iva}
+              cliente={partido}
+              meta={{ numero: form.numero, titulo: form.titulo, fecha: form.fecha, fecha_validez: form.fecha_validez, observaciones: form.notas }}
+              onTitulo={(t) => setForm(p => ({ ...p, titulo: p.titulo || t }))}
+            />
+          ) : (
+            <LineasEditor
+              lineas={form.lineas}
+              onChange={l => setForm(p => ({ ...p, lineas: l }))}
+              iva={form.iva}
+              articulos={articulos}
+              familias={familias}
+            />
           )}
 
           <div>
