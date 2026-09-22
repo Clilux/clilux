@@ -48,8 +48,8 @@ export default function ErpProveedores() {
             <Truck className="h-5 w-5 text-indigo-700" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Proveedores</h1>
-            <p className="text-xs text-slate-400">{lista.length} registrados</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">Proveedores</h1>
+            <p className="text-xs md:text-base text-slate-400">{lista.length} registrados</p>
           </div>
         </div>
         <Button onClick={() => { setEditando(null); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
@@ -59,7 +59,7 @@ export default function ErpProveedores() {
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o CIF..." className="pl-9 bg-white" />
+        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o CIF..." className="pl-9 md:h-11 md:text-base bg-white" />
       </div>
 
       {isLoading ? (
@@ -67,7 +67,7 @@ export default function ErpProveedores() {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center border-0 shadow-sm">
           <Truck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">No hay proveedores que mostrar</p>
+          <p className="text-slate-500 md:text-lg">No hay proveedores que mostrar</p>
           <Button onClick={() => { setEditando(null); setShowForm(true); }} className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-4 w-4 mr-2" />Crear el primero
           </Button>
@@ -79,13 +79,13 @@ export default function ErpProveedores() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-slate-800 truncate">{p.nombre}</p>
-                    <Badge className={`border-0 text-xs ${p.status === 'inactive' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <p className="font-semibold text-slate-800 truncate md:text-xl">{p.nombre}</p>
+                    <Badge className={`border-0 text-xs md:text-sm ${p.status === 'inactive' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
                       {p.status === 'inactive' ? 'Inactivo' : 'Activo'}
                     </Badge>
                   </div>
-                  {p.cif && <p className="text-xs text-slate-400 mt-0.5">{p.cif}</p>}
-                  <div className="mt-2 space-y-1 text-xs text-slate-500">
+                  {p.cif && <p className="text-xs md:text-sm text-slate-400 mt-0.5">{p.cif}</p>}
+                  <div className="mt-2 space-y-1 text-xs md:text-base text-slate-500">
                     {p.contacto && <p>{p.contacto}</p>}
                     {p.telefono && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{p.telefono}</p>}
                     {p.email && <p className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3" />{p.email}</p>}

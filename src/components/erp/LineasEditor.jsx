@@ -17,7 +17,7 @@ export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-700">Líneas</p>
+        <p className="text-sm md:text-base font-semibold text-slate-700">Líneas</p>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => onChange([...lineas, { concepto: '', cantidad: 1, precio_unitario: 0, descuento: 0 }])}>
           <Plus className="h-3.5 w-3.5" />Añadir
         </Button>
@@ -56,7 +56,7 @@ export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO 
         </div>
       ))}
 
-      <div className="flex justify-end gap-6 pt-1 text-sm">
+      <div className="flex justify-end gap-6 pt-1 text-sm md:text-base">
         <span className="text-slate-500">Base: <strong className="text-slate-800">{euros(t.subtotal)}</strong></span>
         <span className="text-slate-500">IVA: <strong className="text-slate-800">{euros(t.iva_importe)}</strong></span>
         <span className="text-slate-500">Total: <strong className="text-indigo-700">{euros(t.total)}</strong></span>

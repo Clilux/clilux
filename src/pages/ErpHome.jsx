@@ -45,12 +45,12 @@ export default function ErpHome() {
   return (
     <ErpLayout active="inicio">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-          <Boxes className="h-5 w-5 text-indigo-700" />
+        <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-indigo-100 flex items-center justify-center">
+          <Boxes className="h-5 w-5 md:h-7 md:w-7 text-indigo-700" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Gestión comercial</h1>
-          <p className="text-xs text-slate-400">Presupuestos, pedidos, compras y proveedores</p>
+          <h1 className="text-xl md:text-3xl font-bold text-slate-800">Gestión comercial</h1>
+          <p className="text-xs md:text-base text-slate-400">Presupuestos, pedidos, compras y proveedores</p>
         </div>
       </div>
 
@@ -61,11 +61,11 @@ export default function ErpHome() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {resumen.map(r => (
               <Card key={r.label} className="p-4 border-0 shadow-sm">
-                <div className={`w-9 h-9 rounded-xl ${r.bg} flex items-center justify-center mb-2`}>
-                  <span className={`text-sm font-bold ${r.color}`}>{r.valor}</span>
+                <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl ${r.bg} flex items-center justify-center mb-2`}>
+                  <span className={`text-sm md:text-lg font-bold ${r.color}`}>{r.valor}</span>
                 </div>
-                <p className="text-xs text-slate-500">{r.label}</p>
-                {r.importe !== null && <p className="text-sm font-semibold text-slate-800 mt-1">{euros(r.importe)}</p>}
+                <p className="text-xs md:text-base text-slate-500">{r.label}</p>
+                {r.importe !== null && <p className="text-sm md:text-xl font-semibold text-slate-800 mt-1">{euros(r.importe)}</p>}
               </Card>
             ))}
           </div>
@@ -80,8 +80,8 @@ export default function ErpHome() {
                         <Icon className="h-5 w-5 text-indigo-700" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-800">{label}</p>
-                        <p className="text-xs text-slate-400 truncate">{desc} · {conteo[id]} registros</p>
+                        <p className="font-semibold text-slate-800 md:text-xl">{label}</p>
+                        <p className="text-xs md:text-base text-slate-400 truncate">{desc} · {conteo[id]} registros</p>
                       </div>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-300 shrink-0" />

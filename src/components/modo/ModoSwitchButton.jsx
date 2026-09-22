@@ -22,7 +22,7 @@ export default function ModoSwitchButton({ destino = 'erp', className = '' }) {
     <button
       onClick={cambiar}
       title={`Cambiar al modo ${cfg.label}`}
-      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors shrink-0 ${
+      className={`flex items-center gap-2 px-3.5 py-2 md:px-4 md:py-2.5 rounded-xl text-sm md:text-base font-semibold shadow-sm transition-colors shrink-0 ${
         esErp
           ? 'bg-indigo-500 hover:bg-indigo-400 text-white ring-1 ring-white/30'
           : 'bg-white text-indigo-700 hover:bg-indigo-50'

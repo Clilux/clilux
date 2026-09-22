@@ -42,7 +42,7 @@ export default function ProveedorForm({ open, onClose, proveedor, onSave }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}</DialogTitle>
+          <DialogTitle className="text-xl">{proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3 pt-1">

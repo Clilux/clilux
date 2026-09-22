@@ -109,7 +109,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{registro ? `Editar ${cfg.label.toLowerCase()}` : `Nuevo ${cfg.label.toLowerCase()}`}</DialogTitle>
+          <DialogTitle className="text-xl">{registro ? `Editar ${cfg.label.toLowerCase()}` : `Nuevo ${cfg.label.toLowerCase()}`}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 pt-1">

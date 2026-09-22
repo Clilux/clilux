@@ -69,8 +69,8 @@ export default function ErpDocumentoList({ tipo }) {
             <FileText className="h-5 w-5 text-indigo-700" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">{cfg.plural}</h1>
-            <p className="text-xs text-slate-400">{lista.length} registrados</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">{cfg.plural}</h1>
+            <p className="text-xs md:text-base text-slate-400">{lista.length} registrados</p>
           </div>
         </div>
         <Button onClick={abrirNuevo} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
@@ -81,10 +81,10 @@ export default function ErpDocumentoList({ tipo }) {
       <div className="flex gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por número o nombre..." className="pl-9 bg-white" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por número o nombre..." className="pl-9 md:h-11 md:text-base bg-white" />
         </div>
         <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectTrigger className="w-48 md:h-11 md:text-base bg-white"><SelectValue placeholder="Estado" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
             {Object.entries(estados).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
@@ -99,8 +99,8 @@ export default function ErpDocumentoList({ tipo }) {
             onClick={() => setFiltro(filtro === k ? 'all' : k)}
             className={`p-3 border-0 shadow-sm text-center cursor-pointer hover:shadow-md transition-shadow ${filtro === k ? 'ring-2 ring-indigo-400' : ''}`}
           >
-            <p className="text-xl font-bold text-slate-800">{lista.filter(d => estadoDe(d) === k).length}</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">{v.label}</p>
+            <p className="text-xl md:text-3xl font-bold text-slate-800">{lista.filter(d => estadoDe(d) === k).length}</p>
+            <p className="text-[11px] md:text-sm text-slate-500 mt-0.5">{v.label}</p>
           </Card>
         ))}
       </div>
@@ -110,7 +110,7 @@ export default function ErpDocumentoList({ tipo }) {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center border-0 shadow-sm">
           <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">No hay {cfg.plural.toLowerCase()} que mostrar</p>
+          <p className="text-slate-500 md:text-lg">No hay {cfg.plural.toLowerCase()} que mostrar</p>
           <Button onClick={abrirNuevo} className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
             <Plus className="h-4 w-4 mr-2" />Crear el primero
           </Button>
@@ -123,21 +123,21 @@ export default function ErpDocumentoList({ tipo }) {
               <Card key={d.id} className="p-3.5 border-0 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center gap-3">
                   <div className="md:w-40 md:shrink-0 min-w-0">
-                    <p className="font-mono text-sm font-semibold text-slate-800 truncate">{d.numero}</p>
+                    <p className="font-mono text-sm md:text-base font-semibold text-slate-800 truncate">{d.numero}</p>
                     <p className="text-xs text-slate-400">{fecha(d.fecha)}</p>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">{nombreParte(d)}</p>
+                    <p className="text-sm md:text-lg font-medium text-slate-800 truncate">{nombreParte(d)}</p>
                     {(d.num_factura || d.obra_nombre) && (
-                      <p className="text-xs text-slate-400 truncate">{d.num_factura ? `Factura ${d.num_factura}` : d.obra_nombre}</p>
+                      <p className="text-xs md:text-sm text-slate-400 truncate">{d.num_factura ? `Factura ${d.num_factura}` : d.obra_nombre}</p>
                     )}
                   </div>
                   <div className="md:w-28 md:shrink-0">
-                    <p className="text-sm font-semibold text-slate-800">{euros(d.total)}</p>
+                    <p className="text-sm md:text-xl font-semibold text-slate-800">{euros(d.total)}</p>
                   </div>
                   <div className="md:w-44 md:shrink-0">
                     <Select value={estadoDe(d)} onValueChange={v => cambiarEstado(d, v)}>
-                      <SelectTrigger className={`h-8 text-xs rounded-full border-0 shadow-none ${conf.color}`}>
+                      <SelectTrigger className={`h-8 md:h-9 text-xs md:text-sm rounded-full border-0 shadow-none ${conf.color}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
