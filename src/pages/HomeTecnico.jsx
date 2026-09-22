@@ -18,6 +18,7 @@ import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import FichajeRapido from '@/components/horario/FichajeRapido';
+import ModoSwitchButton from '@/components/modo/ModoSwitchButton';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import FGasAlertas from '@/components/dashboard/FGasAlertas';
 import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
@@ -339,10 +340,11 @@ export default function HomeTecnico() {
                 <p className="text-brand-100 text-xs">{format(new Date(), "EEEE d 'de' MMMM", { locale: es })}</p>
               </div>
             </div>
-            <div className="text-right">
+            {/* Hora + cambio de modo (Servicios / ERP) */}
+            <div className="flex items-center gap-3">
               <p className="text-white text-3xl font-bold">{format(new Date(), 'HH:mm')}</p>
+              <ModoSwitchButton destino="erp" />
             </div>
-            {/* Hora derecha */}
           </div>
         </div>
 

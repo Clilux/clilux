@@ -1,35 +1,31 @@
 {
-  "name": "Presupuesto",
+  "name": "Pedido",
   "type": "object",
   "properties": {
     "numero": {
       "type": "string",
-      "description": "N\u00famero de presupuesto"
+      "description": "N\u00famero de pedido"
     },
-    "client_id": {
+    "proveedor_id": {
       "type": "string",
-      "description": "ID del cliente"
+      "description": "ID del proveedor"
     },
-    "cliente_nombre": {
+    "proveedor_nombre": {
       "type": "string",
-      "description": "Nombre del cliente (desnormalizado)"
-    },
-    "company_id": {
-      "type": "string",
-      "description": "ID de la empresa propietaria del presupuesto"
+      "description": "Nombre del proveedor (desnormalizado)"
     },
     "fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del presupuesto"
+      "format": "date"
     },
-    "fecha_validez": {
+    "fecha_entrega": {
       "type": "string",
       "format": "date",
-      "description": "V\u00e1lido hasta"
+      "description": "Fecha de entrega prevista"
     },
     "lineas": {
       "type": "array",
+      "default": [],
       "items": {
         "type": "object",
         "properties": {
@@ -50,45 +46,48 @@
             "type": "number"
           }
         }
-      },
-      "description": "L\u00edneas del presupuesto"
+      }
     },
     "subtotal": {
-      "type": "number",
-      "description": "Subtotal sin IVA"
+      "type": "number"
     },
     "iva": {
       "type": "number",
-      "default": 21,
-      "description": "Porcentaje IVA"
+      "default": 21
     },
     "total": {
-      "type": "number",
-      "description": "Total con IVA"
+      "type": "number"
     },
-    "observaciones": {
-      "type": "string"
-    },
-    "status": {
+    "estado": {
       "type": "string",
       "enum": [
         "borrador",
         "enviado",
-        "aceptado",
-        "rechazado"
+        "recibido_parcial",
+        "recibido",
+        "cancelado"
       ],
       "default": "borrador"
     },
-    "convertido_albaran": {
-      "type": "boolean",
-      "default": false
+    "obra_id": {
+      "type": "string",
+      "description": "Obra a la que se imputa el pedido (opcional)"
+    },
+    "obra_nombre": {
+      "type": "string"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
     },
     "created_by_name": {
       "type": "string"
     }
   },
   "required": [
-    "client_id",
+    "numero",
     "fecha"
   ],
   "rls": {

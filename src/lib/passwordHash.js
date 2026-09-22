@@ -34,6 +34,10 @@ export function ensureSessionTokenFromStorage() {
   }
 }
 
+export function getSessionToken() {
+  return sessionStorage.getItem('session_token') || localStorage.getItem('clilux_session_token') || null;
+}
+
 export function clearSessionToken() {
   sessionStorage.removeItem('session_token');
   localStorage.removeItem('clilux_session_token');

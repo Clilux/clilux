@@ -1,35 +1,36 @@
 {
-  "name": "Presupuesto",
+  "name": "Compra",
   "type": "object",
   "properties": {
     "numero": {
       "type": "string",
-      "description": "N\u00famero de presupuesto"
+      "description": "N\u00famero interno de la compra"
     },
-    "client_id": {
+    "num_factura": {
       "type": "string",
-      "description": "ID del cliente"
+      "description": "N\u00ba de factura del proveedor"
     },
-    "cliente_nombre": {
-      "type": "string",
-      "description": "Nombre del cliente (desnormalizado)"
+    "proveedor_id": {
+      "type": "string"
     },
-    "company_id": {
-      "type": "string",
-      "description": "ID de la empresa propietaria del presupuesto"
+    "proveedor_nombre": {
+      "type": "string"
     },
     "fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del presupuesto"
+      "format": "date"
     },
-    "fecha_validez": {
+    "fecha_pago": {
       "type": "string",
-      "format": "date",
-      "description": "V\u00e1lido hasta"
+      "format": "date"
+    },
+    "pedido_id": {
+      "type": "string",
+      "description": "Pedido de origen (opcional)"
     },
     "lineas": {
       "type": "array",
+      "default": [],
       "items": {
         "type": "object",
         "properties": {
@@ -50,45 +51,48 @@
             "type": "number"
           }
         }
-      },
-      "description": "L\u00edneas del presupuesto"
+      }
     },
     "subtotal": {
-      "type": "number",
-      "description": "Subtotal sin IVA"
+      "type": "number"
     },
     "iva": {
       "type": "number",
-      "default": 21,
-      "description": "Porcentaje IVA"
+      "default": 21
     },
     "total": {
-      "type": "number",
-      "description": "Total con IVA"
+      "type": "number"
     },
-    "observaciones": {
-      "type": "string"
-    },
-    "status": {
+    "forma_pago": {
       "type": "string",
       "enum": [
-        "borrador",
-        "enviado",
-        "aceptado",
-        "rechazado"
+        "contado",
+        "transferencia",
+        "tarjeta",
+        "domiciliado"
       ],
-      "default": "borrador"
+      "default": "transferencia"
     },
-    "convertido_albaran": {
-      "type": "boolean",
-      "default": false
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "pagada"
+      ],
+      "default": "pendiente"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
     },
     "created_by_name": {
       "type": "string"
     }
   },
   "required": [
-    "client_id",
+    "numero",
     "fecha"
   ],
   "rls": {
