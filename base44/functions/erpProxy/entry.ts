@@ -83,6 +83,18 @@ Deno.serve(async (req) => {
     const entityName = TIPOS[tipo];
     if (!entityName) return Response.json({ error: 'tipo no válido' }, { status: 400 });
 
+    // ── Crear en bloque (importaciones masivas) ───────────────────
+    if (entity === 'erp_bulk_create') {
+      const { records } = body;
+      if (!Array.isArray(records) || !records.length) {
+        return Response.json({ error: 'records requerido' }, { status: 400 });
+      }
+      const data = await sr[entityName].bulkCreate(
+        records.map((r: any) => ({ ...r, company_id: companyId, created_by_name: creatorName })),
+      );
+      return Response.json({ data });
+    }
+
     // ── Crear ─────────────────────────────────────────────────────
     if (entity === 'erp_create') {
       const { record } = body;

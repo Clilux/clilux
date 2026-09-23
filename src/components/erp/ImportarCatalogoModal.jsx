@@ -18,7 +18,8 @@ const ESQUEMA = {
         type: 'object',
         properties: {
           nombre: { type: 'string', description: 'Nombre del artículo o servicio' },
-          codigo: { type: 'string', description: 'Referencia o código del artículo' },
+          codigo: { type: 'string', description: 'Código o referencia del artículo' },
+          referencia_fabricante: { type: 'string', description: 'Referencia del fabricante tal cual figura en la tarifa' },
           descripcion: { type: 'string', description: 'Descripción adicional' },
           unidad: { type: 'string', description: 'Unidad de medida: ud, m, m2, m3, kg, l, h' },
           pvp: { type: 'number', description: 'Precio unitario sin IVA' },
@@ -33,7 +34,7 @@ const ESQUEMA = {
 };
 
 const PROMPT = `Analiza el documento adjunto (tarifa, catálogo o listado de precios) y extrae TODOS los artículos que contenga.
-Para cada artículo devuelve: nombre, codigo (referencia si aparece), descripcion, unidad de medida, pvp (precio unitario sin IVA, en número) y familia (grupo o capítulo al que pertenece) y fabricante.
+Para cada artículo devuelve: nombre, codigo (código del artículo si aparece), referencia_fabricante (la referencia del fabricante tal cual figura, es muy importante conservarla para futuras actualizaciones de tarifa), descripcion, unidad de medida, pvp (precio unitario sin IVA, en número), familia (grupo o capítulo al que pertenece) y fabricante (marca).
 Reglas: no inventes artículos que no estén en el documento; si un dato no aparece, déjalo vacío y pon 0 en el pvp; conserva los nombres tal cual figuran.`;
 
 const num = (v) => {
@@ -47,6 +48,7 @@ const num = (v) => {
 const normalizar = (f) => ({
   nombre: String(f?.nombre || '').trim(),
   codigo: String(f?.codigo || '').trim(),
+  referencia_fabricante: String(f?.referencia_fabricante || '').trim(),
   descripcion: String(f?.descripcion || '').trim(),
   unidad: UNIDADES.includes(String(f?.unidad || '').trim()) ? String(f.unidad).trim() : 'ud',
   pvp: num(f?.pvp),
@@ -55,7 +57,7 @@ const normalizar = (f) => ({
 });
 
 /** Importación (beta) de artículos desde una tarifa en PDF, Excel o CSV. */
-export default function ImportarCatalogoModal({ open, onClose, familias = [], onSaveArticulo, onCreateFamilia, onDone }) {
+export default function ImportarCatalogoModal({ open, onClose, familias = [], onSaveArticulos, onCreateFamilia, onDone }) {
   const fileRef = useRef(null);
   const [paso, setPaso] = useState('config');
   const [nombreArchivo, setNombreArchivo] = useState('');
@@ -125,31 +127,50 @@ export default function ImportarCatalogoModal({ open, onClose, familias = [], on
         const creada = await onCreateFamilia({ nombre: nuevaFamilia.trim() });
         if (creada?.id) { familiaIdFinal = creada.id; familiaNombre = creada.nombre || nuevaFamilia.trim(); }
       }
-      for (let i = 0; i < filas.length; i += 1) {
-        const f = filas[i];
-        const calc = { pvp: f.pvp, descuento_compra: Number(descuento) || 0, porcentaje_venta: Number(margen) || 0 };
-        await onSaveArticulo({
-          nombre: f.nombre,
-          codigo: f.codigo,
-          descripcion: f.descripcion,
-          familia: familiaNombre || f.familia,
-          familia_id: familiaIdFinal,
-          fabricante: f.fabricante,
-          unidad: f.unidad,
-          pvp: f.pvp,
-          descuento_compra: calc.descuento_compra,
-          porcentaje_venta: calc.porcentaje_venta,
-          precio_compra: precioCompra(calc),
-          precio_venta: precioVenta(calc),
-          activo: true,
-        });
-        setProgreso(i + 1);
+      const dtoNum = Number(descuento) || 0;
+      const mrgNum = Number(margen) || 0;
+      const registros = filas.map(f => ({
+        nombre: f.nombre,
+        codigo: f.codigo,
+        referencia_fabricante: f.referencia_fabricante || f.codigo,
+        descripcion: f.descripcion,
+        familia: familiaNombre || f.familia,
+        familia_id: familiaIdFinal,
+        fabricante: f.fabricante,
+        unidad: f.unidad,
+        pvp: f.pvp,
+        descuento_compra: dtoNum,
+        porcentaje_venta: mrgNum,
+        precio_compra: precioCompra({ pvp: f.pvp, descuento_compra: dtoNum }),
+        precio_venta: precioVenta({ pvp: f.pvp, descuento_compra: dtoNum, porcentaje_venta: mrgNum }),
+        activo: true,
+      }));
+
+      const TANDA = 100;
+      let creados = 0;
+      try {
+        for (let i = 0; i < registros.length; i += TANDA) {
+          const tanda = registros.slice(i, i + TANDA);
+          await onSaveArticulos(tanda);
+          creados += tanda.length;
+          setProgreso(creados);
+        }
+      } catch (e) {
+        const msg = creados > 0
+          ? `Se han creado ${creados} artículos, pero falló el resto: ${e.message || 'error'}`
+          : (e.message || 'No se pudieron crear los artículos');
+        setError(msg);
+        toast.error(msg);
+        setPaso('preview');
+        return;
       }
-      toast.success(`${filas.length} artículos creados en el catálogo`);
+      toast.success(`${creados} artículos creados en el catálogo`);
       onDone?.();
       cerrar();
     } catch (e) {
-      setError(e.message || 'No se pudieron crear los artículos');
+      const msg = e.message || 'No se pudieron crear los artículos';
+      setError(msg);
+      toast.error(msg);
       setPaso('preview');
     }
   };
@@ -264,7 +285,7 @@ export default function ImportarCatalogoModal({ open, onClose, familias = [], on
                     <div className="col-span-2 md:col-span-5 min-w-0">
                       <p className="text-sm text-slate-800 truncate">{f.nombre}</p>
                       <p className="text-[11px] text-slate-400 truncate">
-                        {[f.codigo, f.familia || nuevaFamilia, f.fabricante].filter(Boolean).join(' · ')}
+                        {[f.codigo, f.referencia_fabricante, f.fabricante, f.familia || nuevaFamilia].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                     <span className="md:col-span-1 md:text-right text-sm text-slate-500">{f.unidad}</span>

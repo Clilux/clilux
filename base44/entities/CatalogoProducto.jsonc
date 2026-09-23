@@ -8,7 +8,11 @@
     },
     "codigo": {
       "type": "string",
-      "description": "C\u00f3digo/referencia del art\u00edculo"
+      "description": "C\u00f3digo/referencia interna del art\u00edculo"
+    },
+    "referencia_fabricante": {
+      "type": "string",
+      "description": "Referencia del fabricante tal cual figura en la tarifa. Se conserva para poder actualizar precios en futuras importaciones."
     },
     "descripcion": {
       "type": "string",
@@ -91,20 +95,41 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "read": null,
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }

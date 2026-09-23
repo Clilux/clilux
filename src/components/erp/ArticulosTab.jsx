@@ -12,7 +12,7 @@ import { euros, margenCompra, margenVenta, precioCompra, precioVenta } from '@/l
 
 /** Catálogo de artículos: familia, nombre, PVP, descuento de compra y % de venta. */
 export default function ArticulosTab() {
-  const { erp, isLoading, saveArticulo, deleteArticulo, saveFamilia, refresh } = useErpData();
+  const { erp, isLoading, saveArticulo, saveArticulosBulk, deleteArticulo, saveFamilia, refresh } = useErpData();
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -24,7 +24,7 @@ export default function ArticulosTab() {
 
   const filtered = articulos.filter(a => {
     const q = search.toLowerCase();
-    const texto = `${a.nombre || ''} ${a.codigo || ''} ${a.descripcion || ''}`.toLowerCase();
+    const texto = `${a.nombre || ''} ${a.codigo || ''} ${a.referencia_fabricante || ''} ${a.fabricante || ''} ${a.descripcion || ''}`.toLowerCase();
     return (!q || texto.includes(q)) && (filtro === 'all' || a.familia_id === filtro);
   });
 
@@ -93,7 +93,7 @@ export default function ArticulosTab() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm md:text-lg font-medium text-slate-800 truncate">{a.nombre}</p>
                   <p className="text-xs md:text-sm text-slate-400 truncate">
-                    {[a.codigo, a.familia, a.unidad].filter(Boolean).join(' · ')}
+                    {[a.codigo, a.referencia_fabricante, a.fabricante, a.familia, a.unidad].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <div className="md:w-32 md:shrink-0">
@@ -142,7 +142,7 @@ export default function ArticulosTab() {
         open={importando}
         onClose={() => setImportando(false)}
         familias={familias}
-        onSaveArticulo={saveArticulo}
+        onSaveArticulos={saveArticulosBulk}
         onCreateFamilia={saveFamilia}
         onDone={refresh}
       />

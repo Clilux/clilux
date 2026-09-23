@@ -89,6 +89,15 @@ export function useErpData() {
     return data;
   };
 
+  // Alta masiva de artículos (importación de tarifas)
+  const saveArticulosBulk = async (records) => {
+    const data = isSessionTech
+      ? await call('erp_bulk_create', { tipo: 'articulo', records })
+      : await base44.entities.CatalogoProducto.bulkCreate(records);
+    invalidate();
+    return data;
+  };
+
   const deleteDocumento = async (tipo, id) => {
     if (isSessionTech) {
       await call('erp_delete', { tipo, record_id: id });
@@ -112,6 +121,7 @@ export function useErpData() {
     saveProveedor: (record, id) => saveDocumento('proveedor', record, id),
     deleteProveedor: (id) => deleteDocumento('proveedor', id),
     saveArticulo: (record, id) => saveDocumento('articulo', record, id),
+    saveArticulosBulk,
     deleteArticulo: (id) => deleteDocumento('articulo', id),
     saveFamilia: (record, id) => saveDocumento('familia', record, id),
     deleteFamilia: (id) => deleteDocumento('familia', id),

@@ -11,6 +11,8 @@ import { UNIDADES, euros, margenCompra, margenVenta, precioCompra, precioVenta }
 const inicial = (a) => ({
   nombre: a?.nombre || '',
   codigo: a?.codigo || '',
+  referencia_fabricante: a?.referencia_fabricante || '',
+  fabricante: a?.fabricante || '',
   descripcion: a?.descripcion || '',
   familia_id: a?.familia_id || '',
   familia: a?.familia || '',
@@ -64,6 +66,8 @@ export default function ArticuloForm({ open, onClose, articulo, familias = [], o
       await onSave({
         nombre: form.nombre.trim(),
         codigo: form.codigo.trim(),
+        referencia_fabricante: form.referencia_fabricante.trim(),
+        fabricante: form.fabricante.trim(),
         descripcion: form.descripcion,
         familia_id: form.familia_id || '',
         familia: familia?.nombre || '',
@@ -97,6 +101,17 @@ export default function ArticuloForm({ open, onClose, articulo, familias = [], o
             <div>
               <Label>Código</Label>
               <Input value={form.codigo} onChange={e => set('codigo', e.target.value)} className="mt-1" placeholder="REF-001" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Fabricante</Label>
+              <Input value={form.fabricante} onChange={e => set('fabricante', e.target.value)} className="mt-1" placeholder="Ej. Daikin" />
+            </div>
+            <div>
+              <Label>Referencia del fabricante</Label>
+              <Input value={form.referencia_fabricante} onChange={e => set('referencia_fabricante', e.target.value)} className="mt-1" placeholder="Ej. FTXM35R" />
             </div>
           </div>
 
