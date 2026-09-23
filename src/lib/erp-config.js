@@ -69,6 +69,20 @@ export function precioVenta(a) {
   return Math.round(compra * (1 + pct / 100) * 100) / 100;
 }
 
+// Margen de compra = diferencia entre PVP y precio de compra (en € y en % sobre PVP)
+export function margenCompra(a) {
+  const pvp = Number(a?.pvp) || 0;
+  const importe = Math.round((pvp - precioCompra(a)) * 100) / 100;
+  return { importe, pct: pvp > 0 ? Math.round((importe / pvp) * 10000) / 100 : 0 };
+}
+
+// Margen de venta = diferencia entre precio de venta y precio de compra (en € y en % sobre compra)
+export function margenVenta(a) {
+  const compra = precioCompra(a);
+  const importe = Math.round((precioVenta(a) - compra) * 100) / 100;
+  return { importe, pct: compra > 0 ? Math.round((importe / compra) * 10000) / 100 : 0 };
+}
+
 export const IVA_DEFECTO = 21;
 
 export const FORMAS_PAGO = {

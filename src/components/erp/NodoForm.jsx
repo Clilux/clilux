@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from 'lucide-react';
 import MedicionesEditor from '@/components/erp/MedicionesEditor';
-import { TIPOS_NODO, sanitizarCodigo } from '@/lib/presto-arbol';
-import { UNIDADES } from '@/lib/erp-config';
+import { TIPOS_NODO, medicionTotal, sanitizarCodigo } from '@/lib/presto-arbol';
+import { UNIDADES, euros } from '@/lib/erp-config';
 
 const inicial = (nodo, codigo) => ({
   codigo: nodo?.codigo ?? codigo ?? '',
@@ -15,6 +15,7 @@ const inicial = (nodo, codigo) => ({
   texto: nodo?.texto ?? '',
   unidad: nodo?.unidad || 'ud',
   precio: nodo?.precio ?? '',
+  coste: nodo?.coste ?? '',
   mediciones: nodo?.mediciones || [],
 });
 
@@ -31,6 +32,14 @@ export default function NodoForm({ open, onClose, nodo, tipo, codigoSugerido, on
 
   const set = (campo, valor) => setForm(p => ({ ...p, [campo]: valor }));
 
+  const precioVenta = Number(form.precio) || 0;
+  const coste = Number(form.coste) || 0;
+  const margenPct = precioVenta > 0 ? Math.round(((precioVenta - coste) / precioVenta) * 10000) / 100 : 0;
+  const margenImporte = Math.round((precioVenta - coste) * 100) / 100;
+  const cantidad = (form.mediciones || []).length
+    ? Math.round((form.mediciones || []).reduce((s, m) => s + medicionTotal(m), 0) * 100) / 100
+    : 1;
+
   const guardar = async () => {
     setSaving(true);
     try {
@@ -40,6 +49,7 @@ export default function NodoForm({ open, onClose, nodo, tipo, codigoSugerido, on
         texto: form.texto,
         unidad: esPartida ? form.unidad : '',
         precio: esPartida ? Number(form.precio) || 0 : 0,
+        coste: esPartida ? Number(form.coste) || 0 : 0,
         mediciones: esPartida ? form.mediciones : [],
       });
       onClose();
@@ -50,7 +60,7 @@ export default function NodoForm({ open, onClose, nodo, tipo, codigoSugerido, on
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] md:max-w-3xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {nodo ? `Editar ${TIPOS_NODO[tipoNodo].toLowerCase()}` : `Nuevo ${TIPOS_NODO[tipoNodo].toLowerCase()}`}
@@ -71,21 +81,35 @@ export default function NodoForm({ open, onClose, nodo, tipo, codigoSugerido, on
           </div>
 
           {esPartida && (
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Unidad de medida *</Label>
-                <Select value={form.unidad} onValueChange={v => set('unidad', v)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Unidad de medida *</Label>
+                  <Select value={form.unidad} onValueChange={v => set('unidad', v)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Precio venta (€) *</Label>
+                  <Input type="number" min="0" step="0.01" value={form.precio} onChange={e => set('precio', e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>Coste compra (€)</Label>
+                  <Input type="number" min="0" step="0.01" value={form.coste} onChange={e => set('coste', e.target.value)} className="mt-1" />
+                </div>
               </div>
-              <div>
-                <Label>Precio unitario (€) *</Label>
-                <Input type="number" min="0" step="0.01" value={form.precio} onChange={e => set('precio', e.target.value)} className="mt-1" />
+
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+                <span className="text-slate-500">
+                  Margen: <strong className="text-emerald-700">{coste > 0 ? `${margenPct} %` : '—'}</strong>
+                  {coste > 0 ? ` · ${euros(margenImporte)} / ${form.unidad}` : ''}
+                </span>
+                <span className="text-slate-500">Cantidad: <strong className="text-slate-700">{cantidad}</strong> {form.unidad}</span>
               </div>
-            </div>
+            </>
           )}
 
           <div>

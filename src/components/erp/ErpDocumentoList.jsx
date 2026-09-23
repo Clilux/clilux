@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import ErpLayout from '@/components/erp/ErpLayout';
 import DocumentoErpForm from '@/components/erp/DocumentoErpForm';
 import PresupuestoDetalle from '@/components/erp/PresupuestoDetalle';
+import DocumentoErpDetalle from '@/components/erp/DocumentoErpDetalle';
+import GenerarPedidoModal from '@/components/erp/GenerarPedidoModal';
 import { useErpData } from '@/hooks/useErpData';
 import { enviarPresupuesto } from '@/lib/presupuesto-envio';
 import { DOCS, ESTADOS, euros, siguienteNumero } from '@/lib/erp-config';
@@ -28,6 +30,7 @@ export default function ErpDocumentoList({ tipo }) {
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
   const [viendo, setViendo] = useState(null);
+  const [pedidoDesde, setPedidoDesde] = useState(null);
   const [enviandoId, setEnviandoId] = useState(null);
 
   const lista = erp[cfg.plural.toLowerCase()] || [];
@@ -139,7 +142,11 @@ export default function ErpDocumentoList({ tipo }) {
           {filtered.map(d => {
             const conf = estados[estadoDe(d)] || Object.values(estados)[0];
             return (
-              <Card key={d.id} className="p-3.5 border-0 shadow-sm">
+              <Card
+                key={d.id}
+                onClick={() => setViendo(d)}
+                className="p-3.5 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              >
                 <div className="flex flex-col md:flex-row md:items-center gap-3">
                   <div className="md:w-40 md:shrink-0 min-w-0">
                     <p className="font-mono text-sm md:text-base font-semibold text-slate-800 truncate">{d.numero}</p>
@@ -156,7 +163,7 @@ export default function ErpDocumentoList({ tipo }) {
                   <div className="md:w-28 md:shrink-0">
                     <p className="text-sm md:text-xl font-semibold text-slate-800">{euros(d.total)}</p>
                   </div>
-                  <div className="md:w-44 md:shrink-0">
+                  <div className="md:w-44 md:shrink-0" onClick={e => e.stopPropagation()}>
                     <Select value={estadoDe(d)} onValueChange={v => cambiarEstado(d, v)}>
                       <SelectTrigger className={`h-8 md:h-9 text-xs md:text-sm rounded-full border-0 shadow-none ${conf.color}`}>
                         <SelectValue />
@@ -166,12 +173,12 @@ export default function ErpDocumentoList({ tipo }) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-1 md:shrink-0">
+                  <div className="flex items-center gap-1 md:shrink-0" onClick={e => e.stopPropagation()}>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50" title={`Ver ${cfg.label.toLowerCase()}`} onClick={() => setViendo(d)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     {esPresupuesto && (
                       <>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50" title="Ver presupuesto" onClick={() => setViendo(d)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -220,8 +227,30 @@ export default function ErpDocumentoList({ tipo }) {
           sessionTechEmail={effectiveEmail}
           onEdit={abrirEditar}
           onSent={refresh}
+          onGenerarPedido={(p) => { setViendo(null); setPedidoDesde(p); }}
         />
       )}
+
+      {!esPresupuesto && (
+        <DocumentoErpDetalle
+          open={!!viendo}
+          onClose={() => setViendo(null)}
+          tipo={tipo}
+          documento={viendo}
+          proveedor={viendo ? (erp.proveedores || []).find(p => p.id === viendo.proveedor_id) : null}
+          onEdit={abrirEditar}
+        />
+      )}
+
+      <GenerarPedidoModal
+        open={!!pedidoDesde}
+        onClose={() => setPedidoDesde(null)}
+        presupuesto={pedidoDesde}
+        proveedores={erp.proveedores}
+        articulos={erp.articulos}
+        pedidos={erp.pedidos}
+        onCreated={async (record) => { await saveDocumento('pedido', record); refresh(); }}
+      />
     </ErpLayout>
   );
 }

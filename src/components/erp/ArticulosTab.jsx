@@ -3,19 +3,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Package, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Search, Package, Pencil, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import ArticuloForm from '@/components/erp/ArticuloForm';
+import ImportarCatalogoModal from '@/components/erp/ImportarCatalogoModal';
 import { useErpData } from '@/hooks/useErpData';
-import { euros, precioCompra, precioVenta } from '@/lib/erp-config';
+import { euros, margenCompra, margenVenta, precioCompra, precioVenta } from '@/lib/erp-config';
 
 /** Catálogo de artículos: familia, nombre, PVP, descuento de compra y % de venta. */
 export default function ArticulosTab() {
-  const { erp, isLoading, saveArticulo, deleteArticulo } = useErpData();
+  const { erp, isLoading, saveArticulo, deleteArticulo, saveFamilia, refresh } = useErpData();
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [importando, setImportando] = useState(false);
 
   const articulos = erp.articulos || [];
   const familias = erp.familias || [];
@@ -38,7 +40,7 @@ export default function ArticulosTab() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-indigo-100 flex items-center justify-center">
             <Package className="h-5 w-5 md:h-7 md:w-7 text-indigo-700" />
@@ -48,9 +50,15 @@ export default function ArticulosTab() {
             <p className="text-xs md:text-base text-slate-400">{articulos.length} artículos en el catálogo</p>
           </div>
         </div>
-        <Button onClick={() => { setEditando(null); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
-          <Plus className="h-4 w-4" />Nuevo artículo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportando(true)} className="gap-2">
+            <Upload className="h-4 w-4" />Importar catálogo
+            <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5">Beta</span>
+          </Button>
+          <Button onClick={() => { setEditando(null); setShowForm(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+            <Plus className="h-4 w-4" />Nuevo artículo
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4 flex-wrap">
@@ -93,12 +101,14 @@ export default function ArticulosTab() {
                   <p className="text-sm md:text-lg font-semibold text-slate-800">{euros(a.pvp)}</p>
                 </div>
                 <div className="md:w-32 md:shrink-0">
-                  <p className="text-[11px] md:text-sm text-slate-400">Dto. compra</p>
-                  <p className="text-sm md:text-base text-slate-700">{Number(a.descuento_compra) || 0} %</p>
+                  <p className="text-[11px] md:text-sm text-slate-400">Margen compra</p>
+                  <p className="text-sm md:text-base text-slate-700">{margenCompra(a).pct} %</p>
+                  <p className="text-[11px] text-slate-400">{euros(margenCompra(a).importe)}</p>
                 </div>
                 <div className="md:w-32 md:shrink-0">
-                  <p className="text-[11px] md:text-sm text-slate-400">% venta</p>
-                  <p className="text-sm md:text-base text-slate-700">{Number(a.porcentaje_venta) || 0} %</p>
+                  <p className="text-[11px] md:text-sm text-slate-400">Margen venta</p>
+                  <p className="text-sm md:text-base text-emerald-700">{margenVenta(a).pct} %</p>
+                  <p className="text-[11px] text-slate-400">{euros(margenVenta(a).importe)}</p>
                 </div>
                 <div className="md:w-36 md:shrink-0">
                   <p className="text-[11px] md:text-sm text-slate-400">Precio venta</p>
@@ -125,6 +135,16 @@ export default function ArticulosTab() {
         articulo={editando}
         familias={familias}
         onSave={saveArticulo}
+        onCreateFamilia={saveFamilia}
+      />
+
+      <ImportarCatalogoModal
+        open={importando}
+        onClose={() => setImportando(false)}
+        familias={familias}
+        onSaveArticulo={saveArticulo}
+        onCreateFamilia={saveFamilia}
+        onDone={refresh}
       />
     </>
   );

@@ -77,14 +77,16 @@ export function useErpData() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['erp-data'] });
 
   const saveDocumento = async (tipo, record, id) => {
+    let data;
     if (isSessionTech) {
-      await call(id ? 'erp_update' : 'erp_create', id ? { tipo, record_id: id, updates: record } : { tipo, record });
+      data = await call(id ? 'erp_update' : 'erp_create', id ? { tipo, record_id: id, updates: record } : { tipo, record });
     } else if (id) {
-      await base44.entities[ENTIDADES[tipo]].update(id, record);
+      data = await base44.entities[ENTIDADES[tipo]].update(id, record);
     } else {
-      await base44.entities[ENTIDADES[tipo]].create(record);
+      data = await base44.entities[ENTIDADES[tipo]].create(record);
     }
     invalidate();
+    return data;
   };
 
   const deleteDocumento = async (tipo, id) => {

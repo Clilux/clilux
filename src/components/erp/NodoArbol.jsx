@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, FolderTree, FileText, Pencil, Trash2, Plus, ArrowUp, ArrowDown } from 'lucide-react';
-import { cantidadPartida, esCapitulo, importeNodo } from '@/lib/presto-arbol';
+import { cantidadPartida, esCapitulo, importeNodo, margenPartida } from '@/lib/presto-arbol';
 import { euros } from '@/lib/erp-config';
 
 const tipoHijosPermitidos = (nodo) => {
@@ -55,6 +55,12 @@ export default function NodoArbol({ nodo, profundidad = 0, onEditar, onAnadirHij
             <div className="hidden md:block w-24 text-right shrink-0">
               <p className="text-[11px] text-slate-400">Precio</p>
               <p className="text-sm text-slate-600">{euros(nodo.precio)}</p>
+            </div>
+            <div className="hidden md:block w-20 text-right shrink-0">
+              <p className="text-[11px] text-slate-400">Margen</p>
+              <p className="text-sm font-medium text-emerald-700">
+                {margenPartida(nodo).sinCoste ? '—' : `${margenPartida(nodo).pct} %`}
+              </p>
             </div>
           </>
         )}

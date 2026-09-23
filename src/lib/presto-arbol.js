@@ -28,6 +28,7 @@ export function nuevoNodo(tipo = 'partida', codigo = '') {
     texto: '',
     unidad: tipo === 'partida' ? 'ud' : '',
     precio: 0,
+    coste: 0,
     mediciones: [],
     hijos: [],
   };
@@ -68,6 +69,30 @@ export function importeNodo(nodo) {
   return Math.round((nodo.hijos || []).reduce((s, h) => s + importeNodo(h), 0) * 100) / 100;
 }
 
+/** Coste unitario de compra de una partida (precio del artículo del catálogo). */
+export const costePartida = (nodo) => Number(nodo?.coste) || 0;
+
+/** Margen de una partida: % sobre el precio de venta neto e importe total de la partida. */
+export function margenPartida(nodo) {
+  const precio = precioNeto(nodo);
+  const coste = costePartida(nodo);
+  const sinCoste = !(coste > 0);
+  const pct = precio > 0 ? Math.round(((precio - coste) / precio) * 10000) / 100 : 0;
+  const importe = Math.round(cantidadPartida(nodo) * (precio - coste) * 100) / 100;
+  return { pct, importe, coste, precio, sinCoste };
+}
+
+/** Margen global del presupuesto: importe, coste, venta y % sobre la venta. */
+export function margenArbol(arbol = []) {
+  const partidas = partidasArbol(arbol);
+  const venta = Math.round(partidas.reduce((s, p) => s + importePartida(p), 0) * 100) / 100;
+  const conCoste = partidas.filter((p) => costePartida(p) > 0);
+  if (conCoste.length === 0) return { importe: 0, coste: 0, venta, pct: 0, sinCoste: true };
+  const coste = Math.round(partidas.reduce((s, p) => s + cantidadPartida(p) * costePartida(p), 0) * 100) / 100;
+  const importe = Math.round((venta - coste) * 100) / 100;
+  return { importe, coste, venta, pct: venta > 0 ? Math.round((importe / venta) * 10000) / 100 : 0, sinCoste: false };
+}
+
 /** Recorre el árbol en profundidad devolviendo { nodo, profundidad, padre }. */
 export function aplanarArbol(arbol = [], profundidad = 0, padre = null, out = []) {
   (arbol || []).forEach((n) => {
@@ -95,6 +120,7 @@ export function lineasDesdeArbol(arbol = []) {
     unidad: p.unidad || 'ud',
     cantidad: cantidadPartida(p),
     precio_unitario: Number(p.precio) || 0,
+    coste: costePartida(p),
     descuento: Number(p.descuento) || 0,
     total: importePartida(p),
   }));

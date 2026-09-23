@@ -11,6 +11,7 @@ import {
   eliminarNodo,
   esCapitulo,
   insertarNodo,
+  margenArbol,
   moverNodo,
   nuevoNodo,
   partidasArbol,
@@ -31,6 +32,7 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
   const base = totalArbol(arbol);
   const total = Math.round(base * (1 + (Number(iva) || 0) / 100) * 100) / 100;
   const partidas = partidasArbol(arbol).length;
+  const margen = margenArbol(arbol);
 
   // Regla de oro de Presto: el primer nivel tampoco puede mezclar capítulos y partidas
   const raizPermite = (tipo) => {
@@ -173,6 +175,9 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
       )}
 
       <div className="flex justify-end gap-6 pt-1 text-sm md:text-base">
+        <span className="text-slate-500">
+          Margen: <strong className="text-emerald-700">{margen.sinCoste ? '—' : `${margen.pct} % · ${euros(margen.importe)}`}</strong>
+        </span>
         <span className="text-slate-500">Base imponible: <strong className="text-slate-800">{euros(base)}</strong></span>
         <span className="text-slate-500">IVA {iva} %: <strong className="text-slate-800">{euros(base * (Number(iva) || 0) / 100)}</strong></span>
         <span className="text-slate-500">Total: <strong className="text-indigo-700">{euros(total)}</strong></span>
