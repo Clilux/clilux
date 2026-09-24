@@ -762,14 +762,14 @@ Deno.serve(async (req) => {
       // Notas y documentos adjuntos son de auto-servicio: cualquier técnico activo
       // de la empresa puede actualizarlos. El resto de campos requiere editar_equipos.
       const isSelfService = Object.keys(updates).every((k) => k === 'notes' || k === 'documents');
-      if (!isSelfService && !permisos.editar_equipos) return deny('editar_equipos');
+      if (!isSelfService && !permisos.editar_equipos && !tech.is_admin) return deny('editar_equipos');
       const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, updates);
       return Response.json({ data });
     }
 
     // ── Crear equipo ─────────────────────────────────────────────
     if (entity === 'equipment_create') {
-      if (!permisos.editar_equipos) return deny('editar_equipos');
+      if (!permisos.editar_equipos && !tech.is_admin) return deny('editar_equipos');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
       if (!(await assertCompanyClient(record.client_id))) {

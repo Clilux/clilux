@@ -64,6 +64,14 @@
       "type": "string",
       "description": "Observaciones"
     },
+    "next_revision_notes": {
+      "type": "string",
+      "description": "Indicaciones dejadas por el t\u00e9cnico para la pr\u00f3xima revisi\u00f3n de este equipo"
+    },
+    "previous_revision_notes": {
+      "type": "string",
+      "description": "Indicaciones heredadas de la revisi\u00f3n anterior, para tenerlas en cuenta al realizar esta"
+    },
     "is_unified_revision": {
       "type": "boolean",
       "default": false,

@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, AlertCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { Loader2, Save, AlertCircle, AlertTriangle, Trash2, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import NavHeader from '../components/navigation/NavHeader';
 import RevisionReport from '../components/equipment/RevisionReport';
@@ -62,6 +62,7 @@ export default function RevisionForm() {
   const [isEditing, setIsEditing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [warningType, setWarningType] = useState('');
+  const [nextNotes, setNextNotes] = useState('');
 
   const isTechSession = !!sessionTechEmail;
 
@@ -173,6 +174,7 @@ export default function RevisionForm() {
         completed_date: completedDate,
         revision_data: formData,
         notes: notes,
+        next_revision_notes: nextNotes,
         technician_name: technicianName || technician?.name || user?.full_name || '',
         technician_id: technician?.id || '',
         technician_email: user?.email || sessionTechEmail || '',
@@ -194,6 +196,7 @@ export default function RevisionForm() {
             revision_type: scheduledRevision.revision_type,
             scheduled_date: nextDate,
             status: 'pending',
+            previous_revision_notes: nextNotes || '',
           };
           if (isTechSession) {
             await proxy('revision_create', { record: nextRecord });
@@ -219,6 +222,7 @@ export default function RevisionForm() {
       const updates = {
         revision_data: cleanData,
         notes: notes,
+        next_revision_notes: nextNotes,
         technician_name: technicianName,
         ...(formData._completed_date && { completed_date: formData._completed_date }),
       };
@@ -274,6 +278,7 @@ export default function RevisionForm() {
   const enterEditMode = () => {
     setFormData({ ...(scheduledRevision?.revision_data || {}), _completed_date: scheduledRevision?.completed_date || '' });
     setNotes(scheduledRevision?.notes || '');
+    setNextNotes(scheduledRevision?.next_revision_notes || '');
     setTechnicianName(scheduledRevision?.technician_name || '');
     setIsEditing(true);
   };
@@ -364,6 +369,11 @@ export default function RevisionForm() {
                       <p className="text-sm text-slate-600"><strong>Observaciones:</strong> {scheduledRevision.notes}</p>
                     </div>
                   )}
+                  {scheduledRevision.next_revision_notes && (
+                    <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800"><strong>Indicaciones para la próxima revisión:</strong> {scheduledRevision.next_revision_notes}</p>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-4 border-t">
                     <Button
                       variant="outline"
@@ -442,6 +452,10 @@ export default function RevisionForm() {
                   <Label className="text-slate-700 mb-2">Observaciones</Label>
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
                 </div>
+                <div>
+                  <Label className="text-slate-700 mb-2">Indicaciones para la próxima revisión</Label>
+                  <Textarea value={nextNotes} onChange={(e) => setNextNotes(e.target.value)} rows={3} placeholder="Ej: revisar presión del circuito, sustituir filtros..." />
+                </div>
               </div>
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
                 <Button variant="outline" onClick={() => setIsEditing(false)}>Cancelar</Button>
@@ -461,6 +475,18 @@ export default function RevisionForm() {
     <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
         <NavHeader title="Realizar Revisión" />
+
+        {scheduledRevision.previous_revision_notes && (
+          <Card className="p-4 mb-6 bg-blue-50 border-blue-200">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-blue-900 mb-1">Indicaciones de la revisión anterior</h4>
+                <p className="text-sm text-blue-800 whitespace-pre-line">{scheduledRevision.previous_revision_notes}</p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {warningType === 'previous' && previousPendingRevisions.length > 0 && (
           <Card className="p-4 mb-6 bg-red-50 border-red-200">
@@ -599,6 +625,12 @@ export default function RevisionForm() {
               </div>
             </div>
           )}
+
+          <div className="mt-6">
+            <Label className="text-slate-700 mb-2">Indicaciones para la próxima revisión</Label>
+            <Textarea value={nextNotes} onChange={(e) => setNextNotes(e.target.value)} placeholder="Ej: revisar presión del circuito, sustituir filtros pendientes..." rows={3} />
+            <p className="text-xs text-slate-400 mt-1">Se mostrarán al técnico que realice la siguiente revisión de este equipo</p>
+          </div>
 
           <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
             <Button variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>

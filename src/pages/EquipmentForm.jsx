@@ -399,6 +399,18 @@ export default function EquipmentForm() {
     enabled: !isTechSession,
   });
 
+  // Técnico de la sesión propia (para saber a qué empresa pertenece sin preguntarlo)
+  const { data: sessionTech = null } = useQuery({
+    queryKey: ['session-tech', sessionTechEmail],
+    queryFn: async () => {
+      const r = await proxyCall('me');
+      return r.data || null;
+    },
+    enabled: isTechSession,
+  });
+
+  const companyId = currentTech?.company_id || sessionTech?.company_id || '';
+
   const { data: allEquipment = [] } = useQuery({
     queryKey: ['all-equipment', sessionTechEmail],
     queryFn: async () => {
@@ -423,23 +435,39 @@ export default function EquipmentForm() {
   const camaraTco2eq = camaraGwp && camaraCargaKg ? +(Number(camaraCargaKg) * camaraGwp / 1000).toFixed(3) : null;
 
   const createClientMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.create({ ...data, company_id: data.company_id || currentTech?.company_id || '' }),
+    mutationFn: async (data) => {
+      const payload = { ...data, company_id: data.company_id || companyId };
+      if (isTechSession) {
+        const r = await proxyCall('client_create', { record: payload });
+        return r.data;
+      }
+      return base44.entities.Client.create(payload);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setFormData((prev) => ({ ...prev, client_id: data.id }));
       setShowNewClientDialog(false);
       toast.success('Cliente creado');
-    }
+    },
+    onError: (e) => toast.error(e?.response?.data?.error || e.message || 'No se pudo crear el cliente')
   });
 
   const createBuildingMutation = useMutation({
-    mutationFn: (data) => base44.entities.Building.create({ ...data, client_id: formData.client_id }),
+    mutationFn: async (data) => {
+      const payload = { ...data, client_id: formData.client_id };
+      if (isTechSession) {
+        const r = await proxyCall('building_create', { record: payload });
+        return r.data;
+      }
+      return base44.entities.Building.create(payload);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
       setFormData((prev) => ({ ...prev, building_id: data.id }));
       setShowNewBuildingDialog(false);
       toast.success('Edificio creado');
-    }
+    },
+    onError: (e) => toast.error(e?.response?.data?.error || e.message || 'No se pudo crear el edificio')
   });
 
   const doUpdate = async (id, updates) => {
@@ -578,7 +606,7 @@ export default function EquipmentForm() {
       toast.success('Equipo actualizado y revisiones programadas');
       navigate(createPageUrl(`EquipmentDetail?id=${equipmentId}`));
     },
-    onError: () => toast.error('Error al actualizar el equipo')
+    onError: (e) => toast.error(e?.response?.data?.error || e.message || 'Error al actualizar el equipo')
   });
 
   const saveMutation = useMutation({
@@ -722,10 +750,14 @@ export default function EquipmentForm() {
   // Guarda parcialmente en modo edición al avanzar paso
   const savePartial = async () => {
     if (!equipmentId) return;
-    const updates = buildEquipmentPayload(formData);
-    await doUpdate(equipmentId, updates);
-    toast.success('Cambios guardados');
-    queryClient.invalidateQueries({ queryKey: ['equipment-edit', equipmentId] });
+    try {
+      const updates = buildEquipmentPayload(formData);
+      await doUpdate(equipmentId, updates);
+      toast.success('Cambios guardados');
+      queryClient.invalidateQueries({ queryKey: ['equipment-edit', equipmentId] });
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e.message || 'No se pudieron guardar los cambios');
+    }
   };
 
   const handleNext = async () => {
@@ -1380,6 +1412,11 @@ export default function EquipmentForm() {
         {step === 2 &&
         <Card className="p-6 bg-white shadow-md rounded-2xl border-0">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Cliente, Edificio y Relaciones</h3>
+            {equipmentId && (
+              <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                Puedes cambiar el cliente y el edificio de este equipo y pulsar <strong>Guardar</strong>.
+              </p>
+            )}
             
             <div className="space-y-4">
               <div>
@@ -1833,9 +1870,9 @@ export default function EquipmentForm() {
                   className="bg-white border-gray-300 text-gray-900" />
                 
               </div>
-              {!currentTech?.company_id && (
+              {!companyId && !isTechSession && (
                 <div>
-                  <Label className="text-gray-700">Empresa *</Label>
+                  <Label className="text-gray-700">Empresa propietaria *</Label>
                   <Select value={newClient.company_id} onValueChange={(v) => setNewClient({ ...newClient, company_id: v })}>
                     <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                       <SelectValue placeholder="Seleccionar empresa" />
@@ -1846,11 +1883,12 @@ export default function EquipmentForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-400 mt-1">Empresa a la que pertenecerá este cliente</p>
                 </div>
               )}
               <Button
                 onClick={() => createClientMutation.mutate(newClient)}
-                disabled={!newClient.name || !newClient.cif || createClientMutation.isPending}
+                disabled={!newClient.name || !newClient.cif || (!companyId && !isTechSession && !newClient.company_id) || createClientMutation.isPending}
                 className="w-full">
                 
                 {createClientMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear Cliente'}
