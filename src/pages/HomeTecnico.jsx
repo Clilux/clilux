@@ -373,7 +373,12 @@ export default function HomeTecnico() {
           {activeTab === 'inicio' &&
           <div className="space-y-6">
 
-            {/* 1. Resumen: obras abiertas, incidencias y mantenimientos pendientes */}
+            {/* 1. Fichaje — solo técnicos de sesión propia, NO admins */}
+            {isSessionTech &&
+            <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
+            }
+
+            {/* 2. Resumen: obras abiertas, incidencias y mantenimientos pendientes */}
             <ResumenPrincipal
               obras={finalObras}
               incidents={finalIncidents}
@@ -402,12 +407,7 @@ export default function HomeTecnico() {
                 equipment={finalEquipment} />
             </div>
 
-            {/* 3. Fichaje — solo técnicos de sesión propia, NO admins */}
-            {isSessionTech &&
-            <FichajeRapido currentUser={currentUser} techRecord={myTechRecord} />
-            }
-
-            {/* 4. Panel de edificios */}
+            {/* 3. Panel de edificios */}
             <Link to={createPageUrl('PanelEdificios')}>
               <Card className="border-blue-700 p-4 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer shadow-md bg-[#087f91]">
                 <div className="flex items-center justify-between">

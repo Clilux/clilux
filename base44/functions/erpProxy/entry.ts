@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     // ── Carga completa del módulo ─────────────────────────────────
     if (entity === 'erp_list') {
-      const [proveedores, pedidos, compras, presupuestos, articulos, familias, clientIds] = await Promise.all([
+      const [proveedores, pedidos, compras, presupuestos, articulos, familias, clientIds, albaranes] = await Promise.all([
         sr.Proveedor.filter({ company_id: companyId }),
         sr.Pedido.filter({ company_id: companyId }),
         sr.Compra.filter({ company_id: companyId }),
@@ -67,12 +67,14 @@ Deno.serve(async (req) => {
         sr.CatalogoProducto.filter({ company_id: companyId }),
         sr.FamiliaProducto.filter({ company_id: companyId }),
         companyClientIds(),
+        sr.AlbaranTrabajo.filter({ company_id: companyId }),
       ]);
       return Response.json({
         data: {
           proveedores,
           pedidos,
           compras,
+          albaranes,
           presupuestos: presupuestos.filter((p: any) => clientIds.has(p.client_id)),
           articulos,
           familias,

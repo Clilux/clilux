@@ -32,6 +32,7 @@ import Integraciones from './pages/Integraciones';
 import LibroRegistroFGas from './pages/LibroRegistroFGas';
 import ErpHome from './pages/ErpHome';
 import ErpPresupuestos from './pages/ErpPresupuestos';
+import ErpAlbaranes from './pages/ErpAlbaranes';
 import ErpPedidos from './pages/ErpPedidos';
 import ErpCompras from './pages/ErpCompras';
 import ErpProveedores from './pages/ErpProveedores';
@@ -124,6 +125,7 @@ const AuthenticatedApp = () => {
       {/* ── Módulo ERP ── */}
       <Route path="/Erp" element={<LayoutWrapper currentPageName="Erp"><ErpHome /></LayoutWrapper>} />
       <Route path="/ErpPresupuestos" element={<LayoutWrapper currentPageName="ErpPresupuestos"><ErpPresupuestos /></LayoutWrapper>} />
+      <Route path="/ErpAlbaranes" element={<LayoutWrapper currentPageName="ErpAlbaranes"><ErpAlbaranes /></LayoutWrapper>} />
       <Route path="/ErpPedidos" element={<LayoutWrapper currentPageName="ErpPedidos"><ErpPedidos /></LayoutWrapper>} />
       <Route path="/ErpCompras" element={<LayoutWrapper currentPageName="ErpCompras"><ErpCompras /></LayoutWrapper>} />
       <Route path="/ErpProveedores" element={<LayoutWrapper currentPageName="ErpProveedores"><ErpProveedores /></LayoutWrapper>} />

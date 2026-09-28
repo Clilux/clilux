@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Boxes, LayoutDashboard, FileText, ShoppingCart, Receipt, Truck, Package } from 'lucide-react';
+import { Boxes, LayoutDashboard, FileText, ShoppingCart, Receipt, Truck, Package, ClipboardList } from 'lucide-react';
 import ModoSwitchButton from '@/components/modo/ModoSwitchButton';
 
 const NAV = [
   { id: 'inicio', label: 'Inicio', ruta: '/Erp', icon: LayoutDashboard },
   { id: 'presupuestos', label: 'Presupuestos', ruta: '/ErpPresupuestos', icon: FileText },
+  { id: 'albaranes', label: 'Albaranes', ruta: '/ErpAlbaranes', icon: ClipboardList },
   { id: 'pedidos', label: 'Pedidos', ruta: '/ErpPedidos', icon: ShoppingCart },
   { id: 'compras', label: 'Compras', ruta: '/ErpCompras', icon: Receipt },
   { id: 'proveedores', label: 'Proveedores', ruta: '/ErpProveedores', icon: Truck },

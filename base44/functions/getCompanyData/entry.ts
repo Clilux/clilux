@@ -518,6 +518,27 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Ausencias (admin): justificar una incidencia (p.ej. vacaciones no solicitadas) ──
+    if (entity === 'ausencia_create') {
+      if (!tech.is_admin) return deny('admin');
+      const { target_email, record } = body;
+      if (!target_email || !record) return Response.json({ error: 'target_email y record requeridos' }, { status: 400 });
+      if (!record.fecha_inicio || !record.tipo) return Response.json({ error: 'tipo y fecha_inicio requeridos' }, { status: 400 });
+      const targetTechs = await base44.asServiceRole.entities.Technician.filter({ email: target_email });
+      const target = targetTechs[0];
+      if (!target || target.company_id !== tech.company_id) {
+        return Response.json({ error: 'El trabajador no pertenece a tu empresa' }, { status: 403 });
+      }
+      const data = await base44.asServiceRole.entities.Ausencia.create({
+        ...record,
+        technician_email: target.email,
+        technician_name: target.name,
+        technician_id: target.id,
+        company_id: tech.company_id,
+      });
+      return Response.json({ data });
+    }
+
     // ── Fichaje: leer registros del mes ─────────────────────────
     if (entity === 'registro_horario_mes') {
       const { mes } = body; // formato 'yyyy-MM'

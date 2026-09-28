@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { getSessionToken } from '@/lib/passwordHash';
 import { ENTIDADES } from '@/lib/erp-config';
 
-const VACIO = { proveedores: [], pedidos: [], compras: [], presupuestos: [], articulos: [], familias: [] };
+const VACIO = { proveedores: [], pedidos: [], compras: [], presupuestos: [], articulos: [], familias: [], albaranes: [] };
 
 /**
  * Datos del módulo ERP. Con sesión de trabajador propio carga vía erpProxy
@@ -41,15 +41,16 @@ export function useErpData() {
         if (res.data?.error) throw new Error(res.data.error);
         return { ...VACIO, ...(res.data?.data || {}) };
       }
-      const [proveedores, pedidos, compras, presupuestos, articulos, familias] = await Promise.all([
+      const [proveedores, pedidos, compras, presupuestos, articulos, familias, albaranes] = await Promise.all([
         base44.entities.Proveedor.list('-created_date'),
         base44.entities.Pedido.list('-created_date'),
         base44.entities.Compra.list('-created_date'),
         base44.entities.Presupuesto.list('-created_date'),
         base44.entities.CatalogoProducto.list('-created_date'),
         base44.entities.FamiliaProducto.list('nombre'),
+        base44.entities.AlbaranTrabajo.list('-fecha'),
       ]);
-      return { proveedores, pedidos, compras, presupuestos, articulos, familias };
+      return { proveedores, pedidos, compras, presupuestos, articulos, familias, albaranes };
     },
   });
 
