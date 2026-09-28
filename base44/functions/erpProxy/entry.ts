@@ -9,6 +9,7 @@ import { verifySessionToken } from '../../shared/auth.ts';
 
 const TIPOS: Record<string, string> = {
   presupuesto: 'Presupuesto',
+  albaran: 'AlbaranTrabajo',
   pedido: 'Pedido',
   compra: 'Compra',
   proveedor: 'Proveedor',

@@ -46,6 +46,7 @@ export const DOCS = {
 
 export const ENTIDADES = {
   presupuesto: 'Presupuesto',
+  albaran: 'AlbaranTrabajo',
   pedido: 'Pedido',
   compra: 'Compra',
   proveedor: 'Proveedor',

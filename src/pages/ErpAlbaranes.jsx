@@ -9,18 +9,20 @@ import ErpLayout from '@/components/erp/ErpLayout';
 import AlbaranTrabajoCard from '@/components/trabajo/AlbaranTrabajoCard';
 import AlbaranTrabajoForm from '@/components/trabajo/AlbaranTrabajoForm';
 import DeleteConfirmDialog from '@/components/ui/DeleteConfirmDialog';
+import ConvertirDocumentoModal from '@/components/erp/ConvertirDocumentoModal';
 import { useAlbaranesTrabajo } from '@/hooks/useAlbaranesTrabajo';
 import { euros } from '@/lib/erp-config';
 
 export default function ErpAlbaranes() {
   const {
     albaranes, isLoading, clients, obras, techRecord,
-    hideRates, isSessionTech, effEmail, saveAlbaran, deleteAlbaran,
+    hideRates, isSessionTech, effEmail, saveAlbaran, deleteAlbaran, refresh,
   } = useAlbaranesTrabajo();
 
   const [view, setView] = useState('list'); // list | form
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [convirtiendo, setConvirtiendo] = useState(null);
   const [search, setSearch] = useState('');
 
   const filtered = albaranes.filter(a =>
@@ -122,6 +124,7 @@ export default function ErpAlbaranes() {
               hideRates={hideRates}
               onEdit={(al) => { setEditing(al); setView('form'); }}
               onDelete={(al) => setDeleteTarget(al)}
+              onConvertir={(al) => setConvirtiendo(al)}
             />
           ))}
         </div>
@@ -134,6 +137,14 @@ export default function ErpAlbaranes() {
         description="Se eliminará también del módulo Servicios. Esta acción no se puede deshacer."
         onConfirm={handleDelete}
         isLoading={false}
+      />
+
+      <ConvertirDocumentoModal
+        open={!!convirtiendo}
+        onClose={() => setConvirtiendo(null)}
+        origenTipo="albaran"
+        origen={convirtiendo}
+        onConvertido={refresh}
       />
     </ErpLayout>
   );

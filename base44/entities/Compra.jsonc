@@ -34,8 +34,15 @@
       "items": {
         "type": "object",
         "properties": {
+          "codigo": {
+            "type": "string"
+          },
           "concepto": {
             "type": "string"
+          },
+          "unidad": {
+            "type": "string",
+            "default": "ud"
           },
           "cantidad": {
             "type": "number"
@@ -83,6 +90,18 @@
     },
     "notas": {
       "type": "string"
+    },
+    "origen_tipo": {
+      "type": "string",
+      "description": "Tipo de documento del que se gener\u00f3 (presupuesto, albaran, pedido, compra)"
+    },
+    "origen_id": {
+      "type": "string",
+      "description": "ID del documento de origen"
+    },
+    "origen_numero": {
+      "type": "string",
+      "description": "N\u00famero del documento de origen"
     },
     "company_id": {
       "type": "string"

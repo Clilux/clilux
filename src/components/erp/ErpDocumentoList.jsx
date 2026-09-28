@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, FileText, Pencil, Trash2, Eye, Send } from 'lucide-react';
+import { Loader2, Plus, Search, FileText, Pencil, Trash2, Eye, Send, ArrowRightLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -12,6 +12,8 @@ import DocumentoErpForm from '@/components/erp/DocumentoErpForm';
 import PresupuestoDetalle from '@/components/erp/PresupuestoDetalle';
 import DocumentoErpDetalle from '@/components/erp/DocumentoErpDetalle';
 import GenerarPedidoModal from '@/components/erp/GenerarPedidoModal';
+import ConvertirDocumentoModal from '@/components/erp/ConvertirDocumentoModal';
+import { CONVERSIONES, TIPOS_DOC } from '@/lib/documentos-erp';
 import { useErpData } from '@/hooks/useErpData';
 import { enviarPresupuesto } from '@/lib/presupuesto-envio';
 import { DOCS, ESTADOS, euros, siguienteNumero } from '@/lib/erp-config';
@@ -31,6 +33,7 @@ export default function ErpDocumentoList({ tipo }) {
   const [editando, setEditando] = useState(null);
   const [viendo, setViendo] = useState(null);
   const [pedidoDesde, setPedidoDesde] = useState(null);
+  const [convirtiendo, setConvirtiendo] = useState(null);
   const [enviandoId, setEnviandoId] = useState(null);
 
   const lista = erp[cfg.plural.toLowerCase()] || [];
@@ -191,6 +194,15 @@ export default function ErpDocumentoList({ tipo }) {
                         </Button>
                       </>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50"
+                      title={`Convertir en ${(CONVERSIONES[tipo] || []).map(t => TIPOS_DOC[t].label.toLowerCase()).join(' o ')}`}
+                      onClick={() => setConvirtiendo(d)}
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                    </Button>
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50" title="Editar" onClick={() => abrirEditar(d)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -250,6 +262,14 @@ export default function ErpDocumentoList({ tipo }) {
         articulos={erp.articulos}
         pedidos={erp.pedidos}
         onCreated={async (record) => { await saveDocumento('pedido', record); refresh(); }}
+      />
+
+      <ConvertirDocumentoModal
+        open={!!convirtiendo}
+        onClose={() => setConvirtiendo(null)}
+        origenTipo={tipo}
+        origen={convirtiendo}
+        onConvertido={refresh}
       />
     </ErpLayout>
   );

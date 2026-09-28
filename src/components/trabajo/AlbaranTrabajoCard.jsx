@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Pencil, Download, Send, CheckCircle, HardHat } from 'lucide-react';
+import { FileText, Pencil, Download, Send, CheckCircle, HardHat, ArrowRightLeft } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -13,7 +13,7 @@ const ESTADO = {
   firmado: { label: 'Firmado', color: 'bg-emerald-100 text-emerald-700' },
 };
 
-export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete, hideRates }) {
+export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete, hideRates, onConvertir }) {
   const navigate = useNavigate();
   const est = ESTADO[albaran.estado] || ESTADO.borrador;
   const fecha = albaran.fecha && isValid(parseISO(albaran.fecha))
@@ -45,6 +45,11 @@ export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete, hideRate
           {!hideRates && <p className="text-sm font-bold text-slate-800 mt-1">{(albaran.total || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>}
         </div>
         <div className="flex flex-col gap-1 shrink-0">
+          {onConvertir && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs text-indigo-600 gap-1" onClick={() => onConvertir(albaran)}>
+              <ArrowRightLeft className="h-3.5 w-3.5" />Convertir
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-8 text-xs text-blue-600 gap-1" onClick={() => onEdit(albaran)}>
             <Pencil className="h-3.5 w-3.5" />Editar
           </Button>
