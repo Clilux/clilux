@@ -108,7 +108,12 @@ export default function ClientPortalInvite({ client, isSessionTech, techEmail })
             <div key={i} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-100">
               <div className="min-w-0">
                 <p className="text-sm font-mono text-blue-900 truncate">{u.email}</p>
-                <p className="text-xs text-blue-600">Contraseña: <span className="font-mono">{u.password}</span>{u.can_edit ? ' · puede editar' : ' · solo lectura'}</p>
+                <p className="text-xs text-blue-600">
+                  {String(u.password || '').startsWith('pbkdf2$')
+                    ? <span className="italic">Contraseña protegida. Escribe una nueva abajo y pulsa «Invitar» para cambiarla.</span>
+                    : <>Contraseña: <span className="font-mono">{u.password}</span></>}
+                  {u.can_edit ? ' · puede editar' : ' · solo lectura'}
+                </p>
               </div>
               {isGerente && (
                 <Button variant="ghost" size="icon" onClick={() => deleteUser(u)}><Trash2 className="h-4 w-4 text-red-500" /></Button>

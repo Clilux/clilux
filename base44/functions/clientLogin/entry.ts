@@ -1,7 +1,7 @@
-import { createClient } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { verifyPassword, isHashed, hashPassword, issueSessionToken, rateLimitStatus, registerFailure, registerSuccess } from '../../shared/auth.ts';
 
-Deno.serve(async (req) => {
+export default async function (req) {
   try {
     const { email, password } = await req.json();
 
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Demasiados intentos. Reintenta en ${rl.retryAfterSec}s` }, { status: 429 });
     }
 
-    const base44 = createClient({ appId: Deno.env.get('BASE44_APP_ID'), serviceToken: Deno.env.get('BASE44_SERVICE_TOKEN') });
+    const base44 = createClientFromRequest(req);
 
     const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
     const appSettings = settings[0];
@@ -59,4 +59,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
