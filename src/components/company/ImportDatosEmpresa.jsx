@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, CheckSquare, Square, FileJson, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, CheckSquare, Square, FileJson, FileSpreadsheet, Download, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ENTITY_OPTIONS } from './ExportDatosGerente';
+import { parseExcelToDump, downloadExcelTemplate, SHEET_ENTITIES } from '@/lib/import-excel';
 
 /**
  * Importa una copia JSON (exportada por el gerente) recreando los datos en la
@@ -16,6 +17,8 @@ export default function ImportDatosEmpresa({ sessionTechEmail }) {
   const [dump, setDump] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [fileName, setFileName] = useState('');
+  const [isExcel, setIsExcel] = useState(false);
+  const [avisos, setAvisos] = useState(null);
   const inputRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -25,21 +28,39 @@ export default function ImportDatosEmpresa({ sessionTechEmail }) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
+      const excel = /\.(xlsx|xls)$/i.test(file.name);
       let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        throw new Error('El archivo no es un JSON válido');
-      }
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error('El JSON no contiene datos exportados');
+      if (excel) {
+        const { dump: parsedExcel, ignoredSheets, skippedRows } = parseExcelToDump(await file.arrayBuffer());
+        if (Object.keys(parsedExcel).length === 0) {
+          throw new Error(
+            ignoredSheets.length
+              ? `No se reconoce la hoja "${ignoredSheets[0]}". Nombra las hojas como: ${SHEET_ENTITIES.map(e => e.label).join(', ')}.`
+              : 'El Excel no contiene datos.'
+          );
+        }
+        parsed = parsedExcel;
+        setAvisos({ ignoredSheets, skippedRows });
+      } else {
+        const text = await file.text();
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          throw new Error('El archivo no es un JSON válido');
+        }
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('El JSON no contiene datos exportados');
+        }
+        setAvisos(null);
       }
       const found = ENTITY_OPTIONS.filter(opt => parsed[opt.key]);
       if (found.length === 0) {
-        throw new Error('El JSON no contiene entidades reconocidas');
+        throw new Error(excel
+          ? `No hay categorías reconocidas. Nombra las hojas como: ${SHEET_ENTITIES.map(e => e.label).join(', ')}.`
+          : 'El JSON no contiene entidades reconocidas');
       }
       setDump(parsed);
+      setIsExcel(excel);
       setFileName(file.name);
       setSelected(new Set(found.map(e => e.key)));
     } catch (err) {
@@ -76,17 +97,19 @@ export default function ImportDatosEmpresa({ sessionTechEmail }) {
       });
       const c = res.data?.counts || {};
       const parts = Object.entries(c).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${k}`);
+      const failed = res.data?.failed || [];
       if (parts.length === 0) {
         toast.info('No se encontraron registros para importar');
       } else {
         toast.success(`Importados: ${parts.join(', ')}`);
       }
+      if (failed.length > 0) {
+        toast.warning(`${failed.length} registro(s) con error. Ejemplo: ${failed[0]}`);
+      }
       queryClient.invalidateQueries({ queryKey: ['proxy-all'] });
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       // Reset
-      setDump(null);
-      setFileName('');
-      setSelected(new Set());
+      reset();
     } catch (err) {
       toast.error('Error al importar: ' + (err?.response?.data?.error || err?.message || ''));
     } finally {
@@ -95,40 +118,69 @@ export default function ImportDatosEmpresa({ sessionTechEmail }) {
     }
   };
 
-  const handleCancel = () => {
+  const reset = () => {
     setDump(null);
     setFileName('');
     setSelected(new Set());
+    setAvisos(null);
+    setIsExcel(false);
     if (inputRef.current) inputRef.current.value = '';
   };
+
+  const handleCancel = reset;
 
   return (
     <div className="space-y-3">
       <input
         ref={inputRef}
         type="file"
-        accept="application/json,.json"
+        accept="application/json,.json,.xlsx,.xls"
         onChange={handleFile}
         className="hidden"
       />
 
       {!dump ? (
-        <Button
-          onClick={() => inputRef.current?.click()}
-          disabled={importing}
-          variant="outline"
-          className="h-9"
-        >
-          {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-          {importing ? 'Importando...' : 'Importar datos (JSON)'}
-        </Button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={() => inputRef.current?.click()}
+              disabled={importing}
+              variant="outline"
+              className="h-9"
+            >
+              {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              {importing ? 'Importando...' : 'Importar datos (JSON o Excel)'}
+            </Button>
+            <Button onClick={downloadExcelTemplate} variant="ghost" className="h-9 text-xs text-slate-500">
+              <Download className="h-3.5 w-3.5 mr-1.5" />Plantilla Excel
+            </Button>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Excel: una hoja por categoría ({SHEET_ENTITIES.map(e => e.label).join(', ')}) con los nombres de campo
+            del sistema en la primera fila. Las relaciones (cliente, edificio, equipo) se indican por su nombre.
+          </p>
+        </div>
       ) : (
         <div className="space-y-3 border border-slate-200 rounded-lg p-4 bg-slate-50">
           <div className="flex items-center gap-2">
-            <FileJson className="h-4 w-4 text-blue-600" />
+            {isExcel ? <FileSpreadsheet className="h-4 w-4 text-blue-600" /> : <FileJson className="h-4 w-4 text-blue-600" />}
             <span className="text-xs font-medium text-slate-700 truncate">{fileName}</span>
             <button onClick={handleCancel} className="ml-auto text-xs text-slate-400 hover:text-red-500">Cancelar</button>
           </div>
+
+          {avisos && (avisos.ignoredSheets.length > 0 || Object.keys(avisos.skippedRows).length > 0) && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-slate-100 border border-slate-200">
+              <AlertCircle className="h-3.5 w-3.5 text-slate-500 flex-shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-600 space-y-0.5">
+                {avisos.ignoredSheets.length > 0 && (
+                  <p>Hojas ignoradas: {avisos.ignoredSheets.join(', ')}. Nómbralas como {SHEET_ENTITIES.map(e => e.label).join(', ')}.</p>
+                )}
+                {Object.entries(avisos.skippedRows).map(([label, n]) => (
+                  <p key={label}>{n} fila(s) sin el dato obligatorio en {label} (no se importarán).</p>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
