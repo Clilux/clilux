@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Pencil, Download, Send, CheckCircle, HardHat, ArrowRightLeft } from 'lucide-react';
+import { FileText, Pencil, Download, Send, CheckCircle, HardHat, ArrowRightLeft, UserRound } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -34,6 +34,11 @@ export default function AlbaranTrabajoCard({ albaran, onEdit, onDelete, hideRate
             {fecha} · {albaran.client_name || 'Sin cliente'}
             {albaran.capitulo && ` · ${albaran.capitulo}`}
           </p>
+          {albaran.tecnico_nombre && (
+            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+              <UserRound className="h-3 w-3" />Técnico: {albaran.tecnico_nombre}
+            </p>
+          )}
           {albaran.obra_nombre && (
             <button
               onClick={() => navigate(`/ObraDetail?id=${albaran.obra_id}`)}

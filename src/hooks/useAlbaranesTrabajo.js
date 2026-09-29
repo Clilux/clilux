@@ -37,6 +37,7 @@ export function useAlbaranesTrabajo() {
 
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || techRecord?.is_admin === true;
   const hideRates = isSessionTech && !techRecord?.is_admin;
+  const effName = techRecord?.name || base44User?.full_name || '';
 
   const { data: albaranes = [], isLoading } = useQuery({
     queryKey: ['albaranes-trabajo', isSessionTech ? 'proxy' : 'direct', effEmail],
@@ -110,6 +111,7 @@ export function useAlbaranesTrabajo() {
     hideRates,
     isSessionTech,
     effEmail,
+    effName,
     saveAlbaran,
     deleteAlbaran,
     refresh,

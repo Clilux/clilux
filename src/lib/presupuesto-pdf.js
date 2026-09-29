@@ -52,9 +52,14 @@ export function buildPresupuestoPDF({ presupuesto, client, empresa }) {
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
   doc.text(client?.name || p.cliente_nombre || '—', M, y + 6);
+  doc.setFontSize(8);
+  doc.setTextColor(90, 90, 90);
+  doc.text(`Técnico: ${p.created_by_name || '—'}`, M, y + 11);
+  doc.setFontSize(10);
+  doc.setTextColor(30, 30, 30);
   const objeto = doc.splitTextToSize(p.titulo || '—', 85);
   doc.text(objeto, 110, y + 6);
-  y += 6 + Math.max(objeto.length * 5, 5) + 6;
+  y += 6 + Math.max(objeto.length * 5, 11) + 6;
 
   const cabeceraTabla = () => {
     doc.setFillColor(240, 241, 246);

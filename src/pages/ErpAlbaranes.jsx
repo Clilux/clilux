@@ -16,7 +16,7 @@ import { euros } from '@/lib/erp-config';
 export default function ErpAlbaranes() {
   const {
     albaranes, isLoading, clients, obras, techRecord,
-    hideRates, isSessionTech, effEmail, saveAlbaran, deleteAlbaran, refresh,
+    hideRates, isSessionTech, effEmail, effName, saveAlbaran, deleteAlbaran, refresh,
   } = useAlbaranesTrabajo();
 
   const [view, setView] = useState('list'); // list | form
@@ -57,6 +57,7 @@ export default function ErpAlbaranes() {
         isSessionTech={isSessionTech}
         effectiveEmail={effEmail}
         techRecord={techRecord}
+        tecnicoNombre={effName}
         hideRates={hideRates}
         onBack={() => { setView('list'); setEditing(null); }}
         onSaved={saveAlbaran}

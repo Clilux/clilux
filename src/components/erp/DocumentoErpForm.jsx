@@ -29,7 +29,7 @@ const inicial = (tipo, numero) => ({
 });
 
 /** Formulario de alta/edición de presupuestos, pedidos y compras. */
-export default function DocumentoErpForm({ tipo, open, onClose, registro, numero, clients = [], proveedores = [], articulos = [], familias = [], onSave }) {
+export default function DocumentoErpForm({ tipo, open, onClose, registro, numero, clients = [], proveedores = [], articulos = [], familias = [], tecnicoNombre = '', onSave }) {
   const cfg = DOCS[tipo];
   const esPresupuesto = tipo === 'presupuesto';
   const [form, setForm] = useState(inicial(tipo, numero));
@@ -108,7 +108,9 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
             notas: form.notas,
           };
 
-      await onSave(record, registro?.id);
+      // El técnico que realiza el documento se sella al crearlo.
+      const autor = registro ? '' : (form.created_by_name || tecnicoNombre || '');
+      await onSave(autor ? { ...record, created_by_name: autor } : record, registro?.id);
       onClose();
     } finally {
       setSaving(false);

@@ -168,6 +168,7 @@ export default function GestionTrabajo() {
             isSessionTech={isSessionTech}
             effectiveEmail={effEmail}
             techRecord={techRecord}
+            tecnicoNombre={techRecord?.name || base44User?.full_name || ''}
             hideRates={hideRates}
             onBack={() => { setView('list'); setEditing(null); setPrefill(null); window.history.replaceState({}, '', '/GestionTrabajo'); }}
             onSaved={handleSaved}

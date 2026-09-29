@@ -76,6 +76,10 @@ export default function PresupuestoDetalle({ open, onClose, presupuesto, client,
               <p className="text-xs text-slate-500">Título</p>
               <p className="font-medium text-slate-800">{p.titulo || '—'}</p>
             </div>
+            <div>
+              <p className="text-xs text-slate-500">Técnico</p>
+              <p className="font-medium text-slate-800">{p.created_by_name || '—'}</p>
+            </div>
             {p.fecha_validez && (
               <div>
                 <p className="text-xs text-slate-500">Válido hasta</p>

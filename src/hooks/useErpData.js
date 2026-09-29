@@ -116,6 +116,7 @@ export function useErpData() {
     isAdmin,
     myTechRecord,
     effectiveEmail: sessionTechEmail || base44User?.email,
+    effectiveName: myTechRecord?.name || base44User?.full_name || '',
     saveDocumento,
     deleteDocumento,
     refresh: invalidate,

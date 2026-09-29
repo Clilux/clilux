@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronLeft, Plus, Trash2, Save, FileDown, Send, PenLine, Loader2, Search, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { jsPDF } from 'jspdf';
+import { buildAlbaranPDF, imagenADataURL } from '@/lib/albaran-pdf';
 import SignaturePad from './SignaturePad';
 
 const UNIDADES = ['ud', 'h', 'kg', 'm', 'm²', 'm³', 'l', 'mes'];
@@ -21,7 +21,7 @@ const lineaVacia = () => ({ descripcion: '', cantidad: 1, unidad: 'ud', precio_u
 function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
 
 export default function AlbaranTrabajoForm({
-  record, prefill, clients, obras, existingCount, isSessionTech, effectiveEmail, techRecord, onBack, onSaved,
+  record, prefill, clients, obras, existingCount, isSessionTech, effectiveEmail, techRecord, tecnicoNombre, onBack, onSaved,
 }) {
   const isEdit = !!record;
   const [createdId, setCreatedId] = useState(null);
@@ -93,6 +93,7 @@ export default function AlbaranTrabajoForm({
     documento_url: record?.documento_url || null,
     incident_id: record?.incident_id || prefill?.incident_id || '',
     stel_albaran_id: record?.stel_albaran_id || null,
+    tecnico_nombre: record?.tecnico_nombre || techRecord?.name || tecnicoNombre || '',
   }));
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -112,6 +113,9 @@ export default function AlbaranTrabajoForm({
   });
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Técnico que realiza el albarán: el guardado en el parte o el de la sesión activa.
+  const tecnicoDoc = form.tecnico_nombre || techRecord?.name || tecnicoNombre || '';
 
   // Cálculo de totales
   const totales = useMemo(() => {
@@ -218,7 +222,7 @@ export default function AlbaranTrabajoForm({
     total: totales.total,
     notas: form.notas,
     incident_id: form.incident_id || null,
-    tecnico_nombre: techRecord?.name || '',
+    tecnico_nombre: tecnicoDoc,
     tecnico_email: effectiveEmail || '',
     ...extra,
   });
@@ -252,9 +256,9 @@ export default function AlbaranTrabajoForm({
   const handleFirma = async (dataUrl) => {
     setSigning(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({
-        file: await (await fetch(dataUrl)).blob(),
-      });
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'firma.png', { type: 'image/png' });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       setForm(p => ({ ...p, firma_url: file_url, firmante_nombre: p.firmante_nombre || p.client_name, fecha_firma: new Date().toISOString() }));
       toast.success('Firma guardada. Pulsa "Guardar" para confirmar.');
     } catch {
@@ -267,73 +271,16 @@ export default function AlbaranTrabajoForm({
   const generarPDF = async () => {
     setGenerating(true);
     try {
-      const doc = new jsPDF();
-      doc.setFontSize(18); doc.setFont(undefined, 'bold');
-      doc.text('Albarán de Trabajo', 14, 18);
-      doc.setFontSize(10); doc.setFont(undefined, 'normal');
-      doc.text(`Nº: ${form.numero}`, 14, 28);
-      doc.text(`Fecha: ${form.fecha ? format(new Date(form.fecha), "dd/MM/yyyy") : '—'}`, 14, 34);
-      doc.text(`Cliente: ${form.client_name || '—'}`, 14, 40);
-      if (form.client_email) doc.text(`Email: ${form.client_email}`, 14, 46);
-      doc.text(`Título: ${form.titulo}`, 14, 52);
-      if (form.capitulo) doc.text(`Capítulo: ${form.capitulo}`, 14, 58);
-      if (form.obra_nombre) doc.text(`Obra: ${form.obra_nombre}`, 14, 64);
-      doc.line(14, 68, 196, 68);
-
-      // Cabecera de líneas
-      let y = 76;
-      doc.setFont(undefined, 'bold'); doc.setFontSize(9);
-      doc.text('Descripción', 14, y);
-      doc.text('Cant.', 120, y);
-      if (!hideRates) {
-        doc.text('Precio', 140, y);
-        doc.text('Dto.%', 160, y);
-        doc.text('Subtotal', 176, y);
-      }
-      y += 4;
-      doc.line(14, y, 196, y); y += 5;
-      doc.setFont(undefined, 'normal');
-      totales.lineas.forEach(l => {
-        if (y > 250) { doc.addPage(); y = 20; }
-        const desc = doc.splitTextToSize(l.descripcion || '', 100);
-        doc.text(desc[0] || '', 14, y);
-        doc.text(String(l.cantidad || 0), 120, y);
-        if (!hideRates) {
-          doc.text(`${(l.precio_unitario || 0).toFixed(2)}`, 140, y);
-          doc.text(`${(l.descuento || 0)}%`, 160, y);
-          doc.text(`${(l.subtotal || 0).toFixed(2)}€`, 176, y);
-        }
-        y += 6;
+      const firmaDataUrl = await imagenADataURL(form.firma_url);
+      const doc = buildAlbaranPDF({
+        albaran: { ...form, tecnico_nombre: tecnicoDoc },
+        lineas: totales.lineas,
+        hideRates,
+        firmaDataUrl,
       });
-      y += 2; doc.line(14, y, 196, y); y += 6;
-      if (!hideRates) {
-        doc.setFont(undefined, 'bold');
-        doc.text('Base:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`${totales.base.toFixed(2)}€`, 176, y); y += 6;
-        if (totales.descuento_total > 0) {
-          doc.text('Descuento:', 150, y); doc.setFont(undefined, 'normal'); doc.text(`-${totales.descuento_total.toFixed(2)}€`, 176, y); y += 6;
-        }
-        doc.setFont(undefined, 'bold'); doc.setFontSize(12);
-        doc.text('TOTAL:', 150, y); doc.text(`${totales.total.toFixed(2)}€`, 176, y);
-      }
-
-      // Firma
-      if (form.firma_url) {
-        try {
-          const img = new Image();
-          img.src = form.firma_url;
-          doc.addImage(form.firma_url, 'PNG', 14, y + 4, 70, 28);
-        } catch {}
-        doc.setFontSize(9); doc.setFont(undefined, 'normal');
-        doc.text(`Firmado por: ${form.firmante_nombre || form.client_name || '—'}`, 14, y + 40);
-      } else {
-        doc.setFontSize(9);
-        doc.text('Firma del cliente: _______________________', 14, y + 30);
-      }
-
-      const blob = doc.output('blob');
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+      const file = new File([doc.output('blob')], `albaran_${form.numero || 'borrador'}.pdf`, { type: 'application/pdf' });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       setForm(p => ({ ...p, documento_url: file_url }));
-      // Guardar el documento_url en el registro
       await doSave({ documento_url: file_url });
       doc.save(`albaran_${form.numero}.pdf`);
       toast.success('PDF generado y guardado');
@@ -352,19 +299,15 @@ export default function AlbaranTrabajoForm({
       if (!docUrl) {
         // generar PDF si no existe
         setGenerating(true);
-        const doc = new jsPDF();
-        doc.setFontSize(18); doc.setFont(undefined, 'bold');
-        doc.text('Albarán de Trabajo', 14, 18);
-        doc.setFontSize(10); doc.setFont(undefined, 'normal');
-        doc.text(`Nº: ${form.numero}`, 14, 28);
-        doc.text(`Fecha: ${form.fecha}`, 14, 34);
-        doc.text(`Cliente: ${form.client_name}`, 14, 40);
-        doc.text(`Título: ${form.titulo}`, 14, 46);
-        let y = 56;
-        totales.lineas.forEach(l => { doc.text(`${l.descripcion || ''}  x${l.cantidad}  ${l.subtotal.toFixed(2)}€`, 14, y); y += 6; });
-        doc.setFont(undefined, 'bold'); doc.text(`TOTAL: ${totales.total.toFixed(2)}€`, 14, y + 4);
-        const blob = doc.output('blob');
-        const up = await base44.integrations.Core.UploadFile({ file: blob });
+        const firmaDataUrl = await imagenADataURL(form.firma_url);
+        const doc = buildAlbaranPDF({
+          albaran: { ...form, tecnico_nombre: tecnicoDoc },
+          lineas: totales.lineas,
+          hideRates,
+          firmaDataUrl,
+        });
+        const file = new File([doc.output('blob')], `albaran_${form.numero || 'borrador'}.pdf`, { type: 'application/pdf' });
+        const up = await base44.integrations.Core.UploadPublicFile({ file });
         docUrl = up.file_url;
         setForm(p => ({ ...p, documento_url: docUrl }));
         setGenerating(false);
@@ -372,7 +315,7 @@ export default function AlbaranTrabajoForm({
       await base44.integrations.Core.SendEmail({
         to: form.client_email,
         subject: `Albarán ${form.numero} - ${form.titulo}`,
-        body: `Estimado cliente,\n\nLe adjuntamos el enlace a su albarán de trabajo Nº ${form.numero} con título "${form.titulo}".${hideRates ? '' : ` por un importe total de ${totales.total.toFixed(2)}€.`}\n\nPuede consultarlo en el siguiente enlace:\n${docUrl}\n\nAtentamente.`,
+        body: `Estimado cliente,\n\nLe adjuntamos el enlace a su albarán de trabajo Nº ${form.numero} con título "${form.titulo}".${hideRates ? '' : ` por un importe total de ${totales.total.toFixed(2)}€.`}\n\nRealizado por: ${tecnicoDoc || '—'}\n\nPuede consultarlo en el siguiente enlace:\n${docUrl}\n\nAtentamente.`,
       });
       await doSave({ estado: 'enviado', documento_url: docUrl });
       toast.success('Albarán enviado al cliente');

@@ -43,6 +43,10 @@ export default function DocumentoErpDetalle({ open, onClose, tipo, documento, pr
               <p className="text-xs text-slate-500">Estado</p>
               <p className="font-medium text-slate-800">{estado?.label || d.estado || '—'}</p>
             </div>
+            <div>
+              <p className="text-xs text-slate-500">Técnico</p>
+              <p className="font-medium text-slate-800">{d.created_by_name || '—'}</p>
+            </div>
             {tipo === 'pedido' && d.fecha_entrega && (
               <div>
                 <p className="text-xs text-slate-500">Entrega prevista</p>

@@ -26,7 +26,7 @@ const fecha = (f) => {
 /** Lista genérica de documentos ERP (presupuestos, pedidos o compras). */
 export default function ErpDocumentoList({ tipo }) {
   const cfg = DOCS[tipo];
-  const { erp, clients, isLoading, saveDocumento, deleteDocumento, refresh, effectiveEmail } = useErpData();
+  const { erp, clients, isLoading, saveDocumento, deleteDocumento, refresh, effectiveEmail, effectiveName } = useErpData();
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -227,6 +227,7 @@ export default function ErpDocumentoList({ tipo }) {
         proveedores={erp.proveedores}
         articulos={erp.articulos}
         familias={erp.familias}
+        tecnicoNombre={effectiveName}
         onSave={(record, id) => saveDocumento(tipo, record, id)}
       />
 
