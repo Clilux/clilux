@@ -24,7 +24,8 @@ import { formatHoras } from '@/lib/horario-utils';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
-  const [mainTab, setMainTab] = useState('estado');
+  // Permite abrir directamente una pestaña concreta (p.ej. desde una notificación)
+  const [mainTab, setMainTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'estado');
   const [period, setPeriod] = useState('month');
   const [refDate, setRefDate] = useState(new Date());
   const [selectedTech, setSelectedTech] = useState('all');

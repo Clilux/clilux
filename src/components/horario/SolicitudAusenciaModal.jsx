@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { notificar } from '@/lib/buzon';
+import { getSessionToken } from '@/lib/passwordHash';
 
 const TIPOS = {
   vacaciones: 'Vacaciones',
@@ -47,10 +48,13 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
       };
       if (form.motivo) data.motivo = form.motivo;
       if (sessionTechEmail) {
-        const res = await base44.functions.invoke('getCompanyData', {
-          technician_email: sessionTechEmail,
-          entity: 'ausencia_self_create',
-          record: data,
+        // Vía directa y ligera: no depende del proxy de empresa (que puede tardar/saturarse)
+        const res = await base44.functions.invoke('solicitarAusencia', {
+          session_token: getSessionToken(),
+          tipo: form.tipo,
+          fecha_inicio: form.fecha_inicio,
+          fecha_fin: form.fecha_fin,
+          motivo: form.motivo || undefined,
         });
         if (res?.data?.error) throw new Error(res.data.error);
         return res?.data?.data;
@@ -63,6 +67,7 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+      if (sessionTechEmail) return; // la notificación al gerente ya la crea el servidor
       notificar('vacacion_solicitud', {
         company_id: techRecord?.company_id || '',
         worker_email: currentUser?.email || '',

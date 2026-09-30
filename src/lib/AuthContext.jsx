@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { ensureSessionTokenFromStorage } from '@/lib/passwordHash';
 
 const AuthContext = createContext();
 
@@ -27,6 +28,11 @@ export const AuthProvider = ({ children }) => {
       const savedTechEmail = localStorage.getItem('clilux_tech_email');
       if (savedTechEmail && !sessionStorage.getItem('technician_email')) {
         sessionStorage.setItem('technician_email', savedTechEmail);
+      }
+      // Restaurar también el token de sesión: sin él, las llamadas al servidor del
+      // trabajador fallaban (el token vive en sessionStorage y puede perderse).
+      if (savedTechEmail || sessionStorage.getItem('technician_email')) {
+        ensureSessionTokenFromStorage();
       }
       const hasTechSession = !!sessionStorage.getItem('technician_email');
       const hasClientSession = !!sessionStorage.getItem('client_id');

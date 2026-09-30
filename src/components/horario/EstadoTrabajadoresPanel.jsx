@@ -123,7 +123,11 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
 
   const setEstado = async (a, estado) => {
     try {
-      await base44.entities.Ausencia.update(a.id, { estado });
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencia_update', record_id: a.id, updates: { estado } });
+      } else {
+        await base44.entities.Ausencia.update(a.id, { estado });
+      }
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       notificar('vacacion_resuelta', {
@@ -141,7 +145,11 @@ function WorkerDetailDialog({ worker, registrosMes, ausencias, isSessionTech, ef
   const borrar = async (a) => {
     if (!confirm('¿Eliminar esta petición? No se puede deshacer.')) return;
     try {
-      await base44.entities.Ausencia.delete(a.id);
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencia_delete', record_id: a.id });
+      } else {
+        await base44.entities.Ausencia.delete(a.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
       toast.success('Petición eliminada');

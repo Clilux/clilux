@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
           await crear(g.email, 'gerente',
             `Nueva solicitud de ${datos.worker_name || 'un trabajador'}`,
             `${datos.worker_name || ''} solicita ${datos.tipo_aus || 'vacaciones'} (${datos.dias}d) ${fechas}.`.trim(),
-            '/ControlHorario', datos.company_id);
+            '/ControlHorario?tab=vacaciones', datos.company_id);
         }
       } else if (tipo === 'vacacion_resuelta') {
         const estadoTxt = datos.estado === 'aprobada' ? 'aprobada' : 'rechazada';
