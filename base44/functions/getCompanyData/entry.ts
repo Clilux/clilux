@@ -518,6 +518,30 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Ausencias (auto-servicio): el propio trabajador solicita su ausencia ──
+    // Cualquier trabajador autenticado puede crear su propia solicitud (queda
+    // pendiente de aprobación), sellada con su identidad real de la empresa.
+    if (entity === 'ausencia_self_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!record.tipo || !record.fecha_inicio || !record.fecha_fin) {
+        return Response.json({ error: 'tipo, fecha_inicio y fecha_fin requeridos' }, { status: 400 });
+      }
+      const data = await base44.asServiceRole.entities.Ausencia.create({
+        technician_email: tech.email,
+        technician_name: creatorName,
+        technician_id: creatorId,
+        company_id: tech.company_id,
+        tipo: record.tipo,
+        fecha_inicio: record.fecha_inicio,
+        fecha_fin: record.fecha_fin,
+        dias_totales: record.dias_totales,
+        estado: 'pendiente',
+        ...(record.motivo ? { motivo: record.motivo } : {}),
+      });
+      return Response.json({ data });
+    }
+
     // ── Ausencias (admin): justificar una incidencia (p.ej. vacaciones no solicitadas) ──
     if (entity === 'ausencia_create') {
       if (!tech.is_admin) return deny('admin');

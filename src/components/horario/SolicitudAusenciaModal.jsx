@@ -21,6 +21,9 @@ const TIPOS = {
 
 export default function SolicitudAusenciaModal({ currentUser, techRecord, onClose }) {
   const queryClient = useQueryClient();
+  // Los técnicos usan su propia sesión (sin sesión Base44): sus solicitudes se
+  // crean a través del proxy, que sella la identidad del trabajador.
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
   const [form, setForm] = useState({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
 
   const dias = form.fecha_inicio && form.fecha_fin
@@ -43,6 +46,15 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
         estado: 'pendiente',
       };
       if (form.motivo) data.motivo = form.motivo;
+      if (sessionTechEmail) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail,
+          entity: 'ausencia_self_create',
+          record: data,
+        });
+        if (res?.data?.error) throw new Error(res.data.error);
+        return res?.data?.data;
+      }
       return base44.entities.Ausencia.create(data);
     },
     onSuccess: () => {
