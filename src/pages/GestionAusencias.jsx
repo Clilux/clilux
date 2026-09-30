@@ -195,9 +195,10 @@ export default function GestionAusencias() {
   // Calcular días de vacaciones disponibles (para técnicos)
   const vacacionesConfig = myTechRecord?.vacaciones_anuales ?? 22;
   const vacacionesUsadas = ausencias
-    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada' && a.technician_email === myEmail)
+    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada' && a.technician_email === myEmail && (a.fecha_inicio || '').startsWith(String(new Date().getFullYear())))
     .reduce((acc, a) => acc + (a.dias_totales || 0), 0);
-  const vacacionesDisponibles = vacacionesConfig - vacacionesUsadas;
+  // Igual que en el panel del gerente: pactados − disfrutados antes del sistema − aprobados este año
+  const vacacionesDisponibles = Math.max(0, vacacionesConfig - (myTechRecord?.vacaciones_dias_usados_anteriores ?? 0) - vacacionesUsadas);
 
   const pendientes = ausencias.filter(a => a.estado === 'pendiente');
   const aprobadas = ausencias.filter(a => a.estado === 'aprobada');

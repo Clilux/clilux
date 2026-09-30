@@ -67,7 +67,7 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
-      if (sessionTechEmail) return; // la notificación al gerente ya la crea el servidor
+      if (sessionTechEmail) { onClose(); return; } // la notificación al gerente ya la crea el servidor
       notificar('vacacion_solicitud', {
         company_id: techRecord?.company_id || '',
         worker_email: currentUser?.email || '',

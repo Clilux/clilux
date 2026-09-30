@@ -559,7 +559,7 @@ export default function TechnicianProfile() {
                 <p className="text-xs text-slate-500">Días pactados</p>
               </Card>
               <Card className="p-3 bg-emerald-50 border-0 shadow-sm text-center">
-                <p className="text-xl font-bold text-emerald-600">{vacacionesAnuales - ausencias.filter(a => a.tipo === 'vacaciones').length}</p>
+                <p className="text-xl font-bold text-emerald-600">{Math.max(0, vacacionesAnuales - (tech?.vacaciones_dias_usados_anteriores ?? 0))}</p>
                 <p className="text-xs text-slate-500">Días disponibles</p>
               </Card>
               <Card className="p-3 bg-amber-50 border-0 shadow-sm text-center">

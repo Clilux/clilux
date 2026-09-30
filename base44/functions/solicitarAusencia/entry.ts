@@ -8,7 +8,7 @@ import { verifySessionToken } from '../../shared/auth.ts';
  *  - sella la identidad del trabajador en la solicitud (estado "pendiente")
  *  - crea la notificación para los gerentes de la empresa
  */
-export default async function (req: Request): Promise<Response> {
+Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
@@ -91,4 +91,4 @@ export default async function (req: Request): Promise<Response> {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-}
+});
