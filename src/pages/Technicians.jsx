@@ -125,7 +125,7 @@ export default function Technicians() {
                         {tech.status === 'active' ? 'Activo' : 'Inactivo'}
                       </Badge>
                       <Badge className={tech.worker_type === 'administracion' ? 'bg-purple-100 text-purple-700 border-0 text-xs' : 'bg-blue-100 text-blue-700 border-0 text-xs'}>
-                        {tech.worker_type === 'administracion' ? 'Admin.' : 'Técnico'}
+                        {tech.worker_type === 'jefe_equipo' ? 'Jefe equipo' : tech.worker_type === 'administracion' ? 'Admin.' : 'Técnico'}
                       </Badge>
                     </div>
                   </div>
@@ -276,6 +276,7 @@ export default function Technicians() {
                   className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background"
                 >
                   <option value="tecnico">Técnico (campo)</option>
+                  <option value="jefe_equipo">Jefe de equipo</option>
                   <option value="administracion">Administración (oficina)</option>
                 </select>
               </div>

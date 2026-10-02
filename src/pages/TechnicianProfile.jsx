@@ -337,7 +337,7 @@ export default function TechnicianProfile() {
                 )}
                 {tech.worker_type && (
                   <Badge className={tech.worker_type === 'tecnico' ? 'bg-cyan-100 text-cyan-700 border-0 text-xs' : 'bg-purple-100 text-purple-700 border-0 text-xs'}>
-                    {tech.worker_type === 'tecnico' ? <><HardHat className="h-3 w-3 mr-1" />Técnico</> : <><Briefcase className="h-3 w-3 mr-1" />Administración</>}
+                    {tech.worker_type === 'tecnico' ? <><HardHat className="h-3 w-3 mr-1" />Técnico</> : tech.worker_type === 'jefe_equipo' ? <><HardHat className="h-3 w-3 mr-1" />Jefe de equipo</> : <><Briefcase className="h-3 w-3 mr-1" />Administración</>}
                   </Badge>
                 )}
                 <Badge className={tech.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' : 'bg-slate-100 text-slate-500 border-0 text-xs'}>
@@ -406,7 +406,7 @@ export default function TechnicianProfile() {
                   )}
                   {tech.worker_type && (
                     <Badge className={tech.worker_type === 'tecnico' ? 'bg-cyan-100 text-cyan-700 border-0' : 'bg-purple-100 text-purple-700 border-0'}>
-                      {tech.worker_type === 'tecnico' ? 'Técnico de campo' : 'Personal de administración'}
+                      {tech.worker_type === 'tecnico' ? 'Técnico de campo' : tech.worker_type === 'jefe_equipo' ? 'Jefe de equipo' : 'Personal de administración'}
                     </Badge>
                   )}
                 </div>

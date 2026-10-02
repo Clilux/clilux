@@ -170,6 +170,7 @@ export default function TrabajadoresTab({ techEmail }) {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="tecnico">Técnico de campo</SelectItem>
+                  <SelectItem value="jefe_equipo">Jefe de equipo</SelectItem>
                   <SelectItem value="administracion">Administración</SelectItem>
                 </SelectContent>
               </Select>
@@ -221,7 +222,7 @@ export default function TrabajadoresTab({ techEmail }) {
                         : <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">Trabajador</Badge>}
                       {w.worker_type && (
                         <Badge variant="outline" className="text-xs">
-                          {w.worker_type === 'tecnico' ? <><HardHat className="h-3 w-3 mr-1" />Técnico</> : <><Briefcase className="h-3 w-3 mr-1" />Admin</>}
+                          {w.worker_type === 'jefe_equipo' ? 'Jefe de equipo' : w.worker_type === 'tecnico' ? <><HardHat className="h-3 w-3 mr-1" />Técnico</> : <><Briefcase className="h-3 w-3 mr-1" />Admin</>}
                         </Badge>
                       )}
                       <Badge className={w.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' : 'bg-slate-100 text-slate-500 border-0 text-xs'}>

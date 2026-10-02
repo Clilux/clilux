@@ -166,7 +166,7 @@ export default function AssignTechniciansPanel({
                   selected.includes(t.id) ? 'bg-brand-50 border border-brand-300 text-brand-700' : 'hover:bg-slate-50 border border-transparent text-slate-700'
                 )}
               >
-                <span className="truncate">{t.name}{t.worker_type === 'administracion' ? ' · Admin' : ''}</span>
+                <span className="truncate">{t.name}{t.worker_type === 'administracion' ? ' · Admin' : t.worker_type === 'jefe_equipo' ? ' · Jefe equipo' : ''}</span>
                 {selected.includes(t.id) && <Check className="h-4 w-4 text-brand-600 shrink-0" />}
               </button>
             ))}

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 
 /**
  * Albaranes de trabajo: única fuente de datos, compartida por el módulo de
@@ -36,7 +37,7 @@ export function useAlbaranesTrabajo() {
   });
 
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || techRecord?.is_admin === true;
-  const hideRates = isSessionTech && !techRecord?.is_admin;
+  const hideRates = !puedeVerEconomia(techRecord, isAdmin);
   const effName = techRecord?.name || base44User?.full_name || '';
 
   const { data: albaranes = [], isLoading } = useQuery({

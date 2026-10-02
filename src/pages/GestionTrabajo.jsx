@@ -10,6 +10,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranTrabajoCard from '@/components/trabajo/AlbaranTrabajoCard';
 import AlbaranTrabajoForm from '@/components/trabajo/AlbaranTrabajoForm';
 import DeleteConfirmDialog from '@/components/ui/DeleteConfirmDialog';
+import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 
 export default function GestionTrabajo() {
   const queryClient = useQueryClient();
@@ -46,7 +47,8 @@ export default function GestionTrabajo() {
     enabled: !!effEmail,
   });
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || techRecord?.is_admin === true;
-  const hideRates = isSessionTech && !techRecord?.is_admin;
+  // Los técnicos de campo no ven tarifas; jefe de equipo, administración y gerencia sí.
+  const hideRates = !puedeVerEconomia(techRecord, isAdmin);
 
   const proxyCall = async (payload) => base44.functions.invoke('getCompanyData', { technician_email: effEmail, ...payload });
 

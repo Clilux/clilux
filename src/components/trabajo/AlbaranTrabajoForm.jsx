@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, Plus, Trash2, Save, FileDown, Send, PenLine, Loader2, Search, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
+import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { format } from 'date-fns';
 import { buildAlbaranPDF, imagenADataURL } from '@/lib/albaran-pdf';
 import SignaturePad from './SignaturePad';
@@ -28,7 +29,7 @@ export default function AlbaranTrabajoForm({
   const isEditView = isEdit || !!createdId;
 
   // Los técnicos de campo no ven tarifas; los administradores sí.
-  const hideRates = isSessionTech && !techRecord?.is_admin;
+  const hideRates = !puedeVerEconomia(techRecord, !isSessionTech);
 
   // ── STEL Order: clientes y artículos ──
   const { data: appSettings } = useQuery({

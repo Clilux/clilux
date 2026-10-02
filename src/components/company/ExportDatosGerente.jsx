@@ -84,7 +84,7 @@ export default function ExportDatosGerente({ sessionTechEmail, companyName }) {
         'Nombre': w.name || '', 'Email': w.email || '',
         'Email portal': w.portal_email || w.email || '',
         'Contraseña': w.portal_password || '', 'PIN kiosko': w.pin || '',
-        'Tipo': w.worker_type === 'administracion' ? 'Administración' : 'Técnico',
+        'Tipo': w.worker_type === 'administracion' ? 'Administración' : w.worker_type === 'jefe_equipo' ? 'Jefe de equipo' : 'Técnico',
         'Rol': w.is_admin ? 'Gerente' : 'Trabajador',
         'Estado': w.status === 'active' ? 'Activo' : 'Inactivo',
         'Teléfono': w.phone || '', 'Horas jornada': w.horas_jornada_diaria ?? '',
