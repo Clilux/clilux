@@ -4,8 +4,12 @@ import { ICONOS, tamanoDe } from '@/lib/scada';
 /**
  * Lienzo de un panel SCADA: imagen de fondo + elementos colocados por
  * coordenadas en porcentaje. En modo edición los elementos se arrastran.
+ *
+ * fit = 'width'  → el panel ocupa todo el ancho disponible (tarjetas y móvil).
+ * fit = 'height' → el panel ocupa todo el alto disponible y, si con esa altura
+ *                  es más ancho que su contenedor, se recorre en horizontal.
  */
-export default function ScadaCanvas({ scada, editable = false, selectedId, onSelect, onMove, onDoubleClick }) {
+export default function ScadaCanvas({ scada, editable = false, fit = 'width', selectedId, onSelect, onMove, onDoubleClick }) {
   const ref = useRef(null);
   const [ratio, setRatio] = useState('16 / 10');
   const elementos = scada?.elementos || [];
@@ -36,8 +40,12 @@ export default function ScadaCanvas({ scada, editable = false, selectedId, onSel
     <div
       ref={ref}
       onPointerDown={() => editable && onSelect?.(null)}
-      className="relative w-full overflow-hidden rounded-2xl border border-slate-200"
-      style={{ aspectRatio: ratio, background: scada?.fondo_color || '#0F172A' }}
+      className={`relative overflow-hidden rounded-2xl border border-slate-200 ${fit === 'height' ? 'h-full shrink-0' : 'w-full'}`}
+      style={{
+        aspectRatio: ratio,
+        background: scada?.fondo_color || '#0F172A',
+        containerType: 'inline-size',
+      }}
     >
       {scada?.imagen_url && (
         <img
@@ -65,22 +73,31 @@ export default function ScadaCanvas({ scada, editable = false, selectedId, onSel
             onPointerDown={(e) => startDrag(e, el)}
             onDoubleClick={() => onDoubleClick?.(el)}
             className={`absolute flex flex-col items-center gap-1 ${editable ? 'cursor-move' : 'cursor-pointer'} ${sel ? 'z-20' : 'z-10'}`}
-            style={{ left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)' }}
+            style={{
+              left: `${el.x}%`,
+              top: `${el.y}%`,
+              transform: 'translate(-50%, -50%)',
+              // Al arrastrar sobre el lienzo no debe desplazarse el contenedor.
+              touchAction: editable ? 'none' : 'auto',
+            }}
           >
             {esEtiqueta ? (
-              <span className={`px-2 py-1 rounded-lg shadow-lg bg-slate-900/75 ${sel ? 'ring-2 ring-white' : ''}`}>
-                <span className={`${t.text} font-semibold text-white`}>{el.etiqueta}</span>
+              <span className={`rounded-lg shadow-lg bg-slate-900/75 px-2 py-1 ${sel ? 'ring-2 ring-white' : ''}`}>
+                <span className="font-semibold text-white" style={{ fontSize: t.text }}>{el.etiqueta}</span>
               </span>
             ) : (
               <>
                 <span
-                  className={`${t.box} rounded-2xl flex items-center justify-center shadow-lg ${sel ? 'ring-2 ring-white' : ''}`}
-                  style={{ background: el.color }}
+                  className={`rounded-2xl flex items-center justify-center shadow-lg ${sel ? 'ring-2 ring-white' : ''}`}
+                  style={{ width: t.box, height: t.box, background: el.color }}
                 >
-                  <Icon className={t.icon} style={{ color: '#fff' }} />
+                  <Icon style={{ width: t.icon, height: t.icon, color: '#fff' }} />
                 </span>
                 {el.etiqueta && (
-                  <span className={`${t.text} font-medium text-white px-1.5 py-0.5 rounded bg-slate-900/70 max-w-[140px] truncate`}>
+                  <span
+                    className="font-medium text-white px-1.5 py-0.5 rounded bg-slate-900/70 truncate"
+                    style={{ fontSize: t.text, maxWidth: '20cqw' }}
+                  >
                     {el.etiqueta}
                   </span>
                 )}

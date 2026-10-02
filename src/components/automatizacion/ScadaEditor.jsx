@@ -111,7 +111,7 @@ export default function ScadaEditor({ scada, clients = [], onSave, onDelete, onB
       </div>
 
       <Card className="p-5 border-0 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label className="text-slate-600 mb-1">Nombre del panel *</Label>
             <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Ej. Planta baja - Oficinas" />
@@ -138,7 +138,7 @@ export default function ScadaEditor({ scada, clients = [], onSave, onDelete, onB
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         <div className="lg:col-span-2 space-y-3">
           {modo === 'editar' && (
             <div className="flex items-center gap-2 flex-wrap">
@@ -150,16 +150,21 @@ export default function ScadaEditor({ scada, clients = [], onSave, onDelete, onB
               ))}
             </div>
           )}
-          <ScadaCanvas
-            scada={form}
-            editable={modo === 'editar'}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onMove={moveElemento}
-            onDoubleClick={abrirEnlace}
-          />
-          <p className="text-xs text-slate-400">
-            {modo === 'editar' ? 'Arrastra los elementos para colocarlos sobre la imagen. Doble clic abre su acceso directo.' : 'Doble clic sobre un elemento para abrir su acceso directo.'}
+          <div className="w-full overflow-x-auto overflow-y-hidden h-[45vh] md:h-[52vh] lg:h-[60vh] min-h-[300px]">
+            <ScadaCanvas
+              scada={form}
+              fit="height"
+              editable={modo === 'editar'}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onMove={moveElemento}
+              onDoubleClick={abrirEnlace}
+            />
+          </div>
+          <p className="text-xs md:text-sm text-slate-400">
+            {modo === 'editar'
+              ? 'Arrastra los elementos para colocarlos sobre la imagen. Doble clic abre su acceso directo. Desliza en horizontal para recorrer el panel.'
+              : 'Doble clic sobre un elemento para abrir su acceso directo. Desliza en horizontal para recorrer el panel.'}
           </p>
         </div>
 

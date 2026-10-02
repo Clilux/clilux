@@ -47,7 +47,7 @@ export default function AutomatizacionScada() {
               <p className="text-sm text-slate-400 mt-1">Crea el primero: sube una imagen (plano, esquema o foto) y coloca encima los dispositivos.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-5">
               {scadas.map(s => <ScadaCard key={s.id} scada={s} onOpen={setEditing} />)}
             </div>
           )}

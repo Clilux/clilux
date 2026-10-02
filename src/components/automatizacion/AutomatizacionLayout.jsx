@@ -16,7 +16,7 @@ export default function AutomatizacionLayout({ active, children }) {
     <div className="min-h-screen bg-slate-100">
       {/* Cabecera del bloque */}
       <div className="bg-gradient-to-r from-emerald-800 to-teal-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
               <Cpu className="h-5 w-5 text-white" />
@@ -30,7 +30,7 @@ export default function AutomatizacionLayout({ active, children }) {
         </div>
 
         {/* Navegación */}
-        <div className="max-w-7xl mx-auto px-2 md:px-6 flex gap-1 overflow-x-auto no-scrollbar">
+        <div className="max-w-[1800px] mx-auto px-2 md:px-6 lg:px-8 flex gap-1 overflow-x-auto no-scrollbar">
           {NAV.map(({ id, label, ruta, icon: Icon }) => {
             const activo = id === active;
             return (
@@ -49,7 +49,7 @@ export default function AutomatizacionLayout({ active, children }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="max-w-[1800px] mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
         <AutomatizacionAccessGuard>{children}</AutomatizacionAccessGuard>
       </div>
     </div>

@@ -41,12 +41,15 @@ export const TIPOS_ELEMENTO = [
   { value: 'enlace', label: 'Acceso directo' },
 ];
 
-// Tamaños: clases literales (Tailwind no admite clases dinámicas).
+// Tamaños proporcionales al ancho del panel: se expresan en unidades de
+// contenedor (cqw) con un mínimo y un máximo en píxeles, así el mismo panel se
+// ve igual en un móvil, en una tablet y en un monitor grande.
+// El lienzo (ScadaCanvas) declara container-type: inline-size.
 export const TAMANOS = [
-  { box: 'w-9 h-9', icon: 'h-4 w-4', text: 'text-[10px]' },
-  { box: 'w-12 h-12', icon: 'h-6 w-6', text: 'text-xs' },
-  { box: 'w-16 h-16', icon: 'h-8 w-8', text: 'text-sm' },
-  { box: 'w-24 h-24', icon: 'h-12 w-12', text: 'text-base' },
+  { box: 'clamp(20px, 3.2cqw, 44px)', icon: 'clamp(11px, 1.8cqw, 24px)', text: 'clamp(8px, 1.1cqw, 14px)' },
+  { box: 'clamp(26px, 4.6cqw, 66px)', icon: 'clamp(14px, 2.5cqw, 34px)', text: 'clamp(9px, 1.35cqw, 17px)' },
+  { box: 'clamp(34px, 6.4cqw, 96px)', icon: 'clamp(18px, 3.5cqw, 50px)', text: 'clamp(10px, 1.6cqw, 20px)' },
+  { box: 'clamp(44px, 9cqw, 140px)', icon: 'clamp(23px, 4.9cqw, 72px)', text: 'clamp(11px, 1.9cqw, 24px)' },
 ];
 
 export function tamanoDe(n) {

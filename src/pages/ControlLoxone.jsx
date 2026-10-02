@@ -316,7 +316,7 @@ export default function ControlLoxone({ embedded = false }) {
       </div>
       )}
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className={embedded ? 'w-full' : 'max-w-7xl mx-auto p-4 md:p-6'}>
 
         {/* Private IP warning */}
         <div className="mb-4 p-3 rounded-2xl flex items-start gap-3 text-sm"
