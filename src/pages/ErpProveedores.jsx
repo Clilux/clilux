@@ -73,7 +73,7 @@ export default function ErpProveedores() {
           </Button>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
           {filtered.map(p => (
             <Card key={p.id} className="p-4 border-0 shadow-sm">
               <div className="flex items-start justify-between gap-2">

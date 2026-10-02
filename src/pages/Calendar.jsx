@@ -493,7 +493,7 @@ export default function Calendar() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1800px] mx-auto">
         <NavHeader title="Calendario de Revisiones" />
 
         {/* Controls */}

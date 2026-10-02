@@ -205,7 +205,7 @@ export default function LibroRegistroFGas() {
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-6">
       <NavHeader title="Libro de Registro F-Gas" backUrl="/HomeTecnico" />
 
-      <div className="p-4 space-y-4 max-w-7xl mx-auto">
+      <div className="p-4 space-y-4 max-w-[1800px] mx-auto">
         {/* Header legal */}
         <Card className="p-4 bg-brand-600 border-0 text-white">
           <div className="flex items-start gap-3">

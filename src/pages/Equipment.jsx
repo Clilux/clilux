@@ -207,7 +207,7 @@ export default function Equipment() {
   return (
     <div className="bg-background p-6 min-h-screen">
       <PullToRefresh onRefresh={handleRefresh}>
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1800px]">
         <NavHeader title="Equipos" />
 
         <div className="mb-6 flex flex-col gap-4">
@@ -275,7 +275,7 @@ export default function Equipment() {
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} className="p-5 bg-white border border-slate-200 shadow-sm">
                 <div className="h-32 animate-pulse bg-slate-200 rounded" />
@@ -296,7 +296,7 @@ export default function Equipment() {
           <>
           {/* GRID VIEW */}
           {viewMode === 'grid' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredEquipment.map((eq) => {
                 const building = buildings.find((b) => b.id === eq.building_id);
                 const statusInfo = statusLabels[eq.status] || statusLabels.operational;

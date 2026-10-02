@@ -199,7 +199,7 @@ export default function PanelEdificios() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-800 shadow-sm">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="max-w-[1800px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to={createPageUrl('HomeTecnico')}>
                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-1">
@@ -222,7 +222,7 @@ export default function PanelEdificios() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-[1800px] mx-auto space-y-6">
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {kpis.map(({ label, value, icon: Icon, color, iconBg, iconCls, help }) => (
@@ -271,7 +271,7 @@ export default function PanelEdificios() {
 
             {/* Grid de edificios */}
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}
               </div>
             ) : filtered.length === 0 ? (
@@ -281,7 +281,7 @@ export default function PanelEdificios() {
                 <p className="text-slate-400 text-sm mt-1">Prueba a cambiar la búsqueda o el filtro de estado</p>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filtered.map(({ building, level, incs, eqs, revs, hasPlan }) => {
                   const client = clients.find(c => c.id === building.client_id);
                   return (

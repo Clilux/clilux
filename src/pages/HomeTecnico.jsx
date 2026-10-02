@@ -332,7 +332,7 @@ export default function HomeTecnico() {
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
          <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-4 border-b border-brand-800 shadow-sm">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="max-w-[1800px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
                 <Thermometer className="h-6 w-6 text-white" />
@@ -353,7 +353,7 @@ export default function HomeTecnico() {
 
         {/* Tab bar */}
         <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
-          <div className="max-w-7xl mx-auto flex">
+          <div className="max-w-[1800px] mx-auto flex">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;

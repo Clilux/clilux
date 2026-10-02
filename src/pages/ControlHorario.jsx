@@ -703,7 +703,7 @@ export default function ControlHorario() {
       <div className="h-screen bg-slate-50 flex overflow-hidden">
         <TechnicianSidebar {...sidebarProps} />
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 md:pb-6">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-[1800px] mx-auto">
             <AdminHorarioDashboard currentUser={currentUser} technicians={technicians} myTechRecord={null} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
           </div>
         </div>
@@ -718,7 +718,7 @@ export default function ControlHorario() {
       <div className="h-screen bg-slate-50 flex overflow-hidden">
         <TechnicianSidebar {...sidebarProps} />
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 md:pb-6">
-          <div className="max-w-6xl mx-auto space-y-6">
+          <div className="max-w-[1800px] mx-auto space-y-6">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Mi jornada</p>
               {renderTechnicianPanel()}

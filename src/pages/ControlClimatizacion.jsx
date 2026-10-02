@@ -187,7 +187,7 @@ export default function ControlClimatizacion({ embedded = false }) {
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-white p-6'}>
-      <div className={embedded ? 'w-full' : 'max-w-7xl mx-auto'}>
+      <div className={embedded ? 'w-full' : 'max-w-[1800px] mx-auto'}>
         {/* Header */}
         {!embedded && (
         <div className="flex items-center justify-between mb-6">

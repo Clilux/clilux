@@ -75,7 +75,7 @@ export default function Clients() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1800px] mx-auto">
         <NavHeader title="Clientes" />
 
         {!searchTerm && visibleClients.length > 0 && (
@@ -158,7 +158,7 @@ export default function Clients() {
               </div>
             )}
             {viewMode === 'grid' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredClients.map(client => (
                   <Link key={client.id} to={createPageUrl(`ClientDetail?id=${client.id}`)}>
                     <Card className="p-5 bg-white border shadow-sm hover:shadow-md transition-all cursor-pointer group h-full">

@@ -242,7 +242,7 @@ export default function Incidents() {
   return (
     <div className="min-h-screen bg-background p-6">
       <PullToRefresh onRefresh={handleRefresh}>
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1800px] mx-auto">
         <NavHeader title="Incidencias" />
 
         <div className="flex flex-col lg:flex-row gap-4 mb-6">

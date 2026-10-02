@@ -65,7 +65,7 @@ export default function Buildings() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1800px] mx-auto">
         <NavHeader title="Edificios" />
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -124,7 +124,7 @@ export default function Buildings() {
               </div>
             )}
             {viewMode === 'grid' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredBuildings.map(building => (
                   <Link key={building.id} to={createPageUrl(`BuildingDetail?id=${building.id}`)}>
                     <Card className="p-5 bg-white border shadow-sm hover:shadow-md transition-all cursor-pointer h-full">

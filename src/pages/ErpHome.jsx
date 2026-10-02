@@ -65,7 +65,7 @@ export default function ErpHome() {
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
             {resumen.map(r => (
               <Card key={r.label} className="p-4 border-0 shadow-sm">
                 <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl ${r.bg} flex items-center justify-center mb-2`}>
@@ -77,7 +77,7 @@ export default function ErpHome() {
             ))}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
             {MODULOS.map(({ id, label, ruta, icon: Icon, desc }) => (
               <Link key={id} to={ruta}>
                 <Card className="p-4 border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">

@@ -184,7 +184,7 @@ export default function GestionTrabajo() {
     <div className="md:flex min-h-screen bg-slate-50">
       <div className="hidden md:block"><TechnicianSidebar isSessionTech={isSessionTech} isAdmin={isAdmin} isLoading={false} onLogout={handleLogout} techEmail={effEmail} /></div>
       <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h1 className="text-xl font-bold text-slate-800">Gestión de trabajo</h1>

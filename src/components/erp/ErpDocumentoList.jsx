@@ -141,7 +141,7 @@ export default function ErpDocumentoList({ tipo }) {
           </Button>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
           {filtered.map(d => {
             const conf = estados[estadoDe(d)] || Object.values(estados)[0];
             return (
