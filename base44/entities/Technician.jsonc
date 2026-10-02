@@ -176,6 +176,10 @@
           "type": "boolean",
           "description": "Acceso al m\u00f3dulo ERP. Solo el gerente lo concede."
         },
+        "ver_automatizacion": {
+          "type": "boolean",
+          "description": "Acceso al bloque de Automatizaci\u00f3n (Loxone, Airzone y paneles SCADA). Solo el gerente lo concede; est\u00e1 pensado como m\u00f3dulo opcional."
+        },
         "funciones": {
           "type": "object",
           "description": "Acceso por funci\u00f3n del portal: clave = p\u00e1gina (ej. 'Incidents'), valor = true/false. Si falta la clave, el acceso est\u00e1 permitido."

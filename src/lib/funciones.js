@@ -1,7 +1,7 @@
 import {
   ScanLine, Nfc, FileCheck, FileText, Bot, Clock, Calendar,
   FileSpreadsheet, HardHat, LayoutDashboard, Wrench, Users, Building2,
-  AlertTriangle, Monitor, ClipboardList, Wind, Zap,
+  AlertTriangle, Monitor, ClipboardList,
 } from 'lucide-react';
 
 // Funciones del portal del trabajador.
@@ -24,9 +24,4 @@ export const FUNCIONES = [
   { id: '23', label: 'Gestión de Trabajo',  page: 'GestionTrabajo',        icon: ClipboardList,   color: 'from-indigo-500/30 to-blue-500/30',   iconCls: 'text-indigo-300',  categoria: 'campo' },
   { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',       icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30',  iconCls: 'text-emerald-300', categoria: 'administracion', gerenteOnly: true },
   { id: '22', label: 'Kiosko Fichaje',      page: 'KioskoFichaje',         icon: Monitor,         color: 'from-cyan-500/30 to-teal-500/30',     iconCls: 'text-cyan-300',    categoria: 'administracion' },
-];
-
-export const AUTOMATIZACION = [
-  { id: 'clim', label: 'Climatización Airzone', page: 'ControlClimatizacion', icon: Wind, color: 'from-cyan-500/30 to-blue-500/30',  iconCls: 'text-cyan-300', desc: 'Control Airzone Cloud' },
-  { id: 'lox',  label: 'Control Loxone',        page: 'ControlLoxone',        icon: Zap,  color: 'from-green-500/30 to-emerald-500/30', iconCls: 'text-green-300', desc: 'Miniservers Loxone' },
 ];

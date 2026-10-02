@@ -1,0 +1,142 @@
+{
+  "name": "Scada",
+  "type": "object",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre del panel SCADA (ej. 'Planta baja - Oficinas')"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del panel"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente al que pertenece el panel"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio"
+    },
+    "building_name": {
+      "type": "string",
+      "description": "Nombre del edificio (desnormalizado)"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa propietaria"
+    },
+    "imagen_url": {
+      "type": "string",
+      "description": "Imagen de fondo del panel (plano, esquema o foto de la instalaci\u00f3n)"
+    },
+    "imagen_opacidad": {
+      "type": "number",
+      "default": 1,
+      "description": "Opacidad de la imagen de fondo (0-1)"
+    },
+    "fondo_color": {
+      "type": "string",
+      "default": "#0F172A",
+      "description": "Color de fondo del panel"
+    },
+    "elementos": {
+      "type": "array",
+      "default": [],
+      "description": "Elementos colocados sobre la imagen. Cada uno: { id, tipo: 'dispositivo'|'etiqueta'|'estado'|'enlace', etiqueta, icono, color, x, y, tamano, pagina, ref_tipo, ref_id }",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "dispositivo",
+              "estado",
+              "etiqueta",
+              "enlace"
+            ]
+          },
+          "etiqueta": {
+            "type": "string"
+          },
+          "icono": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "tamano": {
+            "type": "number"
+          },
+          "pagina": {
+            "type": "string"
+          },
+          "ref_tipo": {
+            "type": "string"
+          },
+          "ref_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nombre"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -24,15 +24,14 @@ import FGasAlertas from '@/components/dashboard/FGasAlertas';
 import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import ResumenPrincipal from '@/components/dashboard/ResumenPrincipal';
-import { FUNCIONES, AUTOMATIZACION } from '@/lib/funciones';
-import { puedeAccederErp, veTodoElEquipo } from '@/lib/permisos-trabajador';
+import { FUNCIONES } from '@/lib/funciones';
+import { puedeAccederErp, puedeAccederAutomatizacion, veTodoElEquipo } from '@/lib/permisos-trabajador';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
 { id: 'inicio', label: 'Inicio', icon: Home },
 { id: 'calendario', label: 'Calendario', icon: Calendar },
 { id: 'funciones', label: 'Funciones', icon: Sparkles },
-{ id: 'automatizacion', label: 'Automatización', icon: Zap },
 { id: 'estadisticas', label: 'Estadísticas', icon: BarChart3 }];
 
 
@@ -346,6 +345,7 @@ export default function HomeTecnico() {
             {/* Hora + cambio de modo (Servicios / ERP) */}
             <div className="flex items-center gap-3">
               <p className="text-white text-3xl font-bold">{format(new Date(), 'HH:mm')}</p>
+              {puedeAccederAutomatizacion(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="automatizacion" />}
               {puedeAccederErp(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="erp" />}
             </div>
           </div>
@@ -514,40 +514,6 @@ export default function HomeTecnico() {
                 );
               })}
             </div>
-          }
-
-          {/* ── AUTOMATIZACIÓN ── */}
-          {activeTab === 'automatizacion' &&
-          <div>
-              <h2 className="text-slate-800 font-semibold text-lg mb-5 flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-600" />
-                Automatización
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {AUTOMATIZACION.map(({ id, label, page, icon: Icon, color, iconCls, desc }) =>
-              <Link key={id} to={createPageUrl(page)}>
-                    <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-6 hover:scale-105 transition-transform cursor-pointer flex items-center gap-5 shadow-sm`}>
-                      <div className="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center shrink-0">
-                        <Icon className={`h-9 w-9 ${iconCls}`} />
-                      </div>
-                      <div>
-                        <p className="text-slate-800 text-lg font-semibold">{label}</p>
-                        <p className="text-slate-600 text-sm mt-0.5">{desc}</p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-400 ml-auto shrink-0" />
-                    </Card>
-                  </Link>
-              )}
-
-                {/* Si no hay integraciones activas */}
-                {AUTOMATIZACION.length === 0 &&
-              <div className="col-span-2 text-center py-10 text-slate-400">
-                  <Zap className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No hay automatizaciones disponibles.</p>
-                </div>
-              }
-                </div>
-                </div>
           }
 
                 {/* ── ESTADÍSTICAS ── */}

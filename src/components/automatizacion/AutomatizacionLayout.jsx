@@ -1,0 +1,57 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Cpu, LayoutDashboard, Zap, Wind, MonitorSmartphone } from 'lucide-react';
+import ModoSwitchButton from '@/components/modo/ModoSwitchButton';
+import AutomatizacionAccessGuard from '@/components/automatizacion/AutomatizacionAccessGuard';
+
+const NAV = [
+  { id: 'inicio', label: 'Inicio', ruta: '/Automatizacion', icon: LayoutDashboard },
+  { id: 'loxone', label: 'Loxone', ruta: '/AutomatizacionLoxone', icon: Zap },
+  { id: 'airzone', label: 'Airzone', ruta: '/AutomatizacionAirzone', icon: Wind },
+  { id: 'scada', label: 'SCADA', ruta: '/AutomatizacionScada', icon: MonitorSmartphone },
+];
+
+export default function AutomatizacionLayout({ active, children }) {
+  return (
+    <div className="min-h-screen bg-slate-100">
+      {/* Cabecera del bloque */}
+      <div className="bg-gradient-to-r from-emerald-800 to-teal-700 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Cpu className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-white font-bold leading-tight md:text-2xl">Automatización</p>
+              <p className="text-emerald-200 text-xs md:text-base truncate">Loxone · Airzone · SCADA</p>
+            </div>
+          </div>
+          <ModoSwitchButton destino="servicios" />
+        </div>
+
+        {/* Navegación */}
+        <div className="max-w-7xl mx-auto px-2 md:px-6 flex gap-1 overflow-x-auto no-scrollbar">
+          {NAV.map(({ id, label, ruta, icon: Icon }) => {
+            const activo = id === active;
+            return (
+              <Link
+                key={id}
+                to={ruta}
+                className={`flex items-center gap-2 px-4 py-2.5 md:py-3 text-sm md:text-lg font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  activo ? 'border-white text-white' : 'border-transparent text-emerald-200 hover:text-white'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        <AutomatizacionAccessGuard>{children}</AutomatizacionAccessGuard>
+      </div>
+    </div>
+  );
+}

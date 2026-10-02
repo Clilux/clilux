@@ -31,7 +31,7 @@ const MODE_SETPOINT_KEY = {
   5: 'setpoint_air_auto',
 };
 
-export default function ControlClimatizacion() {
+export default function ControlClimatizacion({ embedded = false }) {
   const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -186,9 +186,10 @@ export default function ControlClimatizacion() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className={embedded ? '' : 'min-h-screen bg-white p-6'}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
+        {!embedded && (
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Button size="icon" variant="outline" onClick={() => navigate(-1)} className="h-9 w-9">
@@ -206,6 +207,7 @@ export default function ControlClimatizacion() {
             <Plus className="w-4 h-4 mr-2" /> Añadir Dispositivo
           </Button>
         </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Device list */}

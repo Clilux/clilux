@@ -23,6 +23,7 @@ const PERMISOS_CONFIG = [
   { key: 'ver_scada',         label: 'Acceso SCADA',         group: 'Otros' },
   { key: 'ver_economia',      label: 'Ver importes y márgenes', group: 'Otros' },
   { key: 'ver_erp',           label: 'Acceso al módulo ERP',  group: 'Otros' },
+  { key: 'ver_automatizacion', label: 'Acceso a Automatización', group: 'Otros' },
 ];
 
 const DEFAULTS = {
@@ -33,7 +34,7 @@ const DEFAULTS = {
   ver_revisiones: true, editar_revisiones: true,
   ver_horario: true, ver_ausencias: true,
   ver_documentacion: true, ver_contratos: false, ver_scada: false,
-  ver_economia: false, ver_erp: false,
+  ver_economia: false, ver_erp: false, ver_automatizacion: false,
 };
 
 export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoChange }) {

@@ -43,3 +43,9 @@ export function puedeAccederErp(tech, { isAdmin = false, isPlatformAdmin = false
   if (isAdmin || isPlatformAdmin) return true;
   return tech?.permisos?.ver_erp === true;
 }
+
+/** Acceso al bloque de Automatización (Loxone, Airzone y SCADA). Solo lo concede el gerente. */
+export function puedeAccederAutomatizacion(tech, { isAdmin = false, isPlatformAdmin = false } = {}) {
+  if (isAdmin || isPlatformAdmin) return true;
+  return tech?.permisos?.ver_automatizacion === true;
+}
