@@ -21,6 +21,8 @@ const PERMISOS_CONFIG = [
   { key: 'ver_documentacion', label: 'Documentación técnica', group: 'Otros' },
   { key: 'ver_contratos',     label: 'Ver contratos',        group: 'Otros' },
   { key: 'ver_scada',         label: 'Acceso SCADA',         group: 'Otros' },
+  { key: 'ver_economia',      label: 'Ver importes y márgenes', group: 'Otros' },
+  { key: 'ver_erp',           label: 'Acceso al módulo ERP',  group: 'Otros' },
 ];
 
 const DEFAULTS = {
@@ -31,10 +33,17 @@ const DEFAULTS = {
   ver_revisiones: true, editar_revisiones: true,
   ver_horario: true, ver_ausencias: true,
   ver_documentacion: true, ver_contratos: false, ver_scada: false,
+  ver_economia: false, ver_erp: false,
 };
 
 export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoChange }) {
-  const permisos = { ...DEFAULTS, ...(technician.permisos || {}) };
+  // Jefe de equipo y administración ven la economía por defecto; los técnicos
+  // de campo, solo si el gerente lo activa. El ERP siempre lo concede el gerente.
+  const base = {
+    ...DEFAULTS,
+    ver_economia: technician.worker_type === 'jefe_equipo' || technician.worker_type === 'administracion',
+  };
+  const permisos = { ...base, ...(technician.permisos || {}) };
   const [local, setLocal] = useState(permisos);
 
   const toggle = (key) => {

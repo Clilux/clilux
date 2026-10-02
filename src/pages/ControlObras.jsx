@@ -13,6 +13,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import { Plus, Search, HardHat, ChevronRight, Loader2, Building2, User, Euro } from 'lucide-react';
+import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -71,6 +72,8 @@ export default function ControlObras() {
   const isPlatformAdmin = !isSessionTech && base44User?.role === 'admin';
   const isGerente = !!(myTechRecord?.is_admin || adminTechRecord?.is_admin);
   const isAdmin = isPlatformAdmin || isGerente;
+  // Los técnicos de campo no ven importes ni márgenes de las obras.
+  const verEconomia = puedeVerEconomia(myTechRecord || adminTechRecord, isAdmin);
 
   // Helper para queries: proxy si técnico, directo si admin
   const proxyList = (entity) => base44.functions.invoke('getCompanyData', {
@@ -273,7 +276,7 @@ export default function ControlObras() {
                               <span className="text-slate-400">Resp: {obra.responsable_nombre}</span>
                             )}
                           </div>
-                          {obra.presupuesto_inicial > 0 && (
+                          {verEconomia && obra.presupuesto_inicial > 0 && (
                             <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
                               <span className="flex items-center gap-1 text-blue-600 font-medium">
                                 <Euro className="h-3 w-3" />Ppto: {obra.presupuesto_inicial.toLocaleString('es-ES')}€
@@ -362,11 +365,13 @@ export default function ControlObras() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Presupuesto inicial (€)</Label>
-                <Input type="number" min="0" step="0.01" value={newObra.presupuesto_inicial}
-                  onChange={e => setNewObra(p => ({ ...p, presupuesto_inicial: e.target.value }))} placeholder="0.00" className="mt-1" />
-              </div>
+              {verEconomia && (
+                <div>
+                  <Label>Presupuesto inicial (€)</Label>
+                  <Input type="number" min="0" step="0.01" value={newObra.presupuesto_inicial}
+                    onChange={e => setNewObra(p => ({ ...p, presupuesto_inicial: e.target.value }))} placeholder="0.00" className="mt-1" />
+                </div>
+              )}
             </div>
             <div>
               <Label>Responsable</Label>

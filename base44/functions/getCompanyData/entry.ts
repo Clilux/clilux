@@ -75,6 +75,25 @@ Deno.serve(async (req) => {
       ...(tech.permisos || {}),
     };
 
+    // Visibilidad económica: gerencia, jefe de equipo y administración
+    // (o un permiso explícito concedido por el gerente).
+    const verEconomia = tech.is_admin === true || (permisos.ver_economia !== undefined
+      ? permisos.ver_economia === true
+      : (tech.worker_type === 'jefe_equipo' || tech.worker_type === 'administracion'));
+
+    // Oculta el balance económico de las obras a quien no debe verlo.
+    const sinEconomia = (obra: any) => {
+      if (!obra || verEconomia) return obra;
+      return {
+        ...obra,
+        presupuesto_inicial: 0,
+        costo_trabajadores: 0,
+        costo_materiales: 0,
+        total_facturado: 0,
+        facturas: [],
+      };
+    };
+
     // ── Aislamiento por empresa ──────────────────────────────────
     // IDs de clientes que pertenecen a la empresa del técnico.
     let _companyClientIds = null;
@@ -146,7 +165,7 @@ Deno.serve(async (req) => {
         technicians:         fetches[6],
         registros_horarios:  fetches[7],
         ausencias:           fetches[8],
-        obras:               fetches[9],
+        obras:               fetches[9].map(sinEconomia),
         albaranes_trabajo:   fetches[10],
         albaranes_obra:      fetches[11],
         worker_documents:    fetches[12],
@@ -258,13 +277,13 @@ Deno.serve(async (req) => {
     // ── Obras de la empresa ──────────────────────────────────────
     if (entity === 'obras') {
       const data = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
-      return Response.json({ data });
+      return Response.json({ data: data.map(sinEconomia) });
     }
     if (entity === 'obra_get') {
       const { obra_id } = body;
       if (!obra_id) return Response.json({ data: null });
       const all = await base44.asServiceRole.entities.Obra.filter({ company_id: tech.company_id });
-      return Response.json({ data: all.find(o => o.id === obra_id) || null });
+      return Response.json({ data: sinEconomia(all.find(o => o.id === obra_id) || null) });
     }
     if (entity === 'obra_create') {
       const { record } = body;

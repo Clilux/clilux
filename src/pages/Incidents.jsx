@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { veTodoElEquipo } from '@/lib/permisos-trabajador';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export default function Incidents() {
   // Trabajadores de campo: solo ven incidencias donde alguna vez fueron asignados.
   // Gerente/administración y admins ven todas las de la empresa.
   const canSeeAllIncidents = isSessionTech
-    ? (sessionTech?.is_admin || sessionTech?.worker_type === 'administracion')
+    ? (sessionTech?.is_admin || veTodoElEquipo(sessionTech))
     : true;
   const visibleIncidents = (isSessionTech && !canSeeAllIncidents && sessionTech)
     ? incidents.filter(i => (i.all_assignees || []).includes(sessionTech.id))

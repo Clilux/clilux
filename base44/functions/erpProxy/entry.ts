@@ -49,6 +49,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Técnico no encontrado o inactivo' }, { status: 403 });
     }
 
+    // El ERP es solo para el gerente o para quien tenga el acceso concedido.
+    const tieneErp = tech.is_admin === true || tech.permisos?.ver_erp === true;
+    if (!tieneErp) {
+      return Response.json({ error: 'Sin acceso al módulo ERP' }, { status: 403 });
+    }
+
     const sr: any = base44.asServiceRole.entities;
     const companyId = tech.company_id;
     const creatorName = tech.name;

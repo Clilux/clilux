@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import CompartirButton from '@/components/compartir/CompartirButton';
+import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save } from 'lucide-react';
@@ -64,6 +65,8 @@ export default function ObraDetail() {
 
   const myTechRecord = technicians.find(t => t.email === effectiveEmail || t.user_email === effectiveEmail);
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
+  // El balance económico de la obra solo lo ven gerencia, jefe de equipo y administración.
+  const verEconomia = puedeVerEconomia(myTechRecord, isAdmin);
 
   const { data: obra, isLoading } = useQuery({
     queryKey: ['obra', obraId, isSessionTech ? 'proxy' : 'direct'],
@@ -325,7 +328,7 @@ export default function ObraDetail() {
           <Tabs defaultValue="albaranes">
             <TabsList className="mb-4">
               <TabsTrigger value="albaranes">Albaranes ({albaranes.length})</TabsTrigger>
-              <TabsTrigger value="economia">Control Económico</TabsTrigger>
+              {verEconomia && <TabsTrigger value="economia">Control Económico</TabsTrigger>}
               <TabsTrigger value="docs">Docs y Fotos</TabsTrigger>
             </TabsList>
 

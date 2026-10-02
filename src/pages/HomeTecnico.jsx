@@ -25,6 +25,7 @@ import EstadisticasTab from '@/components/dashboard/EstadisticasTab';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import ResumenPrincipal from '@/components/dashboard/ResumenPrincipal';
 import { FUNCIONES, AUTOMATIZACION } from '@/lib/funciones';
+import { puedeAccederErp, veTodoElEquipo } from '@/lib/permisos-trabajador';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -256,7 +257,9 @@ export default function HomeTecnico() {
   // Incidencias visibles para el usuario: los técnicos de campo solo ven las suyas;
   // gerentes/administración ven todas las de la empresa.
   const myTechId = myTechRecord?.id;
-  const canSeeAllIncidents = isAdmin || isPlatformAdmin || !myTechId;
+  // El jefe de equipo ve todo el trabajo de la empresa, igual que gerencia.
+  const veTodo = veTodoElEquipo(myTechRecord, isAdmin || isPlatformAdmin);
+  const canSeeAllIncidents = veTodo || !myTechId;
   const myIncidents = canSeeAllIncidents
     ? finalIncidents
     : finalIncidents.filter((i) => (i.all_assignees || []).includes(myTechId));
@@ -343,7 +346,7 @@ export default function HomeTecnico() {
             {/* Hora + cambio de modo (Servicios / ERP) */}
             <div className="flex items-center gap-3">
               <p className="text-white text-3xl font-bold">{format(new Date(), 'HH:mm')}</p>
-              <ModoSwitchButton destino="erp" />
+              {puedeAccederErp(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="erp" />}
             </div>
           </div>
         </div>
@@ -385,7 +388,7 @@ export default function HomeTecnico() {
               revisions={finalRevisions}
               loading={isLoadingData}
               techId={myTechId}
-              isAdmin={isAdmin} />
+              isAdmin={veTodo} />
 
             {/* 2. Mi agenda */}
             <div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Boxes, LayoutDashboard, FileText, ShoppingCart, Receipt, Truck, Package, ClipboardList } from 'lucide-react';
 import ModoSwitchButton from '@/components/modo/ModoSwitchButton';
+import ErpAccessGuard from '@/components/erp/ErpAccessGuard';
 
 const NAV = [
   { id: 'inicio', label: 'Inicio', ruta: '/Erp', icon: LayoutDashboard },
@@ -51,7 +52,9 @@ export default function ErpLayout({ active, children }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6">{children}</div>
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        <ErpAccessGuard>{children}</ErpAccessGuard>
+      </div>
     </div>
   );
 }

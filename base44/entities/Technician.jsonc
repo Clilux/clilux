@@ -46,10 +46,11 @@
       "type": "string",
       "enum": [
         "tecnico",
+        "jefe_equipo",
         "administracion"
       ],
       "default": "tecnico",
-      "description": "Tipo de trabajador: t\u00e9cnico de campo o personal de administraci\u00f3n"
+      "description": "Tipo de trabajador: t\u00e9cnico de campo, jefe de equipo (acceso a todo salvo el men\u00fa gerente) o personal de administraci\u00f3n"
     },
     "portal_email": {
       "type": "string"
@@ -166,6 +167,14 @@
         "ver_scada": {
           "type": "boolean",
           "default": false
+        },
+        "ver_economia": {
+          "type": "boolean",
+          "description": "Ver importes, costes y m\u00e1rgenes (obras y albaranes). Por defecto: no para t\u00e9cnicos de campo, s\u00ed para jefe de equipo y administraci\u00f3n."
+        },
+        "ver_erp": {
+          "type": "boolean",
+          "description": "Acceso al m\u00f3dulo ERP. Solo el gerente lo concede."
         },
         "funciones": {
           "type": "object",
