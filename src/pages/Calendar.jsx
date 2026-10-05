@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle2, RefreshCw, GitMerge, Building2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle2, RefreshCw, GitMerge, Building2, Table2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay,
@@ -403,6 +403,9 @@ export default function Calendar() {
                       <Link to={createPageUrl(`RevisionForm?id=${rev.id}`)}>
                         <Button size="sm" variant="outline">Realizar</Button>
                       </Link>
+                      <Link to={`${createPageUrl('RevisionTabla')}?date=${String(rev.scheduled_date).slice(0, 10)}${rev.building_id ? `&building_id=${rev.building_id}` : ''}`}>
+                        <Button size="sm" variant="ghost" title="Rellenar la visita en tabla"><Table2 className="h-3.5 w-3.5" /></Button>
+                      </Link>
                       <Link to={createPageUrl(`EditScheduledRevision?id=${rev.id}`)}>
                         <Button size="sm" variant="ghost"><CalendarIcon className="h-3.5 w-3.5" /></Button>
                       </Link>
@@ -424,11 +427,20 @@ export default function Calendar() {
       .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
       .slice(0, 8);
 
+    const pendingOfDay = selectedDate ? revs.filter(rev => rev.status === 'pending' && !rev.is_unified_revision) : [];
+
     return (
       <Card className="p-4 bg-white">
         <h3 className="font-semibold text-slate-800 mb-3 text-sm">
           {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: es }) : 'Próximas revisiones'}
         </h3>
+        {pendingOfDay.length > 0 && (
+          <Link to={`${createPageUrl('RevisionTabla')}?date=${format(selectedDate, 'yyyy-MM-dd')}`} className="block mb-3">
+            <Button size="sm" className="w-full gap-2 bg-brand-600 hover:bg-brand-700 text-white">
+              <Table2 className="h-4 w-4" /> Rellenar en tabla ({pendingOfDay.length})
+            </Button>
+          </Link>
+        )}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {revs.length === 0 && <p className="text-slate-400 text-sm text-center py-4">Sin revisiones</p>}
           {revs.map(rev => {

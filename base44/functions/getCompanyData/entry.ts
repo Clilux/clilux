@@ -903,6 +903,45 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Completar varias revisiones de una visita (tabla rápida) ─
+    if (entity === 'revisions_bulk_complete') {
+      if (!permisos.editar_revisiones) return deny('editar_revisiones');
+      const { updates, next_records, technician_name } = body;
+      if (!updates?.length) return Response.json({ error: 'updates requerido' }, { status: 400 });
+      const clientIds = await getCompanyClientIds();
+      const revs = await base44.asServiceRole.entities.ScheduledRevision.filter({ id: { $in: updates.map(u => u.id) } });
+      const byId = new Map(revs.map(r => [r.id, r]));
+      for (const u of updates) {
+        const rev = byId.get(u.id);
+        if (!rev || !clientIds.has(rev.client_id)) {
+          return Response.json({ error: 'Una revisión no pertenece a tu empresa' }, { status: 403 });
+        }
+      }
+      for (const r of next_records || []) {
+        if (!clientIds.has(r.client_id)) {
+          return Response.json({ error: 'Una revisión no pertenece a tu empresa' }, { status: 403 });
+        }
+      }
+      const stamped = updates.map(u => ({
+        id: u.id,
+        status: 'completed',
+        completed_date: u.completed_date,
+        revision_data: u.revision_data || {},
+        notes: u.notes || '',
+        next_revision_notes: u.next_revision_notes || '',
+        technician_name: technician_name || creatorName,
+        technician_id: creatorId,
+        technician_email: creatorEmail,
+      }));
+      await base44.asServiceRole.entities.ScheduledRevision.bulkUpdate(stamped);
+      if (next_records?.length) {
+        await base44.asServiceRole.entities.ScheduledRevision.bulkCreate(
+          next_records.map(r => ({ technician_name: creatorName, technician_id: creatorId, technician_email: creatorEmail, ...r }))
+        );
+      }
+      return Response.json({ updated: stamped.length, created: next_records?.length || 0 });
+    }
+
     // ── Detalle de revisión ──────────────────────────────────────
     if (entity === 'revision_detail') {
       if (!permisos.ver_revisiones) return deny('ver_revisiones');

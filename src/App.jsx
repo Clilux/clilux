@@ -30,6 +30,7 @@ import GestionTrabajo from './pages/GestionTrabajo';
 import Buzon from './pages/Buzon';
 import Integraciones from './pages/Integraciones';
 import LibroRegistroFGas from './pages/LibroRegistroFGas';
+import RevisionTabla from './pages/RevisionTabla';
 import ErpHome from './pages/ErpHome';
 import ErpPresupuestos from './pages/ErpPresupuestos';
 import ErpAlbaranes from './pages/ErpAlbaranes';
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
       <Route path="/Buzon" element={<LayoutWrapper currentPageName="Buzon"><Buzon /></LayoutWrapper>} />
       <Route path="/Integraciones" element={<LayoutWrapper currentPageName="Integraciones"><Integraciones /></LayoutWrapper>} />
       <Route path="/LibroRegistroFGas" element={<LayoutWrapper currentPageName="LibroRegistroFGas"><LibroRegistroFGas /></LayoutWrapper>} />
+      <Route path="/RevisionTabla" element={<LayoutWrapper currentPageName="RevisionTabla"><RevisionTabla /></LayoutWrapper>} />
       {/* ── Módulo ERP ── */}
       <Route path="/Erp" element={<LayoutWrapper currentPageName="Erp"><ErpHome /></LayoutWrapper>} />
       <Route path="/ErpPresupuestos" element={<LayoutWrapper currentPageName="ErpPresupuestos"><ErpPresupuestos /></LayoutWrapper>} />

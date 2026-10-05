@@ -16,35 +16,9 @@ import NavHeader from '../components/navigation/NavHeader';
 import RevisionReport from '../components/equipment/RevisionReport';
 import { toast } from 'sonner';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
-import { format, addYears, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-// Convierte true/false a Sí/No
-const formatFieldValue = (value) => {
-  if (value === true || value === 'true') return 'Sí';
-  if (value === false || value === 'false') return 'No';
-  if (value === null || value === undefined || value === '') return '—';
-  return String(value);
-};
-
-// Calcula la fecha de la siguiente revisión según tipo
-const nextRevisionDate = (currentDate, revisionType) => {
-  const d = new Date(currentDate);
-  switch (revisionType) {
-    case 'monthly': return addMonths(d, 1).toISOString().split('T')[0];
-    case 'quarterly': return addMonths(d, 3).toISOString().split('T')[0];
-    case 'biannual': return addMonths(d, 6).toISOString().split('T')[0];
-    case 'annual': return addYears(d, 1).toISOString().split('T')[0];
-    default: return null;
-  }
-};
-
-const revisionTypeLabels = {
-  monthly: 'Mensual',
-  quarterly: 'Trimestral',
-  biannual: 'Semestral',
-  annual: 'Anual'
-};
+import { formatFieldValue, nextRevisionDate, revisionTypeLabels } from '@/lib/revision-utils';
 
 export default function RevisionForm() {
   const navigate = useNavigate();

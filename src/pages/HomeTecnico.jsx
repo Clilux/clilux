@@ -11,7 +11,7 @@ import {
   Settings, ChevronRight, AlertTriangle,
   Calendar, LogOut, AlertCircle, Clock, FileText, ScanLine, BarChart3,
   Sparkles, Bot, FileCheck, Tag, Zap, Home, Wrench, Wind, Shield, Plug, ArrowLeft, FileSpreadsheet, HardHat, Nfc,
-  LayoutDashboard, Monitor, ClipboardList } from
+  LayoutDashboard, Monitor, ClipboardList, Table2 } from
 'lucide-react';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 import { format, addDays, isBefore, isAfter, parseISO } from 'date-fns';
@@ -115,19 +115,27 @@ function MiniCalendar({ revisions, clients, buildings, equipment }) {
           const client = clients.find((c) => c.id === rev.client_id);
           const equip = equipment.find((e) => e.id === rev.equipment_id);
           return (
-            <Link key={rev.id} to={`${createPageUrl('Calendar')}?revision=${rev.id}`}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 text-center">
-                  <p className="text-blue-600 text-xs font-bold leading-none">
-                    {format(parseISO(rev.scheduled_date), 'dd')}<br />
-                    <span className="uppercase">{format(parseISO(rev.scheduled_date), 'MMM', { locale: es })}</span>
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-slate-800 text-xs font-medium truncate">{equip?.reference_name || 'Equipo'}</p>
-                  <p className="text-slate-500 text-xs truncate">{client?.name}</p>
-                </div>
-              </Link>);
+            <div key={rev.id} className="flex items-center gap-1 rounded-lg hover:bg-slate-50 transition-colors">
+                <Link to={`${createPageUrl('Calendar')}?revision=${rev.id}`}
+                className="flex items-center gap-3 p-2 flex-1 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 text-center">
+                    <p className="text-blue-600 text-xs font-bold leading-none">
+                      {format(parseISO(rev.scheduled_date), 'dd')}<br />
+                      <span className="uppercase">{format(parseISO(rev.scheduled_date), 'MMM', { locale: es })}</span>
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-slate-800 text-xs font-medium truncate">{equip?.reference_name || 'Equipo'}</p>
+                    <p className="text-slate-500 text-xs truncate">{client?.name}</p>
+                  </div>
+                </Link>
+                <Link
+                  to={`${createPageUrl('RevisionTabla')}?date=${String(rev.scheduled_date).slice(0, 10)}${rev.building_id ? `&building_id=${rev.building_id}` : ''}`}
+                  title="Rellenar la visita en tabla"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 shrink-0">
+                  <Table2 className="h-4 w-4" />
+                </Link>
+              </div>);
 
         })}
       </div>
