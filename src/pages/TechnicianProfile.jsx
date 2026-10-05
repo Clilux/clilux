@@ -245,15 +245,24 @@ export default function TechnicianProfile() {
     enabled: !!techEmail && isSessionTech,
   });
 
+  // Todas las ausencias propias (pendientes, aprobadas y rechazadas) para que
+  // los días disponibles cuadren con el control de vacaciones del gerente.
   const { data: ausencias = [] } = useQuery({
     queryKey: ['ausencias-tech', techEmail],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getCompanyData', {
-        technician_email: techEmail, entity: 'ausencias_pendientes',
-      });
-      return res.data?.data || [];
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: techEmail, entity: 'ausencias_propias',
+        });
+        return res.data?.data || [];
+      }
+      const page = await base44.entities.Ausencia.filter(
+        { technician_email: techEmail },
+        { sort: '-fecha_inicio', limit: 200 }
+      );
+      return page.items || page;
     },
-    enabled: !!techEmail && isSessionTech,
+    enabled: !!techEmail,
   });
 
   // Mientras carga, mostrar spinner
@@ -271,7 +280,7 @@ export default function TechnicianProfile() {
 
   const thisMonthRegistros = registros.filter(r => r.fecha >= currentMonthStart && r.fecha <= currentMonthEnd);
   const totalHorasMes = thisMonthRegistros.reduce((acc, r) => acc + (r.horas_efectivas || r.horas_trabajadas || 0), 0);
-  const ausenciasPendientes = ausencias.length;
+  const ausenciasPendientes = ausencias.filter(a => a.estado === 'pendiente').length;
 
   // Jornada laboral: días laborables y horas diarias pactadas → horas teóricas del mes
   const diasLab = (jornadaForm?.dias_laborables) || (Array.isArray(tech?.dias_laborables) && tech.dias_laborables.length ? tech.dias_laborables : [1, 2, 3, 4, 5]);
@@ -286,6 +295,12 @@ export default function TechnicianProfile() {
   };
 
   const vacacionesAnuales = tech?.vacaciones_anuales ?? 22;
+  const vacacionesAnteriores = tech?.vacaciones_dias_usados_anteriores ?? 0;
+  // Días de vacaciones aprobados este año (los mismos que contabiliza el gerente)
+  const vacacionesAprobadas = ausencias
+    .filter(a => a.tipo === 'vacaciones' && a.estado === 'aprobada' && (a.fecha_inicio || '').startsWith(String(new Date().getFullYear())))
+    .reduce((sum, a) => sum + (a.dias_totales || 0), 0);
+  const vacacionesDisponibles = Math.max(0, vacacionesAnuales - vacacionesAnteriores - vacacionesAprobadas);
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
@@ -559,7 +574,7 @@ export default function TechnicianProfile() {
                 <p className="text-xs text-slate-500">Días pactados</p>
               </Card>
               <Card className="p-3 bg-emerald-50 border-0 shadow-sm text-center">
-                <p className="text-xl font-bold text-emerald-600">{Math.max(0, vacacionesAnuales - (tech?.vacaciones_dias_usados_anteriores ?? 0))}</p>
+                <p className="text-xl font-bold text-emerald-600">{vacacionesDisponibles}</p>
                 <p className="text-xs text-slate-500">Días disponibles</p>
               </Card>
               <Card className="p-3 bg-amber-50 border-0 shadow-sm text-center">
