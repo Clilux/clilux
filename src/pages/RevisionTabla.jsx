@@ -59,14 +59,17 @@ export default function RevisionTabla() {
     queryFn: () => isTechSession ? proxyFetch('technicians') : base44.entities.Technician.filter({ status: 'active' }),
   });
 
-  // Revisiones pendientes del día seleccionado
+  // Revisiones pendientes del día seleccionado y las vencidas anteriores,
+  // para poder cerrarlas también desde la tabla (y desbloquear las siguientes)
   const rows = useMemo(() => {
     return revisions
       .filter((rev) => rev.status === 'pending' && !rev.is_unified_revision)
-      .filter((rev) => fechaCorta(rev.scheduled_date) === dateParam)
+      .filter((rev) => fechaCorta(rev.scheduled_date) <= dateParam)
       .filter((rev) => !buildingFilter || rev.building_id === buildingFilter)
       .map((rev) => ({
         revision: rev,
+        vencida: fechaCorta(rev.scheduled_date) < dateParam,
+        vencidaLabel: format(new Date(rev.scheduled_date), 'd MMM', { locale: es }),
         equipment: equipment.find((e) => e.id === rev.equipment_id) || null,
         building: buildings.find((b) => b.id === rev.building_id) || null,
         client: clients.find((c) => c.id === rev.client_id) || null,
@@ -212,7 +215,8 @@ export default function RevisionTabla() {
     }
   };
 
-  const summary = `${rows.length} equipo${rows.length !== 1 ? 's' : ''} · ${groups.length} visita${groups.length !== 1 ? 's' : ''} · ${format(new Date(dateParam), "d 'de' MMMM", { locale: es })}`;
+  const vencidasCount = rows.filter((r) => r.vencida).length;
+  const summary = `${rows.length} equipo${rows.length !== 1 ? 's' : ''} · ${groups.length} visita${groups.length !== 1 ? 's' : ''} · ${format(new Date(dateParam), "d 'de' MMMM", { locale: es })}${vencidasCount ? ` · ${vencidasCount} vencida${vencidasCount !== 1 ? 's' : ''}` : ''}`;
 
   return (
     <div className="min-h-screen p-4 md:p-6">

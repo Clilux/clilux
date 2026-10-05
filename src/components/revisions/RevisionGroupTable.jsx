@@ -40,7 +40,7 @@ export default function RevisionGroupTable({ title, subtitle, columns, rows, ent
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ revision, equipment }) => {
+            {rows.map(({ revision, equipment, vencida, vencidaLabel }) => {
               const entry = entries[revision.id] || { data: {}, notes: '', nextNotes: '' };
               const blocked = blockedIds.has(revision.id);
               const fieldKeys = rowFieldKeys(equipment, revision.revision_type);
@@ -58,6 +58,11 @@ export default function RevisionGroupTable({ title, subtitle, columns, rows, ent
                     {blocked && (
                       <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
                         <AlertTriangle className="h-3 w-3" /> Revisión anterior pendiente
+                      </p>
+                    )}
+                    {vencida && (
+                      <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                        <AlertTriangle className="h-3 w-3" /> Vencida · {vencidaLabel}
                       </p>
                     )}
                   </td>
