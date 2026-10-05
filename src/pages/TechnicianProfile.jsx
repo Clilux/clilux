@@ -567,7 +567,7 @@ export default function TechnicianProfile() {
                 <p className="text-xs text-slate-500">Pendientes</p>
               </Card>
             </div>
-            <Link to="/GestionAusencias">
+            <Link to="/MisVacaciones">
               <Button size="sm" className="mb-4 bg-blue-600 hover:bg-blue-700 text-white">
                 <Calendar className="h-4 w-4 mr-2" />Gestionar ausencias
               </Button>

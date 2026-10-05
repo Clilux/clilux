@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
   Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, ToggleLeft, ToggleRight,
-  LayoutList, LayoutGrid
+  LayoutList, LayoutGrid, Table2
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
@@ -181,6 +181,12 @@ export default function BuildingDetail() {
                 }
               </Button>
               )}
+              <Link to={`/RevisionTabla?building_id=${finalBuilding.id}`}>
+                <Button variant="outline" size="sm" className="text-slate-600">
+                  <Table2 className="h-4 w-4 mr-2" />
+                  Tablas de mantenimiento
+                </Button>
+              </Link>
               <BuildingReport building={finalBuilding} client={finalClient} equipment={finalEquipment} revisions={finalRevisions} />
               {!isSessionTech && <Link to={createPageUrl(`BuildingForm?id=${finalBuilding.id}`)}>
                 <Button variant="outline" size="sm">

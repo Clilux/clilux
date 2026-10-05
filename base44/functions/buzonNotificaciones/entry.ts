@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         await crear(datos.worker_email, 'trabajador',
           `Tu solicitud ha sido ${estadoTxt}`,
           `${datos.tipo_aus || 'Vacaciones'} (${datos.fecha_inicio || ''} → ${datos.fecha_fin || ''}) ${estadoTxt}.`,
-          '/GestionAusencias', datos.company_id);
+          '/MisVacaciones', datos.company_id);
       } else if (tipo === 'incidencia_nueva') {
         let companyId = datos.company_id;
         let clientName = datos.client_name;

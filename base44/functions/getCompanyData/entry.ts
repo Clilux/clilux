@@ -531,6 +531,14 @@ Deno.serve(async (req) => {
       return Response.json({ data });
     }
 
+    // ── Ausencias propias del trabajador (auto-servicio) ────────
+    // Devuelve todas sus solicitudes (pendientes, aprobadas y rechazadas)
+    // para que pueda consultar sus vacaciones solicitadas y los días restantes.
+    if (entity === 'ausencias_propias') {
+      const data = await base44.asServiceRole.entities.Ausencia.filter({ technician_email: tech.email });
+      return Response.json({ data });
+    }
+
     // ── Ausencias pendientes del técnico ────────────────────────
     if (entity === 'ausencias_pendientes') {
       const data = await base44.asServiceRole.entities.Ausencia.filter({ technician_email, estado: 'pendiente' });

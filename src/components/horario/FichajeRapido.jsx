@@ -277,7 +277,7 @@ export default function FichajeRapido({ currentUser, techRecord }) {
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </Link>
-          <Link to="/GestionAusencias" className="flex-1">
+          <Link to="/MisVacaciones" className="flex-1">
             <Button variant="ghost" size="sm" className="w-full text-xs text-slate-500 hover:text-purple-600 hover:bg-purple-50 justify-between h-8">
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />Ausencias

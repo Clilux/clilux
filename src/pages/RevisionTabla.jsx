@@ -64,8 +64,9 @@ export default function RevisionTabla() {
   const rows = useMemo(() => {
     return revisions
       .filter((rev) => rev.status === 'pending' && !rev.is_unified_revision)
-      .filter((rev) => fechaCorta(rev.scheduled_date) <= dateParam)
-      .filter((rev) => !buildingFilter || rev.building_id === buildingFilter)
+      // Con un edificio seleccionado se muestran todas sus revisiones pendientes;
+      // sin filtro de edificio, solo las que vencen hasta la fecha elegida.
+      .filter((rev) => buildingFilter ? rev.building_id === buildingFilter : fechaCorta(rev.scheduled_date) <= dateParam)
       .map((rev) => ({
         revision: rev,
         vencida: fechaCorta(rev.scheduled_date) < dateParam,
