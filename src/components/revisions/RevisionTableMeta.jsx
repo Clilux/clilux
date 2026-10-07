@@ -14,7 +14,7 @@ export default function RevisionTableMeta({ completionDate, onCompletionDate, te
     <Card className="p-4 mb-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label className="text-slate-700 mb-2">Fecha de realización</Label>
+          <Label className="text-slate-700 mb-2">Fecha de realización (por defecto)</Label>
           <Input type="date" value={completionDate} onChange={(e) => onCompletionDate(e.target.value)} />
         </div>
         <div>

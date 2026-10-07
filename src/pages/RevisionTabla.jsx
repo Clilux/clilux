@@ -31,7 +31,11 @@ export default function RevisionTabla() {
   const [entries, setEntries] = useState({});
   const [completionDate, setCompletionDate] = useState(dateParam);
   const [technicianName, setTechnicianName] = useState('');
+  const [groupDates, setGroupDates] = useState({});
   const [saving, setSaving] = useState(false);
+
+  // Fecha propia de cada tabla; si no se ha cambiado, usa la fecha por defecto
+  const dateForRevision = (revisionId) => groupDates[groupOfRevision[revisionId]] || completionDate || dateParam;
 
   const proxyFetch = async (entity) => {
     const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity });
@@ -91,24 +95,58 @@ export default function RevisionTabla() {
     return blocked;
   }, [rows, revisions]);
 
-  // Agrupa por edificio y tipo de revisión (los campos dependen del tipo)
+  // Agrupa por edificio y tipo de revisión (los campos dependen del tipo).
+  // Si una misma visita tiene revisiones de meses distintos (varios meses
+  // caducados), se separa en una tabla por mes para poder fechar cada una.
   const groups = useMemo(() => {
-    const map = new Map();
+    const base = new Map();
     rows.forEach((row) => {
-      const key = `${row.revision.building_id || 'sin-edificio'}|${row.revision.revision_type}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(row);
+      const baseKey = `${row.revision.building_id || 'sin-edificio'}|${row.revision.revision_type}`;
+      if (!base.has(baseKey)) base.set(baseKey, []);
+      base.get(baseKey).push(row);
     });
-    return Array.from(map.entries()).map(([key, groupRows]) => ({
-      key,
-      title: groupRows[0].building?.name || groupRows[0].client?.name || 'Sin edificio',
-      subtitle: [revisionTypeLabels[groupRows[0].revision.revision_type] || groupRows[0].revision.revision_type, groupRows[0].client?.name]
-        .filter(Boolean).join(' · '),
-      rows: [...groupRows].sort((a, b) =>
-        (a.equipment?.reference_name || '').localeCompare(b.equipment?.reference_name || '')),
-      columns: buildColumns(groupRows),
-    }));
+
+    const result = [];
+    base.forEach((groupRows, baseKey) => {
+      const months = [...new Set(groupRows.map((r) => fechaCorta(r.revision.scheduled_date).slice(0, 7)))].sort();
+      const splitByMonth = months.length > 1;
+      const buckets = new Map();
+
+      groupRows.forEach((row) => {
+        const month = fechaCorta(row.revision.scheduled_date).slice(0, 7);
+        const key = splitByMonth ? `${baseKey}|${month}` : baseKey;
+        if (!buckets.has(key)) buckets.set(key, { month, rows: [] });
+        buckets.get(key).rows.push(row);
+      });
+
+      buckets.forEach((bucket, key) => {
+        const first = bucket.rows[0];
+        const monthLabel = splitByMonth
+          ? format(new Date(`${bucket.month}-01T12:00:00`), 'MMMM yyyy', { locale: es })
+          : null;
+        result.push({
+          key,
+          title: first.building?.name || first.client?.name || 'Sin edificio',
+          subtitle: [
+            revisionTypeLabels[first.revision.revision_type] || first.revision.revision_type,
+            first.client?.name,
+            monthLabel ? `Mes de ${monthLabel}` : null,
+          ].filter(Boolean).join(' · '),
+          rows: [...bucket.rows].sort((a, b) =>
+            (a.equipment?.reference_name || '').localeCompare(b.equipment?.reference_name || '')),
+          columns: buildColumns(bucket.rows),
+        });
+      });
+    });
+    return result;
   }, [rows]);
+
+  // Revisión → tabla a la que pertenece (cada tabla tiene su propia fecha)
+  const groupOfRevision = useMemo(() => {
+    const map = {};
+    groups.forEach((group) => group.rows.forEach(({ revision }) => { map[revision.id] = group.key; }));
+    return map;
+  }, [groups]);
 
   const rowsKey = rows.map((r) => r.revision.id).sort().join(',');
 
@@ -159,7 +197,6 @@ export default function RevisionTabla() {
     }
     setSaving(true);
     try {
-      const completedDate = completionDate || dateParam;
       const techName = technicianName || technician?.name || user?.full_name || '';
       const techEmail = user?.email || sessionTechEmail || '';
 
@@ -168,7 +205,7 @@ export default function RevisionTabla() {
         return {
           id: revision.id,
           status: 'completed',
-          completed_date: completedDate,
+          completed_date: dateForRevision(revision.id),
           revision_data: entry.data || {},
           notes: entry.notes || '',
           next_revision_notes: entry.nextNotes || '',
@@ -179,7 +216,7 @@ export default function RevisionTabla() {
       });
 
       const nextRecords = editableRows.map(({ revision }) => {
-        const nextDate = nextRevisionDate(completedDate, revision.revision_type);
+        const nextDate = nextRevisionDate(dateForRevision(revision.id), revision.revision_type);
         if (!nextDate) return null;
         return {
           equipment_id: revision.equipment_id,
@@ -260,6 +297,8 @@ export default function RevisionTabla() {
                 subtitle={group.subtitle}
                 columns={group.columns}
                 rows={group.rows}
+                date={groupDates[group.key] ?? completionDate}
+                onDate={(value) => setGroupDates((prev) => ({ ...prev, [group.key]: value }))}
                 entries={entries}
                 blockedIds={blockedIds}
                 onCell={setCell}
