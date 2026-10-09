@@ -132,7 +132,7 @@ export default function Buildings() {
                     equipmentCount={getEquipmentCount(building.id)}
                     totalCoolingKw={equipment.filter(e => e.building_id === building.id).reduce((s, e) => s + (Number(e.cooling_power_kw) || 0), 0)}
                     totalFgas={getTotalFgas(building.id)}
-                    showEdit={!isSessionTech}
+                    showEdit
                   />
                 ))}
               </div>

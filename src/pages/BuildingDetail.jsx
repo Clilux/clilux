@@ -190,12 +190,12 @@ export default function BuildingDetail() {
                 </Button>
               </Link>
               <BuildingReport building={finalBuilding} client={finalClient} equipment={finalEquipment} revisions={finalRevisions} />
-              {!isSessionTech && <Link to={createPageUrl(`BuildingForm?id=${finalBuilding.id}`)}>
+              <Link to={createPageUrl(`BuildingForm?id=${finalBuilding.id}`)}>
                 <Button variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
-              </Link>}
+              </Link>
               {!isSessionTech && <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-600 hover:text-red-700">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Eliminar

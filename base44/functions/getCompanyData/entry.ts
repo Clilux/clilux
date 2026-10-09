@@ -340,6 +340,20 @@ Deno.serve(async (req) => {
       const data = await base44.asServiceRole.entities.AlbaranObra.update(record_id, updates);
       return Response.json({ data });
     }
+    // ── Actualizar edificio (solo gerente / con permiso de edición) ─
+    if (entity === 'building_update') {
+      if (!tech.is_admin && !permisos.editar_clientes && !permisos.editar_equipos) return deny('editar_edificios');
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.Building.filter({ id: record_id }))[0];
+      if (!existing) return Response.json({ error: 'Edificio no encontrado' }, { status: 404 });
+      if (!(await assertCompanyClient(existing.client_id))) return Response.json({ error: 'Edificio fuera de tu empresa' }, { status: 403 });
+      if (updates.client_id && !(await assertCompanyClient(updates.client_id))) {
+        return Response.json({ error: 'Cliente destino fuera de tu empresa' }, { status: 403 });
+      }
+      const data = await base44.asServiceRole.entities.Building.update(record_id, updates);
+      return Response.json({ data });
+    }
     if (entity === 'building_create') {
       const { record } = body;
       if (!record || !record.client_id) return Response.json({ error: 'record y client_id requeridos' }, { status: 400 });

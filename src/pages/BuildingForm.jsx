@@ -24,6 +24,10 @@ export default function BuildingForm() {
   const isEditing = !!buildingId;
   const { technician, user } = useCurrentTechnician();
 
+  // Sesión de técnico (portal propio, sin sesión Base44)
+  const sessionTechEmail = sessionStorage.getItem('technician_email');
+  const isSessionTech = !!sessionTechEmail;
+
   const [formData, setFormData] = useState({
     client_id: preselectedClientId || '',
     name: '',
@@ -43,21 +47,35 @@ export default function BuildingForm() {
   const [geocoding, setGeocoding] = useState(false);
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list(),
+    queryKey: ['clients', isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'clients',
+        });
+        return res.data?.data || [];
+      }
+      return base44.entities.Client.list();
+    },
   });
 
   useEffect(() => {
-    if (buildingId) {
-      const loadBuilding = async () => {
-        const buildings = await base44.entities.Building.filter({ id: buildingId });
-        if (buildings.length > 0) {
-          setFormData(buildings[0]);
-        }
-      };
-      loadBuilding();
-    }
-  }, [buildingId]);
+    if (!buildingId) return;
+    const loadBuilding = async () => {
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'building_detail', building_id: buildingId,
+        });
+        if (res.data?.data?.building) setFormData(res.data.data.building);
+        return;
+      }
+      const buildings = await base44.entities.Building.filter({ id: buildingId });
+      if (buildings.length > 0) {
+        setFormData(buildings[0]);
+      }
+    };
+    loadBuilding();
+  }, [buildingId, isSessionTech, sessionTechEmail]);
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -68,6 +86,20 @@ export default function BuildingForm() {
         latitude: data.latitude ? Number(data.latitude) : null,
         longitude: data.longitude ? Number(data.longitude) : null,
       };
+      if (isSessionTech) {
+        // Sesión de técnico: guardar vía proxy (con control de permisos)
+        const res = isEditing
+          ? await base44.functions.invoke('getCompanyData', {
+              technician_email: sessionTechEmail, entity: 'building_update',
+              record_id: buildingId, updates: cleanData,
+            })
+          : await base44.functions.invoke('getCompanyData', {
+              technician_email: sessionTechEmail, entity: 'building_create',
+              record: cleanData,
+            });
+        if (res.data?.error) throw new Error(res.data.error);
+        return res.data?.data;
+      }
       if (isEditing) {
         return base44.entities.Building.update(buildingId, cleanData);
       }
