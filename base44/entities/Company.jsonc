@@ -46,6 +46,14 @@
       "type": "string",
       "description": "Logo de la empresa"
     },
+    "habilitacion_rep": {
+      "type": "string",
+      "enum": [
+        "EIP-1",
+        "EIP-2"
+      ],
+      "description": "Habilitaci\u00f3n REP (Reglamento de Equipos a Presi\u00f3n): EIP-1 o EIP-2"
+    },
     "status": {
       "type": "string",
       "enum": [

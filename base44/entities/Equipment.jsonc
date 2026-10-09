@@ -242,6 +242,42 @@
     "fgas_tech_cert_num": {
       "type": "string"
     },
+    "es_equipo_presion": {
+      "type": "boolean",
+      "default": false,
+      "description": "REP: si el equipo est\u00e1 sujeto al Reglamento de Equipos a Presi\u00f3n"
+    },
+    "ps_presion_maxima": {
+      "type": "number",
+      "description": "REP: PS \u2014 presi\u00f3n m\u00e1xima de servicio (bares)"
+    },
+    "v_volumen": {
+      "type": "number",
+      "description": "REP: V \u2014 volumen del equipo (litros)"
+    },
+    "ps_x_v": {
+      "type": "number",
+      "description": "REP: producto calculado PS \u00d7 V"
+    },
+    "numero_registro_industria": {
+      "type": "string",
+      "description": "REP: n\u00famero de registro de industria de la instalaci\u00f3n/equipo"
+    },
+    "fecha_ultima_inspeccion_a": {
+      "type": "string",
+      "format": "date",
+      "description": "REP: fecha de la \u00faltima inspecci\u00f3n de Nivel A"
+    },
+    "fecha_ultima_inspeccion_b": {
+      "type": "string",
+      "format": "date",
+      "description": "REP: fecha de la \u00faltima inspecci\u00f3n de Nivel B"
+    },
+    "fecha_ultima_inspeccion_c": {
+      "type": "string",
+      "format": "date",
+      "description": "REP: fecha de la \u00faltima inspecci\u00f3n de Nivel C"
+    },
     "nfc_tag_id": {
       "type": "string",
       "description": "Identificador de etiqueta NFC asociada al equipo"

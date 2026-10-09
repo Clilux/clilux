@@ -1,0 +1,143 @@
+{
+  "name": "InspeccionREP",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string",
+      "description": "ID del equipo a presi\u00f3n inspeccionado"
+    },
+    "building_id": {
+      "type": "string",
+      "description": "ID del edificio/instalaci\u00f3n al que pertenece el equipo"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente propietario"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa mantenedora"
+    },
+    "equipment_name": {
+      "type": "string",
+      "description": "Nombre de referencia del equipo (desnormalizado)"
+    },
+    "tipo_inspeccion": {
+      "type": "string",
+      "enum": [
+        "nivel_a",
+        "nivel_b",
+        "nivel_c"
+      ],
+      "description": "Nivel A - Visual, Nivel B - Fuera de servicio, Nivel C - Prueba Hidrost\u00e1tica"
+    },
+    "fecha_inspeccion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la inspecci\u00f3n"
+    },
+    "tecnico_inspector": {
+      "type": "string",
+      "description": "T\u00e9cnico o inspector que realiza la inspecci\u00f3n"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": [
+        "favorable",
+        "condicionado",
+        "desfavorable"
+      ],
+      "description": "Resultado de la inspecci\u00f3n"
+    },
+    "oca": {
+      "type": "string",
+      "description": "Organismo de Control Autorizado (OCA) que firma la revisi\u00f3n. Obligatorio en Nivel C y en Nivel B con PS x V >= 25000."
+    },
+    "ps_x_v": {
+      "type": "number",
+      "description": "Valor PS x V del equipo en el momento de la inspecci\u00f3n"
+    },
+    "requiere_oca": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si esta inspecci\u00f3n exige OCA (Nivel C, o Nivel B en equipos con PS x V >= 25000)"
+    },
+    "acta_url": {
+      "type": "string",
+      "description": "URI del Acta de la OCA o Certificado de la inspecci\u00f3n"
+    },
+    "acta_nombre": {
+      "type": "string",
+      "description": "Nombre original del archivo del acta"
+    },
+    "observaciones": {
+      "type": "string"
+    },
+    "proxima_inspeccion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la pr\u00f3xima inspecci\u00f3n recomendada"
+    },
+    "registrado_por": {
+      "type": "string",
+      "description": "Usuario o trabajador que registr\u00f3 la inspecci\u00f3n"
+    }
+  },
+  "required": [
+    "equipment_id",
+    "tipo_inspeccion",
+    "fecha_inspeccion",
+    "tecnico_inspector",
+    "resultado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

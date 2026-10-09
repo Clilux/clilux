@@ -12,6 +12,8 @@ import {
 import ExportDatosGerente from '@/components/company/ExportDatosGerente';
 import ImportDatosEmpresa from '@/components/company/ImportDatosEmpresa';
 import DriveSyncButton from '@/components/company/DriveSyncButton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HABILITACIONES_REP } from '@/lib/rep';
 
 /**
  * Menú de empresa: muestra los datos de la empresa (logo + nombre arriba a la izquierda).
@@ -32,6 +34,7 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
         city: company.city || '', postal_code: company.postal_code || '', province: company.province || '',
         phone: company.phone || '', email: company.email || '', web: company.web || '',
         logo_url: company.logo_url || '',
+        habilitacion_rep: company.habilitacion_rep || '',
       });
     } else {
       setForm(null);
@@ -72,6 +75,7 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
           province: form.province.trim(), phone: form.phone.trim(),
           email: form.email.trim(), web: form.web.trim(),
           logo_url: form.logo_url,
+          habilitacion_rep: form.habilitacion_rep || null,
         },
       });
       queryClient.invalidateQueries({ queryKey: ['proxy-all'] });
@@ -135,6 +139,7 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
                 <Field icon={MapPin} label="Provincia" value={company.province} />
                 <Field icon={Mail} label="Email" value={company.email} />
                 <div className="col-span-2"><Field icon={Globe} label="Web" value={company.web} /></div>
+                <div className="col-span-2"><Field icon={BadgeCheck} label="Habilitación REP" value={company.habilitacion_rep} /></div>
               </div>
 
               {isGerente && (
@@ -218,6 +223,20 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
                 <div className="col-span-2">
                   <Label className="text-xs">Web</Label>
                   <Input value={form.web} onChange={(e) => update('web', e.target.value)} className="h-9" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Habilitación REP (Equipos a Presión)</Label>
+                  <Select value={form.habilitacion_rep} onValueChange={(v) => update('habilitacion_rep', v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar habilitación" /></SelectTrigger>
+                    <SelectContent>
+                      {HABILITACIONES_REP.map((h) => (
+                        <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    EIP-1 no puede emitir certificados en instalaciones con Σ PS × V ≥ 25.000.
+                  </p>
                 </div>
               </div>
 

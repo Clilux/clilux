@@ -473,6 +473,80 @@ Deno.serve(async (req) => {
       return Response.json({ data: true });
     }
 
+    // ── Inspecciones REP (Reglamento de Equipos a Presión, RD 809/2021) ──
+    if (entity === 'rep_list') {
+      const { building_id } = body;
+      if (!building_id) return Response.json({ error: 'building_id requerido' }, { status: 400 });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.InspeccionREP.filter({ building_id }, '-fecha_inspeccion');
+      const data = all.filter((r: any) => (r.client_id && clientIds.has(r.client_id)) || r.company_id === tech.company_id);
+      return Response.json({ data });
+    }
+
+    if (entity === 'rep_create' || entity === 'rep_update') {
+      const { record, record_id, filename, file_base64, content_type } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const isUpdate = entity === 'rep_update';
+      if (!record.equipment_id) return Response.json({ error: 'equipment_id requerido' }, { status: 400 });
+
+      const eqList = await base44.asServiceRole.entities.Equipment.filter({ id: record.equipment_id });
+      const equipo = eqList[0];
+      if (!equipo || !(await assertCompanyClient(equipo.client_id))) return deny('equipos');
+
+      let acta: any = {};
+      if (file_base64 && filename) {
+        const bin = atob(file_base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const file = new File([bytes], filename, { type: content_type || 'application/octet-stream' });
+        const up = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+        acta = { acta_url: up.file_uri, acta_nombre: filename };
+      }
+
+      const payload: any = {
+        ...record,
+        client_id: record.client_id || equipo.client_id,
+        building_id: record.building_id || equipo.building_id,
+        company_id: tech.company_id,
+        registrado_por: record.registrado_por || creatorName,
+        ...acta,
+      };
+      delete payload.id;
+
+      const data = isUpdate
+        ? await base44.asServiceRole.entities.InspeccionREP.update(record_id || record.id, payload)
+        : await base44.asServiceRole.entities.InspeccionREP.create(payload);
+      return Response.json({ data });
+    }
+
+    if (entity === 'rep_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const insp = (await base44.asServiceRole.entities.InspeccionREP.filter({ id: record_id }))[0];
+      if (!insp) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const clientIds = await getCompanyClientIds();
+      if (!((insp.client_id && clientIds.has(insp.client_id)) || insp.company_id === tech.company_id)) {
+        return deny('equipos');
+      }
+      await base44.asServiceRole.entities.InspeccionREP.delete(record_id);
+      return Response.json({ data: true });
+    }
+
+    if (entity === 'rep_url') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const insp = (await base44.asServiceRole.entities.InspeccionREP.filter({ id: record_id }))[0];
+      if (!insp || !insp.acta_url) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const clientIds = await getCompanyClientIds();
+      if (!((insp.client_id && clientIds.has(insp.client_id)) || insp.company_id === tech.company_id)) {
+        return deny('equipos');
+      }
+      const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+        file_uri: insp.acta_url, expires_in: 600,
+      });
+      return Response.json({ data: signed.signed_url });
+    }
+
     // ── Documentación del edificio (libros anuales + archivos aportados) ──
     if (entity === 'building_documents') {
       const { building_id } = body;

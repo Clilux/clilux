@@ -18,6 +18,8 @@ import { format, addMonths } from 'date-fns';
 import { REFRIGERANTES, gwpDe, tco2eq } from '@/lib/refrigerantes';
 import { calcularPlazoControlFugas, proximaFechaControl } from '@/lib/fgas-plazos';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
+import RepEquipmentFields from '@/components/rep/RepEquipmentFields';
+import { calcularPsxV } from '@/lib/rep';
 
 // Campos según RITE-IT3 por tipo de equipo
 const camposIDAE = {
@@ -278,7 +280,16 @@ export default function EquipmentForm() {
     has_leak_detection_system: false,
     is_hermetically_sealed: false,
     next_leak_check_date: '',
-    leak_check_date_manual: false
+    leak_check_date_manual: false,
+
+    // REP — Reglamento de Equipos a Presión (RD 809/2021)
+    es_equipo_presion: false,
+    ps_presion_maxima: '',
+    v_volumen: '',
+    numero_registro_industria: '',
+    fecha_ultima_inspeccion_a: '',
+    fecha_ultima_inspeccion_b: '',
+    fecha_ultima_inspeccion_c: ''
   });
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -337,7 +348,14 @@ export default function EquipmentForm() {
         has_leak_detection_system: existingEquipment.has_leak_detection_system || false,
         is_hermetically_sealed: existingEquipment.is_hermetically_sealed || false,
         next_leak_check_date: existingEquipment.next_leak_check_date || '',
-        leak_check_date_manual: existingEquipment.leak_check_date_manual || false
+        leak_check_date_manual: existingEquipment.leak_check_date_manual || false,
+        es_equipo_presion: existingEquipment.es_equipo_presion || false,
+        ps_presion_maxima: existingEquipment.ps_presion_maxima ?? '',
+        v_volumen: existingEquipment.v_volumen ?? '',
+        numero_registro_industria: existingEquipment.numero_registro_industria || '',
+        fecha_ultima_inspeccion_a: existingEquipment.fecha_ultima_inspeccion_a || '',
+        fecha_ultima_inspeccion_b: existingEquipment.fecha_ultima_inspeccion_b || '',
+        fecha_ultima_inspeccion_c: existingEquipment.fecha_ultima_inspeccion_c || ''
       });
     }
   }, [existingEquipment]);
@@ -505,8 +523,21 @@ export default function EquipmentForm() {
     };
   };
 
+  // Campos REP (Reglamento de Equipos a Presión, RD 809/2021)
+  const buildRepFields = (data) => ({
+    es_equipo_presion: !!data.es_equipo_presion,
+    ps_presion_maxima: data.ps_presion_maxima === '' || data.ps_presion_maxima == null ? null : Number(data.ps_presion_maxima),
+    v_volumen: data.v_volumen === '' || data.v_volumen == null ? null : Number(data.v_volumen),
+    ps_x_v: calcularPsxV(data.ps_presion_maxima, data.v_volumen),
+    numero_registro_industria: data.numero_registro_industria || '',
+    fecha_ultima_inspeccion_a: data.fecha_ultima_inspeccion_a || null,
+    fecha_ultima_inspeccion_b: data.fecha_ultima_inspeccion_b || null,
+    fecha_ultima_inspeccion_c: data.fecha_ultima_inspeccion_c || null
+  });
+
   const buildEquipmentPayload = (data) => ({
     ...computeFgasCompliance(data),
+    ...buildRepFields(data),
     reference_name: data.reference_name,
     client_id: data.client_id,
     building_id: data.building_id,
@@ -641,6 +672,7 @@ export default function EquipmentForm() {
       // Crear equipo
       const equipmentData = {
         ...computeFgasCompliance(data),
+        ...buildRepFields(data),
         reference_name: data.reference_name,
         client_id: data.client_id,
         building_id: data.building_id,
@@ -1390,6 +1422,8 @@ export default function EquipmentForm() {
                 </div>
               );
             })()}
+
+            <RepEquipmentFields data={formData} onChange={handleChange} />
 
             <div className="flex justify-between mt-6">
               <div>

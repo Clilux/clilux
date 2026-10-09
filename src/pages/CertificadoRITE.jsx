@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import jsPDF from 'jspdf';
+import { sumaPsxV, bloqueoEip1, MENSAJE_EIP1, MENSAJE_PROYECTO, UMBRAL_REP } from '@/lib/rep';
 
 const operacionesPreventivo = [
   "Limpieza de los evaporadores",
@@ -191,6 +192,21 @@ export default function CertificadoRITE() {
     enabled: !!selectedBuildingId,
   });
 
+  const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
+
+  const { data: company } = useQuery({
+    queryKey: ['company-rite', selectedClient?.company_id],
+    queryFn: async () => {
+      const res = await base44.entities.Company.filter({ company_id: selectedClient.company_id });
+      return res[0] || null;
+    },
+    enabled: !!selectedClient?.company_id,
+  });
+
+  // REP: la instalación exige proyecto técnico si la suma PS × V >= 25.000
+  const totalPsxV = sumaPsxV(buildingEquipment);
+  const bloqueoRep = bloqueoEip1(totalPsxV, company?.habilitacion_rep);
+
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
@@ -290,6 +306,10 @@ export default function CertificadoRITE() {
   const requiresDirector = parseFloat(form.pot_calor) > 5000 || parseFloat(form.pot_frio) > 1000;
 
   const generatePDF = async () => {
+    if (bloqueoRep) {
+      toast.error(MENSAJE_EIP1);
+      return;
+    }
     setGenerating(true);
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -775,6 +795,10 @@ export default function CertificadoRITE() {
   };
 
   const handleSaveAndDownload = async () => {
+    if (bloqueoRep) {
+      toast.error(MENSAJE_EIP1);
+      return;
+    }
     if (!pendingPdfBlob || !selectedClientId) {
       toast.error('Debes seleccionar un cliente para guardar el documento');
       return;
@@ -1241,6 +1265,22 @@ export default function CertificadoRITE() {
             📋 Validez: 1 año (art. 28.1 RD 1027/2007) · Base legal: RD 178/2021 (modificación RITE)
           </p>
         </Card>
+
+        {/* Aviso REP — Reglamento de Equipos a Presión */}
+        {selectedBuildingId && totalPsxV > 0 && (
+          <Card className={`p-4 mb-6 border ${bloqueoRep ? 'bg-red-50 border-red-300' : totalPsxV >= UMBRAL_REP ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
+            <p className={`text-xs font-semibold mb-1 ${bloqueoRep ? 'text-red-800' : totalPsxV >= UMBRAL_REP ? 'text-amber-800' : 'text-slate-600'}`}>
+              Equipos a Presión (REP) — Σ PS × V de la instalación: {totalPsxV.toLocaleString('es-ES')}
+            </p>
+            {bloqueoRep ? (
+              <p className="text-xs text-red-700">{MENSAJE_PROYECTO}. {MENSAJE_EIP1}.</p>
+            ) : totalPsxV >= UMBRAL_REP ? (
+              <p className="text-xs text-amber-700">{MENSAJE_PROYECTO}. Habilitación de la empresa: {company?.habilitacion_rep || 'sin definir'}.</p>
+            ) : (
+              <p className="text-xs text-slate-500">La instalación no alcanza el umbral de 25.000 que exige proyecto técnico.</p>
+            )}
+          </Card>
+        )}
 
         {/* Botón generar */}
         <div className="flex justify-end">

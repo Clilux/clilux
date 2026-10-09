@@ -19,6 +19,7 @@ import BuildingReport from '../components/reports/BuildingReport';
 import BuildingPendientes from '../components/buildings/BuildingPendientes';
 import BuildingYearPlan from '../components/buildings/BuildingYearPlan';
 import BuildingDocuments from '../components/buildings/BuildingDocuments';
+import RepInspeccionesPanel from '@/components/rep/RepInspeccionesPanel';
 import { toast } from 'sonner';
 
 export default function BuildingDetail() {
@@ -315,6 +316,13 @@ export default function BuildingDetail() {
           client={finalClient}
           equipment={finalEquipment}
           revisions={finalRevisions}
+        />
+
+        <RepInspeccionesPanel
+          building={finalBuilding}
+          equipment={finalEquipment}
+          client={finalClient}
+          registradoPor={sessionTechEmail || ''}
         />
 
         <BuildingYearPlan revisions={finalRevisions} />
