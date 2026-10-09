@@ -10,11 +10,11 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const showNav = isSessionTech || isAdmin;
 
-  // El menú del gerente se pinta con su propio color para distinguirlo
-  const menuBg = isGerente ? 'bg-indigo-800' : 'bg-brand-600';
-  const menuBarBg = isGerente ? 'bg-indigo-800 border-indigo-900' : 'bg-brand-700 border-brand-800';
-  const menuBorder = isGerente ? 'border-indigo-900' : 'border-brand-700';
-  const menuHover = isGerente ? 'hover:bg-indigo-700' : 'hover:bg-brand-700';
+  // El menú del gerente es el mismo que el del trabajador, en versión oscura
+  const menuBg = isGerente ? 'bg-brand-900' : 'bg-brand-600';
+  const menuBarBg = isGerente ? 'bg-brand-900 border-black/40' : 'bg-brand-700 border-brand-800';
+  const menuBorder = isGerente ? 'border-brand-800' : 'border-brand-700';
+  const menuHover = isGerente ? 'hover:bg-brand-800' : 'hover:bg-brand-700';
 
   const NAV_LINKS = [
     { to: 'HomeTecnico',    label: 'Inicio',          icon: Home,     sessionOnly: false },

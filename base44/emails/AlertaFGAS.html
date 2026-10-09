@@ -1,0 +1,52 @@
+<mjml>
+  <mj-head>
+    <mj-title>Revisiones F-Gas próximas en {{empresa}}</mj-title>
+    <mj-preview>{{total}} equipo(s) con control de fugas próximo a vencer</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, Arial, sans-serif" />
+      <mj-section background-color="#ffffff" padding="0 36px" />
+      <mj-text color="#0f1729" font-size="15px" line-height="1.6" padding="0" />
+      <mj-button background-color="#2563eb" color="#ffffff" border-radius="8px" font-weight="700" inner-padding="14px 28px" align="left" />
+    </mj-attributes>
+    <mj-style>
+      .detalle { white-space: pre-line; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#f8fafc">
+    <mj-section background-color="#2563eb" padding="20px 36px">
+      <mj-column>
+        <mj-image src="https://media.base44.com/images/public/697f663fd0d08e98a3964099/a3468d118_Clogo2022sinfondo.png" alt="Clilux" width="130px" align="left" padding="0" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="36px 36px 8px">
+      <mj-column>
+        <mj-text font-size="26px" font-weight="700" line-height="1.2">Revisiones F-Gas próximas</mj-text>
+        <mj-text color="#737373" padding="8px 0 0 0">
+          Hay {{total}} equipo(s) de {{empresa}} cuyo control de fugas vence en los próximos 15 días o ya está vencido.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="8px 36px 0">
+      <mj-column>
+        <mj-text mj-class="detalle" css-class="detalle" font-size="14px" padding="0">{{detalle}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="28px 36px 8px">
+      <mj-column>
+        <mj-button href="https://clilux-maint-app.base44.app/LibroRegistroFGas">Abrir el libro F-Gas</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f1f5f9" padding="24px 36px">
+      <mj-column>
+        <mj-text color="#737373" font-size="12px" padding="0">
+          Art. 5 del Reglamento (UE) 2024/573: control periódico de fugas según las tCO₂eq del equipo.
+          Esta alerta se genera automáticamente {{fecha}}.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

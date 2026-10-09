@@ -10,6 +10,9 @@ import { FileText, Upload, Trash2, Download, Loader2, Plus, X } from 'lucide-rea
 import { toast } from 'sonner';
 
 const documentTypes = [
+  { value: 'declaracion_comprador', label: 'Declaración de comprador (Anexo VI)' },
+  { value: 'certificado_instalacion', label: 'Certificado de instalación / desmantelamiento' },
+  { value: 'dcs_residuos', label: 'DCS — Control y seguimiento de residuos' },
   { value: 'manual', label: 'Manual de usuario' },
   { value: 'warranty', label: 'Garantía' },
   { value: 'certificate', label: 'Certificado' },
@@ -17,6 +20,9 @@ const documentTypes = [
   { value: 'invoice', label: 'Factura' },
   { value: 'other', label: 'Otro' },
 ];
+
+// Documentación legal F-Gas: conservación obligatoria de 5 años
+const DOCS_LEGALES = ['declaracion_comprador', 'certificado_instalacion', 'dcs_residuos'];
 
 export default function EquipmentDocuments({ equipment, onUpdate, isSessionTech, sessionTechEmail }) {
   const queryClient = useQueryClient();
@@ -190,6 +196,9 @@ export default function EquipmentDocuments({ equipment, onUpdate, isSessionTech,
                 <div>
                   <p className="font-medium text-slate-700">{doc.name}</p>
                   <p className="text-xs text-slate-500">{getTypeLabel(doc.type)}</p>
+                  {DOCS_LEGALES.includes(doc.type) && (
+                    <p className="text-[11px] text-amber-600">Documento legal F-Gas · conservar 5 años</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">

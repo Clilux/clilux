@@ -1,0 +1,45 @@
+{
+  "name": "Alerta F-Gas",
+  "description": "Avisa por email a los gerentes 15 d\u00edas antes de que venza el control de fugas de un equipo",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "alerta_f_gas",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "avisar_fgas": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "fgasAlertas",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Avisar de controles F-Gas",
+            "description": "Equipos que vencen en 15 d\u00edas"
+          }
+        }
+      }
+    ]
+  }
+}

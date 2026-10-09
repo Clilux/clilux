@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { verifySessionToken, hashPassword, isHashed, verifyPassword } from '../../shared/auth.ts';
+import { fgasFieldsFrom } from '../../shared/fgas.ts';
 
 /**
  * Devuelve datos de la empresa usando service role (no requiere sesión Base44 del usuario).
@@ -849,7 +850,10 @@ Deno.serve(async (req) => {
       // de la empresa puede actualizarlos. El resto de campos requiere editar_equipos.
       const isSelfService = Object.keys(updates).every((k) => k === 'notes' || k === 'documents');
       if (!isSelfService && !permisos.editar_equipos && !tech.is_admin) return deny('editar_equipos');
-      const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, updates);
+      // Recalcular campos F-Gas (tCO₂eq y próxima revisión de fugas) tras el cambio
+      const merged = { ...eq, ...updates };
+      const fgasUpdates = fgasFieldsFrom(merged);
+      const data = await base44.asServiceRole.entities.Equipment.update(equipment_id, { ...updates, ...fgasUpdates });
       return Response.json({ data });
     }
 
@@ -863,6 +867,7 @@ Deno.serve(async (req) => {
       }
       const data = await base44.asServiceRole.entities.Equipment.create({
         ...record,
+        ...fgasFieldsFrom(record),
         created_by_name: record.created_by_name || creatorName,
       });
       return Response.json({ data });
