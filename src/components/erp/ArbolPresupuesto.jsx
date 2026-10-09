@@ -1,13 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download, FileSpreadsheet, AlertTriangle, Info, FolderTree, FileText } from 'lucide-react';
+import { Plus, Upload, Download, FileSpreadsheet, AlertTriangle, Info, FolderTree, FileText, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import NodoArbol from '@/components/erp/NodoArbol';
 import NodoForm from '@/components/erp/NodoForm';
+import ArticuloPicker from '@/components/erp/ArticuloPicker';
 import { descargarBC3, parseBC3, presupuestoToBC3 } from '@/lib/bc3';
 import { descargarPresupuestoExcel } from '@/lib/presupuesto-excel';
 import {
   actualizarNodo,
+  aplanarArbol,
   eliminarNodo,
   esCapitulo,
   insertarNodo,
@@ -20,11 +22,12 @@ import {
   totalArbol,
   validarArbol,
 } from '@/lib/presto-arbol';
-import { euros } from '@/lib/erp-config';
+import { euros, precioCompra, precioVenta } from '@/lib/erp-config';
 
 /** Editor del árbol de presupuesto (capítulos, subcapítulos y partidas) e intercambio con Presto. */
-export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, cliente, meta = {}, empresa, onTitulo }) {
+export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, cliente, meta = {}, empresa, onTitulo, articulos = [], familias = [] }) {
   const [editor, setEditor] = useState({ open: false, nodo: null, tipo: 'capitulo', padreId: null, codigo: '' });
+  const [picker, setPicker] = useState({ open: false, padreId: null });
   const fileRef = useRef(null);
 
   const avisos = validarArbol(arbol);
@@ -44,6 +47,33 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
   const abrirNuevo = (padre, tipo) => {
     const codigo = siguienteCodigo(arbol, padre);
     setEditor({ open: true, nodo: null, tipo, padreId: padre?.id || null, codigo });
+  };
+
+  const abrirCatalogo = (padre = null) => setPicker({ open: true, padreId: padre?.id || null });
+
+  // Código libre para la partida: el del artículo si no está usado, si no el siguiente del nivel
+  const codigoUnico = (codigo, padre) => {
+    const usados = new Set(aplanarArbol(arbol).map(({ nodo }) => (nodo.codigo || '').trim()));
+    const base = sanitizarCodigo(codigo);
+    return base && !usados.has(base) ? base : siguienteCodigo(arbol, padre);
+  };
+
+  // Un artículo del catálogo entra como partida, con su precio de venta y su coste de compra
+  const anadirDelCatalogo = (articulo) => {
+    const padre = picker.padreId
+      ? (aplanarArbol(arbol).find(({ nodo }) => nodo.id === picker.padreId)?.nodo || null)
+      : null;
+    const nodo = {
+      ...nuevoNodo('partida', codigoUnico(articulo.codigo, padre)),
+      resumen: articulo.nombre || articulo.descripcion || '',
+      texto: articulo.descripcion || '',
+      unidad: articulo.unidad || 'ud',
+      precio: precioVenta(articulo),
+      coste: precioCompra(articulo),
+    };
+    onChange(insertarNodo(arbol, picker.padreId, nodo));
+    setPicker({ open: false, padreId: null });
+    toast.success(`«${nodo.resumen}» añadido al presupuesto`);
   };
 
   const guardarNodo = (datos) => {
@@ -110,6 +140,11 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
         </div>
         <div className="flex flex-wrap gap-2">
           <input ref={fileRef} type="file" accept=".bc3,text/plain" onChange={importarBC3} className="hidden" />
+          {raizPermite('partida') && (
+            <Button type="button" size="sm" className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => abrirCatalogo(null)}>
+              <Package className="h-3.5 w-3.5" />Del catálogo
+            </Button>
+          )}
           <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => fileRef.current?.click()}>
             <Upload className="h-3.5 w-3.5" />Importar BC3
           </Button>
@@ -141,6 +176,7 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
             nodo={n}
             onEditar={(nodo) => setEditor({ open: true, nodo, tipo: nodo.tipo, padreId: null, codigo: nodo.codigo })}
             onAnadirHijo={abrirNuevo}
+            onAnadirArticulo={abrirCatalogo}
             onEliminar={borrar}
             onMover={(id, dir) => onChange(moverNodo(arbol, id, dir))}
           />
@@ -190,6 +226,14 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
         tipo={editor.tipo}
         codigoSugerido={editor.codigo}
         onSave={guardarNodo}
+      />
+
+      <ArticuloPicker
+        open={picker.open}
+        onClose={() => setPicker({ open: false, padreId: null })}
+        articulos={articulos}
+        familias={familias}
+        onPick={anadirDelCatalogo}
       />
     </div>
   );

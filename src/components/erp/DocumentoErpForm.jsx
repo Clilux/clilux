@@ -211,6 +211,8 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
               cliente={partido}
               meta={{ numero: form.numero, titulo: form.titulo, fecha: form.fecha, fecha_validez: form.fecha_validez, observaciones: form.notas }}
               onTitulo={(t) => setForm(p => ({ ...p, titulo: p.titulo || t }))}
+              articulos={articulos}
+              familias={familias}
             />
           ) : (
             <LineasEditor

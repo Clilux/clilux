@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, FolderTree, FileText, Pencil, Trash2, Plus, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, FolderTree, FileText, Pencil, Trash2, Plus, ArrowUp, ArrowDown, Package } from 'lucide-react';
 import { cantidadPartida, esCapitulo, importeNodo, margenPartida } from '@/lib/presto-arbol';
 import { euros } from '@/lib/erp-config';
 
@@ -11,7 +11,7 @@ const tipoHijosPermitidos = (nodo) => {
 };
 
 /** Fila del árbol de presupuesto, con sus hijos indentados. */
-export default function NodoArbol({ nodo, profundidad = 0, onEditar, onAnadirHijo, onEliminar, onMover }) {
+export default function NodoArbol({ nodo, profundidad = 0, onEditar, onAnadirHijo, onAnadirArticulo, onEliminar, onMover }) {
   const [abierto, setAbierto] = useState(true);
   const esPartida = nodo.tipo === 'partida';
   const hijos = nodo.hijos || [];
@@ -81,6 +81,11 @@ export default function NodoArbol({ nodo, profundidad = 0, onEditar, onAnadirHij
               <Plus className="h-3.5 w-3.5" /><FileText className="h-3.5 w-3.5" />
             </Button>
           )}
+          {permitidos.includes('partida') && onAnadirArticulo && (
+            <Button size="sm" variant="ghost" className="h-8 px-1.5 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 gap-1" title="Añadir artículo del catálogo dentro" onClick={() => onAnadirArticulo(nodo)}>
+              <Plus className="h-3.5 w-3.5" /><Package className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700" title="Subir" onClick={() => onMover(nodo.id, -1)}>
             <ArrowUp className="h-3.5 w-3.5" />
           </Button>
@@ -105,6 +110,7 @@ export default function NodoArbol({ nodo, profundidad = 0, onEditar, onAnadirHij
               profundidad={profundidad + 1}
               onEditar={onEditar}
               onAnadirHijo={onAnadirHijo}
+              onAnadirArticulo={onAnadirArticulo}
               onEliminar={onEliminar}
               onMover={onMover}
             />
