@@ -99,7 +99,12 @@ export default function Calendar() {
 
   // Filtra por cliente y por técnico. Los trabajos colectivos (sin técnico
   // asignado) se incluyen al ver la agenda de un trabajador concreto.
+  // Los edificios y clientes inactivos quedan fuera de la agenda de mantenimiento
+  const inactiveBuildings = new Set(buildings.filter(b => b.status === 'inactive').map(b => b.id));
+  const inactiveClients = new Set(clients.filter(c => c.status === 'inactive').map(c => c.id));
+
   const filteredRevisions = scheduledRevisions
+    .filter(rev => !inactiveBuildings.has(rev.building_id) && !inactiveClients.has(rev.client_id))
     .filter(rev => filterClient === 'all' || rev.client_id === filterClient)
     .filter(rev => {
       if (filterTech === 'all') return true;
@@ -613,7 +618,7 @@ export default function Calendar() {
       <UnifyRevisionsModal
         open={showUnifyModal}
         onClose={() => setShowUnifyModal(false)}
-        revisions={scheduledRevisions}
+        revisions={filteredRevisions}
         equipment={equipment}
         buildings={buildings}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] })}

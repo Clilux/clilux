@@ -507,13 +507,16 @@ export default function HomeTecnico() {
                   <div key={key} className="mb-8">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">{title}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {items.map(({ id, label, page, icon: Icon, color, iconCls }) =>
+                      {items.map(({ id, label, page, icon: Icon, color, iconCls, gerenteOnly }) =>
                         <Link key={id} to={createPageUrl(page)}>
-                          <Card className={`bg-gradient-to-br ${color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square`}>
+                          <Card className={`bg-gradient-to-br ${gerenteOnly ? 'from-indigo-500/40 to-purple-500/40 ring-1 ring-indigo-300' : color} border border-slate-200 p-5 hover:scale-[1.03] active:scale-[0.98] transition-transform cursor-pointer flex flex-col items-center justify-center gap-4 shadow-sm aspect-square relative`}>
                             <div className="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center shadow-sm">
                               <Icon className={`h-9 w-9 ${iconCls}`} />
                             </div>
                             <p className="text-slate-800 text-sm text-center font-semibold leading-tight">{label}</p>
+                            {gerenteOnly && (
+                              <span className="absolute top-2 right-2 text-[10px] font-semibold uppercase tracking-wide bg-indigo-600 text-white px-2 py-0.5 rounded-full">Gerente</span>
+                            )}
                           </Card>
                         </Link>
                       )}

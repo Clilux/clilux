@@ -137,6 +137,12 @@ export default function Equipment() {
     if (eq.parent_equipment_id) return false;
     // Ocultar equipos fuera de servicio salvo que se pidan explícitamente
     if (!showInactive && eq.status === 'out_of_service') return false;
+    // Los equipos de edificios o clientes inactivos no aparecen en mantenimiento
+    if (!showInactive) {
+      const eqBuilding = buildings.find((b) => b.id === eq.building_id);
+      const eqClient = clients.find((c) => c.id === eq.client_id);
+      if (eqBuilding?.status === 'inactive' || eqClient?.status === 'inactive') return false;
+    }
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     const building = buildings.find((b) => b.id === eq.building_id);

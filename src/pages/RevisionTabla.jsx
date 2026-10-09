@@ -66,8 +66,13 @@ export default function RevisionTabla() {
   // Revisiones pendientes del día seleccionado y las vencidas anteriores,
   // para poder cerrarlas también desde la tabla (y desbloquear las siguientes)
   const rows = useMemo(() => {
+    // Los edificios y clientes inactivos quedan fuera de los menús de mantenimiento
+    const inactiveBuildings = new Set(buildings.filter((b) => b.status === 'inactive').map((b) => b.id));
+    const inactiveClients = new Set(clients.filter((c) => c.status === 'inactive').map((c) => c.id));
+
     return revisions
       .filter((rev) => rev.status === 'pending' && !rev.is_unified_revision)
+      .filter((rev) => !inactiveBuildings.has(rev.building_id) && !inactiveClients.has(rev.client_id))
       // Con un edificio seleccionado se muestran todas sus revisiones pendientes;
       // sin filtro de edificio, solo las que vencen hasta la fecha elegida.
       .filter((rev) => buildingFilter ? rev.building_id === buildingFilter : fechaCorta(rev.scheduled_date) <= dateParam)

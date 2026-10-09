@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
-  Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, ToggleLeft, ToggleRight,
+  Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, Leaf, ToggleLeft, ToggleRight,
   LayoutList, LayoutGrid, Table2
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
@@ -120,6 +120,8 @@ export default function BuildingDetail() {
 
   const totalCoolingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
   const totalHeatingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.heating_power_kw) || 0), 0);
+  // Suma del F-Gas (tCO₂eq) de los equipos con gas refrigerante del edificio
+  const totalFgas = finalEquipment.reduce((sum, e) => sum + (Number(e.co2_equivalent_tons) || 0), 0);
 
   if (isLoadingFinal || (isSessionTech && !proxyData)) {
     return (
@@ -261,9 +263,9 @@ export default function BuildingDetail() {
             )}
           </div>
 
-          {/* Potencia instalada */}
-          {(totalCoolingKw > 0 || totalHeatingKw > 0) && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
+          {/* Potencia instalada y F-Gas */}
+          {(totalCoolingKw > 0 || totalHeatingKw > 0 || totalFgas > 0) && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {totalCoolingKw > 0 && (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
                   <Snowflake className="h-5 w-5 text-blue-400 mt-0.5" />
@@ -279,6 +281,15 @@ export default function BuildingDetail() {
                   <div>
                     <p className="text-sm text-slate-500">Potencia Calorífica Total</p>
                     <p className="text-slate-700 font-semibold">{totalHeatingKw.toFixed(1)} kW</p>
+                  </div>
+                </div>
+              )}
+              {totalFgas > 0 && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50">
+                  <Leaf className="h-5 w-5 text-emerald-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500">F-Gas Total</p>
+                    <p className="text-slate-700 font-semibold">{totalFgas.toFixed(3)} tCO₂eq</p>
                   </div>
                 </div>
               )}

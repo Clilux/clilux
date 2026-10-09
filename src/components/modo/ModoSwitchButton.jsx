@@ -34,7 +34,7 @@ export default function ModoSwitchButton({ destino = 'erp', className = '' }) {
       } ${className}`}
     >
       <Icon className="h-4 w-4" />
-      <span className="hidden sm:inline">Modo {cfg.label}</span>
+      <span className="hidden sm:inline">{cfg.label}</span>
     </button>
   );
 }

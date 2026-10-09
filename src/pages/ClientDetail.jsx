@@ -51,11 +51,20 @@ export default function ClientDetail() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      toast.error('No se pueden eliminar clientes ni sus datos relacionados');
-      throw new Error('Eliminación de clientes no permitida');
+      const res = await base44.functions.invoke('deleteClient', {
+        technician_email: sessionTechEmail || '',
+        client_id: clientId,
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente eliminado correctamente');
+      navigate(createPageUrl('Clients'));
     },
     onError: (error) => {
-      // Ya mostrado el toast en mutationFn
+      toast.error(error.message || 'Error al eliminar el cliente');
     },
   });
 
@@ -315,6 +324,10 @@ export default function ClientDetail() {
                     building={building}
                     equipmentCount={getEquipmentCount(building.id)}
                     totalCoolingKw={getTotalCoolingKw(building.id)}
+                    totalFgas={equipment
+                      .filter(e => e.building_id === building.id)
+                      .reduce((s, e) => s + (Number(e.co2_equivalent_tons) || 0), 0)}
+                    showEdit={!isSessionTech}
                   />
                 ))}
               </div>

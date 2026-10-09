@@ -86,6 +86,13 @@ export default function PanelEdificios() {
 
   const today = new Date();
 
+  // Los edificios (y clientes) inactivos quedan fuera de los menús de mantenimiento
+  const activeBuildings = useMemo(() => buildings.filter(b => {
+    if (b.status === 'inactive') return false;
+    const client = clients.find(c => c.id === b.client_id);
+    return client?.status !== 'inactive';
+  }), [buildings, clients]);
+
   // IDs de equipos con incidencia abierta (para descartar estados maintenance_needed huérfanos)
   const openIncidentEquipmentIds = useMemo(() => {
     const s = new Set();
@@ -149,7 +156,7 @@ export default function PanelEdificios() {
 
   // Calcular nivel de cada edificio
   const buildingSummaries = useMemo(() => {
-    return buildings.map(b => {
+    return activeBuildings.map(b => {
       const incs = pendingIncidentsMap[b.id] || [];
       const eqs  = equipmentNeedingReviewMap[b.id] || [];
       const revs = pendingRevisionsMap[b.id] || [];
@@ -159,7 +166,7 @@ export default function PanelEdificios() {
   }, [buildings, pendingIncidentsMap, equipmentNeedingReviewMap, pendingRevisionsMap, hasPlanByBuilding]);
 
   // KPIs globales
-  const totalBuildings = buildings.length;
+  const totalBuildings = activeBuildings.length;
   const totalIncidents = Object.values(pendingIncidentsMap).reduce((s, arr) => s + arr.length, 0);
   const totalEqReview  = Object.values(equipmentNeedingReviewMap).reduce((s, arr) => s + arr.length, 0);
   const totalRevisions = Object.values(pendingRevisionsMap).reduce((s, arr) => s + arr.length, 0);

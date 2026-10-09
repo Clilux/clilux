@@ -63,6 +63,13 @@ export default function Buildings() {
     return equipment.filter(e => e.building_id === buildingId).length;
   };
 
+  // Suma de tCO₂eq de los equipos con gas refrigerante del edificio
+  const getTotalFgas = (buildingId) => {
+    return equipment
+      .filter(e => e.building_id === buildingId)
+      .reduce((sum, e) => sum + (Number(e.co2_equivalent_tons) || 0), 0);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-[1800px] mx-auto">
@@ -119,7 +126,14 @@ export default function Buildings() {
             {viewMode === 'list' && (
               <div className="space-y-4">
                 {filteredBuildings.map(building => (
-                  <BuildingCard key={building.id} building={building} equipmentCount={getEquipmentCount(building.id)} />
+                  <BuildingCard
+                    key={building.id}
+                    building={building}
+                    equipmentCount={getEquipmentCount(building.id)}
+                    totalCoolingKw={equipment.filter(e => e.building_id === building.id).reduce((s, e) => s + (Number(e.cooling_power_kw) || 0), 0)}
+                    totalFgas={getTotalFgas(building.id)}
+                    showEdit={!isSessionTech}
+                  />
                 ))}
               </div>
             )}
