@@ -473,6 +473,105 @@ Deno.serve(async (req) => {
       return Response.json({ data: true });
     }
 
+    // ── Documentación del edificio (libros anuales + archivos aportados) ──
+    if (entity === 'building_documents') {
+      const { building_id } = body;
+      if (!building_id) return Response.json({ error: 'building_id requerido' }, { status: 400 });
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.BuildingDocument.filter({ building_id });
+      const data = all.filter((d: any) => (d.client_id && clientIds.has(d.client_id)) || d.company_id === tech.company_id);
+      return Response.json({ data });
+    }
+
+    if (entity === 'building_document_create') {
+      const { record } = body;
+      if (!record || !record.building_id) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const bList = await base44.asServiceRole.entities.Building.filter({ id: record.building_id });
+      const building = bList[0];
+      if (!building || !(await assertCompanyClient(building.client_id))) return deny('edificios');
+      const data = await base44.asServiceRole.entities.BuildingDocument.create({
+        ...record,
+        company_id: record.company_id || tech.company_id,
+        generated_by_name: record.generated_by_name || creatorName,
+      });
+      return Response.json({ data });
+    }
+
+    if (entity === 'building_document_upload') {
+      const { building_id, filename, file_base64, content_type, record } = body;
+      if (!building_id || !filename || !file_base64) {
+        return Response.json({ error: 'building_id, filename y file_base64 requeridos' }, { status: 400 });
+      }
+      const bList = await base44.asServiceRole.entities.Building.filter({ id: building_id });
+      const building = bList[0];
+      if (!building || !(await assertCompanyClient(building.client_id))) return deny('edificios');
+
+      const bin = atob(file_base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const file = new File([bytes], filename, { type: content_type || 'application/octet-stream' });
+      const up = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+
+      const data = await base44.asServiceRole.entities.BuildingDocument.create({
+        ...(record || {}),
+        building_id,
+        client_id: building.client_id,
+        file_uri: up.file_uri,
+        nombre_original: filename,
+        company_id: (record && record.company_id) || tech.company_id,
+        generated_by_name: (record && record.generated_by_name) || creatorName,
+      });
+      return Response.json({ data });
+    }
+
+    if (entity === 'building_document_url') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const doc = (await base44.asServiceRole.entities.BuildingDocument.filter({ id: record_id }))[0];
+      if (!doc || !doc.file_uri) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const clientIds = await getCompanyClientIds();
+      if (!((doc.client_id && clientIds.has(doc.client_id)) || doc.company_id === tech.company_id)) {
+        return deny('edificios');
+      }
+      const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+        file_uri: doc.file_uri, expires_in: 600,
+      });
+      return Response.json({ data: signed.signed_url });
+    }
+
+    if (entity === 'building_document_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const doc = (await base44.asServiceRole.entities.BuildingDocument.filter({ id: record_id }))[0];
+      if (!doc) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const clientIds = await getCompanyClientIds();
+      if (!((doc.client_id && clientIds.has(doc.client_id)) || doc.company_id === tech.company_id)) {
+        return deny('edificios');
+      }
+      await base44.asServiceRole.entities.BuildingDocument.delete(record_id);
+      return Response.json({ data: true });
+    }
+
+    // ── Registros auxiliares para los libros anuales del edificio ──
+    if (entity === 'building_year_records') {
+      const { desde, hasta } = body;
+      if (!desde || !hasta) return Response.json({ error: 'desde y hasta requeridos' }, { status: 400 });
+      const clientIds = await getCompanyClientIds();
+      const deEmpresa = (r: any) => (r.client_id && clientIds.has(r.client_id)) || r.company_id === tech.company_id;
+      const enRango = (f: any) => !!f && String(f).slice(0, 10) >= desde && String(f).slice(0, 10) < hasta;
+
+      const [fgas, ld, inst] = await Promise.all([
+        base44.asServiceRole.entities.RegistroFGas.list('-fecha_intervencion'),
+        base44.asServiceRole.entities.RegistroLD.list('-fecha'),
+        base44.asServiceRole.entities.RegistroInstalador.list('-fecha_intervencion'),
+      ]);
+      return Response.json({ data: {
+        fgas: fgas.filter((r: any) => deEmpresa(r) && enRango(r.fecha_intervencion)),
+        ld: ld.filter((r: any) => deEmpresa(r) && enRango(r.fecha)),
+        instalador: inst.filter((r: any) => deEmpresa(r) && enRango(r.fecha_intervencion)),
+      } });
+    }
+
     // ── Datos del propio técnico (auto-servicio) ──────────────────
     if (entity === 'me') {
       return Response.json({ data: tech });

@@ -1,16 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  BookOpen, Leaf, Download, Loader2, Save, Trash2, AlertTriangle, FileText, Eye,
-} from 'lucide-react';
+import { BookOpen, Leaf, Download, Loader2, Save, Trash2, AlertTriangle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
+import { useBuildingYearRecords } from '@/hooks/useBuildingYearRecords';
 import {
   generarLibroMantenimientoAnual, generarLibroFGasAnual, datosFGasFaltantes,
   nombreArchivoLibro, tituloLibro,
@@ -35,8 +32,10 @@ const LIBROS = [
   },
 ];
 
-export default function BuildingYearDocuments({ building, client, equipment = [], revisions = [] }) {
-  const queryClient = useQueryClient();
+export default function BuildingYearBooks({
+  building, client, company, equipment = [], revisions = [], documentos = [],
+  guardarDocumento, abrir, eliminar,
+}) {
   const anioActual = new Date().getFullYear();
   const [year, setYear] = useState(anioActual);
   const [generando, setGenerando] = useState(null);
@@ -51,63 +50,18 @@ export default function BuildingYearDocuments({ building, client, equipment = []
     return [...set].sort((a, b) => b - a);
   }, [revisions, anioActual]);
 
-  const rango = { desde: `${year}-01-01`, hasta: `${year + 1}-01-01` };
   const equipmentIds = useMemo(() => new Set(equipment.map((e) => e.id)), [equipment]);
-  const clientId = building?.client_id;
-
-  const { data: company } = useQuery({
-    queryKey: ['company-doc', client?.company_id],
-    queryFn: async () => {
-      const res = await base44.entities.Company.filter({ company_id: client.company_id });
-      return res[0] || null;
-    },
-    enabled: !!client?.company_id,
-  });
-
-  const { data: documentos = [] } = useQuery({
-    queryKey: ['building-documents', building?.id],
-    queryFn: () => base44.entities.BuildingDocument.filter({ building_id: building.id }, { sort: '-created_date', limit: 100 }),
-    enabled: !!building?.id,
-  });
-
-  const { data: registrosFGas = [] } = useQuery({
-    queryKey: ['building-fgas-year', clientId, year],
-    queryFn: async () => {
-      const res = await base44.entities.RegistroFGas.filter(
-        { client_id: clientId, fecha_intervencion: { $gte: rango.desde, $lt: rango.hasta } },
-        { sort: '-fecha_intervencion', limit: 500 },
-      );
-      return res.items.filter((r) => !r.equipment_id || equipmentIds.has(r.equipment_id));
-    },
-    enabled: !!clientId,
-  });
-
-  const { data: registrosLD = [] } = useQuery({
-    queryKey: ['building-ld-year', clientId, year],
-    queryFn: async () => {
-      const res = await base44.entities.RegistroLD.filter(
-        { client_id: clientId, fecha: { $gte: rango.desde, $lt: rango.hasta } },
-        { sort: '-fecha', limit: 500 },
-      );
-      return res.items.filter((r) => !r.equipment_id || equipmentIds.has(r.equipment_id));
-    },
-    enabled: !!clientId,
-  });
-
-  const { data: registrosInstalador = [] } = useQuery({
-    queryKey: ['building-instalador-year', clientId, year],
-    queryFn: async () => {
-      const res = await base44.entities.RegistroInstalador.filter(
-        { client_id: clientId, fecha_intervencion: { $gte: rango.desde, $lt: rango.hasta } },
-        { sort: '-fecha_intervencion', limit: 500 },
-      );
-      return res.items.filter((r) => !r.equipment_id || equipmentIds.has(r.equipment_id));
-    },
-    enabled: !!clientId,
+  const { fgas: registrosFGas, ld: registrosLD, instalador: registrosInstalador } = useBuildingYearRecords({
+    buildingId: building?.id,
+    clientId: building?.client_id,
+    year,
+    equipmentIds,
   });
 
   const faltantes = useMemo(() => datosFGasFaltantes(equipment), [equipment]);
-  const documentosAnio = documentos.filter((d) => Number(d.year) === Number(year));
+  const librosAnio = documentos.filter(
+    (d) => Number(d.year) === Number(year) && (d.tipo === 'libro_mantenimiento' || d.tipo === 'libro_fgas'),
+  );
 
   const construir = (tipo) => (tipo === 'libro_fgas'
     ? generarLibroFGasAnual({ building, client, company, equipment, registros: registrosFGas, year })
@@ -130,27 +84,18 @@ export default function BuildingYearDocuments({ building, client, equipment = []
   const guardar = async (tipo) => {
     try {
       setGuardando(tipo);
-      const doc = construir(tipo);
-      const nombre = nombreArchivoLibro(tipo, building, year);
-      const blob = doc.output('blob');
-      const file = new File([blob], nombre, { type: 'application/pdf' });
-      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      const me = await base44.auth.me().catch(() => null);
-      const resumen = tipo === 'libro_fgas'
-        ? `${equipment.filter((e) => e.refrigerant_type).length} equipos con gas · ${registrosFGas.length} intervenciones`
-        : `${equipment.length} equipos · ${revisions.length} mantenimientos`;
-      await base44.entities.BuildingDocument.create({
-        building_id: building.id,
+      const blob = construir(tipo).output('blob');
+      const file = new File([blob], nombreArchivoLibro(tipo, building, year), { type: 'application/pdf' });
+      await guardarDocumento(file, {
         client_id: building.client_id,
         company_id: client?.company_id || '',
         year,
         tipo,
         titulo: tituloLibro(tipo, year),
-        file_uri,
-        resumen,
-        generated_by_name: me?.full_name || '',
+        resumen: tipo === 'libro_fgas'
+          ? `${equipment.filter((e) => e.refrigerant_type).length} equipos con gas · ${registrosFGas.length} intervenciones`
+          : `${equipment.length} equipos · ${revisions.length} mantenimientos`,
       });
-      queryClient.invalidateQueries({ queryKey: ['building-documents', building.id] });
       toast.success('Documento guardado en el edificio');
     } catch (e) {
       toast.error('No se pudo guardar el documento');
@@ -159,21 +104,17 @@ export default function BuildingYearDocuments({ building, client, equipment = []
     }
   };
 
-  const abrir = async (documento) => {
+  const abrirDoc = async (d) => {
     try {
-      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({
-        file_uri: documento.file_uri, expires_in: 600,
-      });
-      window.open(signed_url, '_blank');
+      await abrir(d);
     } catch (e) {
       toast.error('No se pudo abrir el documento');
     }
   };
 
-  const eliminar = async (documento) => {
+  const borrar = async (d) => {
     try {
-      await base44.entities.BuildingDocument.delete(documento.id);
-      queryClient.invalidateQueries({ queryKey: ['building-documents', building.id] });
+      await eliminar(d);
       toast.success('Documento eliminado');
     } catch (e) {
       toast.error('No se pudo eliminar el documento');
@@ -181,14 +122,11 @@ export default function BuildingYearDocuments({ building, client, equipment = []
   };
 
   return (
-    <Card className="p-6 bg-white border-0 shadow-sm mb-6">
+    <Card className="p-6 bg-white border-0 shadow-sm">
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Documentación anual
-          </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="font-medium text-slate-800">Libros anuales</p>
+          <p className="text-sm text-slate-500">
             Genera y guarda el libro de mantenimiento y el libro F-Gas de cada año.
           </p>
         </div>
@@ -238,7 +176,6 @@ export default function BuildingYearDocuments({ building, client, equipment = []
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {LIBROS.map((libro) => {
           const Icono = libro.icono;
-          const guardado = documentosAnio.find((d) => d.tipo === libro.tipo);
           return (
             <div key={libro.tipo} className="p-4 rounded-xl border border-slate-200">
               <div className="flex items-start gap-3 mb-3">
@@ -270,12 +207,12 @@ export default function BuildingYearDocuments({ building, client, equipment = []
       </div>
 
       <div className="mt-5">
-        <p className="text-sm font-medium text-slate-700 mb-2">Documentos guardados · {year}</p>
-        {documentosAnio.length === 0 ? (
-          <p className="text-sm text-slate-400 py-3">Todavía no hay documentos guardados de este año.</p>
+        <p className="text-sm font-medium text-slate-700 mb-2">Libros guardados · {year}</p>
+        {librosAnio.length === 0 ? (
+          <p className="text-sm text-slate-400 py-3">Todavía no hay libros guardados de este año.</p>
         ) : (
           <div className="space-y-2">
-            {documentosAnio.map((d) => (
+            {librosAnio.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-700 truncate">{d.titulo}</p>
@@ -284,10 +221,10 @@ export default function BuildingYearDocuments({ building, client, equipment = []
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" onClick={() => abrir(d)}>
+                  <Button variant="ghost" size="icon" onClick={() => abrirDoc(d)}>
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => eliminar(d)}>
+                  <Button variant="ghost" size="icon" onClick={() => borrar(d)}>
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>

@@ -16,15 +16,19 @@
     },
     "year": {
       "type": "number",
-      "description": "A\u00f1o al que corresponde el libro"
+      "description": "A\u00f1o al que corresponde el documento (solo en los libros anuales generados)"
     },
     "tipo": {
       "type": "string",
       "enum": [
         "libro_mantenimiento",
-        "libro_fgas"
+        "libro_fgas",
+        "plano",
+        "documento_acceso",
+        "seguro",
+        "otro"
       ],
-      "description": "Tipo de libro anual generado"
+      "description": "Tipo de documento: libros anuales generados o archivos aportados (planos, accesos, seguros, otros)"
     },
     "titulo": {
       "type": "string",
@@ -32,7 +36,11 @@
     },
     "file_uri": {
       "type": "string",
-      "description": "URI privada del PDF generado"
+      "description": "URI privada del archivo"
+    },
+    "nombre_original": {
+      "type": "string",
+      "description": "Nombre original del archivo subido"
     },
     "resumen": {
       "type": "string",
@@ -40,12 +48,11 @@
     },
     "generated_by_name": {
       "type": "string",
-      "description": "Usuario que gener\u00f3 el documento"
+      "description": "Usuario que subi\u00f3 o gener\u00f3 el documento"
     }
   },
   "required": [
     "building_id",
-    "year",
     "tipo",
     "titulo",
     "file_uri"
@@ -63,7 +70,18 @@
         }
       ]
     },
-    "read": null,
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "update": {
       "$or": [
         {
