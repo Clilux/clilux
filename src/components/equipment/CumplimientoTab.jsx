@@ -144,7 +144,8 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
     finally { setGenLd(false); }
   };
 
-  const tieneGas = !!eq.refrigerant_type;
+  const tieneGas = eq.has_fluorinated_gas === true
+    || (gwpDe(eq.refrigerant_type) !== undefined && Number(eq.refrigerant_charge_kg) > 0);
 
   return (
     <div className="space-y-4">

@@ -1,4 +1,6 @@
 import jsPDF from 'jspdf';
+import { gwpDe } from '@/lib/refrigerantes';
+import { calcularPlazoControlFugas } from '@/lib/fgas-plazos';
 
 /**
  * Generación de los libros anuales de un edificio:
@@ -53,17 +55,31 @@ export function tituloLibro(tipo, year) {
     : `Libro de Mantenimiento ${year}`;
 }
 
+/**
+ * Un equipo entra en el ámbito F-Gas solo si realmente lleva gas fluorado:
+ * la marca del equipo, o un refrigerante reconocido con carga registrada.
+ * Los equipos de agua, aire o sin carga quedan fuera.
+ */
+export function llevaFGas(e) {
+  if (!e) return false;
+  if (e.has_fluorinated_gas === true) return true;
+  const refrig = e.refrigerant_type || e.technical_data?.tipo_refrigerante;
+  if (gwpDe(refrig) === undefined) return false;
+  const carga = Number(e.refrigerant_charge_kg ?? e.technical_data?.carga_refrigerante) || 0;
+  return carga > 0;
+}
+
 /** Equipos con gas a los que les falta información para emitir el libro F-Gas */
 export function datosFGasFaltantes(equipment = []) {
   return equipment
-    .filter((e) => e.status !== 'sin_contrato')
+    .filter((e) => e.status !== 'sin_contrato' && llevaFGas(e))
     .map((e) => {
-      const refrig = e.refrigerant_type || e.technical_data?.tipo_refrigerante;
-      if (!refrig) return null;
       const faltan = [];
       if (!Number(e.refrigerant_charge_kg)) faltan.push('carga de refrigerante (kg)');
       if (!Number(e.co2_equivalent_tons)) faltan.push('tCO₂eq');
-      if (!e.next_leak_check_date) faltan.push('próximo control de fugas');
+      // La fecha de control solo es exigible si el equipo supera el umbral legal.
+      const plazo = calcularPlazoControlFugas(e.co2_equivalent_tons, e.has_leak_detection_system, e.is_hermetically_sealed);
+      if (!e.next_leak_check_date && plazo.obligatorio) faltan.push('próximo control de fugas');
       return faltan.length ? { equipment: e, faltan } : null;
     })
     .filter(Boolean);
@@ -337,7 +353,7 @@ export function generarLibroFGasAnual({
   });
 
   const equiposGas = equipment.filter(
-    (e) => (e.refrigerant_type || e.technical_data?.tipo_refrigerante) && e.status !== 'sin_contrato',
+    (e) => e.status !== 'sin_contrato' && llevaFGas(e),
   );
   const cargaTotal = equiposGas.reduce((s, e) => s + (Number(e.refrigerant_charge_kg) || 0), 0);
   const tco2Total = equiposGas.reduce((s, e) => s + (Number(e.co2_equivalent_tons) || 0), 0);

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { gwpDe, periodicidadMeses } from '../../shared/fgas.ts';
 
 /**
  * Alertas preventivas F-Gas.
@@ -41,15 +42,25 @@ export default async function (req) {
     });
 
     // ── 2. Datos F-Gas incompletos ───────────────────────────────
+    // Solo los equipos que realmente llevan gas fluorado: marca del equipo, o
+    // refrigerante reconocido con carga registrada (agua/aire/sin carga quedan fuera).
+    const llevaFGas = (e: any) => {
+      if (e.has_fluorinated_gas === true) return true;
+      const refrig = e.refrigerant_type || e.technical_data?.tipo_refrigerante;
+      if (gwpDe(refrig) === undefined) return false;
+      const carga = Number(e.refrigerant_charge_kg ?? e.technical_data?.carga_refrigerante) || 0;
+      return carga > 0;
+    };
+
     const incompletos = equipos
-      .filter((e) => e.status !== 'sin_contrato')
+      .filter((e) => e.status !== 'sin_contrato' && llevaFGas(e))
       .map((e) => {
-        const refrig = e.refrigerant_type || e.technical_data?.tipo_refrigerante;
-        if (!refrig) return null;
         const faltan = [];
         if (!Number(e.refrigerant_charge_kg)) faltan.push('carga (kg)');
         if (!Number(e.co2_equivalent_tons)) faltan.push('tCO₂eq');
-        if (!e.next_leak_check_date) faltan.push('próximo control');
+        // Solo si el equipo supera el umbral legal de control de fugas.
+        const obliga = periodicidadMeses(e.co2_equivalent_tons, e.has_leak_detection_system, e.is_hermetically_sealed);
+        if (!e.next_leak_check_date && obliga) faltan.push('próximo control');
         return faltan.length ? { equipo: e, faltan } : null;
       })
       .filter(Boolean);

@@ -10,7 +10,7 @@ import { createPageUrl } from '@/utils';
 import { useBuildingYearRecords } from '@/hooks/useBuildingYearRecords';
 import {
   generarLibroMantenimientoAnual, generarLibroFGasAnual, datosFGasFaltantes,
-  nombreArchivoLibro, tituloLibro,
+  nombreArchivoLibro, tituloLibro, llevaFGas,
 } from '@/lib/edificio-libros-pdf';
 
 const LIBROS = [
@@ -93,7 +93,7 @@ export default function BuildingYearBooks({
         tipo,
         titulo: tituloLibro(tipo, year),
         resumen: tipo === 'libro_fgas'
-          ? `${equipment.filter((e) => e.refrigerant_type).length} equipos con gas · ${registrosFGas.length} intervenciones`
+          ? `${equipment.filter(llevaFGas).length} equipos con gas · ${registrosFGas.length} intervenciones`
           : `${equipment.length} equipos · ${revisions.length} mantenimientos`,
       });
       toast.success('Documento guardado en el edificio');
