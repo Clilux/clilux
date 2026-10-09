@@ -2,8 +2,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 /**
  * Alertas preventivas F-Gas.
- * Recorre los equipos con próxima fecha de control de fugas y avisa por email
- * a los gerentes de cada empresa cuando vence en los próximos 15 días (o ya venció).
+ * 1) Equipos cuyo control de fugas vence en los próximos 15 días (o ya venció):
+ *    aviso por email + notificación en el buzón interno.
+ * 2) Equipos con datos F-Gas incompletos (sin carga, sin tCO₂eq o sin próxima
+ *    fecha de control): aviso en el buzón para completarlos antes de emitir el
+ *    libro de registro.
  * Se ejecuta desde el workflow programado (sin sesión).
  */
 
@@ -17,28 +20,42 @@ export default async function (req) {
     const limite = new Date(hoy);
     limite.setDate(limite.getDate() + DIAS_AVISO);
 
-    // ── Equipos con fecha de control programada ──────────────────
-    const equipos = await base44.asServiceRole.entities.Equipment.filter(
-      { next_leak_check_date: { $exists: true } },
-      { limit: 1000 },
-    );
     const clientes = await base44.asServiceRole.entities.Client.list();
     const edificios = await base44.asServiceRole.entities.Building.list();
     const tecnicos = await base44.asServiceRole.entities.Technician.list();
+    const equipos = await base44.asServiceRole.entities.Equipment.list('-created_date', 1000);
 
     const clientePorId = {};
     clientes.forEach((c) => { clientePorId[c.id] = c; });
     const edificioPorId = {};
     edificios.forEach((b) => { edificioPorId[b.id] = b; });
 
+    const nombreEquipo = (e) => e.reference_name || `${e.brand || ''} ${e.model || ''}`.trim() || 'Equipo';
+
+    // ── 1. Controles de fugas que vencen ─────────────────────────
     const vencen = equipos.filter((e) => {
+      if (!e.next_leak_check_date || e.status === 'sin_contrato') return false;
       const f = new Date(e.next_leak_check_date);
       if (isNaN(f.getTime())) return false;
       return f <= limite;
     });
 
-    if (vencen.length === 0) {
-      return Response.json({ ok: true, enviados: 0, motivo: 'Sin revisiones próximas' });
+    // ── 2. Datos F-Gas incompletos ───────────────────────────────
+    const incompletos = equipos
+      .filter((e) => e.status !== 'sin_contrato')
+      .map((e) => {
+        const refrig = e.refrigerant_type || e.technical_data?.tipo_refrigerante;
+        if (!refrig) return null;
+        const faltan = [];
+        if (!Number(e.refrigerant_charge_kg)) faltan.push('carga (kg)');
+        if (!Number(e.co2_equivalent_tons)) faltan.push('tCO₂eq');
+        if (!e.next_leak_check_date) faltan.push('próximo control');
+        return faltan.length ? { equipo: e, faltan } : null;
+      })
+      .filter(Boolean);
+
+    if (vencen.length === 0 && incompletos.length === 0) {
+      return Response.json({ ok: true, enviados: 0, motivo: 'Sin revisiones próximas ni datos pendientes' });
     }
 
     // ── Agrupar por empresa ──────────────────────────────────────
@@ -52,9 +69,24 @@ export default async function (req) {
       const dias = Math.round((f - hoy) / 86400000);
       const cuando = dias < 0 ? `VENCIDO (${Math.abs(dias)} días)` : dias === 0 ? 'vence hoy' : `vence en ${dias} días`;
       porEmpresa[companyId].push(
-        `• ${cliente.name || 'Cliente'} · ${edificio.name || 'Edificio'} · ${e.reference_name || `${e.brand || ''} ${e.model || ''}`.trim() || 'Equipo'}`
+        `• ${cliente.name || 'Cliente'} · ${edificio.name || 'Edificio'} · ${nombreEquipo(e)}`
         + ` — ${String(e.next_leak_check_date).slice(0, 10)} (${cuando})`,
       );
+    });
+
+    const incompletosPorEmpresa = {};
+    incompletos.forEach(({ equipo, faltan }) => {
+      const cliente = clientePorId[equipo.client_id] || {};
+      const companyId = cliente.company_id || 'sin_empresa';
+      if (!incompletosPorEmpresa[companyId]) incompletosPorEmpresa[companyId] = [];
+      const edificio = edificioPorId[equipo.building_id] || {};
+      incompletosPorEmpresa[companyId].push({
+        equipo,
+        edificio,
+        cliente,
+        faltan,
+        texto: `• ${cliente.name || 'Cliente'} · ${edificio.name || 'Edificio'} · ${nombreEquipo(equipo)} — falta ${faltan.join(', ')}`,
+      });
     });
 
     // ── Destinatarios: gerentes de cada empresa + admins de plataforma ──
@@ -64,26 +96,92 @@ export default async function (req) {
 
     const destinatarios = [];
     const yaAvisado = new Set();
+    const destinatariosIncompletos = [];
+
     gerentes.forEach((g) => {
       const companyId = g.company_id || 'sin_empresa';
-      const lista = porEmpresa[companyId];
-      if (!lista || lista.length === 0) return;
       const key = (g.email || '').toLowerCase();
-      if (yaAvisado.has(key)) return;
-      yaAvisado.add(key);
-      destinatarios.push({ email: g.email, empresa: g.company_name || 'tu empresa', items: lista });
+      const lista = porEmpresa[companyId];
+      const pendientes = incompletosPorEmpresa[companyId];
+      if (lista && lista.length > 0 && !yaAvisado.has(key)) {
+        yaAvisado.add(key);
+        destinatarios.push({ email: g.email, empresa: g.company_name || 'tu empresa', items: lista });
+      }
+      if (pendientes && pendientes.length > 0) {
+        destinatariosIncompletos.push({ email: g.email, companyId, pendientes });
+      }
     });
+
     // Admins de plataforma: reciben el resumen global de las empresas sin gerente
     const emailsGerente = new Set(gerentes.map((g) => (g.email || '').toLowerCase()));
     const adminSinEmpresa = [...emailsAdmin].filter((e) => !emailsGerente.has(e));
     if (adminSinEmpresa.length > 0) {
       const todas = Object.values(porEmpresa).flat();
-      adminSinEmpresa.forEach((email) => {
-        destinatarios.push({ email, empresa: 'la plataforma', items: todas });
-      });
+      if (todas.length > 0) {
+        adminSinEmpresa.forEach((email) => {
+          destinatarios.push({ email, empresa: 'la plataforma', items: todas });
+        });
+      }
+      const todosIncompletos = Object.values(incompletosPorEmpresa).flat();
+      if (todosIncompletos.length > 0) {
+        adminSinEmpresa.forEach((email) => {
+          destinatariosIncompletos.push({ email, companyId: 'sin_empresa', pendientes: todosIncompletos });
+        });
+      }
     }
 
-    // ── Enviar ───────────────────────────────────────────────────
+    // ── Buzón interno: controles próximos ────────────────────────
+    let avisosBuzon = 0;
+    for (const dest of destinatarios) {
+      const titulo = `${dest.items.length} control${dest.items.length > 1 ? 'es' : ''} de fugas F-Gas pendiente${dest.items.length > 1 ? 's' : ''}`;
+      await base44.asServiceRole.entities.Notificacion.create({
+        recipient_email: dest.email,
+        recipient_type: 'gerente',
+        tipo: 'fgas_aviso',
+        titulo,
+        mensaje: dest.items.join('\n'),
+        link: '/LibroRegistroFGas',
+        leida: false,
+        archived: false,
+        datos: { total: dest.items.length },
+      });
+      avisosBuzon += 1;
+    }
+
+    // ── Buzón interno: datos F-Gas incompletos ───────────────────
+    const agrupadosPorEdificio = (pendientes) => {
+      const mapa = new Map();
+      pendientes.forEach((p) => {
+        const id = p.equipo.building_id || 'sin_edificio';
+        if (!mapa.has(id)) mapa.set(id, { edificio: p.edificio, items: [] });
+        mapa.get(id).items.push(p);
+      });
+      return [...mapa.values()];
+    };
+
+    for (const dest of destinatariosIncompletos) {
+      const total = dest.pendientes.length;
+      const grupos = agrupadosPorEdificio(dest.pendientes);
+      for (const grupo of grupos) {
+        const nombreEdificio = grupo.edificio?.name || 'Edificio sin asignar';
+        await base44.asServiceRole.entities.Notificacion.create({
+          recipient_email: dest.email,
+          recipient_type: 'gerente',
+          company_id: dest.companyId === 'sin_empresa' ? '' : dest.companyId,
+          tipo: 'fgas_datos_incompletos',
+          titulo: `Completa los datos F-Gas · ${nombreEdificio}`,
+          mensaje: `${grupo.items.length} equipo(s) con información F-Gas pendiente. Sin estos datos el libro de registro no refleja la instalación real:\n`
+            + grupo.items.map((p) => p.texto.replace(/^• /, '• ')).join('\n'),
+          link: grupo.edificio?.id ? `/BuildingDetail?id=${grupo.edificio.id}` : '/Equipment',
+          leida: false,
+          archived: false,
+          datos: { total, edificio: nombreEdificio },
+        });
+        avisosBuzon += 1;
+      }
+    }
+
+    // ── Email (solo cuando hay controles próximos) ───────────────
     const fechaTxt = hoy.toISOString().slice(0, 10);
     let enviados = 0;
     for (const dest of destinatarios) {
@@ -100,7 +198,13 @@ export default async function (req) {
       if (res) enviados += 1;
     }
 
-    return Response.json({ ok: true, equipos: vencen.length, enviados });
+    return Response.json({
+      ok: true,
+      equipos: vencen.length,
+      incompletos: incompletos.length,
+      enviados,
+      avisosBuzon,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

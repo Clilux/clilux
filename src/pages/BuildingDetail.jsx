@@ -18,6 +18,7 @@ import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import BuildingReport from '../components/reports/BuildingReport';
 import BuildingPendientes from '../components/buildings/BuildingPendientes';
 import BuildingYearPlan from '../components/buildings/BuildingYearPlan';
+import BuildingYearDocuments from '../components/buildings/BuildingYearDocuments';
 import { toast } from 'sonner';
 
 export default function BuildingDetail() {
@@ -308,6 +309,15 @@ export default function BuildingDetail() {
             </div>
           )}
         </Card>
+
+        {!isSessionTech && (
+          <BuildingYearDocuments
+            building={finalBuilding}
+            client={finalClient}
+            equipment={finalEquipment}
+            revisions={finalRevisions}
+          />
+        )}
 
         <BuildingYearPlan revisions={finalRevisions} />
 
