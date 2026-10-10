@@ -119,13 +119,13 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] md:max-w-5xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
-        <DialogHeader>
+      <DialogContent className="flex h-[94vh] max-h-[94vh] w-[97vw] max-w-[1600px] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-4 pr-14">
           <DialogTitle className="text-xl">{registro ? `Editar ${cfg.label.toLowerCase()}` : `Nuevo ${cfg.label.toLowerCase()}`}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <Label>Número</Label>
               <Input value={form.numero || ''} onChange={e => setForm(p => ({ ...p, numero: e.target.value }))} className="mt-1" />
@@ -134,33 +134,31 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
               <Label>Fecha</Label>
               <Input type="date" value={form.fecha || ''} onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))} className="mt-1" />
             </div>
-          </div>
 
-          {esPresupuesto && (
-            <div>
-              <Label>Título *</Label>
-              <Input value={form.titulo || ''} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} className="mt-1" placeholder="Ej. Sustitución de enfriadora en cubierta" />
-            </div>
-          )}
-
-          <div>
-            <Label>{esPresupuesto ? 'Cliente *' : 'Proveedor *'}</Label>
-            <Select value={form._partyId || ''} onValueChange={v => setForm(p => ({ ...p, _partyId: v }))}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder={esPresupuesto ? 'Seleccionar cliente...' : 'Seleccionar proveedor...'} />
-              </SelectTrigger>
-              <SelectContent>
-                {(esPresupuesto ? clients : proveedores).map(p => (
-                  <SelectItem key={p.id} value={p.id}>{esPresupuesto ? p.name : p.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!esPresupuesto && proveedores.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">Crea primero un proveedor en el módulo Proveedores.</p>
+            {esPresupuesto && (
+              <div className="sm:col-span-2">
+                <Label>Título *</Label>
+                <Input value={form.titulo || ''} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} className="mt-1" placeholder="Ej. Sustitución de enfriadora en cubierta" />
+              </div>
             )}
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>{esPresupuesto ? 'Cliente *' : 'Proveedor *'}</Label>
+              <Select value={form._partyId || ''} onValueChange={v => setForm(p => ({ ...p, _partyId: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder={esPresupuesto ? 'Seleccionar cliente...' : 'Seleccionar proveedor...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(esPresupuesto ? clients : proveedores).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{esPresupuesto ? p.name : p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!esPresupuesto && proveedores.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Crea primero un proveedor en el módulo Proveedores.</p>
+              )}
+            </div>
+
             <div>
               <Label>Estado</Label>
               <Select value={form.estado} onValueChange={v => setForm(p => ({ ...p, estado: v }))}>
@@ -170,6 +168,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
                 </SelectContent>
               </Select>
             </div>
+
             <div>
               <Label>{esPresupuesto ? 'Válido hasta' : tipo === 'pedido' ? 'Entrega prevista' : 'Nº factura proveedor'}</Label>
               {tipo === 'compra' ? (
@@ -183,20 +182,19 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
                 />
               )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>IVA (%)</Label>
               <Input type="number" min="0" step="0.5" value={form.iva} onChange={e => setForm(p => ({ ...p, iva: e.target.value }))} className="mt-1" />
             </div>
+
             {tipo === 'compra' && (
               <div>
                 <Label>Forma de pago</Label>
                 <Select value={form.forma_pago} onValueChange={v => setForm(p => ({ ...p, forma_pago: v }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(FORMAS_PAGO).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    {Object.entries(FORMAS_PAGO).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -233,14 +231,23 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
               placeholder="Observaciones..."
             />
           </div>
+        </div>
 
-          <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={guardar} disabled={!puedeGuardar || saving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              {registro ? 'Guardar cambios' : `Crear ${cfg.label.toLowerCase()}`}
-            </Button>
-          </div>
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-3">
+          {!puedeGuardar && (
+            <p className="mr-auto text-xs text-slate-400">
+              {!form._partyId
+                ? (esPresupuesto ? 'Selecciona un cliente para guardar.' : 'Selecciona un proveedor para guardar.')
+                : !lineasOk
+                ? 'Añade al menos una partida al presupuesto.'
+                : 'Indica un título para guardar.'}
+            </p>
+          )}
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={guardar} disabled={!puedeGuardar || saving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {registro ? 'Guardar cambios' : `Crear ${cfg.label.toLowerCase()}`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
