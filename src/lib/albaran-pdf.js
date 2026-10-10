@@ -1,62 +1,27 @@
-// Documento PDF de un albarán de trabajo (A4) con el técnico que lo realiza.
+// Documento PDF de un albarán de trabajo (A4) con el logo y la marca de agua de la empresa.
 import { jsPDF } from 'jspdf';
-import { format } from 'date-fns';
+import { AZUL, GRIS, cabeceraDocumento, decorarPaginas, euros, fdate } from '@/lib/pdf-marca';
 
-const AZUL = [79, 70, 229];
-const GRIS = [90, 90, 90];
+// Compatibilidad: el formulario de albaranes sigue pidiendo el helper desde aquí.
+export { imagenADataURL } from '@/lib/pdf-marca';
 
-const euros = (n) =>
-  `${(Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-
-const fdate = (f) => {
-  if (!f) return '—';
-  try { return format(new Date(f), 'dd/MM/yyyy'); } catch { return f; }
-};
-
-/**
- * jsPDF no admite URLs remotas en addImage: la imagen debe llegar como data URL.
- * Devuelve null si no se puede leer (el documento se emite igualmente).
- */
-export async function imagenADataURL(url) {
-  if (!url) return null;
-  try {
-    const blob = await (await fetch(url)).blob();
-    return await new Promise((resolve, reject) => {
-      const lector = new FileReader();
-      lector.onload = () => resolve(lector.result);
-      lector.onerror = reject;
-      lector.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
-export function buildAlbaranPDF({ albaran = {}, lineas = [], hideRates = false, empresa, firmaDataUrl = null }) {
+export function buildAlbaranPDF({ albaran = {}, lineas = [], hideRates = false, empresa, firmaDataUrl = null, logo = null }) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210;
   const M = 15;
   const derecha = W - M;
   let y = 0;
 
-  // Cabecera
-  doc.setFillColor(...AZUL);
-  doc.rect(0, 0, W, 30, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('ALBARÁN DE TRABAJO', M, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  const nombreEmpresa = empresa?.name || empresa?.company_name || '';
-  if (nombreEmpresa) doc.text(nombreEmpresa, M, 19);
-  doc.setFontSize(10);
-  doc.text(`Nº ${albaran.numero || '—'}`, derecha, 13, { align: 'right' });
-  doc.setFontSize(9);
-  doc.text(`Fecha: ${fdate(albaran.fecha)}`, derecha, 19, { align: 'right' });
+  cabeceraDocumento(doc, {
+    titulo: 'ALBARÁN DE TRABAJO',
+    empresa,
+    logo,
+    meta: [['Nº', albaran.numero || '—'], ['Fecha', fdate(albaran.fecha)]],
+    W, M,
+  });
 
   // Cliente, técnico y objeto
-  y = 42;
+  y = 43;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...GRIS);
@@ -93,11 +58,11 @@ export function buildAlbaranPDF({ albaran = {}, lineas = [], hideRates = false, 
 
   // Cabecera de líneas
   const cabeceraTabla = () => {
-    doc.setFillColor(240, 241, 246);
+    doc.setFillColor(...AZUL);
     doc.rect(M, y - 5, W - M * 2, 8, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(60, 60, 60);
+    doc.setTextColor(255, 255, 255);
     doc.text('CONCEPTO', M + 2, y);
     doc.text('UD', 132, y, { align: 'right' });
     doc.text('CANT.', 150, y, { align: 'right' });
@@ -172,9 +137,7 @@ export function buildAlbaranPDF({ albaran = {}, lineas = [], hideRates = false, 
     doc.text('Firma del cliente', M, y + 5);
   }
 
-  doc.setFontSize(7.5);
-  doc.setTextColor(130, 130, 130);
-  doc.text('Documento generado por Clilux', M, 288);
+  decorarPaginas(doc, { logo, textoMarca: empresa?.name || empresa?.company_name, empresa, W, H: 297, M });
 
   return doc;
 }

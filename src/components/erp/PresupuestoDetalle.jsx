@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Send, FileCode2, FileSpreadsheet, Pencil, ShoppingCart } from 'lucide-react';
+import { Download, Send, FileCode2, FileSpreadsheet, Pencil, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { descargarPresupuestoPDF } from '@/lib/presupuesto-pdf';
 import { descargarBC3, presupuestoToBC3 } from '@/lib/bc3';
 import { descargarPresupuestoExcel } from '@/lib/presupuesto-excel';
-import { enviarPresupuesto } from '@/lib/presupuesto-envio';
+import EnviarPresupuestoModal from '@/components/erp/EnviarPresupuestoModal';
 import { aplanarArbol, arbolDe, cantidadPartida, esCapitulo, importeNodo, margenArbol, margenPartida, medicionTotal } from '@/lib/presto-arbol';
 import { euros } from '@/lib/erp-config';
 
@@ -20,7 +20,7 @@ const dimensiones = (m) =>
 
 /** Visualización de un presupuesto con acciones de descarga, envío y exportación a Presto. */
 export default function PresupuestoDetalle({ open, onClose, presupuesto, client, empresa, sessionTechEmail, onEdit, onSent, onGenerarPedido }) {
-  const [enviando, setEnviando] = useState(false);
+  const [enviarOpen, setEnviarOpen] = useState(false);
   const p = presupuesto || {};
   const arbol = arbolDe(p);
   const filas = aplanarArbol(arbol);
@@ -28,17 +28,11 @@ export default function PresupuestoDetalle({ open, onClose, presupuesto, client,
   const ivaPct = Number(p.iva) || 0;
   const margen = margenArbol(arbol);
 
-  const enviar = async () => {
-    setEnviando(true);
+  const descargarPDF = async () => {
     try {
-      const res = await enviarPresupuesto({ presupuesto: p, client, empresa, sessionTechEmail });
-      toast.success(`Presupuesto enviado a ${res.to}`);
-      onSent?.();
-      onClose();
-    } catch (e) {
-      toast.error(e.message || 'No se pudo enviar el presupuesto');
-    } finally {
-      setEnviando(false);
+      await descargarPresupuestoPDF({ presupuesto: p, client, empresa });
+    } catch {
+      toast.error('No se pudo generar el PDF');
     }
   };
 
@@ -56,6 +50,7 @@ export default function PresupuestoDetalle({ open, onClose, presupuesto, client,
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-[95vw] md:max-w-5xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
@@ -165,7 +160,7 @@ export default function PresupuestoDetalle({ open, onClose, presupuesto, client,
             <Button variant="outline" className="gap-2" onClick={exportarExcel}>
               <FileSpreadsheet className="h-4 w-4" />Exportar Excel
             </Button>
-            <Button variant="outline" className="gap-2" onClick={() => descargarPresupuestoPDF({ presupuesto: p, client, empresa })}>
+            <Button variant="outline" className="gap-2" onClick={descargarPDF}>
               <Download className="h-4 w-4" />Descargar PDF
             </Button>
             {onGenerarPedido && (
@@ -176,13 +171,24 @@ export default function PresupuestoDetalle({ open, onClose, presupuesto, client,
             <Button variant="outline" className="gap-2" onClick={() => { onClose(); onEdit?.(p); }}>
               <Pencil className="h-4 w-4" />Editar
             </Button>
-            <Button onClick={enviar} disabled={enviando} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Button onClick={() => setEnviarOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+              <Send className="h-4 w-4" />
               Enviar al cliente
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+
+    <EnviarPresupuestoModal
+      open={enviarOpen}
+      onClose={() => setEnviarOpen(false)}
+      presupuesto={p}
+      client={client}
+      empresa={empresa}
+      sessionTechEmail={sessionTechEmail}
+      onSent={onSent}
+    />
+    </>
   );
 }

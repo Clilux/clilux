@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { format } from 'date-fns';
 import { buildAlbaranPDF, imagenADataURL } from '@/lib/albaran-pdf';
+import { cargarImagen } from '@/lib/pdf-marca';
 import SignaturePad from './SignaturePad';
 
 const UNIDADES = ['ud', 'h', 'kg', 'm', 'm²', 'm³', 'l', 'mes'];
@@ -30,6 +31,16 @@ export default function AlbaranTrabajoForm({
 
   // Los técnicos de campo no ven tarifas; los administradores sí.
   const hideRates = !puedeVerEconomia(techRecord, !isSessionTech);
+
+  // Empresa emisora: aporta el logo y los datos fiscales al PDF del albarán.
+  const companyId = techRecord?.company_id
+    || (clients || []).find(c => c.id === (record?.client_id || prefill?.client_id))?.company_id
+    || null;
+  const { data: empresa = null } = useQuery({
+    queryKey: ['albaran-empresa', companyId],
+    queryFn: () => base44.entities.Company.filter({ company_id: companyId }).then(r => r[0] || null),
+    enabled: !!companyId,
+  });
 
   // ── STEL Order: clientes y artículos ──
   const { data: appSettings } = useQuery({
@@ -273,11 +284,14 @@ export default function AlbaranTrabajoForm({
     setGenerating(true);
     try {
       const firmaDataUrl = await imagenADataURL(form.firma_url);
+      const logo = await cargarImagen(empresa?.logo_url);
       const doc = buildAlbaranPDF({
         albaran: { ...form, tecnico_nombre: tecnicoDoc },
         lineas: totales.lineas,
         hideRates,
         firmaDataUrl,
+        empresa,
+        logo,
       });
       const file = new File([doc.output('blob')], `albaran_${form.numero || 'borrador'}.pdf`, { type: 'application/pdf' });
       const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
@@ -301,11 +315,14 @@ export default function AlbaranTrabajoForm({
         // generar PDF si no existe
         setGenerating(true);
         const firmaDataUrl = await imagenADataURL(form.firma_url);
+        const logo = await cargarImagen(empresa?.logo_url);
         const doc = buildAlbaranPDF({
           albaran: { ...form, tecnico_nombre: tecnicoDoc },
           lineas: totales.lineas,
           hideRates,
           firmaDataUrl,
+          empresa,
+          logo,
         });
         const file = new File([doc.output('blob')], `albaran_${form.numero || 'borrador'}.pdf`, { type: 'application/pdf' });
         const up = await base44.integrations.Core.UploadPublicFile({ file });

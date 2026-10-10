@@ -67,6 +67,14 @@ export function useErpData() {
     },
   });
 
+  // Empresa emisora: aporta el logo y los datos fiscales de los documentos.
+  const companyId = myTechRecord?.company_id || clients[0]?.company_id || null;
+  const { data: empresa = null } = useQuery({
+    queryKey: ['erp-empresa', companyId],
+    queryFn: () => base44.entities.Company.filter({ company_id: companyId }).then(r => r[0] || null),
+    enabled: !!companyId,
+  });
+
   const call = async (entity, extra = {}) => {
     const res = await base44.functions.invoke('erpProxy', {
       technician_email: sessionTechEmail, session_token: getSessionToken(), entity, ...extra,
@@ -111,6 +119,7 @@ export function useErpData() {
   return {
     erp,
     clients,
+    empresa,
     isLoading,
     isSessionTech,
     isAdmin,

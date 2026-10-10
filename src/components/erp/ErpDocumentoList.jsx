@@ -10,12 +10,12 @@ import { toast } from 'sonner';
 import ErpLayout from '@/components/erp/ErpLayout';
 import DocumentoErpForm from '@/components/erp/DocumentoErpForm';
 import PresupuestoDetalle from '@/components/erp/PresupuestoDetalle';
+import EnviarPresupuestoModal from '@/components/erp/EnviarPresupuestoModal';
 import DocumentoErpDetalle from '@/components/erp/DocumentoErpDetalle';
 import GenerarPedidoModal from '@/components/erp/GenerarPedidoModal';
 import ConvertirDocumentoModal from '@/components/erp/ConvertirDocumentoModal';
 import { CONVERSIONES, TIPOS_DOC } from '@/lib/documentos-erp';
 import { useErpData } from '@/hooks/useErpData';
-import { enviarPresupuesto } from '@/lib/presupuesto-envio';
 import { DOCS, ESTADOS, euros, siguienteNumero } from '@/lib/erp-config';
 
 const fecha = (f) => {
@@ -26,7 +26,7 @@ const fecha = (f) => {
 /** Lista genérica de documentos ERP (presupuestos, pedidos o compras). */
 export default function ErpDocumentoList({ tipo }) {
   const cfg = DOCS[tipo];
-  const { erp, clients, isLoading, saveDocumento, deleteDocumento, refresh, effectiveEmail, effectiveName } = useErpData();
+  const { erp, clients, empresa, isLoading, saveDocumento, deleteDocumento, refresh, effectiveEmail, effectiveName } = useErpData();
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -34,7 +34,7 @@ export default function ErpDocumentoList({ tipo }) {
   const [viendo, setViendo] = useState(null);
   const [pedidoDesde, setPedidoDesde] = useState(null);
   const [convirtiendo, setConvirtiendo] = useState(null);
-  const [enviandoId, setEnviandoId] = useState(null);
+  const [enviandoDoc, setEnviandoDoc] = useState(null);
 
   const lista = erp[cfg.plural.toLowerCase()] || [];
   const estados = ESTADOS[tipo];
@@ -72,19 +72,6 @@ export default function ErpDocumentoList({ tipo }) {
   const abrirEditar = (d) => { setEditando(d); setShowForm(true); };
 
   const clienteDe = (d) => clients.find(c => c.id === d.client_id) || null;
-
-  const enviar = async (d) => {
-    setEnviandoId(d.id);
-    try {
-      const res = await enviarPresupuesto({ presupuesto: d, client: clienteDe(d), sessionTechEmail: effectiveEmail });
-      toast.success(`Presupuesto enviado a ${res.to}`);
-      refresh();
-    } catch (e) {
-      toast.error(e.message || 'No se pudo enviar el presupuesto');
-    } finally {
-      setEnviandoId(null);
-    }
-  };
 
   return (
     <ErpLayout active={cfg.plural.toLowerCase()}>
@@ -187,10 +174,9 @@ export default function ErpDocumentoList({ tipo }) {
                           variant="ghost"
                           className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50"
                           title="Enviar al cliente"
-                          disabled={enviandoId === d.id}
-                          onClick={() => enviar(d)}
+                          onClick={() => setEnviandoDoc(d)}
                         >
-                          {enviandoId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          <Send className="h-4 w-4" />
                         </Button>
                       </>
                     )}
@@ -237,10 +223,23 @@ export default function ErpDocumentoList({ tipo }) {
           onClose={() => setViendo(null)}
           presupuesto={viendo}
           client={viendo ? clienteDe(viendo) : null}
+          empresa={empresa}
           sessionTechEmail={effectiveEmail}
           onEdit={abrirEditar}
           onSent={refresh}
           onGenerarPedido={(p) => { setViendo(null); setPedidoDesde(p); }}
+        />
+      )}
+
+      {esPresupuesto && (
+        <EnviarPresupuestoModal
+          open={!!enviandoDoc}
+          onClose={() => setEnviandoDoc(null)}
+          presupuesto={enviandoDoc}
+          client={enviandoDoc ? clienteDe(enviandoDoc) : null}
+          empresa={empresa}
+          sessionTechEmail={effectiveEmail}
+          onSent={refresh}
         />
       )}
 

@@ -9,7 +9,7 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { presupuesto_id, file_url, technician_email } = body;
+    const { presupuesto_id, file_url, technician_email, to } = body;
 
     if (!presupuesto_id || !file_url) {
       return Response.json({ error: 'presupuesto_id y file_url requeridos' }, { status: 400 });
@@ -51,8 +51,10 @@ export default async function (req) {
     if (companyId && client.company_id !== companyId) {
       return Response.json({ error: 'El presupuesto no pertenece a tu empresa' }, { status: 403 });
     }
-    if (!client.email) {
-      return Response.json({ error: 'El cliente no tiene email configurado' }, { status: 400 });
+    // El destinatario es el indicado en el envío o, si no, el de la ficha del cliente.
+    const destinatario = String(to || client.email || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destinatario)) {
+      return Response.json({ error: 'El cliente no tiene un email válido configurado' }, { status: 400 });
     }
 
     const total = `${(Number(presupuesto.total) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -86,7 +88,7 @@ export default async function (req) {
 </html>`;
 
     await base44.integrations.Core.SendEmail({
-      to: client.email,
+      to: destinatario,
       subject: `Presupuesto ${presupuesto.numero || ''} — ${presupuesto.titulo || 'Oferta'}`,
       body: html,
       attachments: [{ filename: `Presupuesto_${(presupuesto.numero || 'borrador').replace(/\s+/g, '_')}.pdf`, file_url }],
@@ -95,10 +97,10 @@ export default async function (req) {
     const actualizado = await sr.Presupuesto.update(presupuesto_id, {
       status: 'enviado',
       fecha_envio: new Date().toISOString(),
-      enviado_a: client.email,
+      enviado_a: destinatario,
     });
 
-    return Response.json({ ok: true, to: client.email, presupuesto: actualizado });
+    return Response.json({ ok: true, to: destinatario, presupuesto: actualizado });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
