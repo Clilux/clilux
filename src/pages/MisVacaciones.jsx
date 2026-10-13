@@ -11,6 +11,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal';
 import VacacionesResumen from '@/components/vacaciones/VacacionesResumen';
 import MisAusenciasLista from '@/components/vacaciones/MisAusenciasLista';
+import CalendarioVacaciones from '@/components/vacaciones/CalendarioVacaciones';
 
 const DIAS_VACACIONES_DEFECTO = 22;
 
@@ -134,6 +135,9 @@ export default function MisVacaciones() {
                 diasPendientes={diasPendientes}
                 diasDisponibles={diasDisponibles}
               />
+              <div className="mb-5">
+                <CalendarioVacaciones ausencias={ausencias} technicians={tech ? [tech] : []} />
+              </div>
               <MisAusenciasLista ausencias={ausencias} />
             </>
           )}
@@ -141,7 +145,7 @@ export default function MisVacaciones() {
       </div>
 
       {showSolicitud && (
-        <SolicitudAusenciaModal currentUser={currentUser} techRecord={tech} onClose={handleClose} />
+        <SolicitudAusenciaModal currentUser={currentUser} techRecord={tech} ausencias={ausencias} onClose={handleClose} />
       )}
     </div>
   );

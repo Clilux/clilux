@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { notificar } from '@/lib/buzon';
 import { getSessionToken } from '@/lib/passwordHash';
+import SelectorDias from '@/components/vacaciones/SelectorDias';
+import { diasLaborablesDe, diasComprometidos, rangoDeDias, iso } from '@/lib/vacaciones-utils';
 
 const TIPOS = {
   vacaciones: 'Vacaciones',
@@ -20,30 +21,29 @@ const TIPOS = {
   otro: 'Otro',
 };
 
-export default function SolicitudAusenciaModal({ currentUser, techRecord, onClose }) {
+export default function SolicitudAusenciaModal({ currentUser, techRecord, ausencias = [], onClose }) {
   const queryClient = useQueryClient();
   // Los técnicos usan su propia sesión (sin sesión Base44): sus solicitudes se
   // crean a través del proxy, que sella la identidad del trabajador.
   const sessionTechEmail = sessionStorage.getItem('technician_email');
-  const [form, setForm] = useState({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
+  const [form, setForm] = useState({ tipo: 'vacaciones', dias: [], motivo: '' });
 
-  const dias = form.fecha_inicio && form.fecha_fin
-    ? differenceInCalendarDays(parseISO(form.fecha_fin), parseISO(form.fecha_inicio)) + 1
-    : 0;
+  const diasLaborables = diasLaborablesDe(techRecord);
+  const email = currentUser?.email || techRecord?.email || '';
+  const diasOcupados = diasComprometidos(ausencias, email, diasLaborables);
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!form.fecha_inicio || !form.fecha_fin) throw new Error('Debes seleccionar fechas de inicio y fin');
-      if (dias < 1) throw new Error('La fecha de fin debe ser posterior a la de inicio');
+      if (!form.dias.length) throw new Error('Marca al menos un día');
+      const rango = rangoDeDias(form.dias);
       const data = {
-        technician_email: currentUser?.email || '',
-        technician_name: techRecord?.name || currentUser?.full_name || currentUser?.email || '',
+        technician_email: email,
+        technician_name: techRecord?.name || currentUser?.full_name || email,
         technician_id: techRecord?.id || '',
         company_id: techRecord?.company_id || '',
         tipo: form.tipo,
-        fecha_inicio: form.fecha_inicio,
-        fecha_fin: form.fecha_fin,
-        dias_totales: dias,
+        dias_solicitados: form.dias,
+        ...rango,
         estado: 'pendiente',
       };
       if (form.motivo) data.motivo = form.motivo;
@@ -52,8 +52,7 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
         const res = await base44.functions.invoke('solicitarAusencia', {
           session_token: getSessionToken(),
           tipo: form.tipo,
-          fecha_inicio: form.fecha_inicio,
-          fecha_fin: form.fecha_fin,
+          dias_solicitados: form.dias,
           motivo: form.motivo || undefined,
         });
         if (res?.data?.error) throw new Error(res.data.error);
@@ -66,16 +65,18 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
       queryClient.invalidateQueries({ queryKey: ['ausencias'] });
+      queryClient.invalidateQueries({ queryKey: ['mis-vacaciones-proxy'] });
+      queryClient.invalidateQueries({ queryKey: ['mis-vacaciones-direct'] });
       queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
       if (sessionTechEmail) { onClose(); return; } // la notificación al gerente ya la crea el servidor
       notificar('vacacion_solicitud', {
         company_id: techRecord?.company_id || '',
-        worker_email: currentUser?.email || '',
+        worker_email: email,
         worker_name: techRecord?.name || currentUser?.full_name || '',
         tipo_aus: TIPOS[form.tipo] || 'vacaciones',
-        fecha_inicio: form.fecha_inicio,
-        fecha_fin: form.fecha_fin,
-        dias,
+        fecha_inicio: rangoDeDias(form.dias).fecha_inicio,
+        fecha_fin: rangoDeDias(form.dias).fecha_fin,
+        dias: form.dias.length,
       });
       onClose();
     },
@@ -84,7 +85,7 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Solicitar ausencia / vacaciones</DialogTitle>
         </DialogHeader>
@@ -98,19 +99,24 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Fecha inicio</Label>
-              <Input type="date" value={form.fecha_inicio} onChange={e => setForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs text-slate-500 mb-1 block">Fecha fin</Label>
-              <Input type="date" value={form.fecha_fin} min={form.fecha_inicio} onChange={e => setForm(p => ({ ...p, fecha_fin: e.target.value }))} />
-            </div>
+
+          <div>
+            <Label className="text-xs text-slate-500 mb-1 block">Marca los días que quieres disfrutar</Label>
+            <SelectorDias
+              value={form.dias}
+              onChange={dias => setForm(p => ({ ...p, dias }))}
+              diasLaborables={diasLaborables}
+              diasOcupados={diasOcupados}
+              minDate={iso(new Date())}
+            />
           </div>
-          {dias > 0 && (
-            <p className="text-sm font-semibold text-blue-600">{dias} día{dias !== 1 ? 's' : ''}</p>
+
+          {form.dias.length > 0 && (
+            <p className="text-sm font-semibold text-blue-600">
+              {form.dias.length} día{form.dias.length !== 1 ? 's' : ''} laborable{form.dias.length !== 1 ? 's' : ''} solicitado{form.dias.length !== 1 ? 's' : ''}
+            </p>
           )}
+
           <div>
             <Label className="text-xs text-slate-500 mb-1 block">Motivo (opcional)</Label>
             <Input value={form.motivo} onChange={e => setForm(p => ({ ...p, motivo: e.target.value }))} placeholder="Observaciones..." />
@@ -120,7 +126,7 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, onClos
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button
             onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending || !form.fecha_inicio || !form.fecha_fin || dias < 1}
+            disabled={createMutation.isPending || form.dias.length === 0}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {createMutation.isPending ? 'Enviando...' : 'Enviar solicitud'}

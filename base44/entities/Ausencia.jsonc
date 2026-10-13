@@ -33,16 +33,23 @@
     "fecha_inicio": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de inicio"
+      "description": "Fecha del primer d\u00eda solicitado"
     },
     "fecha_fin": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de fin"
+      "description": "Fecha del \u00faltimo d\u00eda solicitado"
+    },
+    "dias_solicitados": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "D\u00edas laborables concretos solicitados (formato yyyy-MM-dd). Es la fuente de verdad del consumo de vacaciones."
     },
     "dias_totales": {
       "type": "number",
-      "description": "N\u00famero de d\u00edas"
+      "description": "N\u00famero de d\u00edas laborables solicitados"
     },
     "motivo": {
       "type": "string",

@@ -13,10 +13,14 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Clock, Calendar, Loader2, Trash2, Pencil } from 'lucide-react';
 import { notificar } from '@/lib/buzon';
-import { format, differenceInCalendarDays, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval, getDay, addMonths, subMonths } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import SelectorDias from '@/components/vacaciones/SelectorDias';
+import CalendarioVacaciones from '@/components/vacaciones/CalendarioVacaciones';
+import EditarAusenciaModal from '@/components/vacaciones/EditarAusenciaModal';
+import { diasLaborablesDe, diasComprometidos, rangoDeDias } from '@/lib/vacaciones-utils';
 
 const TIPO_LABELS = {
   vacaciones: { label: 'Vacaciones', color: 'bg-blue-100 text-blue-700' },
@@ -27,113 +31,11 @@ const TIPO_LABELS = {
   otro: { label: 'Otro', color: 'bg-slate-100 text-slate-700' },
 };
 
-const TIPO_COLORS_CAL = {
-  vacaciones: 'bg-blue-200 text-blue-800',
-  baja_medica: 'bg-red-200 text-red-800',
-  permiso: 'bg-yellow-200 text-yellow-800',
-  asunto_propio: 'bg-purple-200 text-purple-800',
-  maternidad_paternidad: 'bg-pink-200 text-pink-800',
-  otro: 'bg-slate-200 text-slate-700',
-};
-
 const ESTADO_CONFIG = {
   pendiente: { label: 'Pendiente', color: 'bg-amber-100 text-amber-700' },
   aprobada: { label: 'Aprobada', color: 'bg-emerald-100 text-emerald-700' },
   rechazada: { label: 'Rechazada', color: 'bg-red-100 text-red-700' },
 };
-
-// ── Mini-calendario de ausencias ─────────────────────────────────────────────
-function CalendarioAusencias({ ausencias, technicians }) {
-  const [mes, setMes] = useState(new Date());
-
-  const start = startOfMonth(mes);
-  const end = endOfMonth(mes);
-  const days = eachDayOfInterval({ start, end });
-
-  // Calcular offset días de semana (lunes=0)
-  const startDow = (getDay(start) + 6) % 7; // 0=Lun
-
-  // Agrupar ausencias aprobadas por día
-  const aprobadas = ausencias.filter(a => a.estado === 'aprobada');
-
-  const getAusenciasForDay = (day) => {
-    return aprobadas.filter(a => {
-      if (!a.fecha_inicio || !a.fecha_fin) return false;
-      return isWithinInterval(day, { start: parseISO(a.fecha_inicio), end: parseISO(a.fecha_fin) });
-    });
-  };
-
-  const DOW = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      {/* Header mes */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setMes(m => subMonths(m, 1))}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h3 className="font-semibold text-slate-700 capitalize">
-          {format(mes, 'MMMM yyyy', { locale: es })}
-        </h3>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setMes(m => addMonths(m, 1))}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Grid días de semana */}
-      <div className="grid grid-cols-7 border-b border-slate-100">
-        {DOW.map(d => (
-          <div key={d} className="text-center py-2 text-xs font-semibold text-slate-400">{d}</div>
-        ))}
-      </div>
-
-      {/* Grid días */}
-      <div className="grid grid-cols-7">
-        {/* Offset */}
-        {Array.from({ length: startDow }).map((_, i) => (
-          <div key={`e-${i}`} className="h-16 border-b border-r border-slate-50" />
-        ))}
-        {days.map(day => {
-          const ausenciasDay = getAusenciasForDay(day);
-          const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-          return (
-            <div key={day.toISOString()}
-              className={`h-16 border-b border-r border-slate-50 p-1 ${isToday ? 'bg-blue-50' : ''}`}>
-              <p className={`text-xs font-medium mb-0.5 ${isToday ? 'text-blue-600 font-bold' : 'text-slate-500'}`}>
-                {format(day, 'd')}
-              </p>
-              <div className="space-y-0.5 overflow-hidden">
-                {ausenciasDay.slice(0, 2).map((a, i) => {
-                  const tech = technicians?.find(t => t.email === a.technician_email || t.user_email === a.technician_email);
-                  const nombre = tech?.name || a.technician_name || '?';
-                  return (
-                    <div key={i} className={`text-[10px] px-1 rounded truncate ${TIPO_COLORS_CAL[a.tipo] || TIPO_COLORS_CAL.otro}`}>
-                      {nombre.split(' ')[0]}
-                    </div>
-                  );
-                })}
-                {ausenciasDay.length > 2 && (
-                  <div className="text-[10px] text-slate-400">+{ausenciasDay.length - 2}</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Leyenda */}
-      <div className="px-4 py-3 border-t border-slate-100">
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(TIPO_LABELS).map(([k, v]) => (
-            <div key={k} className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded ${TIPO_COLORS_CAL[k]}`}>
-              {v.label}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function GestionAusencias() {
@@ -143,10 +45,10 @@ export default function GestionAusencias() {
   const [saving, setSaving] = useState(false);
   const [selectedTechForNew, setSelectedTechForNew] = useState('');
   const [editingVacDias, setEditingVacDias] = useState(null); // { techId, dias }
+  const [editingAusencia, setEditingAusencia] = useState(null); // { ausencia, tech, diasOcupados }
   const [newData, setNewData] = useState({
     tipo: 'vacaciones',
-    fecha_inicio: '',
-    fecha_fin: '',
+    dias: [],
     motivo: '',
   });
 
@@ -213,10 +115,20 @@ export default function GestionAusencias() {
     },
   });
 
+  // Días ya comprometidos del trabajador al que se le registra la ausencia
+  const targetTechNew = isAdmin && selectedTechForNew
+    ? technicians.find(t => t.id === selectedTechForNew)
+    : myTechRecord;
+  const diasOcupadosDialogo = diasComprometidos(
+    ausencias,
+    targetTechNew?.email || targetTechNew?.user_email || myEmail,
+    diasLaborablesDe(targetTechNew)
+  );
+
   const handleCreate = async () => {
-    if (!newData.fecha_inicio || !newData.fecha_fin) return;
+    if (!newData.dias.length) return;
     setSaving(true);
-    const dias = differenceInCalendarDays(parseISO(newData.fecha_fin), parseISO(newData.fecha_inicio)) + 1;
+    const rango = rangoDeDias(newData.dias);
 
     let targetTech = myTechRecord;
     let targetEmail = myEmail;
@@ -230,15 +142,17 @@ export default function GestionAusencias() {
       technician_name: targetTech?.name || currentUser?.full_name || sessionTechName || targetEmail,
       technician_id: targetTech?.id || '',
       company_id: targetTech?.company_id || myTechRecord?.company_id || '',
-      ...newData,
-      dias_totales: dias,
+      tipo: newData.tipo,
+      dias_solicitados: newData.dias,
+      ...rango,
+      ...(newData.motivo ? { motivo: newData.motivo } : {}),
       estado: isAdmin ? 'aprobada' : 'pendiente',
     });
     queryClient.invalidateQueries({ queryKey: ['ausencias'] });
     toast.success(isAdmin ? 'Ausencia registrada' : 'Solicitud enviada');
     setShowNewDialog(false);
     setSelectedTechForNew('');
-    setNewData({ tipo: 'vacaciones', fecha_inicio: '', fecha_fin: '', motivo: '' });
+    setNewData({ tipo: 'vacaciones', dias: [], motivo: '' });
     setSaving(false);
   };
 
@@ -310,6 +224,20 @@ export default function GestionAusencias() {
                   <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
                 </Button>
               </>
+            )}
+            {isAdmin && (
+              <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-slate-500 hover:text-blue-600"
+                title="Corregir los días"
+                onClick={() => {
+                  const t = technicians.find(x => x.email === ausencia.technician_email || x.user_email === ausencia.technician_email);
+                  setEditingAusencia({
+                    ausencia,
+                    tech: t,
+                    diasOcupados: diasComprometidos(ausencias.filter(x => x.id !== ausencia.id), ausencia.technician_email, diasLaborablesDe(t)),
+                  });
+                }}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
             )}
             {isAdmin && (
               <Button size="icon" variant="ghost" onClick={() => handleDelete(ausencia)} className="h-8 w-8 text-slate-400 hover:text-red-600" title="Eliminar petición">
@@ -470,7 +398,7 @@ export default function GestionAusencias() {
           </TabsContent>
 
           <TabsContent value="calendario">
-            <CalendarioAusencias ausencias={ausencias} technicians={technicians} />
+            <CalendarioVacaciones ausencias={ausencias} technicians={technicians} />
           </TabsContent>
         </Tabs>
 
@@ -514,21 +442,20 @@ export default function GestionAusencias() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Fecha inicio</Label>
-                  <Input type="date" value={newData.fecha_inicio}
-                    onChange={e => setNewData(p => ({ ...p, fecha_inicio: e.target.value }))} className="mt-1" />
-                </div>
-                <div>
-                  <Label>Fecha fin</Label>
-                  <Input type="date" value={newData.fecha_fin} min={newData.fecha_inicio}
-                    onChange={e => setNewData(p => ({ ...p, fecha_fin: e.target.value }))} className="mt-1" />
+              <div>
+                <Label>Marca los días laborables</Label>
+                <div className="mt-1">
+                  <SelectorDias
+                    value={newData.dias}
+                    onChange={dias => setNewData(p => ({ ...p, dias }))}
+                    diasLaborables={diasLaborablesDe(targetTechNew)}
+                    diasOcupados={diasOcupadosDialogo}
+                  />
                 </div>
               </div>
-              {newData.fecha_inicio && newData.fecha_fin && (
+              {newData.dias.length > 0 && (
                 <p className="text-sm text-blue-600 font-medium">
-                  {differenceInCalendarDays(parseISO(newData.fecha_fin), parseISO(newData.fecha_inicio)) + 1} días
+                  {newData.dias.length} día{newData.dias.length !== 1 ? 's' : ''} laborable{newData.dias.length !== 1 ? 's' : ''}
                 </p>
               )}
               <div>
@@ -540,7 +467,7 @@ export default function GestionAusencias() {
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancelar</Button>
                 <Button onClick={handleCreate}
-                  disabled={!newData.fecha_inicio || !newData.fecha_fin || saving}
+                  disabled={!newData.dias.length || saving}
                   className="bg-blue-600 hover:bg-blue-700 text-white">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                   Enviar solicitud
@@ -549,6 +476,17 @@ export default function GestionAusencias() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {editingAusencia && (
+          <EditarAusenciaModal
+            ausencia={editingAusencia.ausencia}
+            tech={editingAusencia.tech}
+            diasOcupados={editingAusencia.diasOcupados}
+            isSessionTech={!!sessionTechEmail}
+            effectiveEmail={sessionTechEmail}
+            onClose={() => setEditingAusencia(null)}
+          />
+        )}
       </div>
       </div>
     </div>

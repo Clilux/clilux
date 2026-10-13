@@ -1,154 +1,42 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { Calendar, Pencil, Check, X, Info, CheckCircle, XCircle, Trash2, Bell, ChevronDown, ChevronRight } from 'lucide-react';
+import { Calendar, Pencil, CheckCircle, XCircle, Trash2, Bell, ChevronDown, ChevronRight } from 'lucide-react';
 import { notificar } from '@/lib/buzon';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  DIAS_VACACIONES_DEFECTO, diasLaborablesDe, diasDeAusencia, colorTrabajador, iniciales,
+} from '@/lib/vacaciones-utils';
+import VacacionesGrafica from '@/components/vacaciones/VacacionesGrafica';
+import CalendarioVacaciones from '@/components/vacaciones/CalendarioVacaciones';
+import DetalleTrabajador from '@/components/vacaciones/DetalleTrabajador';
+import EditarAusenciaModal from '@/components/vacaciones/EditarAusenciaModal';
+import EditVacacionesConfigModal from '@/components/vacaciones/EditVacacionesConfigModal';
 
-// Días laborables de vacaciones en España por defecto: 22 días/año
-const DIAS_VACACIONES_DEFECTO = 22;
-
-function EditVacacionesModal({ tech, isSessionTech, effectiveEmail, onClose }) {
-  const queryClient = useQueryClient();
-  const currentYear = new Date().getFullYear();
-
-  const [diasTotales, setDiasTotales] = useState(
-    tech.vacaciones_anuales ?? DIAS_VACACIONES_DEFECTO
-  );
-  const [diasUsadosAnteriores, setDiasUsadosAnteriores] = useState(
-    tech.vacaciones_dias_usados_anteriores ?? 0
-  );
-  const [notas, setNotas] = useState(tech.vacaciones_notas ?? '');
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const updates = {
-        vacaciones_anuales: Number(diasTotales),
-        vacaciones_dias_usados_anteriores: Number(diasUsadosAnteriores),
-        vacaciones_notas: notas,
-      };
-      if (isSessionTech && effectiveEmail) {
-        return base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'technician_update_vacaciones', target_id: tech.id, updates });
-      }
-      return base44.entities.Technician.update(tech.id, updates);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      queryClient.invalidateQueries({ queryKey: ['technicians-proxy'] });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
-      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
-      toast.success('Vacaciones actualizadas');
-      onClose();
-    },
-  });
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800 text-lg">Vacaciones · {tech.name}</h3>
-          <button onClick={onClose}><X className="h-5 w-5 text-slate-400" /></button>
-        </div>
-
-        <div className="bg-brand-50 rounded-lg p-3 flex items-start gap-2 text-sm text-brand-700">
-          <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>Si el trabajador viene de otra aplicación o empieza a mitad de año, indica los días ya utilizados antes de incorporarse a este sistema.</span>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">
-              Días de vacaciones anuales
-            </label>
-            <Input
-              type="number"
-              min={0}
-              max={60}
-              value={diasTotales}
-              onChange={e => setDiasTotales(e.target.value)}
-              className="w-full"
-            />
-            <p className="text-xs text-slate-400 mt-1">Por convenio general: 22 días laborables/año</p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">
-              Días ya usados antes de entrar al sistema ({currentYear})
-            </label>
-            <Input
-              type="number"
-              min={0}
-              value={diasUsadosAnteriores}
-              onChange={e => setDiasUsadosAnteriores(e.target.value)}
-              className="w-full"
-            />
-            <p className="text-xs text-slate-400 mt-1">Días disfrutados en otra app o antes de la incorporación</p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Notas</label>
-            <Input
-              value={notas}
-              onChange={e => setNotas(e.target.value)}
-              placeholder="Ej: Viene de Factorial, tenía 5 días usados en enero"
-              className="w-full"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-          <Button className="flex-1" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-            <Check className="h-4 w-4 mr-2" />Guardar
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function DiasDisfrutadosList({ ausencias, email }) {
-  const periodos = ausencias
-    .filter(a => a.technician_email === email)
-    .sort((a, b) => (b.fecha_inicio || '').localeCompare(a.fecha_inicio || ''));
-  if (periodos.length === 0) {
-    return <p className="text-xs text-slate-400 py-2">Sin vacaciones disfrutadas registradas en el sistema este año.</p>;
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      {periodos.map(a => (
-        <div key={a.id} className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-            <Calendar className="h-3 w-3 text-brand-500" />
-            {a.fecha_inicio && format(parseISO(a.fecha_inicio), 'd MMM', { locale: es })} → {a.fecha_fin && format(parseISO(a.fecha_fin), 'd MMM yyyy', { locale: es })}
-          </div>
-          <p className="text-slate-400 mt-0.5">{a.dias_totales} día{a.dias_totales !== 1 ? 's' : ''}{a.motivo ? ` · ${a.motivo}` : ''}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+const TIPO_AUS = {
+  vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
+  asunto_propio: 'Asunto propio', maternidad_paternidad: 'Mat./Paternidad', otro: 'Otro',
+};
 
 export default function VacacionesPanel({ technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
   const [editingTech, setEditingTech] = useState(null);
   const [expandedTechId, setExpandedTechId] = useState(null);
+  const [editingAusencia, setEditingAusencia] = useState(null); // { ausencia, tech, diasOcupados }
 
   const companyTechs = technicians.filter(t =>
     !myTechRecord?.company_id || t.company_id === myTechRecord?.company_id
   );
-  const companyTechEmails = new Set(companyTechs.map(t => t.user_email || t.email));
 
   const currentYear = new Date().getFullYear();
   const yearStr = String(currentYear);
 
-  // Cargar todas las ausencias de la empresa (proxy para sesión de técnico)
   const { data: allAusencias = [] } = useQuery({
     queryKey: ['ausencias-company', isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
@@ -157,10 +45,38 @@ export default function VacacionesPanel({ technicians, myTechRecord, isSessionTe
         return res.data?.data || [];
       }
       const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
-      return all.filter(a => companyTechEmails.has(a.technician_email));
+      const companyEmails = new Set(companyTechs.map(t => (t.email || '').trim().toLowerCase()));
+      return all.filter(a => companyEmails.has((a.technician_email || '').trim().toLowerCase()));
     },
   });
+
+  const esDeTech = (a, t) => a.technician_email === t.email || a.technician_email === t.user_email;
+  const ausenciasAnio = allAusencias.filter(a => (a.fecha_inicio || '').startsWith(yearStr));
   const pendientes = allAusencias.filter(a => a.estado === 'pendiente');
+
+  const diasDe = (t, estado) => ausenciasAnio
+    .filter(a => a.tipo === 'vacaciones' && esDeTech(a, t) && (!estado || a.estado === estado))
+    .flatMap(a => diasDeAusencia(a, diasLaborablesDe(t)));
+
+  const stats = companyTechs.map(t => {
+    const anuales = t.vacaciones_anuales ?? DIAS_VACACIONES_DEFECTO;
+    const anteriores = t.vacaciones_dias_usados_anteriores ?? 0;
+    const disfrutados = diasDe(t, 'aprobada').length;
+    const diasPendientes = diasDe(t, 'pendiente').length;
+    const totalUsados = anteriores + disfrutados;
+    return { tech: t, anuales, anteriores, disfrutados, diasPendientes, totalUsados, restantes: Math.max(0, anuales - totalUsados) };
+  });
+
+  const diasOcupadosDe = (a) => allAusencias
+    .filter(x => x.id !== a.id && x.estado !== 'rechazada')
+    .flatMap(x => diasDeAusencia(x, diasLaborablesDe(companyTechs.find(t => esDeTech(x, t)))));
+
+  const invalidar = () => {
+    queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
+    queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
+    queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
+    queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
+  };
 
   const resolver = async (a, estado) => {
     try {
@@ -169,10 +85,7 @@ export default function VacacionesPanel({ technicians, myTechRecord, isSessionTe
       } else {
         await base44.entities.Ausencia.update(a.id, { estado });
       }
-      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
-      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
-      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
+      invalidar();
       notificar('vacacion_resuelta', {
         company_id: myTechRecord?.company_id || '',
         worker_email: a.technician_email,
@@ -194,42 +107,73 @@ export default function VacacionesPanel({ technicians, myTechRecord, isSessionTe
       } else {
         await base44.entities.Ausencia.delete(a.id);
       }
-      queryClient.invalidateQueries({ queryKey: ['ausencias-company'] });
-      queryClient.invalidateQueries({ queryKey: ['ausencias-pendientes-count'] });
-      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores-ausencias'] });
-      queryClient.invalidateQueries({ queryKey: ['estado-trabajadores'] });
+      invalidar();
       toast.success('Petición eliminada');
     } catch { toast.error('Error al eliminar'); }
   };
 
-  // Vacaciones aprobadas del año (para calcular días usados y mostrar disfrutados)
-  const ausencias = allAusencias.filter(a =>
-    a.tipo === 'vacaciones' &&
-    a.estado === 'aprobada' &&
-    a.fecha_inicio?.startsWith(yearStr)
-  );
+  const FilaTrabajador = ({ s, index }) => {
+    const abierto = expandedTechId === s.tech.id;
+    const pct = s.anuales > 0 ? Math.min(100, Math.round((s.totalUsados / s.anuales) * 100)) : 0;
+    return (
+      <Card className="p-4 bg-white border-0 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+            style={{ backgroundColor: colorTrabajador(index) }}>
+            {iniciales(s.tech.name)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-slate-800 text-sm truncate">{s.tech.name}</p>
+            <p className="text-xs text-slate-400">
+              <strong className="text-emerald-600">{s.disfrutados}d disfrutados</strong>
+              {s.diasPendientes > 0 && <> · <span className="text-amber-600">{s.diasPendientes}d pendientes</span></>}
+              {s.anteriores > 0 && <> · {s.anteriores}d antes</>}
+              {' · '}{s.restantes} de {s.anuales} disponibles
+            </p>
+          </div>
+          <Badge className={`${s.restantes === 0 ? 'bg-red-100 text-red-700' : s.restantes <= 5 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'} border-0 font-semibold shrink-0`}>
+            {s.restantes}d
+          </Badge>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 shrink-0"
+            onClick={() => setExpandedTechId(abierto ? null : s.tech.id)} title="Ver días disfrutados">
+            {abierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 shrink-0"
+            onClick={() => setEditingTech(s.tech)} title="Configurar días anuales">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
 
-  const TIPO_AUS = {
-    vacaciones: 'Vacaciones', baja_medica: 'Baja médica', permiso: 'Permiso',
-    asunto_propio: 'Asunto propio', maternidad_paternidad: 'Mat./Paternidad', otro: 'Otro',
-  };
+        <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-orange-400' : 'bg-blue-500'}`}
+            style={{ width: `${pct}%` }} />
+        </div>
 
-  const getDiasUsadosEnSistema = (techEmail) => {
-    return ausencias
-      .filter(a => a.technician_email === techEmail)
-      .reduce((sum, a) => sum + (a.dias_totales || 0), 0);
+        {abierto && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <DetalleTrabajador
+              tech={s.tech}
+              year={currentYear}
+              ausencias={ausenciasAnio.filter(a => esDeTech(a, s.tech))}
+              onEdit={(a, ocupados) => setEditingAusencia({ ausencia: a, tech: s.tech, diasOcupados: ocupados })}
+              onDelete={borrar}
+            />
+          </div>
+        )}
+      </Card>
+    );
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-brand-500" />
         <h3 className="font-semibold text-slate-700">Gestión de vacaciones · {currentYear}</h3>
       </div>
 
       {/* Solicitudes pendientes — el gerente las ve nada más abrir */}
       {pendientes.length > 0 && (
-        <Card className="bg-amber-50/60 border-amber-200 shadow-sm mb-4 overflow-hidden">
+        <Card className="bg-amber-50/60 border-amber-200 shadow-sm overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-2 bg-amber-100/60 border-b border-amber-200">
             <Bell className="h-4 w-4 text-amber-600" />
             <h3 className="font-semibold text-amber-800 text-sm">Solicitudes pendientes ({pendientes.length})</h3>
@@ -255,6 +199,10 @@ export default function VacacionesPanel({ technicians, myTechRecord, isSessionTe
                   <Button size="sm" variant="outline" onClick={() => resolver(a, 'rechazada')} className="border-red-200 text-red-600 hover:bg-red-50 h-8 px-3">
                     <XCircle className="h-3.5 w-3.5 mr-1" />Rechazar
                   </Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-slate-500 hover:text-blue-600"
+                    onClick={() => setEditingAusencia({ ausencia: a, tech: companyTechs.find(t => esDeTech(a, t)), diasOcupados: diasOcupadosDe(a) })}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" />Días
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => borrar(a)} className="h-8 w-8 text-slate-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
@@ -263,105 +211,47 @@ export default function VacacionesPanel({ technicians, myTechRecord, isSessionTe
         </Card>
       )}
 
-      <Card className="bg-white border-0 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="text-left p-3 text-slate-500 font-medium">Trabajador</th>
-                <th className="text-center p-3 text-slate-500 font-medium">Días anuales</th>
-                <th className="text-center p-3 text-slate-500 font-medium">Usados antes*</th>
-                <th className="text-center p-3 text-slate-500 font-medium">Usados en sistema</th>
-                <th className="text-center p-3 text-slate-500 font-medium">Total usados</th>
-                <th className="text-center p-3 text-slate-500 font-medium">Restantes</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {companyTechs.map(tech => {
-                const diasAnuales = tech.vacaciones_anuales ?? DIAS_VACACIONES_DEFECTO;
-                const diasAnteriores = tech.vacaciones_dias_usados_anteriores ?? 0;
-                const diasSistema = getDiasUsadosEnSistema(tech.user_email || tech.email);
-                const totalUsados = diasAnteriores + diasSistema;
-                const restantes = Math.max(0, diasAnuales - totalUsados);
-                const porcentaje = Math.round((totalUsados / diasAnuales) * 100);
+      <Tabs defaultValue="resumen">
+        <TabsList className="bg-white shadow-sm">
+          <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="calendario">Calendario</TabsTrigger>
+        </TabsList>
 
-                return (
-                  <React.Fragment key={tech.id}>
-                    <tr className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="p-3">
-                      <div>
-                        <p className="font-medium text-slate-700">{tech.name}</p>
-                        {tech.vacaciones_notas && (
-                          <p className="text-xs text-slate-400 mt-0.5 italic">{tech.vacaciones_notas}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-center font-semibold text-slate-700">{diasAnuales}d</td>
-                    <td className="p-3 text-center text-orange-600 font-medium">
-                      {diasAnteriores > 0 ? `${diasAnteriores}d` : '—'}
-                    </td>
-                    <td className="p-3 text-center text-brand-600 font-medium">{diasSistema}d</td>
-                    <td className="p-3 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`font-semibold ${totalUsados > diasAnuales ? 'text-red-500' : 'text-slate-700'}`}>
-                          {totalUsados}d
-                        </span>
-                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${porcentaje >= 100 ? 'bg-red-500' : porcentaje >= 80 ? 'bg-orange-400' : 'bg-brand-500'}`}
-                            style={{ width: `${Math.min(100, porcentaje)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3 text-center">
-                      <Badge className={`${restantes === 0 ? 'bg-red-100 text-red-700' : restantes <= 5 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'} border-0 font-semibold`}>
-                        {restantes}d
-                      </Badge>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-slate-400 hover:text-brand-600"
-                          onClick={() => setExpandedTechId(expandedTechId === tech.id ? null : tech.id)}
-                          title="Ver días disfrutados"
-                        >
-                          {expandedTechId === tech.id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-slate-400 hover:text-brand-600"
-                          onClick={() => setEditingTech(tech)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedTechId === tech.id && (
-                    <tr className="bg-slate-50/60">
-                      <td colSpan={7} className="p-3">
-                        <DiasDisfrutadosList ausencias={ausencias} email={tech.user_email || tech.email} />
-                      </td>
-                    </tr>
-                  )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-slate-400 p-3 border-t border-slate-50">
-          * Días usados antes de incorporarse a este sistema (otra app, inicio de año, etc.)
-        </p>
-      </Card>
+        <TabsContent value="resumen" className="space-y-4 mt-4">
+          <VacacionesGrafica datos={stats.map(s => ({
+            nombre: (s.tech.name || '').split(' ')[0],
+            disfrutados: s.disfrutados,
+            pendientes: s.diasPendientes,
+            restantes: s.restantes,
+          }))} />
+          <div className="space-y-3">
+            {stats.map((s, i) => <FilaTrabajador key={s.tech.id} s={s} index={i} />)}
+            {stats.length === 0 && (
+              <Card className="p-8 text-center bg-white border-0 shadow-sm">
+                <p className="text-slate-500 text-sm">No hay trabajadores activos en la empresa.</p>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="calendario" className="mt-4">
+          <CalendarioVacaciones ausencias={allAusencias} technicians={companyTechs} />
+        </TabsContent>
+      </Tabs>
 
       {editingTech && (
-        <EditVacacionesModal tech={editingTech} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} onClose={() => setEditingTech(null)} />
+        <EditVacacionesConfigModal tech={editingTech} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} onClose={() => setEditingTech(null)} />
+      )}
+
+      {editingAusencia && (
+        <EditarAusenciaModal
+          ausencia={editingAusencia.ausencia}
+          tech={editingAusencia.tech}
+          diasOcupados={editingAusencia.diasOcupados}
+          isSessionTech={isSessionTech}
+          effectiveEmail={effectiveEmail}
+          onClose={() => setEditingAusencia(null)}
+        />
       )}
     </div>
   );
