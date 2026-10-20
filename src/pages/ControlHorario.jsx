@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock, Navigation, ClipboardList } from 'lucide-react';
-import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, CalendarClock, Navigation, ClipboardList } from 'lucide-react';
 import ParteTrabajoForm from '@/components/partes/ParteTrabajoForm';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
@@ -33,8 +32,6 @@ export default function ControlHorario() {
   const [showAusencia, setShowAusencia] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [expandedMapId, setExpandedMapId] = useState(null);
-  const [showAlbaranObra, setShowAlbaranObra] = useState(false);
-  const [albaranRegistro, setAlbaranRegistro] = useState(null);
   const [showParte, setShowParte] = useState(false);
   const [parteRegistro, setParteRegistro] = useState(null);
   const [confirmHora, setConfirmHora] = useState(null);
@@ -474,8 +471,8 @@ export default function ControlHorario() {
             <Button variant="ghost" size="sm" className="flex-col h-auto py-1.5 text-[10px] text-slate-600 gap-0.5" onClick={() => setShowAtrasada(true)}>
               <CalendarClock className="h-4 w-4" />Atrasada
             </Button>
-            <Button variant="ghost" size="sm" className="flex-col h-auto py-1.5 text-[10px] text-orange-600 gap-0.5" onClick={() => { setAlbaranRegistro(todayRecord || null); setShowAlbaranObra(true); }}>
-              <HardHat className="h-4 w-4" />Albarán
+            <Button variant="ghost" size="sm" className="flex-col h-auto py-1.5 text-[10px] text-orange-600 gap-0.5" onClick={() => { setParteRegistro(todayRecord || null); setShowParte(true); }}>
+              <ClipboardList className="h-4 w-4" />Parte
             </Button>
             <Button variant="ghost" size="sm" className="flex-col h-auto py-1.5 text-[10px] text-purple-600 gap-0.5" onClick={() => setShowAusencia(true)}>
               <Calendar className="h-4 w-4" />Ausencia
@@ -600,8 +597,7 @@ export default function ControlHorario() {
                           <MapPin className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-blue-600" onClick={() => { setParteRegistro(r); setShowParte(true); }} title="Parte de trabajo"><ClipboardList className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-orange-500" onClick={() => { setAlbaranRegistro(r); setShowAlbaranObra(true); }} title="Albarán de obra"><HardHat className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-orange-500" onClick={() => { setParteRegistro(r); setShowParte(true); }} title="Parte de trabajo"><ClipboardList className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="PDF jornada"><FileDown className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-brand-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
                     </div>
@@ -655,14 +651,6 @@ export default function ControlHorario() {
       )}
       {showAusencia && (
         <SolicitudAusenciaModal currentUser={currentUser} techRecord={myTechRecord} onClose={() => setShowAusencia(false)} />
-      )}
-      {showAlbaranObra && (
-        <AlbaranObraModal
-          open={showAlbaranObra}
-          onClose={() => { setShowAlbaranObra(false); setAlbaranRegistro(null); }}
-          techRecord={myTechRecord}
-          registroHorario={albaranRegistro}
-        />
       )}
       {showParte && (
         <ParteTrabajoForm
