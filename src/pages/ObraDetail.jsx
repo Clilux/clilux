@@ -15,7 +15,7 @@ import CompartirButton from '@/components/compartir/CompartirButton';
 import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
-import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save } from 'lucide-react';
+import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
@@ -109,6 +109,23 @@ export default function ObraDetail() {
     enabled: !!obraId,
   });
   const gastosTrabajoTotal = gastosAlbaranes.reduce((s, a) => s + (a.total || 0), 0);
+
+  // Partes de trabajo imputados a la obra (horas del equipo → gasto de mano de obra)
+  const { data: partesObra = [] } = useQuery({
+    queryKey: ['partes-obra', obraId, isSessionTech ? 'proxy' : 'direct'],
+    queryFn: async () => {
+      if (!obraId) return [];
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'partes_by_obra', obra_id: obraId });
+        return res.data?.data || [];
+      }
+      const list = await base44.entities.ParteTrabajo.filter({ obra_id: obraId }, { sort: '-fecha' });
+      return Array.isArray(list) ? list : list.items || [];
+    },
+    enabled: !!obraId,
+  });
+  const gastosPartesTotal = partesObra.reduce((s, p) => s + (Number(p.coste_total) || 0), 0);
+  const horasPartesTotal = partesObra.reduce((s, p) => s + (Number(p.horas) || 0), 0);
 
   const updateObra = useMutation({
     mutationFn: async (data) => {
@@ -270,7 +287,7 @@ export default function ObraDetail() {
   );
 
   const cfg = ESTADO_CONFIG[obra.estado] || ESTADO_CONFIG.activa;
-  const costoTotal = (obra.costo_trabajadores || 0) + (obra.costo_materiales || 0) + gastosTrabajoTotal;
+  const costoTotal = (obra.costo_trabajadores || 0) + (obra.costo_materiales || 0) + gastosTrabajoTotal + gastosPartesTotal;
   const margen = obra.presupuesto_inicial > 0 ? obra.presupuesto_inicial - costoTotal : null;
   const totalFacturado = obra.total_facturado || 0;
 
@@ -448,7 +465,7 @@ export default function ObraDetail() {
                   </div>
                 ) : (
                   <div className="space-y-2 text-sm">
-                    {[['Presupuesto inicial', obra.presupuesto_inicial || 0, 'text-blue-600'], ['Costo mano de obra', obra.costo_trabajadores || 0, 'text-slate-700'], ['Costo materiales', obra.costo_materiales || 0, 'text-slate-700']].map(([lbl, val, cls]) => (
+                    {[['Presupuesto inicial', obra.presupuesto_inicial || 0, 'text-blue-600'], ['Costo mano de obra', obra.costo_trabajadores || 0, 'text-slate-700'], ['Mano de obra por partes', gastosPartesTotal, 'text-orange-600'], ['Costo materiales', obra.costo_materiales || 0, 'text-slate-700']].map(([lbl, val, cls]) => (
                       <div key={lbl} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-0">
                         <span className="text-slate-600">{lbl}</span>
                         <span className={`font-semibold ${cls}`}>{val.toLocaleString('es-ES')}€</span>
@@ -500,6 +517,39 @@ export default function ObraDetail() {
                     <Plus className="h-4 w-4 mr-1" />Añadir
                   </Button>
                 </div>
+              </Card>
+
+              {/* Mano de obra por partes de trabajo */}
+              <Card className="p-4 bg-white border-0 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-orange-600" />Mano de obra por partes ({partesObra.length})
+                  </h3>
+                  <span className="text-sm font-bold text-orange-600">
+                    {gastosPartesTotal.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    <span className="text-xs font-normal text-slate-400 ml-2">{horasPartesTotal.toLocaleString('es-ES')} h</span>
+                  </span>
+                </div>
+                {partesObra.length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-3">Sin partes de trabajo imputados a esta obra</p>
+                ) : (
+                  <div className="space-y-2">
+                    {partesObra.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg text-sm">
+                        <ClipboardList className="h-4 w-4 text-orange-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-slate-700">{p.technician_name || p.technician_email}</span>
+                          <span className="text-slate-400 ml-2 text-xs">{p.fecha && format(parseISO(p.fecha), "d MMM yyyy", { locale: es })}</span>
+                          {p.descripcion && <span className="text-slate-500 ml-2 truncate">{p.descripcion}</span>}
+                        </div>
+                        <span className="text-slate-500 shrink-0">{Number(p.horas || 0).toLocaleString('es-ES')} h</span>
+                        <span className="font-bold text-slate-800 shrink-0 w-24 text-right">
+                          {(Number(p.coste_total) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
 
               {/* Gastos por albaranes de trabajo vinculados */}

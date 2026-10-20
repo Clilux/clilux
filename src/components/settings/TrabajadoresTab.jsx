@@ -18,7 +18,7 @@ export default function TrabajadoresTab({ techEmail }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active' });
+  const [form, setForm] = useState({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active', coste_hora: '' });
   const [docsWorker, setDocsWorker] = useState(null);
   const [permWorker, setPermWorker] = useState(null);
   const [permisos, setPermisos] = useState(null);
@@ -40,7 +40,7 @@ export default function TrabajadoresTab({ techEmail }) {
   });
 
   const resetForm = () => {
-    setForm({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active' });
+    setForm({ name: '', email: '', portal_password: '', worker_type: 'tecnico', is_admin: false, status: 'active', coste_hora: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -50,6 +50,7 @@ export default function TrabajadoresTab({ techEmail }) {
     setForm({
       name: w.name || '', email: w.email || '', portal_password: '',
       worker_type: w.worker_type || 'tecnico', is_admin: !!w.is_admin, status: w.status || 'active',
+      coste_hora: w.coste_hora ?? '',
     });
     setShowForm(true);
   };
@@ -58,7 +59,7 @@ export default function TrabajadoresTab({ techEmail }) {
     mutationFn: async () => {
       if (!form.name || !form.email) throw new Error('Nombre y email obligatorios');
       if (editingId) {
-        const updates = { name: form.name, worker_type: form.worker_type, is_admin: form.is_admin, status: form.status };
+        const updates = { name: form.name, worker_type: form.worker_type, is_admin: form.is_admin, status: form.status, coste_hora: Number(form.coste_hora) || 0 };
         if (form.portal_password) updates.portal_password = form.portal_password;
         const res = await invoke('technician_update', { technician_id: editingId, updates });
         return res.data;
@@ -67,6 +68,7 @@ export default function TrabajadoresTab({ techEmail }) {
       const record = {
         name: form.name, email: form.email, portal_password: form.portal_password,
         portal_email: form.email, worker_type: form.worker_type, is_admin: form.is_admin, status: form.status,
+        coste_hora: Number(form.coste_hora) || 0,
       };
       const res = await invoke('technician_create', { record });
       return res.data;
@@ -185,6 +187,12 @@ export default function TrabajadoresTab({ techEmail }) {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label className="text-slate-600 mb-1">Coste por hora (€/h)</Label>
+              <Input type="number" min="0" step="0.01" value={form.coste_hora}
+                onChange={e => setForm(p => ({ ...p, coste_hora: e.target.value }))} placeholder="Ej: 18.50" />
+              <p className="text-[11px] text-slate-400 mt-1">Valora la mano de obra en los partes de trabajo y en las obras.</p>
+            </div>
             <div className="flex items-center gap-2 md:mt-7">
               <Checkbox id="is_admin" checked={form.is_admin} onCheckedChange={v => setForm(p => ({ ...p, is_admin: !!v }))} />
               <label htmlFor="is_admin" className="text-sm text-slate-600 flex items-center gap-1">
@@ -228,6 +236,11 @@ export default function TrabajadoresTab({ techEmail }) {
                       <Badge className={w.status === 'active' ? 'bg-emerald-100 text-emerald-700 border-0 text-xs' : 'bg-slate-100 text-slate-500 border-0 text-xs'}>
                         {w.status === 'active' ? 'Activo' : 'Inactivo'}
                       </Badge>
+                      {w.coste_hora > 0 && (
+                        <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-200">
+                          {Number(w.coste_hora).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/h
+                        </Badge>
+                      )}
                       {w.pin && <Badge variant="outline" className="text-xs"><KeyRound className="h-3 w-3 mr-1" />PIN</Badge>}
                     </div>
                     <p className="text-xs text-slate-400 truncate">{w.email}</p>

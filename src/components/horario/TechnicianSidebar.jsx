@@ -19,6 +19,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
   const NAV_LINKS = [
     { to: 'HomeTecnico',    label: 'Inicio',          icon: Home,     sessionOnly: false },
     { to: 'ControlHorario', label: 'Control Horario', icon: Clock,    sessionOnly: true },
+    { to: 'PartesTrabajo',  label: 'Partes de Trabajo', icon: ClipboardList, sessionOnly: false },
     { to: 'Calendar',       label: 'Agenda',           icon: Calendar, sessionOnly: true },
     { to: 'MisVacaciones',  label: 'Mis Vacaciones',   icon: CalendarDays, sessionOnly: false },
     { to: 'GestionTrabajo', label: 'Gestión de Trabajo', icon: ClipboardList, sessionOnly: true },

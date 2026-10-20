@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NavHeader from '@/components/navigation/NavHeader';
 import { toast } from 'sonner';
-import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock, Navigation } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, ChevronLeft, ChevronRight, Download, Pencil, MapPin, History, Calendar, FileDown, HardHat, CalendarClock, Navigation, ClipboardList } from 'lucide-react';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
+import ParteTrabajoForm from '@/components/partes/ParteTrabajoForm';
 import { jsPDF } from 'jspdf';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,6 +35,8 @@ export default function ControlHorario() {
   const [expandedMapId, setExpandedMapId] = useState(null);
   const [showAlbaranObra, setShowAlbaranObra] = useState(false);
   const [albaranRegistro, setAlbaranRegistro] = useState(null);
+  const [showParte, setShowParte] = useState(false);
+  const [parteRegistro, setParteRegistro] = useState(null);
   const [confirmHora, setConfirmHora] = useState(null);
   const [showAtrasada, setShowAtrasada] = useState(false);
   const [pendienteFin, setPendienteFin] = useState(null);
@@ -597,6 +600,7 @@ export default function ControlHorario() {
                           <MapPin className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-blue-600" onClick={() => { setParteRegistro(r); setShowParte(true); }} title="Parte de trabajo"><ClipboardList className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-orange-500" onClick={() => { setAlbaranRegistro(r); setShowAlbaranObra(true); }} title="Albarán de obra"><HardHat className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-emerald-600" onClick={() => exportRowPDF(r)} title="PDF jornada"><FileDown className="h-3.5 w-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-brand-600" onClick={() => setEditingRecord(r)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -658,6 +662,12 @@ export default function ControlHorario() {
           onClose={() => { setShowAlbaranObra(false); setAlbaranRegistro(null); }}
           techRecord={myTechRecord}
           registroHorario={albaranRegistro}
+        />
+      )}
+      {showParte && (
+        <ParteTrabajoForm
+          registroHorario={parteRegistro}
+          onClose={() => { setShowParte(false); setParteRegistro(null); }}
         />
       )}
       {confirmHora && (

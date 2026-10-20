@@ -407,6 +407,93 @@ Deno.serve(async (req) => {
       return Response.json({ data: true });
     }
 
+    // ── Partes de trabajo (horas del equipo por cliente / obra) ───
+    // Oculta el coste a quien no debe verlo (técnicos de campo).
+    const sinCoste = (p: any) => (verEconomia ? p : { ...p, coste_hora: 0, coste_total: 0 });
+
+    if (entity === 'partes_list') {
+      const { desde, hasta } = body;
+      const all = await base44.asServiceRole.entities.ParteTrabajo.filter({ company_id: tech.company_id });
+      const miEmail = (tech.email || '').trim().toLowerCase();
+      const veTodos = tech.is_admin === true || tech.worker_type === 'jefe_equipo' || tech.worker_type === 'administracion';
+      let data = veTodos
+        ? all
+        : all.filter((p: any) => (p.technician_email || '').trim().toLowerCase() === miEmail);
+      if (desde && hasta) data = data.filter((p: any) => p.fecha >= desde && p.fecha <= hasta);
+      data = data.sort((a: any, b: any) => (b.fecha || '').localeCompare(a.fecha || ''));
+      return Response.json({ data: data.map(sinCoste) });
+    }
+
+    if (entity === 'partes_by_obra') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: [] });
+      const all = await base44.asServiceRole.entities.ParteTrabajo.filter({ obra_id });
+      const data = all.filter((p: any) => p.company_id === tech.company_id);
+      return Response.json({ data: data.map(sinCoste) });
+    }
+
+    if (entity === 'parte_create' || entity === 'parte_update') {
+      const { record, record_id, target_email } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const isUpdate = entity === 'parte_update';
+      let existing: any = null;
+      if (isUpdate) {
+        if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+        existing = (await base44.asServiceRole.entities.ParteTrabajo.filter({ id: record_id }))[0];
+        if (!existing || existing.company_id !== tech.company_id) {
+          return Response.json({ error: 'Parte no encontrado' }, { status: 404 });
+        }
+        const soyDueno = (existing.technician_email || '').trim().toLowerCase() === (tech.email || '').trim().toLowerCase();
+        if (!soyDueno && !tech.is_admin) return deny('admin');
+      }
+
+      // Trabajador al que se imputan las horas: el propio, o el indicado por el gerente.
+      const emailDestino = (target_email || (isUpdate ? existing.technician_email : tech.email) || '').trim();
+      const esPropio = emailDestino.toLowerCase() === (tech.email || '').trim().toLowerCase();
+      if (!esPropio && !tech.is_admin) return deny('admin');
+      if (!emailDestino) return Response.json({ error: 'Falta el trabajador del parte' }, { status: 400 });
+
+      const destTechs = await base44.asServiceRole.entities.Technician.filter({ email: emailDestino });
+      const dest = destTechs[0];
+      if (!dest || dest.company_id !== tech.company_id) {
+        return Response.json({ error: 'El trabajador no pertenece a tu empresa' }, { status: 403 });
+      }
+      if (!(await assertCompanyClient(record.client_id))) {
+        return Response.json({ error: 'El cliente no pertenece a tu empresa' }, { status: 403 });
+      }
+
+      const horas = Number(record.horas) || 0;
+      const costeHora = Number(dest.coste_hora) || 0;
+      const payload: any = {
+        ...record,
+        numero: record.numero || existing?.numero || `PT-${Date.now().toString().slice(-6)}`,
+        horas,
+        technician_id: dest.id,
+        technician_name: dest.name,
+        technician_email: dest.email,
+        company_id: tech.company_id,
+        coste_hora: costeHora,
+        coste_total: Math.round(horas * costeHora * 100) / 100,
+        created_by_name: existing?.created_by_name || creatorName,
+      };
+      delete payload.id;
+      const data = isUpdate
+        ? await base44.asServiceRole.entities.ParteTrabajo.update(record_id, payload)
+        : await base44.asServiceRole.entities.ParteTrabajo.create(payload);
+      return Response.json({ data });
+    }
+
+    if (entity === 'parte_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const rec = (await base44.asServiceRole.entities.ParteTrabajo.filter({ id: record_id }))[0];
+      if (!rec || rec.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const soyDueno = (rec.technician_email || '').trim().toLowerCase() === (tech.email || '').trim().toLowerCase();
+      if (!soyDueno && !tech.is_admin) return deny('admin');
+      await base44.asServiceRole.entities.ParteTrabajo.delete(record_id);
+      return Response.json({ data: true });
+    }
+
     // ── Libro de Registro de Gases Fluorados (RD 115/2017) ────────
     if (entity === 'fgas_list') {
       const all = await base44.asServiceRole.entities.RegistroFGas.list('-fecha_intervencion');

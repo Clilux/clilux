@@ -82,6 +82,11 @@
       "default": 8,
       "description": "Horas de jornada laboral diaria pactada"
     },
+    "coste_hora": {
+      "type": "number",
+      "default": 0,
+      "description": "Coste por hora del trabajador (\u20ac/h). Se usa para valorar la mano de obra de los partes de trabajo y de las obras."
+    },
     "dias_laborables": {
       "type": "array",
       "items": {

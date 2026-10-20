@@ -1,0 +1,142 @@
+{
+  "name": "ParteTrabajo",
+  "type": "object",
+  "properties": {
+    "numero": {
+      "type": "string",
+      "description": "N\u00ba de parte (auto-generado)"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de los trabajos"
+    },
+    "technician_id": {
+      "type": "string",
+      "description": "ID del trabajador que realiza las horas"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nombre del trabajador (desnormalizado)"
+    },
+    "technician_email": {
+      "type": "string",
+      "description": "Email del trabajador"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente al que se imputan las horas"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (opcional). Si se indica, el coste del parte se suma a los gastos de la obra."
+    },
+    "obra_nombre": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "horas": {
+      "type": "number",
+      "description": "Horas dedicadas"
+    },
+    "coste_hora": {
+      "type": "number",
+      "description": "Coste/hora del trabajador aplicado en el parte (\u20ac/h). Se congela en el momento del registro."
+    },
+    "coste_total": {
+      "type": "number",
+      "description": "Coste de mano de obra del parte: horas x coste_hora"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Trabajos realizados"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "registro_horario_id": {
+      "type": "string",
+      "description": "Jornada (RegistroHorario) de la que se gener\u00f3 el parte (opcional)"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Usuario que registr\u00f3 el parte"
+    }
+  },
+  "required": [
+    "fecha",
+    "technician_name",
+    "technician_email",
+    "client_id",
+    "horas"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.technician_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.technician_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.technician_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.technician_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

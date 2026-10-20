@@ -22,6 +22,7 @@ export const FUNCIONES = [
   { id: '20', label: 'Edificios',           page: 'Buildings',             icon: Building2,       color: 'from-cyan-500/30 to-blue-500/30',     iconCls: 'text-cyan-300',    categoria: 'campo' },
   { id: '21', label: 'Incidencias',         page: 'Incidents',             icon: AlertTriangle,   color: 'from-red-500/30 to-rose-500/30',      iconCls: 'text-red-300',     categoria: 'campo' },
   { id: '23', label: 'Gestión de Trabajo',  page: 'GestionTrabajo',        icon: ClipboardList,   color: 'from-indigo-500/30 to-blue-500/30',   iconCls: 'text-indigo-300',  categoria: 'campo' },
+  { id: '24', label: 'Partes de Trabajo',   page: 'PartesTrabajo',         icon: ClipboardList,   color: 'from-orange-500/30 to-amber-500/30',  iconCls: 'text-orange-300',  categoria: 'campo' },
   { id: '15', label: 'Importar / Exportar', page: 'ImportEquipment',       icon: FileSpreadsheet, color: 'from-emerald-500/30 to-teal-500/30',  iconCls: 'text-emerald-300', categoria: 'administracion', gerenteOnly: true },
   { id: '22', label: 'Kiosko Fichaje',      page: 'KioskoFichaje',         icon: Monitor,         color: 'from-cyan-500/30 to-teal-500/30',     iconCls: 'text-cyan-300',    categoria: 'administracion' },
 ];
