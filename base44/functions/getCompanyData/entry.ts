@@ -82,17 +82,23 @@ Deno.serve(async (req) => {
       ? permisos.ver_economia === true
       : (tech.worker_type === 'jefe_equipo' || tech.worker_type === 'administracion'));
 
+    // Los costes de los trabajadores (€/h y mano de obra) son información de gerencia.
+    const esGerente = tech.is_admin === true;
+    const sinCosteTrabajador = (t: any) => (esGerente ? t : { ...t, coste_hora: 0 });
+
     // Oculta el balance económico de las obras a quien no debe verlo.
     const sinEconomia = (obra: any) => {
-      if (!obra || verEconomia) return obra;
-      return {
-        ...obra,
-        presupuesto_inicial: 0,
-        costo_trabajadores: 0,
-        costo_materiales: 0,
-        total_facturado: 0,
-        facturas: [],
-      };
+      if (!obra) return obra;
+      const out: any = { ...obra };
+      if (!verEconomia) {
+        out.presupuesto_inicial = 0;
+        out.costo_trabajadores = 0;
+        out.costo_materiales = 0;
+        out.total_facturado = 0;
+        out.facturas = [];
+      }
+      if (!esGerente) out.costo_trabajadores = 0;
+      return out;
     };
 
     // ── Aislamiento por empresa ──────────────────────────────────
@@ -163,7 +169,7 @@ Deno.serve(async (req) => {
         settings:  fetches[5][0] || null,
         company:   companyRec,
         tech:      tech,
-        technicians:         fetches[6],
+        technicians:         fetches[6].map(sinCosteTrabajador),
         registros_horarios:  fetches[7],
         ausencias:           fetches[8],
         obras:               fetches[9].map(sinEconomia),
@@ -181,7 +187,7 @@ Deno.serve(async (req) => {
       const list = tech.company_id
         ? await base44.asServiceRole.entities.Technician.filter({ company_id: tech.company_id })
         : [];
-      return Response.json({ data: list });
+      return Response.json({ data: list.map(sinCosteTrabajador) });
     }
 
     if (entity === 'clients') {
@@ -409,7 +415,7 @@ Deno.serve(async (req) => {
 
     // ── Partes de trabajo (horas del equipo por cliente / obra) ───
     // Oculta el coste a quien no debe verlo (técnicos de campo).
-    const sinCoste = (p: any) => (verEconomia ? p : { ...p, coste_hora: 0, coste_total: 0 });
+    const sinCoste = (p: any) => (esGerente ? p : { ...p, coste_hora: 0, coste_total: 0 });
 
     if (entity === 'partes_list') {
       const { desde, hasta } = body;

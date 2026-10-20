@@ -38,6 +38,15 @@ export function puedeVerEconomia(tech, isAdmin = false) {
   return tech?.worker_type === 'jefe_equipo' || tech?.worker_type === 'administracion';
 }
 
+/**
+ * Costes de los trabajadores (€/h y mano de obra): solo gerencia.
+ * Ningún otro portal (técnico, jefe de equipo, administración) los ve.
+ */
+export function puedeVerCostesTrabajador(tech, isAdmin = false) {
+  if (isAdmin) return true;
+  return tech?.is_admin === true;
+}
+
 /** Acceso al módulo ERP: solo el gerente, el admin de la plataforma o quien tenga el permiso concedido. */
 export function puedeAccederErp(tech, { isAdmin = false, isPlatformAdmin = false } = {}) {
   if (isAdmin || isPlatformAdmin) return true;

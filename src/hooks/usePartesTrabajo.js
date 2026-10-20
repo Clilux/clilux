@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { puedeVerEconomia, veTodoElEquipo } from '@/lib/permisos-trabajador';
+import { puedeVerCostesTrabajador, veTodoElEquipo } from '@/lib/permisos-trabajador';
 
 /**
  * Partes de trabajo: fuente única de datos para la página de partes, el formulario
@@ -55,7 +55,8 @@ export function usePartesTrabajo({ month, withPartes = true } = {}) {
   const techRecord = isSessionTech ? proxyMe : techRecordDirect;
   const isAdmin = isPlatformAdmin || techRecord?.is_admin === true;
   const veTodo = veTodoElEquipo(techRecord, isAdmin);
-  const hideRates = !puedeVerEconomia(techRecord, isAdmin);
+  // Los costes de los trabajadores solo los ve el gerente.
+  const hideRates = !puedeVerCostesTrabajador(techRecord, isAdmin);
   const effName = techRecord?.name || base44User?.full_name || '';
 
   // ── Partes del mes (solo cuando la pantalla los necesita) ──

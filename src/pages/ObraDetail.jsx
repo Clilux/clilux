@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
+import EditarObraModal from '@/components/obras/EditarObraModal';
 import CompartirButton from '@/components/compartir/CompartirButton';
-import { puedeVerEconomia } from '@/lib/permisos-trabajador';
+import { puedeVerEconomia, puedeVerCostesTrabajador } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList } from 'lucide-react';
@@ -33,6 +34,7 @@ export default function ObraDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showAlbaran, setShowAlbaran] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [editingEcon, setEditingEcon] = useState(false);
   const [econForm, setEconForm] = useState(null);
   const [newFactura, setNewFactura] = useState({ numero: '', fecha: format(new Date(), 'yyyy-MM-dd'), importe: '', estado: 'pendiente', notas: '' });
@@ -67,6 +69,8 @@ export default function ObraDetail() {
   const isAdmin = (!isSessionTech && base44User?.role === 'admin') || myTechRecord?.is_admin === true;
   // El balance económico de la obra solo lo ven gerencia, jefe de equipo y administración.
   const verEconomia = puedeVerEconomia(myTechRecord, isAdmin);
+  // Los costes de los trabajadores (mano de obra) solo los ve el gerente.
+  const verCostes = puedeVerCostesTrabajador(myTechRecord, isAdmin);
 
   const { data: obra, isLoading } = useQuery({
     queryKey: ['obra', obraId, isSessionTech ? 'proxy' : 'direct'],
@@ -324,6 +328,11 @@ export default function ObraDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
+                    <Pencil className="h-3.5 w-3.5" />Editar obra
+                  </Button>
+                )}
                 <CompartirButton
                   record={obra}
                   entityName="Obra"
@@ -465,7 +474,9 @@ export default function ObraDetail() {
                   </div>
                 ) : (
                   <div className="space-y-2 text-sm">
-                    {[['Presupuesto inicial', obra.presupuesto_inicial || 0, 'text-blue-600'], ['Costo mano de obra', obra.costo_trabajadores || 0, 'text-slate-700'], ['Mano de obra por partes', gastosPartesTotal, 'text-orange-600'], ['Costo materiales', obra.costo_materiales || 0, 'text-slate-700']].map(([lbl, val, cls]) => (
+                    {[['Presupuesto inicial', obra.presupuesto_inicial || 0, 'text-blue-600'], ['Costo mano de obra', obra.costo_trabajadores || 0, 'text-slate-700'], ['Mano de obra por partes', gastosPartesTotal, 'text-orange-600'], ['Costo materiales', obra.costo_materiales || 0, 'text-slate-700']]
+                      .filter(([lbl]) => verCostes || (lbl !== 'Costo mano de obra' && lbl !== 'Mano de obra por partes'))
+                      .map(([lbl, val, cls]) => (
                       <div key={lbl} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-0">
                         <span className="text-slate-600">{lbl}</span>
                         <span className={`font-semibold ${cls}`}>{val.toLocaleString('es-ES')}€</span>
@@ -519,7 +530,8 @@ export default function ObraDetail() {
                 </div>
               </Card>
 
-              {/* Mano de obra por partes de trabajo */}
+              {/* Mano de obra por partes de trabajo (solo gerencia) */}
+              {verCostes && (
               <Card className="p-4 bg-white border-0 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-slate-700 flex items-center gap-2">
@@ -551,6 +563,7 @@ export default function ObraDetail() {
                   </div>
                 )}
               </Card>
+              )}
 
               {/* Gastos por albaranes de trabajo vinculados */}
               <Card className="p-4 bg-white border-0 shadow-sm">
@@ -660,6 +673,16 @@ export default function ObraDetail() {
           open={showAlbaran}
           onClose={() => setShowAlbaran(false)}
           techRecord={myTechRecord}
+        />
+      )}
+
+      {showEdit && (
+        <EditarObraModal
+          obra={obra}
+          isSessionTech={isSessionTech}
+          effectiveEmail={effectiveEmail}
+          onSave={(data) => updateObra.mutateAsync(data)}
+          onClose={() => setShowEdit(false)}
         />
       )}
     </div>
