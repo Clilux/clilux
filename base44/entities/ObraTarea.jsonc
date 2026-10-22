@@ -1,0 +1,182 @@
+{
+  "name": "ObraTarea",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra a la que pertenece el trabajo"
+    },
+    "obra_nombre": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo corto del trabajo (ej. 'Llegada de equipos')"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Detalle del trabajo a realizar"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "trabajo",
+        "extra"
+      ],
+      "default": "trabajo",
+      "description": "trabajo = ofertado en la obra. extra = trabajo a\u00f1adido por administraci\u00f3n que no estaba ofertado y se pasa por hora m\u00e1s materiales."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_curso",
+        "realizada"
+      ],
+      "default": "pendiente",
+      "description": "Estado de avance del trabajo"
+    },
+    "asignado_nombre": {
+      "type": "string",
+      "description": "Trabajador asignado al trabajo (opcional)"
+    },
+    "asignado_email": {
+      "type": "string"
+    },
+    "fecha_prevista": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha prevista de realizaci\u00f3n"
+    },
+    "fecha_realizada": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en la que se dio por terminado"
+    },
+    "realizada_por": {
+      "type": "string",
+      "description": "Nombre del trabajador que dio el trabajo por terminado"
+    },
+    "realizada_por_email": {
+      "type": "string"
+    },
+    "horas": {
+      "type": "number",
+      "default": 0,
+      "description": "Horas del trabajo extra (se pasan por hora)"
+    },
+    "precio_hora": {
+      "type": "number",
+      "default": 0,
+      "description": "Precio por hora acordado para el trabajo extra (\u20ac/h)"
+    },
+    "materiales": {
+      "type": "array",
+      "default": [],
+      "description": "Materiales del trabajo extra",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "importe_extra": {
+      "type": "number",
+      "default": 0,
+      "description": "Importe del trabajo extra: horas x precio_hora + materiales"
+    },
+    "fotos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fotos del avance del trabajo"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "creado_por": {
+      "type": "string",
+      "description": "Usuario o trabajador que cre\u00f3 el trabajo"
+    },
+    "creado_por_email": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "obra_id",
+    "titulo"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

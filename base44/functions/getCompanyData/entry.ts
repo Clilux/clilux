@@ -319,6 +319,85 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Obra.delete(record_id);
       return Response.json({ data: true });
     }
+
+    // ── Trabajos (tareas) de una obra ─────────────────────────────
+    // Los importes de los trabajos extras solo los ve quien ve economía.
+    const sinImporteTarea = (t: any) => (verEconomia ? t : { ...t, precio_hora: 0, importe_extra: 0 });
+
+    if (entity === 'obra_tareas') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: [] });
+      const all = await base44.asServiceRole.entities.ObraTarea.filter({ obra_id });
+      const data = all.filter((t: any) => t.company_id === tech.company_id);
+      return Response.json({ data: data.map(sinImporteTarea) });
+    }
+    if (entity === 'obra_tarea_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (record.tipo === 'extra' && !verEconomia) return deny('ver_economia');
+      const data = await base44.asServiceRole.entities.ObraTarea.create({
+        ...record,
+        company_id: tech.company_id,
+        creado_por: record.creado_por || creatorName,
+        creado_por_email: record.creado_por_email || creatorEmail,
+      });
+      return Response.json({ data });
+    }
+    if (entity === 'obra_tarea_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.ObraTarea.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      if ((existing.tipo === 'extra' || updates.tipo === 'extra') && !verEconomia) return deny('ver_economia');
+      const data = await base44.asServiceRole.entities.ObraTarea.update(record_id, updates);
+      return Response.json({ data });
+    }
+    if (entity === 'obra_tarea_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.ObraTarea.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      if (existing.tipo === 'extra' && !verEconomia) return deny('ver_economia');
+      await base44.asServiceRole.entities.ObraTarea.delete(record_id);
+      return Response.json({ data: true });
+    }
+
+    // ── Observaciones e incidencias de obra ───────────────────────
+    if (entity === 'obra_observaciones') {
+      const { obra_id } = body;
+      if (!obra_id) return Response.json({ data: [] });
+      const all = await base44.asServiceRole.entities.ObraObservacion.filter({ obra_id });
+      const data = all.filter((o: any) => o.company_id === tech.company_id);
+      data.sort((a: any, b: any) => (b.fecha || '').localeCompare(a.fecha || ''));
+      return Response.json({ data });
+    }
+    if (entity === 'obra_observacion_create') {
+      const { record } = body;
+      if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      const data = await base44.asServiceRole.entities.ObraObservacion.create({
+        ...record,
+        company_id: tech.company_id,
+        registrado_por: record.registrado_por || creatorName,
+        registrado_por_email: record.registrado_por_email || creatorEmail,
+      });
+      return Response.json({ data });
+    }
+    if (entity === 'obra_observacion_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.ObraObservacion.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      const data = await base44.asServiceRole.entities.ObraObservacion.update(record_id, updates);
+      return Response.json({ data });
+    }
+    if (entity === 'obra_observacion_delete') {
+      const { record_id } = body;
+      if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
+      const existing = (await base44.asServiceRole.entities.ObraObservacion.filter({ id: record_id }))[0];
+      if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      await base44.asServiceRole.entities.ObraObservacion.delete(record_id);
+      return Response.json({ data: true });
+    }
     // ── Crear albarán de obra ─────────────────────────────────────
     if (entity === 'albaran_obra_create') {
       const { record } = body;

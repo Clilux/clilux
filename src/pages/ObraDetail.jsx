@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import EditarObraModal from '@/components/obras/EditarObraModal';
+import ObraTareasPanel from '@/components/obras/ObraTareasPanel';
+import ObraObservacionesPanel from '@/components/obras/ObraObservacionesPanel';
 import CompartirButton from '@/components/compartir/CompartirButton';
 import { puedeVerEconomia, puedeVerCostesTrabajador } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
@@ -237,7 +239,7 @@ export default function ObraDetail() {
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text('Albarán de Obra', 14, 20);
+    doc.text('Parte de Trabajo', 14, 20);
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
     doc.text(`Nº: ${albaran.numero || '—'}`, 14, 30);
@@ -267,7 +269,7 @@ export default function ObraDetail() {
     if (albaran.notas) { y += 4; doc.text(`Notas: ${albaran.notas}`, 14, y); }
     doc.setFontSize(8); doc.setTextColor(150, 150, 150);
     doc.text(`Generado el ${format(new Date(), "d MMM yyyy HH:mm", { locale: es })}`, 14, 285);
-    doc.save(`albaran_${albaran.numero || albaran.id}_${albaran.fecha}.pdf`);
+    doc.save(`parte_trabajo_${albaran.numero || albaran.id}_${albaran.fecha}.pdf`);
   };
 
   const handleLogout = () => {
@@ -351,24 +353,49 @@ export default function ObraDetail() {
             {obra.descripcion && <p className="text-sm text-slate-600 mt-3 pt-3 border-t border-slate-100">{obra.descripcion}</p>}
           </Card>
 
-          <Tabs defaultValue="albaranes">
-            <TabsList className="mb-4">
-              <TabsTrigger value="albaranes">Albaranes ({albaranes.length})</TabsTrigger>
+          <Tabs defaultValue="trabajos">
+            <TabsList className="mb-4 flex-wrap h-auto gap-1">
+              <TabsTrigger value="trabajos">Trabajos</TabsTrigger>
+              <TabsTrigger value="observaciones">Observaciones e incidencias</TabsTrigger>
+              <TabsTrigger value="albaranes">Partes de trabajo ({albaranes.length})</TabsTrigger>
               {verEconomia && <TabsTrigger value="economia">Control Económico</TabsTrigger>}
               <TabsTrigger value="docs">Docs y Fotos</TabsTrigger>
             </TabsList>
+
+            {/* ── TRABAJOS ── */}
+            <TabsContent value="trabajos">
+              <ObraTareasPanel
+                obraId={obraId}
+                obraNombre={obra.nombre}
+                isSessionTech={isSessionTech}
+                effectiveEmail={effectiveEmail}
+                techName={myTechRecord?.name}
+                isAdmin={isAdmin}
+                verEconomia={verEconomia} />
+            </TabsContent>
+
+            {/* ── OBSERVACIONES E INCIDENCIAS ── */}
+            <TabsContent value="observaciones">
+              <ObraObservacionesPanel
+                obraId={obraId}
+                obraNombre={obra.nombre}
+                isSessionTech={isSessionTech}
+                effectiveEmail={effectiveEmail}
+                techName={myTechRecord?.name}
+                isAdmin={isAdmin} />
+            </TabsContent>
 
             {/* ── ALBARANES ── */}
             <TabsContent value="albaranes">
               <div className="flex justify-end mb-4">
                 <Button onClick={() => setShowAlbaran(true)} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                  <Plus className="h-4 w-4" />Nuevo albarán
+                  <Plus className="h-4 w-4" />Nuevo parte de trabajo
                 </Button>
               </div>
               {albaranes.length === 0 ? (
                 <Card className="p-8 text-center bg-white border-0 shadow-sm">
                   <FileText className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-slate-400 text-sm">Sin albaranes aún</p>
+                  <p className="text-slate-400 text-sm">Sin partes de trabajo aún</p>
                 </Card>
               ) : (
                 <div className="space-y-3">
@@ -569,12 +596,12 @@ export default function ObraDetail() {
               <Card className="p-4 bg-white border-0 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-indigo-600" />Gastos por albaranes ({gastosAlbaranes.length})
+                    <FileText className="h-4 w-4 text-indigo-600" />Gastos por partes de trabajo ({gastosAlbaranes.length})
                   </h3>
                   <span className="text-sm font-bold text-indigo-600">{gastosTrabajoTotal.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
                 </div>
                 {gastosAlbaranes.length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-3">Sin albaranes de trabajo vinculados</p>
+                  <p className="text-slate-400 text-sm text-center py-3">Sin partes de trabajo vinculados</p>
                 ) : (
                   <div className="space-y-2">
                     {gastosAlbaranes.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).map(a => (
