@@ -195,9 +195,9 @@ Deno.serve(async (req) => {
       const data = await base44.asServiceRole.entities.Client.filter({ company_id: tech.company_id });
       return Response.json({ data });
     }
-    // ── Crear cliente en la empresa (admin de empresa) ────────────
+    // ── Crear cliente en la empresa (gerente o permiso editar_clientes) ──
     if (entity === 'client_create') {
-      if (!tech.is_admin) return deny('admin');
+      if (!tech.is_admin && !permisos.editar_clientes) return deny('editar_clientes');
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
       const data = await base44.asServiceRole.entities.Client.create({
@@ -218,9 +218,9 @@ Deno.serve(async (req) => {
       const list = await base44.asServiceRole.entities.Client.filter({ id: client_id });
       return Response.json({ data: list[0] || null });
     }
-    // ── Actualizar cliente (solo gerente, dentro de la empresa) ───
+    // ── Actualizar cliente (gerente o permiso editar_clientes) ────
     if (entity === 'client_update') {
-      if (!tech.is_admin) return deny('admin');
+      if (!tech.is_admin && !permisos.editar_clientes) return deny('editar_clientes');
       const { record_id, updates } = body;
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
       if (!(await assertCompanyClient(record_id))) return Response.json({ error: 'Cliente fuera de tu empresa' }, { status: 403 });
