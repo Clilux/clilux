@@ -9,8 +9,9 @@ import { verifySessionToken } from '../../shared/auth.ts';
  * Los documentos comerciales (presupuestos, albaranes, pedidos y compras)
  * se conservan porque guardan el nombre del cliente desnormalizado.
  *
- * Autorización: sesión de técnico firmada (solo el gerente de la empresa
- * propietaria del cliente) o administrador de plataforma.
+ * Autorización: sesión de técnico firmada (el gerente de la empresa propietaria
+ * del cliente o un trabajador con el permiso editar_clientes) o administrador
+ * de plataforma.
  */
 Deno.serve(async (req) => {
   try {
@@ -43,8 +44,10 @@ Deno.serve(async (req) => {
     if (session) {
       const techs = await svc.Technician.filter({ email: session.email });
       const tech = techs[0];
-      if (!tech?.is_admin || !tech?.company_id) {
-        return Response.json({ error: 'Solo el gerente de la empresa puede eliminar clientes' }, { status: 403 });
+      // El gerente o cualquier trabajador con el permiso de editar clientes
+      const puedeEliminar = tech?.is_admin === true || tech?.permisos?.editar_clientes === true;
+      if (!puedeEliminar || !tech?.company_id) {
+        return Response.json({ error: 'Sin permiso: editar_clientes', no_permission: true }, { status: 403 });
       }
       const clients = await svc.Client.filter({ id: client_id });
       const client = clients[0];

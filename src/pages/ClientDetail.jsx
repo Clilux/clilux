@@ -19,6 +19,8 @@ import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
 import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
 import ClientPortalInvite from '../components/clients/ClientPortalInvite';
 import { toast } from 'sonner';
+import { getSessionToken } from '@/lib/passwordHash';
+import { mensajeDeError } from '@/lib/errores';
 
 export default function ClientDetail() {
   const navigate = useNavigate();
@@ -53,6 +55,7 @@ export default function ClientDetail() {
     mutationFn: async () => {
       const res = await base44.functions.invoke('deleteClient', {
         technician_email: sessionTechEmail || '',
+        session_token: getSessionToken(),
         client_id: clientId,
       });
       if (res.data?.error) throw new Error(res.data.error);
@@ -64,7 +67,7 @@ export default function ClientDetail() {
       navigate(createPageUrl('Clients'));
     },
     onError: (error) => {
-      toast.error(error.message || 'Error al eliminar el cliente');
+      toast.error(mensajeDeError(error, 'Error al eliminar el cliente'));
     },
   });
 
