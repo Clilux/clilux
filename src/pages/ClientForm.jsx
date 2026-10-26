@@ -15,6 +15,7 @@ import NavHeader from '../components/navigation/NavHeader';
 import ImageUploader from '../components/ui/ImageUploader';
 import { toast } from 'sonner';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
+import { mensajeDeError } from '@/lib/errores';
 
 export default function ClientForm() {
   const navigate = useNavigate();
@@ -151,7 +152,7 @@ export default function ClientForm() {
       navigate(createPageUrl('Clients'));
     },
     onError: (error) => {
-      toast.error('Error al guardar el cliente');
+      toast.error(mensajeDeError(error, 'Error al guardar el cliente'));
     },
   });
 
@@ -181,7 +182,7 @@ export default function ClientForm() {
       setInviteEmail('');
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     } catch (error) {
-      toast.error('Error al enviar la invitación');
+      toast.error(mensajeDeError(error, 'Error al enviar la invitación'));
     } finally {
       setIsInviting(false);
     }
