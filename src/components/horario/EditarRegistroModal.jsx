@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { History, MapPin } from 'lucide-react';
+import { History, MapPin, Plus, Trash2, Coffee } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MapaRuta from '@/components/horario/MapaRuta';
-import { calcularHoras, formatHoras } from '@/lib/horario-utils';
+import { calcularHoras, formatHoras, timeToMinutes } from '@/lib/horario-utils';
 
 export default function EditarRegistroModal({ registro, currentUser, jornadaDiaria = 8, updateRegistro, onClose }) {
   const queryClient = useQueryClient();
@@ -22,6 +22,41 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
   const [notas, setNotas] = useState(registro.notas || '');
   const [motivo, setMotivo] = useState('');
   const [showMapa, setShowMapa] = useState(false);
+  const [pausas, setPausas] = useState(() =>
+    (registro.pausas || []).map(p => ({ inicio: p.inicio || '', fin: p.fin || '', motivo: p.motivo || '' }))
+  );
+
+  // Pausas completas (con inicio y fin) que se guardarán
+  const pausasValidas = pausas.filter(p => p.inicio && p.fin);
+  const minutosPausaTotal = pausasValidas.reduce(
+    (a, p) => a + Math.max(0, (Number(p.fin.slice(0, 2)) * 60 + Number(p.fin.slice(3, 5))) - (Number(p.inicio.slice(0, 2)) * 60 + Number(p.inicio.slice(3, 5)))),
+    0
+  );
+
+  // Si las horas no cambian se respetan los tramos originales del registro,
+  // para no perder las interrupciones al añadir pausas.
+  const horasCambiadas = horaEntrada !== (registro.hora_entrada || '') || horaSalida !== (registro.hora_salida || '');
+  const tramosRegistro = (registro.intervalos || []).length > 0
+    ? registro.intervalos
+    : [{ entrada: horaEntrada, salida: horaSalida }];
+  const intervalosFinales = horasCambiadas
+    ? [{ entrada: horaEntrada, salida: horaSalida }]
+    : tramosRegistro;
+  // Solo se descuentan las pausas que caen dentro de un tramo trabajado: las que
+  // coinciden con un hueco entre tramos ya están excluidas de las horas.
+  const pausasDescontables = pausasValidas.filter(p => {
+    const ini = timeToMinutes(p.inicio);
+    const fin = timeToMinutes(p.fin);
+    return intervalosFinales.some(t => {
+      if (!t.entrada) return false;
+      const finTramo = t.salida ? timeToMinutes(t.salida) : 24 * 60;
+      return ini >= timeToMinutes(t.entrada) && fin <= finTramo;
+    });
+  });
+  const calcs = calcularHoras(
+    { ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida, intervalos: intervalosFinales, pausas: pausasDescontables },
+    jornadaDiaria
+  );
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -34,17 +69,22 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
       if (tipoJornada !== registro.tipo_jornada) cambios.push({ campo: 'tipo_jornada', valor_anterior: registro.tipo_jornada || 'normal', valor_nuevo: tipoJornada, fecha_mod: ahora, usuario, motivo });
       if (notas !== registro.notas) cambios.push({ campo: 'notas', valor_anterior: registro.notas || '', valor_nuevo: notas, fecha_mod: ahora, usuario, motivo });
 
+      const pausasPrevias = (registro.pausas || []).filter(p => p.inicio && p.fin);
+      const pausasAntes = pausasPrevias.map(p => ({ inicio: p.inicio, fin: p.fin, motivo: p.motivo || '' }));
+      if (JSON.stringify(pausasValidas) !== JSON.stringify(pausasAntes)) {
+        cambios.push({
+          campo: 'pausas',
+          valor_anterior: `${pausasPrevias.length} pausa(s)`,
+          valor_nuevo: `${pausasValidas.length} pausa(s)`,
+          fecha_mod: ahora,
+          usuario,
+          motivo,
+        });
+      }
+
       if (cambios.length === 0) { toast.info('Sin cambios'); return null; }
       if (!motivo.trim()) throw new Error('Debes indicar el motivo de la modificación');
 
-      // Al editar manualmente la hora de entrada/salida, consolidamos en un único tramo
-      // para que el cálculo sea exactamente entrada→salida sin tramos intermedios desfasados
-      const intervalosActualizados = [{ entrada: horaEntrada, salida: horaSalida }];
-
-      const calcs = calcularHoras(
-        { ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida, intervalos: intervalosActualizados },
-        jornadaDiaria
-      );
       const historialPrevio = registro.historial_modificaciones || [];
       const doUpdate = updateRegistro || ((id, data) => base44.entities.RegistroHorario.update(id, data));
       return doUpdate(registro.id, {
@@ -52,7 +92,8 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
         hora_salida: horaSalida,
         tipo_jornada: tipoJornada,
         notas,
-        intervalos: intervalosActualizados,
+        intervalos: intervalosFinales,
+        pausas: pausasValidas,
         ...calcs,
         historial_modificaciones: [...historialPrevio, ...cambios],
       });
@@ -101,16 +142,84 @@ export default function EditarRegistroModal({ registro, currentUser, jornadaDiar
             </div>
           </div>
 
-          {horaEntrada && horaSalida && (() => {
-            const c = calcularHoras({ ...registro, hora_entrada: horaEntrada, hora_salida: horaSalida, intervalos: [{ entrada: horaEntrada, salida: horaSalida }] }, jornadaDiaria);
-            return (
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="bg-blue-50 rounded p-2"><span className="font-bold text-blue-600">{formatHoras(c.horas_normales)}</span><br />normales</div>
-                <div className="bg-orange-50 rounded p-2"><span className="font-bold text-orange-500">{formatHoras(c.horas_extra)}</span><br />extra</div>
-                <div className="bg-slate-50 rounded p-2"><span className="font-bold text-slate-600">{c.minutos_pausa}m</span><br />pausa</div>
+          {horaEntrada && horaSalida && (
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="bg-blue-50 rounded p-2"><span className="font-bold text-blue-600">{formatHoras(calcs.horas_normales)}</span><br />normales</div>
+              <div className="bg-orange-50 rounded p-2"><span className="font-bold text-orange-500">{formatHoras(calcs.horas_extra)}</span><br />extra</div>
+              <div className="bg-slate-50 rounded p-2"><span className="font-bold text-slate-600">{calcs.minutos_pausa}m</span><br />pausa</div>
+            </div>
+          )}
+
+          {/* Pausas del registro guardado */}
+          <div className="border border-amber-200 bg-amber-50/40 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Coffee className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-800">Pausas de la jornada</span>
+                {minutosPausaTotal > 0 && (
+                  <span className="text-[11px] text-amber-600">· {minutosPausaTotal} min</span>
+                )}
               </div>
-            );
-          })()}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-amber-700 hover:bg-amber-100 gap-1"
+                onClick={() => setPausas(p => [...p, { inicio: '', fin: '', motivo: '' }])}
+              >
+                <Plus className="h-3.5 w-3.5" />Añadir pausa
+              </Button>
+            </div>
+
+            {pausas.length === 0 ? (
+              <p className="text-[11px] text-amber-700/70">Sin pausas registradas en esta jornada.</p>
+            ) : (
+              <div className="space-y-2">
+                {pausas.map((p, i) => (
+                  <div key={i} className="flex items-end gap-2 bg-white rounded-lg border border-amber-100 p-2">
+                    <div className="w-20">
+                      <Label className="text-[10px] text-slate-400 mb-0.5 block">Inicio</Label>
+                      <Input
+                        type="time"
+                        className="h-8 text-xs px-2"
+                        value={p.inicio}
+                        onChange={e => setPausas(prev => prev.map((x, j) => j === i ? { ...x, inicio: e.target.value } : x))}
+                      />
+                    </div>
+                    <div className="w-20">
+                      <Label className="text-[10px] text-slate-400 mb-0.5 block">Fin</Label>
+                      <Input
+                        type="time"
+                        className="h-8 text-xs px-2"
+                        value={p.fin}
+                        onChange={e => setPausas(prev => prev.map((x, j) => j === i ? { ...x, fin: e.target.value } : x))}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-[10px] text-slate-400 mb-0.5 block">Motivo</Label>
+                      <Input
+                        className="h-8 text-xs"
+                        placeholder="Desayuno, comida..."
+                        value={p.motivo}
+                        onChange={e => setPausas(prev => prev.map((x, j) => j === i ? { ...x, motivo: e.target.value } : x))}
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0 text-slate-300 hover:text-red-500"
+                      onClick={() => setPausas(prev => prev.filter((_, j) => j !== i))}
+                      title="Quitar pausa"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-amber-700/60 mt-2">
+              Las pausas se descuentan de las horas efectivas del registro.
+            </p>
+          </div>
 
           <div>
             <Label className="text-xs text-slate-500 mb-1 block">Tipo de jornada</Label>

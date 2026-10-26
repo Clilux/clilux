@@ -24,6 +24,7 @@ import MapaTrayecto from '@/components/horario/MapaTrayecto';
 import ComplianceBanner from '@/components/horario/ComplianceBanner';
 import ConfirmarHoraFichaje from '@/components/horario/ConfirmarHoraFichaje';
 import PausaFinJornadaModal from '@/components/horario/PausaFinJornadaModal';
+import ContadorJornada from '@/components/horario/ContadorJornada';
 
 export default function ControlHorario() {
   const queryClient = useQueryClient();
@@ -420,6 +421,7 @@ export default function ControlHorario() {
             {jornadaActiva && <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs ml-auto">Activo</Badge>}
             {jornadaPausada && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs ml-auto">Pausada</Badge>}
           </div>
+          {todayRecord && intervalos.length > 0 && <ContadorJornada registro={todayRecord} />}
           {todayRecord && intervalos.length > 0 && (
             <div className="grid grid-cols-4 gap-2 mb-4 text-center">
               <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-400">Inicio</p><p className="font-semibold text-emerald-600 text-sm">{intervalos[0]?.entrada || '—'}</p></div>
