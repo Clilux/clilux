@@ -18,7 +18,7 @@ const FILTROS = [
 ];
 
 /** Trabajos de la obra: altas, avance y check de realizado. */
-export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, effectiveEmail, techName, isAdmin, verEconomia }) {
+export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, effectiveEmail, techName, isAdmin, puedeEditar = true, verEconomia }) {
   const { tareas, isLoading, crear, actualizar, eliminar } = useObraTareas(obraId, isSessionTech, effectiveEmail);
   const [filtro, setFiltro] = useState('todas');
   const [editando, setEditando] = useState(null);
@@ -41,6 +41,8 @@ export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, eff
   const totalExtras = extras.reduce((s, t) => s + (Number(t.importe_extra) || 0), 0);
   const visibles = (filtro === 'todas' ? trabajos : trabajos.filter(t => t.estado === filtro));
   const cuenta = (estado) => trabajos.filter(t => t.estado === estado).length;
+  // El equipo de la obra edita todos los trabajos; un técnico puede con los suyos.
+  const puedeTocar = (t) => puedeEditar || (!!t.asignado_email && t.asignado_email === effectiveEmail);
 
   const toggle = (tarea) => {
     const realizada = tarea.estado === 'realizada';
@@ -100,9 +102,11 @@ export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, eff
             </button>
           ))}
         </div>
-        <Button onClick={() => { setEditando(null); setNuevo('trabajo'); }} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-          <Plus className="h-4 w-4" />Nuevo trabajo
-        </Button>
+        {puedeEditar && (
+          <Button onClick={() => { setEditando(null); setNuevo('trabajo'); }} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+            <Plus className="h-4 w-4" />Nuevo trabajo
+          </Button>
+        )}
       </div>
 
       {visibles.length === 0 ? (
@@ -119,7 +123,8 @@ export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, eff
               onToggle={toggle}
               onEditar={(tarea) => { setNuevo(null); setEditando(tarea); }}
               onBorrar={borrar}
-              puedeBorrar={isAdmin || t.creado_por_email === effectiveEmail}
+              soloLectura={!puedeTocar(t)}
+              puedeBorrar={puedeEditar && (isAdmin || t.creado_por_email === effectiveEmail)}
               mostrarImporte={verEconomia} />
           ))}
         </div>
@@ -134,9 +139,11 @@ export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, eff
             </h3>
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-purple-700">{totalExtras.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setEditando(null); setNuevo('extra'); }}>
-                <Plus className="h-3.5 w-3.5" />Añadir extra
-              </Button>
+              {puedeEditar && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setEditando(null); setNuevo('extra'); }}>
+                  <Plus className="h-3.5 w-3.5" />Añadir extra
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-xs text-slate-400 mb-3">Trabajos no ofertados que se pasan por hora más materiales.</p>
@@ -151,7 +158,8 @@ export default function ObraTareasPanel({ obraId, obraNombre, isSessionTech, eff
                   onToggle={toggle}
                   onEditar={(tarea) => { setNuevo(null); setEditando(tarea); }}
                   onBorrar={borrar}
-                  puedeBorrar={isAdmin || t.creado_por_email === effectiveEmail}
+                  soloLectura={!puedeTocar(t)}
+                  puedeBorrar={puedeEditar && (isAdmin || t.creado_por_email === effectiveEmail)}
                   mostrarImporte={verEconomia} />
               ))}
             </div>

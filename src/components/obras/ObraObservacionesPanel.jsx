@@ -15,7 +15,7 @@ const FILTROS = [
 ];
 
 /** Observaciones e incidencias registradas durante la jornada. */
-export default function ObraObservacionesPanel({ obraId, obraNombre, isSessionTech, effectiveEmail, techName, isAdmin }) {
+export default function ObraObservacionesPanel({ obraId, obraNombre, isSessionTech, effectiveEmail, techName, isAdmin, puedeEditar = true }) {
   const { observaciones, isLoading, crear, actualizar, eliminar } = useObraObservaciones(obraId, isSessionTech, effectiveEmail);
   const [filtro, setFiltro] = useState('todas');
   const [editando, setEditando] = useState(null);
@@ -74,9 +74,11 @@ export default function ObraObservacionesPanel({ obraId, obraNombre, isSessionTe
             </span>
           )}
         </div>
-        <Button onClick={() => { setEditando(null); setCreando(true); }} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-          <Plus className="h-4 w-4" />Nuevo registro
-        </Button>
+        {puedeEditar && (
+          <Button onClick={() => { setEditando(null); setCreando(true); }} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+            <Plus className="h-4 w-4" />Nuevo registro
+          </Button>
+        )}
       </div>
 
       {visibles.length === 0 ? (
@@ -93,7 +95,8 @@ export default function ObraObservacionesPanel({ obraId, obraNombre, isSessionTe
               onResolver={resolver}
               onEditar={(obs) => { setCreando(false); setEditando(obs); }}
               onBorrar={borrar}
-              puedeBorrar={isAdmin || o.registrado_por_email === effectiveEmail} />
+              soloLectura={!puedeEditar}
+              puedeBorrar={puedeEditar && (isAdmin || o.registrado_por_email === effectiveEmail)} />
           ))}
         </div>
       )}

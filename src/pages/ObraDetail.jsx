@@ -15,10 +15,10 @@ import EditarObraModal from '@/components/obras/EditarObraModal';
 import ObraTareasPanel from '@/components/obras/ObraTareasPanel';
 import ObraObservacionesPanel from '@/components/obras/ObraObservacionesPanel';
 import CompartirButton from '@/components/compartir/CompartirButton';
-import { puedeVerEconomia, puedeVerCostesTrabajador } from '@/lib/permisos-trabajador';
+import { puedeVerEconomia, puedeVerCostesTrabajador, puedeEditarObra, estaAsignadoAObra } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
-import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList } from 'lucide-react';
+import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList, Users, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
@@ -86,6 +86,10 @@ export default function ObraDetail() {
     },
     enabled: !!obraId,
   });
+
+  // Solo el equipo asignado (y gerencia / jefe de equipo / administración) puede editar.
+  const puedeEditar = puedeEditarObra(obra, myTechRecord, { isAdmin, techId: myTechRecord?.id, techEmail: effectiveEmail });
+  const estoyAsignado = estaAsignadoAObra(obra, myTechRecord, { techId: myTechRecord?.id, techEmail: effectiveEmail });
 
   const { data: albaranes = [] } = useQuery({
     queryKey: ['albaranes-obra', obraId, isSessionTech ? 'proxy' : 'direct'],
@@ -330,7 +334,7 @@ export default function ObraDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {isAdmin && (
+                {puedeEditar && (
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
                     <Pencil className="h-3.5 w-3.5" />Editar obra
                   </Button>
@@ -342,7 +346,7 @@ export default function ObraDetail() {
                   proxyEntity="obra_update"
                   canEdit={isAdmin}
                   onSaved={() => queryClient.invalidateQueries({ queryKey: ['obra', obraId] })} />
-                <Select value={obra.estado} onValueChange={v => updateObra.mutate({ estado: v })}>
+                <Select value={obra.estado} onValueChange={v => updateObra.mutate({ estado: v })} disabled={!puedeEditar}>
                   <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(ESTADO_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
@@ -351,6 +355,32 @@ export default function ObraDetail() {
               </div>
             </div>
             {obra.descripcion && <p className="text-sm text-slate-600 mt-3 pt-3 border-t border-slate-100">{obra.descripcion}</p>}
+
+            {(obra.responsable_nombre || (obra.equipo || []).length > 0) && (
+              <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-slate-100">
+                <span className="flex items-center gap-1 text-xs font-medium text-slate-500">
+                  <Users className="h-3.5 w-3.5" />Equipo asignado:
+                </span>
+                {obra.responsable_nombre && (
+                  <Badge variant="secondary" className="text-xs gap-1">
+                    {obra.responsable_nombre}<span className="text-slate-400 font-normal">· responsable</span>
+                  </Badge>
+                )}
+                {(obra.equipo || []).map(m => (
+                  <Badge key={m.technician_id || m.technician_email} variant="secondary" className="text-xs">
+                    {m.technician_name || m.technician_email}
+                  </Badge>
+                ))}
+                {estoyAsignado && !isAdmin && (
+                  <span className="text-xs text-emerald-600 font-medium">· Puedes editar esta obra</span>
+                )}
+              </div>
+            )}
+            {!puedeEditar && (
+              <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-100 flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5" />Solo lectura. Pide a tu responsable que te asigne a esta obra para poder modificarla.
+              </p>
+            )}
           </Card>
 
           <Tabs defaultValue="trabajos">
@@ -371,6 +401,7 @@ export default function ObraDetail() {
                 effectiveEmail={effectiveEmail}
                 techName={myTechRecord?.name}
                 isAdmin={isAdmin}
+                puedeEditar={puedeEditar}
                 verEconomia={verEconomia} />
             </TabsContent>
 
@@ -382,7 +413,8 @@ export default function ObraDetail() {
                 isSessionTech={isSessionTech}
                 effectiveEmail={effectiveEmail}
                 techName={myTechRecord?.name}
-                isAdmin={isAdmin} />
+                isAdmin={isAdmin}
+                puedeEditar={puedeEditar} />
             </TabsContent>
 
             {/* ── ALBARANES ── */}
@@ -632,12 +664,14 @@ export default function ObraDetail() {
                   <h3 className="font-semibold text-slate-700 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-600" />Documentos
                   </h3>
-                  <label className="cursor-pointer">
-                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={uploadDoc} />
-                    <Button size="sm" variant="outline" asChild>
-                      <span>{uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Subir documento</span>
-                    </Button>
-                  </label>
+                  {puedeEditar && (
+                    <label className="cursor-pointer">
+                      <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={uploadDoc} />
+                      <Button size="sm" variant="outline" asChild>
+                        <span>{uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Subir documento</span>
+                      </Button>
+                    </label>
+                  )}
                 </div>
                 {(obra.documentos || []).length === 0 ? (
                   <p className="text-slate-400 text-sm text-center py-4">Sin documentos</p>
@@ -651,9 +685,11 @@ export default function ObraDetail() {
                         <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0">
                           <Download className="h-4 w-4" />
                         </a>
-                        <button onClick={() => removeDoc(i)} className="text-red-300 hover:text-red-500 shrink-0">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {puedeEditar && (
+                          <button onClick={() => removeDoc(i)} className="text-red-300 hover:text-red-500 shrink-0">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -666,12 +702,14 @@ export default function ObraDetail() {
                   <h3 className="font-semibold text-slate-700 flex items-center gap-2">
                     <Image className="h-4 w-4 text-purple-600" />Fotos ({(obra.fotos || []).length})
                   </h3>
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={uploadFoto} />
-                    <Button size="sm" variant="outline" asChild>
-                      <span>{uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Añadir foto</span>
-                    </Button>
-                  </label>
+                  {puedeEditar && (
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={uploadFoto} />
+                      <Button size="sm" variant="outline" asChild>
+                        <span>{uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Añadir foto</span>
+                      </Button>
+                    </label>
+                  )}
                 </div>
                 {(obra.fotos || []).length === 0 ? (
                   <p className="text-slate-400 text-sm text-center py-4">Sin fotos</p>
@@ -680,11 +718,13 @@ export default function ObraDetail() {
                     {obra.fotos.map((url, i) => (
                       <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-slate-100">
                         <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => removeFoto(i)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        {puedeEditar && (
+                          <button
+                            onClick={() => removeFoto(i)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -708,6 +748,7 @@ export default function ObraDetail() {
           obra={obra}
           isSessionTech={isSessionTech}
           effectiveEmail={effectiveEmail}
+          puedeAsignar={isAdmin}
           onSave={(data) => updateObra.mutateAsync(data)}
           onClose={() => setShowEdit(false)}
         />

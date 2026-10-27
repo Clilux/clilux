@@ -13,7 +13,7 @@ const ESTADOS = {
 };
 
 /** Un trabajo de la obra, con su check de realizado. */
-export default function ObraTareaCard({ tarea, onToggle, onEditar, onBorrar, puedeBorrar, mostrarImporte }) {
+export default function ObraTareaCard({ tarea, onToggle, onEditar, onBorrar, puedeBorrar, soloLectura = false, mostrarImporte }) {
   const cfg = ESTADOS[tarea.estado] || ESTADOS.pendiente;
   const realizada = tarea.estado === 'realizada';
   const materiales = tarea.materiales || [];
@@ -23,7 +23,8 @@ export default function ObraTareaCard({ tarea, onToggle, onEditar, onBorrar, pue
       <div className="flex items-start gap-3">
         <button
           onClick={() => onToggle(tarea)}
-          title={realizada ? 'Marcar como pendiente' : 'Marcar como realizado'}
+          disabled={soloLectura}
+          title={soloLectura ? undefined : (realizada ? 'Marcar como pendiente' : 'Marcar como realizado')}
           className={`mt-0.5 w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
             realizada ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-emerald-400'
           }`}>
@@ -75,9 +76,11 @@ export default function ObraTareaCard({ tarea, onToggle, onEditar, onBorrar, pue
         </div>
 
         <div className="flex gap-1 shrink-0">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600" onClick={() => onEditar(tarea)} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+          {!soloLectura && (
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600" onClick={() => onEditar(tarea)} title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {puedeBorrar && (
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-300 hover:text-red-500" onClick={() => onBorrar(tarea)} title="Eliminar">
               <Trash2 className="h-3.5 w-3.5" />

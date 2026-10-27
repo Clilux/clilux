@@ -101,6 +101,37 @@ Deno.serve(async (req) => {
       return out;
     };
 
+    // ── Autorizaciones sobre obras ───────────────────────────────
+    // Gerencia, jefe de equipo y administración pueden modificar cualquier obra.
+    // Un técnico de campo, solo las obras donde está asignado (responsable, equipo
+    // de la obra o compartida con él) y los trabajos que tenga asignados.
+    const miEmailNorm = (tech.email || '').trim().toLowerCase();
+    const esEncargadoObras = tech.is_admin === true
+      || tech.worker_type === 'jefe_equipo'
+      || tech.worker_type === 'administracion';
+
+    const asignadoAObra = (obra: any) => {
+      if (!obra) return false;
+      if (obra.responsable_id && obra.responsable_id === tech.id) return true;
+      const equipo = Array.isArray(obra.equipo) ? obra.equipo : [];
+      if (equipo.some((e: any) => e.technician_id === tech.id || (e.technician_email || '').trim().toLowerCase() === miEmailNorm)) return true;
+      const compartida = Array.isArray(obra.shared_with) ? obra.shared_with : [];
+      return compartida.includes(tech.id);
+    };
+
+    const puedeEditarObra = (obra: any) => !!obra && (esEncargadoObras || asignadoAObra(obra));
+
+    const sinPermisoObra = () => Response.json(
+      { error: 'Solo el equipo asignado a la obra puede modificarla', no_permission: true },
+      { status: 403 },
+    );
+
+    const loadObra = async (obraId: string) => {
+      if (!obraId) return null;
+      const found = (await base44.asServiceRole.entities.Obra.filter({ id: obraId }))[0];
+      return found && found.company_id === tech.company_id ? found : null;
+    };
+
     // ── Aislamiento por empresa ──────────────────────────────────
     // IDs de clientes que pertenecen a la empresa del técnico.
     let _companyClientIds = null;
@@ -308,7 +339,12 @@ Deno.serve(async (req) => {
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.Obra.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrada' }, { status: 404 });
-      const data = await base44.asServiceRole.entities.Obra.update(record_id, updates);
+      if (!puedeEditarObra(existing)) return sinPermisoObra();
+      // Solo gerencia, jefe de equipo y administración reparten el equipo de la obra.
+      const safe = { ...updates };
+      if (!esEncargadoObras) delete safe.equipo;
+      if (!esEncargadoObras) delete safe.responsable_id;
+      const data = await base44.asServiceRole.entities.Obra.update(record_id, safe);
       return Response.json({ data });
     }
     if (entity === 'obra_delete') {
@@ -316,6 +352,7 @@ Deno.serve(async (req) => {
       if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.Obra.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      if (!esEncargadoObras) return deny('admin');
       await base44.asServiceRole.entities.Obra.delete(record_id);
       return Response.json({ data: true });
     }
@@ -334,6 +371,7 @@ Deno.serve(async (req) => {
     if (entity === 'obra_tarea_create') {
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!puedeEditarObra(await loadObra(record.obra_id))) return sinPermisoObra();
       if (record.tipo === 'extra' && !verEconomia) return deny('ver_economia');
       const data = await base44.asServiceRole.entities.ObraTarea.create({
         ...record,
@@ -348,6 +386,9 @@ Deno.serve(async (req) => {
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.ObraTarea.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      // El equipo asignado a la obra o el trabajador al que se le asignó el trabajo.
+      const esMiTarea = (existing.asignado_email || '').trim().toLowerCase() === miEmailNorm;
+      if (!esMiTarea && !puedeEditarObra(await loadObra(existing.obra_id))) return sinPermisoObra();
       if ((existing.tipo === 'extra' || updates.tipo === 'extra') && !verEconomia) return deny('ver_economia');
       const data = await base44.asServiceRole.entities.ObraTarea.update(record_id, updates);
       return Response.json({ data });
@@ -357,6 +398,7 @@ Deno.serve(async (req) => {
       if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.ObraTarea.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      if (!puedeEditarObra(await loadObra(existing.obra_id))) return sinPermisoObra();
       if (existing.tipo === 'extra' && !verEconomia) return deny('ver_economia');
       await base44.asServiceRole.entities.ObraTarea.delete(record_id);
       return Response.json({ data: true });
@@ -374,6 +416,7 @@ Deno.serve(async (req) => {
     if (entity === 'obra_observacion_create') {
       const { record } = body;
       if (!record) return Response.json({ error: 'record requerido' }, { status: 400 });
+      if (!puedeEditarObra(await loadObra(record.obra_id))) return sinPermisoObra();
       const data = await base44.asServiceRole.entities.ObraObservacion.create({
         ...record,
         company_id: tech.company_id,
@@ -387,6 +430,9 @@ Deno.serve(async (req) => {
       if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.ObraObservacion.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      // El equipo asignado a la obra o quien registró la observación.
+      const esMiaObs = (existing.registrado_por_email || '').trim().toLowerCase() === miEmailNorm;
+      if (!esMiaObs && !puedeEditarObra(await loadObra(existing.obra_id))) return sinPermisoObra();
       const data = await base44.asServiceRole.entities.ObraObservacion.update(record_id, updates);
       return Response.json({ data });
     }
@@ -395,6 +441,7 @@ Deno.serve(async (req) => {
       if (!record_id) return Response.json({ error: 'record_id requerido' }, { status: 400 });
       const existing = (await base44.asServiceRole.entities.ObraObservacion.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrado' }, { status: 404 });
+      if (!puedeEditarObra(await loadObra(existing.obra_id))) return sinPermisoObra();
       await base44.asServiceRole.entities.ObraObservacion.delete(record_id);
       return Response.json({ data: true });
     }

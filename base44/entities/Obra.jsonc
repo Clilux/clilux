@@ -59,6 +59,25 @@
     "responsable_nombre": {
       "type": "string"
     },
+    "equipo": {
+      "type": "array",
+      "default": [],
+      "description": "Trabajadores asignados a la obra. Pueden modificarla, as\u00ed como sus trabajos y observaciones. El resto de t\u00e9cnicos solo la ven.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "string"
+          },
+          "technician_name": {
+            "type": "string"
+          },
+          "technician_email": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "company_id": {
       "type": "string"
     },
@@ -171,6 +190,9 @@
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.responsable_id": "{{user.id}}"
         },
         {
           "user_condition": {

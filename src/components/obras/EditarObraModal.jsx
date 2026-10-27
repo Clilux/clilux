@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Users, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ESTADOS = [
@@ -20,8 +20,10 @@ const ESTADOS = [
  * Edición de una obra por parte de gerencia: datos generales y, sobre todo,
  * asignar o cambiar el cliente al que pertenece la obra.
  */
-export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, onSave, onClose }) {
+export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, puedeAsignar = false, onSave, onClose }) {
   const [saving, setSaving] = useState(false);
+  // Trabajadores asignados a la obra (solo los puede repartir la gerencia).
+  const [equipo, setEquipo] = useState(() => (obra.equipo || []).map(e => e.technician_id).filter(Boolean));
   const [form, setForm] = useState({
     nombre: obra.nombre || '',
     client_id: obra.client_id || '',
@@ -54,6 +56,20 @@ export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, o
     },
   });
 
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ['editar-obra-techs', isSessionTech ? effectiveEmail : 'direct'],
+    queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'technicians' });
+        return res.data?.data || [];
+      }
+      return base44.entities.Technician.list();
+    },
+    enabled: puedeAsignar,
+  });
+  const tecnicosActivos = tecnicos.filter(t => t.status !== 'inactive');
+  const toggleEquipo = (id) => setEquipo(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
   const clienteSel = clients.find(c => c.id === form.client_id);
   const edificiosCliente = buildings.filter(b => b.client_id === form.client_id);
   const edificioSel = buildings.find(b => b.id === form.building_id);
@@ -63,7 +79,7 @@ export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, o
     if (!form.client_id) { toast.error('Selecciona el cliente de la obra'); return; }
     setSaving(true);
     try {
-      await onSave({
+      const payload = {
         nombre: form.nombre.trim(),
         client_id: form.client_id,
         client_name: clienteSel?.name || '',
@@ -73,7 +89,15 @@ export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, o
         fecha_inicio: form.fecha_inicio || '',
         fecha_fin_prevista: form.fecha_fin_prevista || '',
         descripcion: form.descripcion,
-      });
+      };
+      if (puedeAsignar) {
+        payload.equipo = equipo.map(id => {
+          const t = tecnicos.find(x => x.id === id);
+          if (t) return { technician_id: t.id, technician_name: t.name, technician_email: t.email };
+          return (obra.equipo || []).find(e => e.technician_id === id);
+        }).filter(Boolean);
+      }
+      await onSave(payload);
       toast.success('Obra actualizada');
       onClose();
     } catch (e) {
@@ -145,6 +169,30 @@ export default function EditarObraModal({ obra, isSessionTech, effectiveEmail, o
               <Input type="date" value={form.fecha_fin_prevista} onChange={e => setForm(f => ({ ...f, fecha_fin_prevista: e.target.value }))} className="mt-1" />
             </div>
           </div>
+
+          {puedeAsignar && (
+            <div>
+              <Label className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-slate-400" />Equipo asignado a la obra</Label>
+              <p className="text-xs text-slate-400 mt-0.5 mb-2">
+                Solo los trabajadores del equipo pueden modificar la obra, sus trabajos y sus observaciones.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tecnicosActivos.length === 0 ? (
+                  <p className="text-xs text-slate-400">No hay trabajadores activos.</p>
+                ) : tecnicosActivos.map(t => {
+                  const activo = equipo.includes(t.id);
+                  return (
+                    <button key={t.id} type="button" onClick={() => toggleEquipo(t.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        activo ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'
+                      }`}>
+                      {activo && <Check className="h-3 w-3" />}{t.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div>
             <Label>Descripción</Label>

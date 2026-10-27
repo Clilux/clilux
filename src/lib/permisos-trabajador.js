@@ -47,6 +47,34 @@ export function puedeVerCostesTrabajador(tech, isAdmin = false) {
   return tech?.is_admin === true;
 }
 
+/**
+ * ¿Está el trabajador asignado a esta obra?
+ * Se considera asignado si es el responsable, figura en el equipo de la obra
+ * o la obra se ha compartido con él.
+ */
+export function estaAsignadoAObra(obra, tech, { techId, techEmail } = {}) {
+  if (!obra) return false;
+  const id = techId || tech?.id;
+  const email = (techEmail || tech?.email || '').trim().toLowerCase();
+  if (id && obra.responsable_id === id) return true;
+  const equipo = Array.isArray(obra.equipo) ? obra.equipo : [];
+  if (equipo.some(e => (id && e.technician_id === id) || (email && (e.technician_email || '').trim().toLowerCase() === email))) return true;
+  const compartida = Array.isArray(obra.shared_with) ? obra.shared_with : [];
+  return !!id && compartida.includes(id);
+}
+
+/**
+ * Puede modificar la obra (datos, trabajos y observaciones).
+ * Gerencia, jefe de equipo y administración pueden con cualquier obra.
+ * Un técnico de campo, solo con las obras donde está asignado.
+ */
+export function puedeEditarObra(obra, tech, { isAdmin = false, techId, techEmail } = {}) {
+  if (isAdmin) return true;
+  if (tech?.is_admin === true) return true;
+  if (tech?.worker_type === 'jefe_equipo' || tech?.worker_type === 'administracion') return true;
+  return estaAsignadoAObra(obra, tech, { techId, techEmail });
+}
+
 /** Acceso al módulo ERP: solo el gerente, el admin de la plataforma o quien tenga el permiso concedido. */
 export function puedeAccederErp(tech, { isAdmin = false, isPlatformAdmin = false } = {}) {
   if (isAdmin || isPlatformAdmin) return true;

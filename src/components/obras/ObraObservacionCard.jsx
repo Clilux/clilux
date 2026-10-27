@@ -13,7 +13,7 @@ const GRAVEDAD = {
 };
 
 /** Observación o incidencia registrada en la obra, con sus fotos. */
-export default function ObraObservacionCard({ observacion, onResolver, onEditar, onBorrar, puedeBorrar }) {
+export default function ObraObservacionCard({ observacion, onResolver, onEditar, onBorrar, puedeBorrar, soloLectura = false }) {
   const esIncidencia = observacion.tipo === 'incidencia';
   const resuelta = observacion.estado === 'resuelta';
   const [resolviendo, setResolviendo] = useState(false);
@@ -91,14 +91,16 @@ export default function ObraObservacionCard({ observacion, onResolver, onEditar,
         </div>
 
         <div className="flex gap-1 shrink-0">
-          {!resuelta && !resolviendo && (
+          {!soloLectura && !resuelta && !resolviendo && (
             <Button size="sm" variant="ghost" className="h-8 text-xs text-emerald-600 gap-1" onClick={() => setResolviendo(true)}>
               <CheckCircle2 className="h-3.5 w-3.5" />Resolver
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600" onClick={() => onEditar(observacion)} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+          {!soloLectura && (
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600" onClick={() => onEditar(observacion)} title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {puedeBorrar && (
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-300 hover:text-red-500" onClick={() => onBorrar(observacion)} title="Eliminar">
               <Trash2 className="h-3.5 w-3.5" />
