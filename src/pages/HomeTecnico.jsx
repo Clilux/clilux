@@ -427,7 +427,7 @@ export default function HomeTecnico() {
                       <Building2 className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-sm">Panel de Edificios</p>
+                      <p className="text-white font-semibold text-sm">Mantenimiento</p>
                       <p className="text-blue-100 text-xs">Estado global, alertas y revisiones por edificio</p>
                     </div>
                   </div>

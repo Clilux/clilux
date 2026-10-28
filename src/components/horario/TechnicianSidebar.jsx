@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, Home, Clock, Calendar, CalendarDays, HardHat, User, Wrench, Building2, ChevronDown, ClipboardList, Plug, BookOpen } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Shield, LogOut, Building2, ChevronDown, Plug, Wrench, User, Menu } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 import BuzonBell from '@/components/buzon/BuzonBell';
+import MenuLateral from '@/components/navigation/MenuLateral';
+import { construirMenu } from '@/lib/menu-lateral';
 
 export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAdmin, isLoading, onLogout, techEmail, company, isGerente, sessionTechEmail }) {
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
-  const showNav = isSessionTech || isAdmin;
+  const [sheet, setSheet] = useState(null); // 'servicios' | 'laboral' | 'clientes' | 'empresa' | 'todo'
 
   // El menú del gerente es el mismo que el del trabajador, en versión oscura
   const menuBg = isGerente ? 'bg-brand-900' : 'bg-brand-600';
@@ -16,89 +19,48 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
   const menuBorder = isGerente ? 'border-brand-800' : 'border-brand-700';
   const menuHover = isGerente ? 'hover:bg-brand-800' : 'hover:bg-brand-700';
 
-  const NAV_LINKS = [
-    { to: 'HomeTecnico',    label: 'Inicio',          icon: Home,     sessionOnly: false },
-    { to: 'ControlHorario', label: 'Control Horario', icon: Clock,    sessionOnly: true },
-    { to: 'PartesTrabajo',  label: 'Partes de Trabajo', icon: ClipboardList, sessionOnly: false },
-    { to: 'Calendar',       label: 'Agenda',           icon: Calendar, sessionOnly: true },
-    { to: 'MisVacaciones',  label: 'Mis Vacaciones',   icon: CalendarDays, sessionOnly: false },
-    { to: 'GestionTrabajo', label: 'Gestión de Trabajo', icon: ClipboardList, sessionOnly: true },
-    { to: 'ControlObras',   label: 'Obras',            icon: HardHat,  sessionOnly: true },
-    { to: 'LibroRegistroFGas', label: 'Libro F-Gas',   icon: BookOpen, sessionOnly: true },
-  ];
+  const menu = construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdmin, techEmail });
+  const grupoActivo = menu.grupos.find((g) => g.id === sheet);
+  const InicioIcon = menu.inicio.icon;
 
-  const visibleLinks = NAV_LINKS.filter(l => !l.sessionOnly || isSessionTech || isPlatformAdmin);
+  const grupoMovil = (id) => {
+    const g = menu.grupos.find((x) => x.id === id);
+    if (!g) return null;
+    const Icon = g.icon;
+    return (
+      <button
+        key={id}
+        onClick={() => setSheet(id)}
+        className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0"
+      >
+        <Icon className="h-6 w-6" />
+        <span className="text-[10px]">{g.label}</span>
+      </button>
+    );
+  };
 
   return (
     <>
     {/* Barra inferior móvil */}
-    <div className={`fixed bottom-0 left-0 right-0 z-50 md:hidden border-t flex items-center justify-around px-1 py-2 shadow-lg overflow-x-auto no-scrollbar ${menuBarBg}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <Link to={createPageUrl('HomeTecnico')}>
+    <div className={`fixed bottom-0 left-0 right-0 z-50 md:hidden border-t flex items-center justify-around px-1 py-2 shadow-lg ${menuBarBg}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <Link to={menu.inicio.to}>
         <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-          <Home className="h-6 w-6" />
+          <InicioIcon className="h-6 w-6" />
           <span className="text-[10px]">Inicio</span>
         </button>
       </Link>
-      {showNav && isSessionTech && (
-        <>
-          <Link to="/ControlHorario">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <Clock className="h-6 w-6" />
-              <span className="text-[10px]">Horario</span>
-            </button>
-          </Link>
-          <Link to="/Calendar">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <Calendar className="h-6 w-6" />
-              <span className="text-[10px]">Agenda</span>
-            </button>
-          </Link>
-          <Link to="/MisVacaciones">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <CalendarDays className="h-6 w-6" />
-              <span className="text-[10px]">Vacaciones</span>
-            </button>
-          </Link>
-          <Link to="/ControlObras">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <HardHat className="h-6 w-6" />
-              <span className="text-[10px]">Obras</span>
-            </button>
-          </Link>
-          <Link to="/GestionTrabajo">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <ClipboardList className="h-6 w-6" />
-              <span className="text-[10px]">Trabajo</span>
-            </button>
-          </Link>
-          <Link to="/LibroRegistroFGas">
-            <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-              <BookOpen className="h-6 w-6" />
-              <span className="text-[10px]">F-Gas</span>
-            </button>
-          </Link>
-          {techEmail && (
-            <Link to={`/TechnicianProfile?email=${techEmail}`}>
-              <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
-                <User className="h-6 w-6" />
-                <span className="text-[10px]">Perfil</span>
-              </button>
-            </Link>
-          )}
-        </>
-      )}
-      {isPlatformAdmin && (
-        <Link to={createPageUrl('AdminPanel')}>
-          <button className="flex flex-col items-center gap-1 text-amber-300 hover:text-amber-200 px-2 py-1 shrink-0">
-            <Shield className="h-6 w-6" />
-            <span className="text-[10px]">Admin</span>
+      {menu.grupos.filter((g) => g.id !== 'empresa').map((g) => grupoMovil(g.id))}
+      <button onClick={() => setSheet('todo')} className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
+        <Menu className="h-6 w-6" />
+        <span className="text-[10px]">Más</span>
+      </button>
+      {techEmail && (
+        <Link to={`/TechnicianProfile?email=${encodeURIComponent(techEmail)}`}>
+          <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
+            <User className="h-6 w-6" />
+            <span className="text-[10px]">Perfil</span>
           </button>
         </Link>
-      )}
-      {techEmail && (
-        <BuzonBell email={techEmail}
-          className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0"
-          iconClassName="h-6 w-6" label="Buzón" />
       )}
       <button onClick={onLogout} className="flex flex-col items-center gap-1 text-red-300 hover:text-red-200 px-2 py-1 shrink-0">
         <LogOut className="h-6 w-6" />
@@ -107,7 +69,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
     </div>
 
     {/* Sidebar desktop */}
-    <div className={`hidden md:flex w-56 flex-col shadow-lg ${menuBg}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className={`hidden md:flex w-60 flex-col shadow-lg ${menuBg}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Empresa arriba a la izquierda */}
       <div className={`p-3 border-b ${menuBorder}`}>
         {isPlatformAdmin ? (
@@ -147,25 +109,9 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
         )}
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 p-3 space-y-1.5">
-        {visibleLinks.map(({ to, label, icon: Icon }) => (
-          <Link key={to} to={to === 'HomeTecnico' ? createPageUrl(to) : `/${to}`}>
-            <Button variant="ghost" size="sm" className={`w-full justify-start text-white h-12 text-base font-medium ${menuHover}`}>
-              <Icon className="h-5 w-5 mr-3 shrink-0" />
-              <span className="truncate">{label}</span>
-            </Button>
-          </Link>
-        ))}
-
-        {techEmail && (isSessionTech || isPlatformAdmin) && (
-          <Link to={`/TechnicianProfile?email=${techEmail}`}>
-            <Button variant="ghost" size="sm" className={`w-full justify-start text-white h-12 text-base font-medium ${menuHover}`}>
-              <User className="h-5 w-5 mr-3" />
-              <span>Mi Perfil</span>
-            </Button>
-          </Link>
-        )}
+      {/* Nav agrupada */}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        <MenuLateral menu={menu} menuHover={menuHover} />
       </nav>
 
       {/* Bottom actions */}
@@ -218,6 +164,27 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
         </Button>
       </div>
     </div>
+
+    {/* Menú móvil por grupos */}
+    <Dialog open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>
+      <DialogContent className={`max-w-sm ${isGerente ? 'bg-brand-900' : 'bg-brand-700'} border-0`}>
+        <DialogHeader>
+          <DialogTitle className="text-white">
+            {sheet === 'todo' ? 'Menú' : grupoActivo?.label}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[70vh] overflow-y-auto">
+          <MenuLateral
+            menu={sheet === 'todo' || !grupoActivo
+              ? menu
+              : { ...menu, grupos: [grupoActivo].filter(Boolean) }}
+            menuHover={menuHover}
+            onNavigate={() => setSheet(null)}
+            abrirTodo
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
 
     {/* Menú de empresa (datos / edición gerente) */}
     <CompanyMenuDialog

@@ -218,7 +218,7 @@ export default function PanelEdificios() {
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-white text-lg font-bold">Panel de Edificios</h1>
+                <h1 className="text-white text-lg font-bold">Mantenimiento</h1>
                 <p className="text-blue-100 text-xs">Estado global de instalaciones · Pulsa (?) para ver la ayuda</p>
               </div>
             </div>
