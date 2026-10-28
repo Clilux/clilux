@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
-import { Loader2, FileText, ShoppingCart, Receipt, Truck, ChevronRight, Boxes, Package, ClipboardList } from 'lucide-react';
+import { Loader2, FileText, ShoppingCart, Receipt, Truck, ChevronRight, Boxes, Package, ClipboardList, AlertTriangle } from 'lucide-react';
 import ErpLayout from '@/components/erp/ErpLayout';
 import { useErpData } from '@/hooks/useErpData';
-import { euros } from '@/lib/erp-config';
+import { euros, bajoStockMinimo, stockActual, stockMinimo } from '@/lib/erp-config';
 
 const MODULOS = [
   { id: 'presupuestos', label: 'Presupuestos', ruta: '/ErpPresupuestos', icon: FileText, desc: 'Ofertas a clientes' },
@@ -23,6 +23,8 @@ export default function ErpHome() {
   const compras = erp.compras || [];
   const proveedores = erp.proveedores || [];
   const albaranes = erp.albaranes || [];
+
+  const articulosBajo = (erp.articulos || []).filter(bajoStockMinimo);
 
   const abiertos = (l, estados) => l.filter(d => estados.includes(d.estado || d.status));
   const suma = (l) => l.reduce((s, d) => s + (Number(d.total) || 0), 0);
@@ -76,6 +78,27 @@ export default function ErpHome() {
               </Card>
             ))}
           </div>
+
+          {articulosBajo.length > 0 && (
+            <Card className="p-4 mb-6 border-0 shadow-sm bg-red-50">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="flex items-center gap-2 font-semibold text-red-700">
+                  <AlertTriangle className="h-4 w-4" />Falta de stock ({articulosBajo.length})
+                </p>
+                <Link to="/ErpArticulos" className="text-sm font-medium text-red-700 hover:underline">Ver artículos</Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {articulosBajo.slice(0, 8).map(a => (
+                  <span key={a.id} className="text-xs bg-white border border-red-200 text-slate-700 rounded-full px-2.5 py-1">
+                    {a.nombre} · {stockActual(a).toLocaleString('es-ES')}/{stockMinimo(a).toLocaleString('es-ES')} {a.unidad || ''}
+                  </span>
+                ))}
+                {articulosBajo.length > 8 && (
+                  <span className="text-xs text-red-700 self-center">+{articulosBajo.length - 8} más</span>
+                )}
+              </div>
+            </Card>
+          )}
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
             {MODULOS.map(({ id, label, ruta, icon: Icon, desc }) => (

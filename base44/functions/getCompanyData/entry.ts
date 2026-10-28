@@ -353,6 +353,9 @@ Deno.serve(async (req) => {
       const existing = (await base44.asServiceRole.entities.Obra.filter({ id: record_id }))[0];
       if (!existing || existing.company_id !== tech.company_id) return Response.json({ error: 'No encontrada' }, { status: 404 });
       if (!esEncargadoObras) return deny('admin');
+      // Se eliminan también los trabajos y las observaciones de la obra.
+      await base44.asServiceRole.entities.ObraTarea.deleteMany({ obra_id: record_id });
+      await base44.asServiceRole.entities.ObraObservacion.deleteMany({ obra_id: record_id });
       await base44.asServiceRole.entities.Obra.delete(record_id);
       return Response.json({ data: true });
     }

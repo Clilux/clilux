@@ -84,6 +84,25 @@ export function margenVenta(a) {
   return { importe, pct: compra > 0 ? Math.round((importe / compra) * 10000) / 100 : 0 };
 }
 
+// ── Stock ────────────────────────────────────────────────────────
+// Solo se controla el stock de los artículos marcados expresamente.
+export function controlaStock(a) {
+  return a?.control_stock === true;
+}
+
+export function stockActual(a) {
+  return Number(a?.stock) || 0;
+}
+
+export function stockMinimo(a) {
+  return Number(a?.stock_minimo) || 0;
+}
+
+// Falta de stock: artículo marcado cuyo stock actual está en el mínimo o por debajo.
+export function bajoStockMinimo(a) {
+  return controlaStock(a) && stockActual(a) <= stockMinimo(a);
+}
+
 export const IVA_DEFECTO = 21;
 
 export const FORMAS_PAGO = {

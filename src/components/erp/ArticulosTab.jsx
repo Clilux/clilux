@@ -3,18 +3,19 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Package, Pencil, Trash2, Upload } from 'lucide-react';
+import { Loader2, Plus, Search, Package, Pencil, Trash2, Upload, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import ArticuloForm from '@/components/erp/ArticuloForm';
 import ImportarCatalogoModal from '@/components/erp/ImportarCatalogoModal';
 import { useErpData } from '@/hooks/useErpData';
-import { euros, margenCompra, margenVenta, precioCompra, precioVenta } from '@/lib/erp-config';
+import { euros, margenCompra, margenVenta, precioCompra, precioVenta, bajoStockMinimo, controlaStock, stockActual, stockMinimo } from '@/lib/erp-config';
 
 /** Catálogo de artículos: familia, nombre, PVP, descuento de compra y % de venta. */
 export default function ArticulosTab() {
   const { erp, isLoading, saveArticulo, saveArticulosBulk, deleteArticulo, saveFamilia, refresh } = useErpData();
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('all');
+  const [soloBajo, setSoloBajo] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
   const [importando, setImportando] = useState(false);
@@ -22,10 +23,14 @@ export default function ArticulosTab() {
   const articulos = erp.articulos || [];
   const familias = erp.familias || [];
 
+  const bajoMinimo = articulos.filter(bajoStockMinimo);
+
   const filtered = articulos.filter(a => {
     const q = search.toLowerCase();
     const texto = `${a.nombre || ''} ${a.codigo || ''} ${a.referencia_fabricante || ''} ${a.fabricante || ''} ${a.descripcion || ''}`.toLowerCase();
-    return (!q || texto.includes(q)) && (filtro === 'all' || a.familia_id === filtro);
+    return (!q || texto.includes(q))
+      && (filtro === 'all' || a.familia_id === filtro)
+      && (!soloBajo || bajoStockMinimo(a));
   });
 
   const borrar = async (a) => {
@@ -61,6 +66,18 @@ export default function ArticulosTab() {
         </div>
       </div>
 
+      {bajoMinimo.length > 0 && (
+        <Card className="p-3 mb-4 border-0 shadow-sm bg-red-50 flex items-center justify-between gap-3 flex-wrap">
+          <p className="flex items-center gap-2 text-sm font-medium text-red-700">
+            <AlertTriangle className="h-4 w-4" />
+            {bajoMinimo.length} artículo{bajoMinimo.length === 1 ? '' : 's'} en el stock mínimo o por debajo
+          </p>
+          <Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-100" onClick={() => setSoloBajo(v => !v)}>
+            {soloBajo ? 'Ver todos' : 'Ver solo estos'}
+          </Button>
+        </Card>
+      )}
+
       <div className="flex gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -73,6 +90,12 @@ export default function ArticulosTab() {
             {familias.map(f => <SelectItem key={f.id} value={f.id}>{f.nombre}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          variant={soloBajo ? 'default' : 'outline'}
+          onClick={() => setSoloBajo(v => !v)}
+          className={`gap-2 md:h-11 ${soloBajo ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}>
+          <AlertTriangle className="h-4 w-4" />Bajo mínimo
+        </Button>
       </div>
 
       {isLoading ? (
@@ -91,7 +114,12 @@ export default function ArticulosTab() {
             <Card key={a.id} className="p-3.5 border-0 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm md:text-lg font-medium text-slate-800 truncate">{a.nombre}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm md:text-lg font-medium text-slate-800 truncate">{a.nombre}</p>
+                    {bajoStockMinimo(a) && (
+                      <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 rounded-full px-2 py-0.5">Falta stock</span>
+                    )}
+                  </div>
                   <p className="text-xs md:text-sm text-slate-400 truncate">
                     {[a.codigo, a.referencia_fabricante, a.fabricante, a.familia, a.unidad].filter(Boolean).join(' · ')}
                   </p>
@@ -114,6 +142,19 @@ export default function ArticulosTab() {
                   <p className="text-[11px] md:text-sm text-slate-400">Precio venta</p>
                   <p className="text-sm md:text-lg font-semibold text-indigo-700">{euros(precioVenta(a))}</p>
                   <p className="text-[11px] text-slate-400">Compra {euros(precioCompra(a))}</p>
+                </div>
+                <div className="md:w-28 md:shrink-0">
+                  <p className="text-[11px] md:text-sm text-slate-400">Stock</p>
+                  {controlaStock(a) ? (
+                    <>
+                      <p className={`text-sm md:text-lg font-semibold ${bajoStockMinimo(a) ? 'text-red-600' : 'text-slate-800'}`}>
+                        {stockActual(a).toLocaleString('es-ES')} {a.unidad}
+                      </p>
+                      <p className="text-[11px] text-slate-400">Mín. {stockMinimo(a).toLocaleString('es-ES')}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-300">Sin control</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 md:shrink-0">
                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50" title="Editar" onClick={() => { setEditando(a); setShowForm(true); }}>

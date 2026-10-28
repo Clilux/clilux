@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { UNIDADES, euros, margenCompra, margenVenta, precioCompra, precioVenta } from '@/lib/erp-config';
 
@@ -20,6 +20,9 @@ const inicial = (a) => ({
   pvp: a?.pvp ?? '',
   descuento_compra: a?.descuento_compra ?? 0,
   porcentaje_venta: a?.porcentaje_venta ?? 0,
+  control_stock: a?.control_stock ?? false,
+  stock: a?.stock ?? 0,
+  stock_minimo: a?.stock_minimo ?? 0,
 });
 
 /** Alta/edición de un artículo del catálogo. */
@@ -77,6 +80,9 @@ export default function ArticuloForm({ open, onClose, articulo, familias = [], o
         porcentaje_venta: Number(form.porcentaje_venta) || 0,
         precio_compra: precioCompra(calc),
         precio_venta: precioVenta(calc),
+        control_stock: !!form.control_stock,
+        stock: Number(form.stock) || 0,
+        stock_minimo: Number(form.stock_minimo) || 0,
         activo: true,
       }, articulo?.id);
       onClose();
@@ -197,6 +203,37 @@ export default function ArticuloForm({ open, onClose, articulo, familias = [], o
             <span className="text-slate-500">Precio venta: <strong className="text-indigo-700">{euros(precioVenta(calc))}</strong></span>
             <span className="text-slate-500">Margen compra: <strong className="text-slate-800">{mc.pct} %</strong> · {euros(mc.importe)}</span>
             <span className="text-slate-500">Margen venta: <strong className="text-emerald-700">{mv.pct} %</strong> · {euros(mv.importe)}</span>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 p-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!form.control_stock}
+                onChange={e => set('control_stock', e.target.checked)}
+                className="h-4 w-4 accent-indigo-600"
+              />
+              <span className="text-sm font-medium text-slate-700">Controlar stock de este artículo</span>
+            </label>
+            {form.control_stock && (
+              <>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <Label>Stock actual ({form.unidad})</Label>
+                    <Input type="number" step="0.01" value={form.stock} onChange={e => set('stock', e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Stock mínimo</Label>
+                    <Input type="number" step="0.01" min="0" value={form.stock_minimo} onChange={e => set('stock_minimo', e.target.value)} className="mt-1" />
+                  </div>
+                </div>
+                {Number(form.stock || 0) <= Number(form.stock_minimo || 0) && (
+                  <p className="flex items-center gap-1 text-xs text-red-600 mt-2">
+                    <AlertTriangle className="h-3.5 w-3.5" />Avisará de falta de stock: está en el mínimo o por debajo.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-1">

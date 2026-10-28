@@ -88,6 +88,21 @@
     "activo": {
       "type": "boolean",
       "default": true
+    },
+    "control_stock": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si se marca, el art\u00edculo lleva control de stock y avisa cuando baja del stock m\u00ednimo"
+    },
+    "stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad disponible en almac\u00e9n"
+    },
+    "stock_minimo": {
+      "type": "number",
+      "default": 0,
+      "description": "Stock m\u00ednimo: al llegar o bajar de esta cantidad se avisa de falta de stock"
     }
   },
   "required": [
