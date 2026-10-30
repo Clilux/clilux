@@ -12,13 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import AlbaranObraModal from '@/components/obras/AlbaranObraModal';
 import EditarObraModal from '@/components/obras/EditarObraModal';
+import TransferirObraModal from '@/components/obras/TransferirObraModal';
 import ObraTareasPanel from '@/components/obras/ObraTareasPanel';
 import ObraObservacionesPanel from '@/components/obras/ObraObservacionesPanel';
 import CompartirButton from '@/components/compartir/CompartirButton';
 import { puedeVerEconomia, puedeVerCostesTrabajador, puedeEditarObra, estaAsignadoAObra } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
-import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList, Users, Lock } from 'lucide-react';
+import { HardHat, Plus, FileText, Euro, Image, Trash2, Download, Loader2, ChevronLeft, Pencil, CheckCircle, Save, ClipboardList, Users, Lock, Building2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
@@ -37,6 +38,7 @@ export default function ObraDetail() {
   const navigate = useNavigate();
   const [showAlbaran, setShowAlbaran] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
   const [editingEcon, setEditingEcon] = useState(false);
   const [econForm, setEconForm] = useState(null);
   const [newFactura, setNewFactura] = useState({ numero: '', fecha: format(new Date(), 'yyyy-MM-dd'), importe: '', estado: 'pendiente', notas: '' });
@@ -334,6 +336,11 @@ export default function ObraDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {obra.estado === 'finalizada' && puedeEditar && (isAdmin || verEconomia) && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowTransfer(true)}>
+                    <Building2 className="h-3.5 w-3.5" />{obra.building_id ? 'Informe de obra' : 'Transferir a mantenimiento'}
+                  </Button>
+                )}
                 {puedeEditar && (
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
                     <Pencil className="h-3.5 w-3.5" />Editar obra
@@ -751,6 +758,23 @@ export default function ObraDetail() {
           puedeAsignar={isAdmin}
           onSave={(data) => updateObra.mutateAsync(data)}
           onClose={() => setShowEdit(false)}
+        />
+      )}
+
+      {showTransfer && (
+        <TransferirObraModal
+          open={showTransfer}
+          obra={obra}
+          isSessionTech={isSessionTech}
+          effectiveEmail={effectiveEmail}
+          techName={myTechRecord?.name}
+          verEconomia={verEconomia}
+          verCostes={verCostes}
+          onDone={() => {
+            queryClient.invalidateQueries({ queryKey: ['obra', obraId] });
+            queryClient.invalidateQueries({ queryKey: ['obras'] });
+          }}
+          onClose={() => setShowTransfer(false)}
         />
       )}
     </div>
