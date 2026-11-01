@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Edit, Plus, Building2, MapPin, Phone, User, 
   Layers, Square, FileText, Thermometer, Trash2, Snowflake, Flame, Leaf, ToggleLeft, ToggleRight,
-  LayoutList, LayoutGrid, Table2
+  LayoutList, LayoutGrid, Table2, HardHat
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import EquipmentCard from '../components/cards/EquipmentCard';
@@ -19,6 +19,7 @@ import BuildingReport from '../components/reports/BuildingReport';
 import BuildingPendientes from '../components/buildings/BuildingPendientes';
 import BuildingYearPlan from '../components/buildings/BuildingYearPlan';
 import BuildingDocuments from '../components/buildings/BuildingDocuments';
+import BuildingDocObra from '../components/buildings/BuildingDocObra';
 import RepInspeccionesPanel from '@/components/rep/RepInspeccionesPanel';
 import { toast } from 'sonner';
 
@@ -62,6 +63,28 @@ export default function BuildingDetail() {
     onError: () => {
       toast.error('Error al eliminar el edificio');
     },
+  });
+
+  // Conmutar fase "en obras" (solo edición de la ficha, sin tocar mantenimiento)
+  const toggleObraMutation = useMutation({
+    mutationFn: async (currentEnObras) => {
+      const next = !currentEnObras;
+      if (isSessionTech) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: sessionTechEmail, entity: 'building_update',
+          record_id: buildingId, updates: { en_obras: next },
+        });
+        if (res.data?.error) throw new Error(res.data.error);
+        return res.data?.data;
+      }
+      return base44.entities.Building.update(buildingId, { en_obras: next });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['building', buildingId] });
+      queryClient.invalidateQueries({ queryKey: ['proxy-building-detail', buildingId, sessionTechEmail] });
+      toast.success(data?.en_obras ? 'Edificio marcado como en obras' : 'Edificio traspasado a mantenimiento');
+    },
+    onError: () => toast.error('No se pudo cambiar la fase del edificio'),
   });
 
   // Para técnicos de sesión propia, cargamos datos vía proxy
@@ -120,6 +143,8 @@ export default function BuildingDetail() {
   const finalIncidents = isSessionTech ? (proxyData?.incidents || []) : incidents;
   const isLoadingFinal = isSessionTech ? !proxyData && !buildingId : isLoading;
 
+  const enObras = finalBuilding?.en_obras === true;
+
   const totalCoolingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
   const totalHeatingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.heating_power_kw) || 0), 0);
   // Suma del F-Gas (tCO₂eq) de los equipos con gas refrigerante del edificio
@@ -171,6 +196,24 @@ export default function BuildingDetail() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <StatusBadge status={finalBuilding.status || 'active'} />
+              {enObras && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                  <HardHat className="h-3.5 w-3.5" /> En obras
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleObraMutation.mutate(enObras)}
+                disabled={toggleObraMutation.isPending}
+                className={enObras ? 'text-emerald-600 hover:text-emerald-700' : 'text-amber-600 hover:text-amber-700'}
+                title={enObras ? 'Marcar como traspasado a mantenimiento' : 'Marcar como en obras'}
+              >
+                {enObras
+                  ? <><ToggleRight className="h-4 w-4 mr-2" />Pasar a mantenimiento</>
+                  : <><ToggleLeft className="h-4 w-4 mr-2" />Marcar en obras</>
+                }
+              </Button>
               {!isSessionTech && (
               <Button
                 variant="outline"
@@ -265,8 +308,8 @@ export default function BuildingDetail() {
             )}
           </div>
 
-          {/* Potencia instalada y F-Gas */}
-          {(totalCoolingKw > 0 || totalHeatingKw > 0 || totalFgas > 0) && (
+          {/* Potencia instalada y F-Gas (solo en mantenimiento) */}
+          {!enObras && (totalCoolingKw > 0 || totalHeatingKw > 0 || totalFgas > 0) && (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {totalCoolingKw > 0 && (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
@@ -311,6 +354,31 @@ export default function BuildingDetail() {
           )}
         </Card>
 
+        {/* Documentación durante la obra (siempre visible: durante la obra y como histórico) */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <HardHat className="h-5 w-5 text-amber-600" />
+            Documentación de la obra
+          </h2>
+          <BuildingDocObra building={finalBuilding} client={finalClient} />
+        </div>
+
+        {enObras ? (
+          <Card className="p-6 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3">
+              <HardHat className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800">Edificio en fase de obra</p>
+                <p className="text-sm text-amber-700">
+                  Aún no se ha traspasado a mantenimiento. Los equipos, revisiones, incidencias y libros de
+                  mantenimiento permanecen ocultos. Cuando la obra finalice, pulsa <strong>«Pasar a mantenimiento»</strong>
+                  para activar el seguimiento de mantenimiento.
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <>
         <BuildingDocuments
           building={finalBuilding}
           client={finalClient}
@@ -334,7 +402,6 @@ export default function BuildingDetail() {
           revisions={finalRevisions}
           incidents={finalIncidents}
         />
-
         <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -400,11 +467,13 @@ export default function BuildingDetail() {
                 </Card>
               </Link>
             ))}
-          </div>
-        )}
-        </div>
+            </div>
+            )}
+            </div>
+            </>
+            )}
 
-        <DeleteConfirmDialog
+            <DeleteConfirmDialog
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
           title="¿Eliminar edificio?"

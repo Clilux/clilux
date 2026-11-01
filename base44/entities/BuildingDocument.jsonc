@@ -26,9 +26,10 @@
         "plano",
         "documento_acceso",
         "seguro",
+        "documentacion_obra",
         "otro"
       ],
-      "description": "Tipo de documento: libros anuales generados o archivos aportados (planos, accesos, seguros, otros)"
+      "description": "Tipo de documento: libros anuales generados, archivos aportados (planos, accesos, seguros) o documentaci\u00f3n generada durante la obra."
     },
     "titulo": {
       "type": "string",

@@ -147,20 +147,31 @@ export default function TransferirObraModal({ open, onClose, obra, isSessionTech
         filename,
         file_base64: base64,
         content_type: 'application/pdf',
-        record: { tipo: 'otro', titulo: `Informe de obra - ${obra.nombre}`, resumen },
+        record: { tipo: 'documentacion_obra', titulo: `Informe de obra - ${obra.nombre}`, resumen },
       });
     } else {
       const up = await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], filename, { type: 'application/pdf' }) });
       await base44.entities.BuildingDocument.create({
         building_id: buildingId,
         client_id: obra.client_id,
-        tipo: 'otro',
+        tipo: 'documentacion_obra',
         titulo: `Informe de obra - ${obra.nombre}`,
         file_uri: up.file_uri,
         nombre_original: filename,
         resumen,
         generated_by_name: techName,
       });
+    }
+  };
+
+  const marcarMantenimiento = async (buildingId) => {
+    if (isSessionTech && effectiveEmail) {
+      await base44.functions.invoke('getCompanyData', {
+        technician_email: effectiveEmail, entity: 'building_update',
+        record_id: buildingId, updates: { en_obras: false },
+      });
+    } else {
+      await base44.entities.Building.update(buildingId, { en_obras: false });
     }
   };
 
@@ -181,6 +192,8 @@ export default function TransferirObraModal({ open, onClose, obra, isSessionTech
       }
 
       await adjuntarInforme(buildingId, detalle);
+      // Al traspasar a mantenimiento, el edificio deja de estar en obras
+      await marcarMantenimiento(buildingId);
 
       toast.success(yaTieneEdificio ? 'Informe adjuntado a la documentación del edificio' : 'Obra traspasada a mantenimiento e informe adjuntado');
       onDone?.({ building_id: buildingId, building_name: buildingName });

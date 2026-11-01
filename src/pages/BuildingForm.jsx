@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, MapPin } from 'lucide-react';
+import { Loader2, Save, MapPin, HardHat } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ImageUploader from '../components/ui/ImageUploader';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
 
@@ -43,6 +44,7 @@ export default function BuildingForm() {
     surface_m2: '',
     notes: '',
     status: 'active',
+    en_obras: false,
   });
   const [geocoding, setGeocoding] = useState(false);
 
@@ -354,6 +356,23 @@ export default function BuildingForm() {
                   onChange={(e) => handleChange('notes', e.target.value)}
                   className="mt-1"
                   rows={3}
+                />
+              </div>
+
+              <div className="md:col-span-2 flex items-center justify-between gap-3 p-3 rounded-lg bg-amber-50/60 border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <HardHat className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">Edificio en obras</p>
+                    <p className="text-xs text-slate-500">
+                      Marca si el edificio está en fase de obra. Mientras esté en obras, se ocultan los datos de
+                      mantenimiento y solo se mostrará la ficha y la documentación de la obra.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.en_obras === true}
+                  onCheckedChange={(v) => handleChange('en_obras', v)}
                 />
               </div>
             </div>

@@ -58,6 +58,11 @@
       "type": "string",
       "description": "Foto del edificio"
     },
+    "en_obras": {
+      "type": "boolean",
+      "default": false,
+      "description": "Edificio en fase de obra: a\u00fan no se ha traspasado a mantenimiento. Mientras est\u00e9 activo, se ocultan los datos de mantenimiento (equipos, revisiones, incidencias, libros) y solo se muestra la ficha y la documentaci\u00f3n de la obra."
+    },
     "status": {
       "type": "string",
       "enum": [
