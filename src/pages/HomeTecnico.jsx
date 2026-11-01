@@ -26,6 +26,7 @@ import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import ResumenPrincipal from '@/components/dashboard/ResumenPrincipal';
 import { FUNCIONES } from '@/lib/funciones';
 import { puedeAccederErp, puedeAccederAutomatizacion, veTodoElEquipo } from '@/lib/permisos-trabajador';
+import { isModuloActivo } from '@/lib/modulos';
 
 // ── Tab config ──────────────────────────────────────────────
 const TABS = [
@@ -353,8 +354,8 @@ export default function HomeTecnico() {
             {/* Hora + cambio de modo (Servicios / ERP) */}
             <div className="flex items-center gap-3">
               <p className="text-white text-3xl font-bold">{format(new Date(), 'HH:mm')}</p>
-              {puedeAccederAutomatizacion(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="automatizacion" />}
-              {puedeAccederErp(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="erp" />}
+              {isModuloActivo(myCompany, 'automatizacion') && puedeAccederAutomatizacion(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="automatizacion" />}
+              {isModuloActivo(myCompany, 'erp') && puedeAccederErp(myTechRecord, { isAdmin, isPlatformAdmin }) && <ModoSwitchButton destino="erp" />}
             </div>
           </div>
         </div>

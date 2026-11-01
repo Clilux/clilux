@@ -33,6 +33,7 @@ import LDTab from '../components/equipment/LDTab';
 import LibroRegistroTab from '../components/equipment/LibroRegistroTab';
 import NfcAssignButton from '../components/equipment/NfcAssignButton';
 import CumplimientoTab from '../components/equipment/CumplimientoTab';
+import { modulosActivos } from '@/lib/modulos';
 
 import { format, isValid } from 'date-fns';
 
@@ -200,6 +201,20 @@ export default function EquipmentDetail() {
     },
     enabled: !isSessionTech && !!equipment?.client_id
   });
+
+  // Empresa del técnico (para resolver los módulos contratados y gatear las
+  // pestañas de normativa). El admin de la plataforma no tiene empresa → todo on.
+  const { data: companyRecord } = useQuery({
+    queryKey: ['company-modulos-eq', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', {
+        technician_email: sessionTechEmail, entity: 'company',
+      });
+      return res.data?.data || null;
+    },
+    enabled: isSessionTech,
+  });
+  const mods = modulosActivos(isSessionTech ? companyRecord : null);
 
   // Datos finales
   const finalEquipment = isSessionTech ? proxyData?.equipment : equipment;
@@ -682,15 +697,15 @@ export default function EquipmentDetail() {
             <TabsList className="flex w-max min-w-full h-auto bg-transparent p-0 gap-0 rounded-none">
               {[
                 { value: 'plan', label: 'Plan Mant.' },
-                { value: 'cumplimiento', label: 'Cumplimiento' },
+                ...((mods.rite || mods.fgas || mods.legionela || mods.equipos_presion) ? [{ value: 'cumplimiento', label: 'Cumplimiento' }] : []),
                 { value: 'revisions', label: 'Revisiones' },
                 { value: 'interventions', label: 'Intervenciones' },
                 { value: 'incidents', label: 'Incidencias' },
                 { value: 'photos', label: 'Imágenes' },
                 { value: 'spareparts', label: 'Repuestos' },
                 { value: 'documents', label: 'Documentos' },
-                ...(finalEquipment.refrigerant_type ? [{ value: 'fgas', label: 'F-Gas 🌿' }] : []),
-                ...(finalEquipment.equipment_type === 'adiabatico' ? [{ value: 'ld', label: 'L+D 💧' }] : []),
+                ...(finalEquipment.refrigerant_type && mods.fgas ? [{ value: 'fgas', label: 'F-Gas 🌿' }] : []),
+                ...(finalEquipment.equipment_type === 'adiabatico' && mods.legionela ? [{ value: 'ld', label: 'L+D 💧' }] : []),
                 ...(finalEquipment.equipment_type === 'camara_frigorifica' ? [{ value: 'libro', label: 'Libro 📋' }] : []),
               ].map(tab => (
                 <TabsTrigger
@@ -729,7 +744,8 @@ export default function EquipmentDetail() {
                 equipmentId={equipmentId}
                 building={finalBuilding}
                 client={finalClient}
-                companyInfo={null} />
+                companyInfo={null}
+                modulos={mods} />
             </Card>
           </TabsContent>
 

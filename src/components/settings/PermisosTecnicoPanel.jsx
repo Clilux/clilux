@@ -22,8 +22,12 @@ const PERMISOS_CONFIG = [
   { key: 'ver_contratos',     label: 'Ver contratos',        group: 'Otros' },
   { key: 'ver_scada',         label: 'Acceso SCADA',         group: 'Otros' },
   { key: 'ver_economia',      label: 'Ver importes y márgenes', group: 'Otros' },
-  { key: 'ver_erp',           label: 'Acceso al módulo ERP',  group: 'Otros' },
-  { key: 'ver_automatizacion', label: 'Acceso a Automatización', group: 'Otros' },
+  { key: 'ver_erp',           label: 'Acceso al módulo ERP',  group: 'Módulos extra' },
+  { key: 'ver_automatizacion', label: 'Acceso a Automatización', group: 'Módulos extra' },
+  { key: 'ver_fgas',          label: 'Acceso a normativa F-Gas', group: 'Módulos extra' },
+  { key: 'ver_rite',          label: 'Acceso a normativa RITE', group: 'Módulos extra' },
+  { key: 'ver_legionela',     label: 'Acceso a normativa Legionela', group: 'Módulos extra' },
+  { key: 'ver_equipos_presion', label: 'Acceso a normativa Equipos a Presión', group: 'Módulos extra' },
 ];
 
 const DEFAULTS = {
@@ -35,6 +39,7 @@ const DEFAULTS = {
   ver_horario: true, ver_ausencias: true,
   ver_documentacion: true, ver_contratos: false, ver_scada: false,
   ver_economia: false, ver_erp: false, ver_automatizacion: false,
+  ver_fgas: true, ver_rite: true, ver_legionela: true, ver_equipos_presion: true,
 };
 
 export default function PermisosTecnicoPanel({ technician, onUpdated, onPermisoChange }) {

@@ -12,6 +12,7 @@ import {
 import ExportDatosGerente from '@/components/company/ExportDatosGerente';
 import ImportDatosEmpresa from '@/components/company/ImportDatosEmpresa';
 import DriveSyncButton from '@/components/company/DriveSyncButton';
+import ModulosPanel from '@/components/company/ModulosPanel';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HABILITACIONES_REP } from '@/lib/rep';
 
@@ -163,6 +164,12 @@ export default function CompanyMenuDialog({ company, isGerente, sessionTechEmail
                       <Pencil className="h-4 w-4 mr-2" /> Editar datos
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {isGerente && (
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <ModulosPanel company={company} sessionTechEmail={sessionTechEmail} />
                 </div>
               )}
             </>

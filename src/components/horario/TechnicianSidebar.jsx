@@ -19,7 +19,7 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
   const menuBorder = isGerente ? 'border-brand-800' : 'border-brand-700';
   const menuHover = isGerente ? 'hover:bg-brand-800' : 'hover:bg-brand-700';
 
-  const menu = construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdmin, techEmail });
+  const menu = construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdmin, techEmail, company });
   const grupoActivo = menu.grupos.find((g) => g.id === sheet);
   const InicioIcon = menu.inicio.icon;
 

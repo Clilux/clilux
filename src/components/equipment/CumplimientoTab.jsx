@@ -64,7 +64,8 @@ function ComplianceCard({ icon: Icon, iconColor, title, regulation, obligatorio,
   );
 }
 
-export default function CumplimientoTab({ equipment, equipmentId, building, client, companyInfo }) {
+export default function CumplimientoTab({ equipment, equipmentId, building, client, companyInfo, modulos }) {
+  const mods = modulos || { rite: true, legionela: true, fgas: true, equipos_presion: true };
   const [genFugas, setGenFugas] = useState(false);
   const [genRite, setGenRite] = useState(false);
   const [genMemoria, setGenMemoria] = useState(false);
@@ -161,7 +162,7 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* F-Gas */}
-        {tieneGas && (
+        {tieneGas && mods.fgas && (
           <ComplianceCard
             icon={Wind} iconColor="text-blue-600"
             title="Control de Fugas F-Gas"
@@ -181,6 +182,7 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
         )}
 
         {/* RITE */}
+        {mods.rite && (
         <ComplianceCard
           icon={Shield} iconColor="text-[#2F586E]"
           title="Mantenimiento RITE"
@@ -195,9 +197,10 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
             <div className="flex justify-between"><span>Frecuencia</span><span className="font-medium text-slate-800">{riteReq?.frequency || '—'}</span></div>
           </div>
         </ComplianceCard>
+        )}
 
         {/* Legionella L+D */}
-        {leg.obligatorio && (
+        {leg.obligatorio && mods.legionela && (
           <ComplianceCard
             icon={Droplet} iconColor="text-cyan-600"
             title="Limpieza y Desinfección"
@@ -215,6 +218,7 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
         )}
 
         {/* Memoria RITE */}
+        {mods.rite && (
         <ComplianceCard
           icon={BookOpen} iconColor="text-[#2F586E]"
           title="Memoria Técnica RITE"
@@ -228,6 +232,7 @@ export default function CumplimientoTab({ equipment, equipmentId, building, clie
             <div className="flex justify-between"><span>Documento</span><span className="font-medium text-slate-800">Memoria técnica completa</span></div>
           </div>
         </ComplianceCard>
+        )}
       </div>
     </div>
   );

@@ -54,6 +54,53 @@
       ],
       "description": "Habilitaci\u00f3n REP (Reglamento de Equipos a Presi\u00f3n): EIP-1 o EIP-2"
     },
+    "modulos": {
+      "type": "object",
+      "description": "M\u00f3dulos contratados por la empresa. La app base (mantenimiento) siempre est\u00e1 activa; el resto se activan aqu\u00ed.",
+      "properties": {
+        "base": {
+          "type": "boolean",
+          "default": true,
+          "description": "M\u00f3dulo base: mantenimiento (clientes, edificios, equipos, incidencias, revisiones). Siempre activo."
+        },
+        "automatizacion": {
+          "type": "boolean",
+          "default": false,
+          "description": "M\u00f3dulo de Automatizaci\u00f3n: Loxone, Airzone y paneles SCADA."
+        },
+        "erp": {
+          "type": "boolean",
+          "default": false,
+          "description": "M\u00f3dulo ERP: presupuestos, albaranes, pedidos, compras, art\u00edculos, proveedores."
+        },
+        "normativa": {
+          "type": "object",
+          "description": "Bloques de cumplimiento normativo opcionales.",
+          "properties": {
+            "rite": {
+              "type": "boolean",
+              "default": false,
+              "description": "Cumplimiento RITE (Reglamento de Instalaciones T\u00e9rmicas)."
+            },
+            "legionela": {
+              "type": "boolean",
+              "default": false,
+              "description": "Cumplimiento Legionela (L+D, RD 865/2003)."
+            },
+            "fgas": {
+              "type": "boolean",
+              "default": false,
+              "description": "Cumplimiento F-Gas (libro de registro de gases fluorados)."
+            },
+            "equipos_presion": {
+              "type": "boolean",
+              "default": false,
+              "description": "Cumplimiento REP (Reglamento de Equipos a Presi\u00f3n)."
+            }
+          }
+        }
+      }
+    },
     "status": {
       "type": "string",
       "enum": [

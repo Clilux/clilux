@@ -86,3 +86,15 @@ export function puedeAccederAutomatizacion(tech, { isAdmin = false, isPlatformAd
   if (isAdmin || isPlatformAdmin) return true;
   return tech?.permisos?.ver_automatizacion === true;
 }
+
+/**
+ * Acceso a un bloque normativo (fgas, rite, legionela, equipos_presion).
+ * Segundo filtro encima del módulo contratado por la empresa: si la empresa
+ * no tiene el módulo, no se concede aunque el permiso del técnico esté on.
+ * Si el permiso del técnico no está definido, se considera concedido (true).
+ */
+export function puedeAccederNormativa(tech, key, { isAdmin = false, isPlatformAdmin = false } = {}) {
+  if (isAdmin || isPlatformAdmin) return true;
+  const v = tech?.permisos?.[`ver_${key}`];
+  return v !== false;
+}

@@ -8,8 +8,10 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Building2, Users, UserPlus, UserCog, CheckCircle2, ArrowRight, ArrowLeft,
-  Loader2, Sparkles, Rocket, Briefcase, ShieldCheck,
+  Loader2, Sparkles, Rocket, Briefcase, ShieldCheck, Boxes,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { MODULOS_INFO } from '@/lib/modulos';
 
 /**
  * Asistente de primera configuración para el GERENTE de empresa.
@@ -24,6 +26,13 @@ export default function OnboardingWizard({ techRecord, sessionTechEmail, onDismi
     name: '', cif: '', address: '', city: '', postal_code: '', province: '', phone: '', email: '', web: '',
   });
   const [savingCompany, setSavingCompany] = useState(false);
+
+  // ── Perfil del gerente ──
+  // ── Módulos contratados ──
+  const [modulos, setModulos] = useState({
+    automatizacion: true, erp: true,
+    normativa: { rite: true, legionela: true, fgas: true, equipos_presion: true },
+  });
 
   // ── Perfil del gerente ──
   const [profile, setProfile] = useState({
@@ -52,6 +61,19 @@ export default function OnboardingWizard({ techRecord, sessionTechEmail, onDismi
             city: c.city || '', postal_code: c.postal_code || '', province: c.province || '',
             phone: c.phone || '', email: c.email || '', web: c.web || '',
           }));
+          const cm = c.modulos;
+          if (cm) {
+            setModulos({
+              automatizacion: cm.automatizacion ?? true,
+              erp: cm.erp ?? true,
+              normativa: {
+                rite: cm.normativa?.rite ?? true,
+                legionela: cm.normativa?.legionela ?? true,
+                fgas: cm.normativa?.fgas ?? true,
+                equipos_presion: cm.normativa?.equipos_presion ?? true,
+              },
+            });
+          }
         }
       } catch (e) { /* sin empresa todavía */ }
     })();
@@ -78,6 +100,7 @@ export default function OnboardingWizard({ techRecord, sessionTechEmail, onDismi
           city: company.city.trim(), postal_code: company.postal_code.trim(),
           province: company.province.trim(), phone: company.phone.trim(),
           email: company.email.trim(), web: company.web.trim(),
+          modulos: { base: true, automatizacion: modulos.automatizacion, erp: modulos.erp, normativa: { ...modulos.normativa } },
         },
       });
       toast.success('Datos de la empresa guardados');
@@ -314,6 +337,45 @@ export default function OnboardingWizard({ techRecord, sessionTechEmail, onDismi
                 <div>
                   <Label>Email</Label>
                   <Input type="email" value={company.email} onChange={(e) => setCompany(p => ({ ...p, email: e.target.value }))} placeholder="info@empresa.com" className="mt-1" />
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 mt-4 pt-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Boxes className="h-4 w-4 text-blue-600" />
+                  <p className="font-semibold text-slate-700 text-sm">Módulos de la aplicación</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-3">
+                  Elige los módulos que usará tu empresa. El de mantenimiento siempre está activo. Podrás cambiarlos más tarde en "Mi empresa".
+                </p>
+                <div className="space-y-2">
+                  {MODULOS_INFO.filter((m) => !m.siempreActivo).map((m) => {
+                    const checked = m.key.startsWith('normativa.')
+                      ? modulos.normativa[m.key.split('.')[1]]
+                      : modulos[m.key];
+                    const toggle = () => setModulos((prev) => {
+                      const next = { ...prev, normativa: { ...prev.normativa } };
+                      if (m.key.startsWith('normativa.')) {
+                        const k = m.key.split('.')[1];
+                        next.normativa[k] = !next.normativa[k];
+                      } else {
+                        next[m.key] = !next[m.key];
+                      }
+                      return next;
+                    });
+                    return (
+                      <div key={m.key} className="flex items-start justify-between gap-3 p-2.5 rounded-lg border border-slate-200 bg-white">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-slate-700">{m.label}</p>
+                            {m.normativa && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Normativa</span>}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{m.descripcion}</p>
+                        </div>
+                        <Switch checked={!!checked} onCheckedChange={toggle} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
