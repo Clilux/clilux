@@ -132,6 +132,22 @@ Deno.serve(async (req) => {
       return found && found.company_id === tech.company_id ? found : null;
     };
 
+    // Sincroniza el flag en_obras del edificio según sus obras activas.
+    // Si el edificio tiene alguna obra no finalizada (activa/pausada/presupuestada),
+    // se marca en obras; si todas están finalizadas (o no tiene obras), pasa a mantenimiento.
+    const syncBuildingEnObras = async (buildingId: string) => {
+      if (!buildingId) return;
+      const linked = await base44.asServiceRole.entities.Obra.filter({ building_id: buildingId, company_id: tech.company_id });
+      const hayActiva = linked.some((o: any) => o.estado !== 'finalizada');
+      const bList = await base44.asServiceRole.entities.Building.filter({ id: buildingId });
+      const b = bList[0];
+      if (!b) return;
+      const want = hayActiva;
+      if ((!!b.en_obras) !== want) {
+        await base44.asServiceRole.entities.Building.update(buildingId, { en_obras: want });
+      }
+    };
+
     // ── Aislamiento por empresa ──────────────────────────────────
     // IDs de clientes que pertenecen a la empresa del técnico.
     let _companyClientIds = null;
@@ -332,6 +348,7 @@ Deno.serve(async (req) => {
         responsable_nombre: record.responsable_nombre || creatorName,
         responsable_id: record.responsable_id || creatorId,
       });
+      if (record.building_id) await syncBuildingEnObras(record.building_id);
       return Response.json({ data });
     }
     if (entity === 'obra_update') {
@@ -345,6 +362,13 @@ Deno.serve(async (req) => {
       if (!esEncargadoObras) delete safe.equipo;
       if (!esEncargadoObras) delete safe.responsable_id;
       const data = await base44.asServiceRole.entities.Obra.update(record_id, safe);
+      // Si cambió el edificio o el estado, reajusta el flag en_obras del edificio.
+      if (safe.building_id || safe.estado) {
+        await syncBuildingEnObras(safe.building_id || existing.building_id);
+        if (existing.building_id && safe.building_id && safe.building_id !== existing.building_id) {
+          await syncBuildingEnObras(existing.building_id);
+        }
+      }
       return Response.json({ data });
     }
     if (entity === 'obra_delete') {
@@ -357,6 +381,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.ObraTarea.deleteMany({ obra_id: record_id });
       await base44.asServiceRole.entities.ObraObservacion.deleteMany({ obra_id: record_id });
       await base44.asServiceRole.entities.Obra.delete(record_id);
+      if (existing.building_id) await syncBuildingEnObras(existing.building_id);
       return Response.json({ data: true });
     }
 
@@ -1447,18 +1472,19 @@ Deno.serve(async (req) => {
       if (!permisos.ver_edificios) return deny('ver_edificios');
       const { building_id } = body;
       if (!building_id) return Response.json({ error: 'building_id requerido' }, { status: 400 });
-      const [buildings, equipmentList, revisionsList, incidentsList] = await Promise.all([
+      const [buildings, equipmentList, revisionsList, incidentsList, obrasList] = await Promise.all([
         base44.asServiceRole.entities.Building.filter({ id: building_id }),
         permisos.ver_equipos ? base44.asServiceRole.entities.Equipment.filter({ building_id }) : Promise.resolve([]),
         permisos.ver_revisiones ? base44.asServiceRole.entities.ScheduledRevision.filter({ building_id }) : Promise.resolve([]),
         permisos.ver_incidencias ? base44.asServiceRole.entities.Incident.filter({ building_id }) : Promise.resolve([]),
+        base44.asServiceRole.entities.Obra.filter({ building_id, company_id: tech.company_id }),
       ]);
       const bld = buildings[0] || null;
       if (!bld || !(await assertCompanyClient(bld.client_id))) {
         return Response.json({ error: 'El edificio no pertenece a tu empresa' }, { status: 403 });
       }
       const clientList = bld?.client_id ? await base44.asServiceRole.entities.Client.filter({ id: bld.client_id }) : [];
-      return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList, incidents: incidentsList } });
+      return Response.json({ data: { building: bld, client: clientList[0] || null, equipment: equipmentList, revisions: revisionsList, incidents: incidentsList, obras: obrasList } });
     }
 
     // ── Detalle de equipo (para técnicos de sesión propia) ──────

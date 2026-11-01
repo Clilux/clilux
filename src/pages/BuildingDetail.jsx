@@ -135,15 +135,25 @@ export default function BuildingDetail() {
     enabled: !isSessionTech && !!buildingId,
   });
 
+  // Obras vinculadas al edificio (para determinar si está "en obras")
+  const { data: obrasAdmin = [] } = useQuery({
+    queryKey: ['obras-building', buildingId],
+    queryFn: () => base44.entities.Obra.filter({ building_id: buildingId }),
+    enabled: !isSessionTech && !!buildingId,
+  });
+
   // Datos finales según modo
   const finalBuilding = isSessionTech ? proxyData?.building : building;
   const finalClient = isSessionTech ? proxyData?.client : client;
   const finalEquipment = isSessionTech ? (proxyData?.equipment || []) : equipment;
   const finalRevisions = isSessionTech ? (proxyData?.revisions || []) : revisions;
   const finalIncidents = isSessionTech ? (proxyData?.incidents || []) : incidents;
+  const finalObras = isSessionTech ? (proxyData?.obras || []) : obrasAdmin;
   const isLoadingFinal = isSessionTech ? !proxyData && !buildingId : isLoading;
 
-  const enObras = finalBuilding?.en_obras === true;
+  // Un edificio está "en obras" si el flag está activo o si tiene alguna obra no finalizada vinculada.
+  const obraActiva = (finalObras || []).some(o => o.estado !== 'finalizada');
+  const enObras = finalBuilding?.en_obras === true || obraActiva;
 
   const totalCoolingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.cooling_power_kw) || 0), 0);
   const totalHeatingKw = finalEquipment.reduce((sum, e) => sum + (parseFloat(e.heating_power_kw) || 0), 0);
@@ -205,9 +215,11 @@ export default function BuildingDetail() {
                 variant="outline"
                 size="sm"
                 onClick={() => toggleObraMutation.mutate(enObras)}
-                disabled={toggleObraMutation.isPending}
+                disabled={toggleObraMutation.isPending || obraActiva}
                 className={enObras ? 'text-emerald-600 hover:text-emerald-700' : 'text-amber-600 hover:text-amber-700'}
-                title={enObras ? 'Marcar como traspasado a mantenimiento' : 'Marcar como en obras'}
+                title={obraActiva
+                  ? 'Hay una obra activa vinculada: finalízala o traspásala para pasar a mantenimiento'
+                  : (enObras ? 'Marcar como traspasado a mantenimiento' : 'Marcar como en obras')}
               >
                 {enObras
                   ? <><ToggleRight className="h-4 w-4 mr-2" />Pasar a mantenimiento</>
@@ -370,9 +382,9 @@ export default function BuildingDetail() {
               <div>
                 <p className="font-medium text-amber-800">Edificio en fase de obra</p>
                 <p className="text-sm text-amber-700">
-                  Aún no se ha traspasado a mantenimiento. Los equipos, revisiones, incidencias y libros de
-                  mantenimiento permanecen ocultos. Cuando la obra finalice, pulsa <strong>«Pasar a mantenimiento»</strong>
-                  para activar el seguimiento de mantenimiento.
+                  {obraActiva
+                    ? 'Tiene una obra activa vinculada, por lo que los equipos, revisiones, incidencias y libros de mantenimiento permanecen ocultos. Finaliza o traspasa la obra para activar el seguimiento de mantenimiento.'
+                    : 'Aún no se ha traspasado a mantenimiento. Los equipos, revisiones, incidencias y libros de mantenimiento permanecen ocultos. Pulsa «Pasar a mantenimiento» para activar el seguimiento.'}
                 </p>
               </div>
             </div>
