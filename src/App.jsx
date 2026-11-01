@@ -29,6 +29,7 @@ import KioskoFichaje from './pages/KioskoFichaje';
 import GestionTrabajo from './pages/GestionTrabajo';
 import Buzon from './pages/Buzon';
 import Integraciones from './pages/Integraciones';
+import Configuracion from './pages/Configuracion';
 import LibroRegistroFGas from './pages/LibroRegistroFGas';
 import RevisionTabla from './pages/RevisionTabla';
 import MisVacaciones from './pages/MisVacaciones';
@@ -128,6 +129,7 @@ const AuthenticatedApp = () => {
       <Route path="/GestionTrabajo" element={<LayoutWrapper currentPageName="GestionTrabajo"><GestionTrabajo /></LayoutWrapper>} />
       <Route path="/Buzon" element={<LayoutWrapper currentPageName="Buzon"><Buzon /></LayoutWrapper>} />
       <Route path="/Integraciones" element={<LayoutWrapper currentPageName="Integraciones"><Integraciones /></LayoutWrapper>} />
+      <Route path="/Configuracion" element={<LayoutWrapper currentPageName="Configuracion"><Configuracion /></LayoutWrapper>} />
       <Route path="/LibroRegistroFGas" element={<LayoutWrapper currentPageName="LibroRegistroFGas"><LibroRegistroFGas /></LayoutWrapper>} />
       <Route path="/RevisionTabla" element={<LayoutWrapper currentPageName="RevisionTabla"><RevisionTabla /></LayoutWrapper>} />
       <Route path="/MisVacaciones" element={<LayoutWrapper currentPageName="MisVacaciones"><MisVacaciones /></LayoutWrapper>} />

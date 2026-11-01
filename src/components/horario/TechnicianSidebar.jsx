@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, LogOut, Building2, ChevronDown, Plug, Wrench, User, Menu } from 'lucide-react';
+import { Shield, LogOut, Building2, ChevronDown, Plug, Wrench, User, Menu, Settings } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import CompanyMenuDialog from '@/components/company/CompanyMenuDialog';
 import BuzonBell from '@/components/buzon/BuzonBell';
@@ -83,29 +83,51 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => company && setCompanyMenuOpen(true)}
-            className={`w-full flex items-center gap-2.5 text-left ${company ? `${menuHover} rounded-lg p-1.5 -m-1 transition-colors` : 'cursor-default'}`}
-          >
-            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-              {company?.logo_url ? (
-                <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
-              ) : (
-                <Building2 className="h-5 w-5 text-white" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-white font-bold text-base leading-tight truncate">
-                {company?.name || 'Clilux'}
-              </p>
-              {company && (
-                <p className="text-brand-200 text-[11px] flex items-center gap-0.5">
-                  {isGerente ? 'Gerente' : 'Trabajador'}
-                  <ChevronDown className="h-3 w-3" />
+          isGerente ? (
+            <Link to="/Configuracion" className={`w-full flex items-center gap-2.5 text-left ${menuHover} rounded-lg p-1.5 -m-1 transition-colors`}>
+              <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+                {company?.logo_url ? (
+                  <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Building2 className="h-5 w-5 text-white" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-white font-bold text-base leading-tight truncate">
+                  {company?.name || 'Clilux'}
                 </p>
-              )}
-            </div>
-          </button>
+                {company && (
+                  <p className="text-brand-200 text-[11px] flex items-center gap-0.5">
+                    <Settings className="h-3 w-3" /> Configuración
+                  </p>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <button
+              onClick={() => company && setCompanyMenuOpen(true)}
+              className={`w-full flex items-center gap-2.5 text-left ${company ? `${menuHover} rounded-lg p-1.5 -m-1 transition-colors` : 'cursor-default'}`}
+            >
+              <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+                {company?.logo_url ? (
+                  <img src={company.logo_url} alt="logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Building2 className="h-5 w-5 text-white" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-white font-bold text-base leading-tight truncate">
+                  {company?.name || 'Clilux'}
+                </p>
+                {company && (
+                  <p className="text-brand-200 text-[11px] flex items-center gap-0.5">
+                    {isGerente ? 'Gerente' : 'Trabajador'}
+                    <ChevronDown className="h-3 w-3" />
+                  </p>
+                )}
+              </div>
+            </button>
+          )
         )}
       </div>
 
@@ -125,7 +147,16 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
           </Link>
         )}
 
-        {(isGerente || isPlatformAdmin) && (
+        {isGerente && (
+          <Link to="/Configuracion">
+            <Button variant="ghost" size="sm" className={`w-full justify-start text-white h-10 text-sm ${menuHover}`}>
+              <Settings className="h-4 w-4 mr-2" />
+              Configuración
+            </Button>
+          </Link>
+        )}
+
+        {isPlatformAdmin && (
           <Link to={createPageUrl('Integraciones')}>
             <Button variant="ghost" size="sm" className={`w-full justify-start text-white h-10 text-sm ${menuHover}`}>
               <Plug className="h-4 w-4 mr-2" />

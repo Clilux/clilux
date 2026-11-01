@@ -1,7 +1,7 @@
 import {
   Home, ClipboardList, HardHat, Building2, AlertTriangle, Calendar,
   Clock, Users, CalendarDays, BookOpen, Building, User, Wrench,
-  Briefcase, Cpu,
+  Briefcase, Cpu, Settings,
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { modulosActivos } from '@/lib/modulos';
@@ -38,7 +38,9 @@ export function construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdm
   ];
 
   const empresa = [
-    gestion && { label: 'Datos de la empresa', to: '/Settings', icon: Building },
+    isGerente
+      ? { label: 'Configuración', to: '/Configuracion', icon: Settings }
+      : (gestion && { label: 'Datos de la empresa', to: '/Settings', icon: Building }),
     campo && mods.fgas && { label: 'Libro F-GAS', to: '/LibroRegistroFGas', icon: BookOpen },
   ].filter(Boolean);
 
