@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ClientesAppPanel from '@/components/admin/ClientesAppPanel';
 import NavHeader from '../components/navigation/NavHeader';
 import { toast } from 'sonner';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,7 @@ export default function AdminPanel() {
   const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
   const [permisosLocal, setPermisosLocal] = useState({});
+  const [tab, setTab] = useState(!!sessionStorage.getItem('technician_email') ? 'tecnicos' : 'clientes');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
@@ -478,6 +480,37 @@ export default function AdminPanel() {
       <div className="max-w-5xl mx-auto">
         <NavHeader title={isBase44Admin ? 'Panel del Administrador de la App' : 'Panel del Gerente'} />
 
+        {isBase44Admin && (
+          <div className="flex gap-2 mb-5 border-b border-slate-200">
+            <button
+              onClick={() => setTab('clientes')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors ${
+                tab === 'clientes'
+                  ? 'border-blue-600 text-blue-700 bg-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Building2 className="h-4 w-4 inline mr-1.5 -mt-0.5" />
+              Clientes de la App
+            </button>
+            <button
+              onClick={() => setTab('tecnicos')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors ${
+                tab === 'tecnicos'
+                  ? 'border-blue-600 text-blue-700 bg-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Users className="h-4 w-4 inline mr-1.5 -mt-0.5" />
+              Técnicos
+            </button>
+          </div>
+        )}
+
+        {isBase44Admin && tab === 'clientes' ? (
+          <ClientesAppPanel />
+        ) : (
+        <>
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <Card className="p-4 bg-white border-0 shadow-sm">
@@ -733,6 +766,8 @@ export default function AdminPanel() {
             </Card>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Link company dialog */}

@@ -101,6 +101,78 @@
         }
       }
     },
+    "suscripcion": {
+      "type": "object",
+      "description": "Estado de la suscripci\u00f3n/pago del cliente de la app. Lo gestiona el administrador de la plataforma desde el panel de administraci\u00f3n.",
+      "properties": {
+        "estado": {
+          "type": "string",
+          "enum": [
+            "prueba",
+            "activa",
+            "pendiente",
+            "vencida",
+            "suspendida",
+            "cancelada"
+          ],
+          "default": "prueba",
+          "description": "Estado de pago: prueba (per\u00edodo de prueba), activa (al corriente), pendiente (pago emitado sin cobrar), vencida (paso del plazo), suspendida (acceso cortado por impago), cancelada (baja)."
+        },
+        "ciclo": {
+          "type": "string",
+          "enum": [
+            "mensual",
+            "trimestral",
+            "anual"
+          ],
+          "default": "mensual",
+          "description": "Ciclo de facturaci\u00f3n de la suscripci\u00f3n."
+        },
+        "importe": {
+          "type": "number",
+          "default": 0,
+          "description": "Importe por ciclo (sin IVA) que paga el cliente."
+        },
+        "fecha_inicio": {
+          "type": "string",
+          "format": "date",
+          "description": "Fecha de alta de la suscripci\u00f3n."
+        },
+        "fecha_ultimo_pago": {
+          "type": "string",
+          "format": "date",
+          "description": "Fecha del \u00faltimo pago cobrado."
+        },
+        "fecha_proximo_pago": {
+          "type": "string",
+          "format": "date",
+          "description": "Fecha del pr\u00f3ximo cobro/vencimiento."
+        },
+        "metodo": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "stripe",
+            "wix"
+          ],
+          "default": "manual",
+          "description": "M\u00e9todo de cobro: manual (gestionado a mano) o pasarela online (stripe/wix) para el portal de pago futuro."
+        },
+        "subscription_id": {
+          "type": "string",
+          "description": "ID de suscripci\u00f3n en la pasarela de pago (para el portal online futuro)."
+        },
+        "dias_prueba": {
+          "type": "number",
+          "default": 14,
+          "description": "D\u00edas de per\u00edodo de prueba concedidos."
+        },
+        "notas": {
+          "type": "string",
+          "description": "Notas internas sobre el pago o la suscripci\u00f3n."
+        }
+      }
+    },
     "status": {
       "type": "string",
       "enum": [
