@@ -23,6 +23,8 @@ export default function ObraDocumentosPanel({
   const [subiendo, setSubiendo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [menuDocIdx, setMenuDocIdx] = useState(null);
+  const [seleccionados, setSeleccionados] = useState(new Set()); // realIdx de docs seleccionados
+  const [destinoMover, setDestinoMover] = useState(''); // carpeta destino del mover múltiple
   const fileInputRef = useRef(null);
   const fotoInputRef = useRef(null);
 
@@ -114,6 +116,39 @@ export default function ObraDocumentosPanel({
     const nuevos = documentos.map((d, i) => i === idx ? { ...d, carpeta: carpetaDestino } : d);
     onSaveDocumentos(nuevos);
     setMenuDocIdx(null);
+  };
+
+  const toggleSeleccion = (realIdx) => {
+    setSeleccionados(prev => {
+      const next = new Set(prev);
+      if (next.has(realIdx)) next.delete(realIdx); else next.add(realIdx);
+      return next;
+    });
+  };
+
+  const toggleSeleccionTodos = () => {
+    setSeleccionados(prev => {
+      const todosSeleccionados = docsVisibles.every(d => prev.has(documentos.indexOf(d)));
+      if (todosSeleccionados) {
+        const next = new Set(prev);
+        docsVisibles.forEach(d => next.delete(documentos.indexOf(d)));
+        return next;
+      }
+      const next = new Set(prev);
+      docsVisibles.forEach(d => next.add(documentos.indexOf(d)));
+      return next;
+    });
+  };
+
+  const moverSeleccion = () => {
+    if (seleccionados.size === 0) return;
+    const carpetaDestino = destinoMover === '__SIN__' ? '' : destinoMover;
+    const nuevos = documentos.map((d, i) => seleccionados.has(i) ? { ...d, carpeta: carpetaDestino } : d);
+    onSaveDocumentos(nuevos);
+    const n = seleccionados.size;
+    setSeleccionados(new Set());
+    setDestinoMover('');
+    toast.success(`${n} documento(s) movido(s)`);
   };
 
   const eliminarFoto = (idx) => {
@@ -266,11 +301,56 @@ export default function ObraDocumentosPanel({
             <p className="text-slate-400 text-sm text-center py-6">Esta carpeta está vacía</p>
           ) : (
             <div className="space-y-2">
+              {/* Barra de selección / mover múltiple */}
+              {puedeEditar && (
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={docsVisibles.every(d => seleccionados.has(documentos.indexOf(d))) && docsVisibles.length > 0}
+                      onChange={toggleSeleccionTodos}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                    Seleccionar todos
+                  </label>
+                  {seleccionados.size > 0 && (
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-xs text-slate-500">{seleccionados.size} seleccionado(s)</span>
+                      <select
+                        value={destinoMover}
+                        onChange={e => setDestinoMover(e.target.value)}
+                        className="text-sm border border-slate-200 rounded-md px-2 py-1 bg-white"
+                      >
+                        <option value="">Mover a...</option>
+                        <option value="__SIN__">— Sin carpeta —</option>
+                        {carpetas.filter(c => c !== carpetaActual).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <Button size="sm" className="bg-blue-600 text-white gap-1.5" onClick={moverSeleccion} disabled={!destinoMover}>
+                        <Move className="h-3.5 w-3.5" />Mover
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setSeleccionados(new Set()); setDestinoMover(''); }}>
+                        Limpiar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               {docsVisibles.map((d, i) => {
                 const realIdx = documentos.indexOf(d);
                 const esImagen = d.tipo?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(d.nombre);
+                const seleccionado = seleccionados.has(realIdx);
                 return (
-                  <div key={realIdx} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg text-sm group">
+                  <div key={realIdx} className={`flex items-center gap-3 p-2.5 rounded-lg text-sm group transition-colors ${seleccionado ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-slate-50'}`}>
+                    {puedeEditar && (
+                      <input
+                        type="checkbox"
+                        checked={seleccionado}
+                        onChange={() => toggleSeleccion(realIdx)}
+                        className="h-4 w-4 accent-blue-600 shrink-0"
+                      />
+                    )}
                     {esImagen
                       ? <ImageIcon className="h-4 w-4 text-purple-400 shrink-0" />
                       : <FileText className="h-4 w-4 text-blue-400 shrink-0" />}
