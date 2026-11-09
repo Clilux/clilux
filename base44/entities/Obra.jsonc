@@ -145,10 +145,23 @@
           },
           "fecha": {
             "type": "string"
+          },
+          "carpeta": {
+            "type": "string",
+            "default": "",
+            "description": "Nombre de la carpeta de la obra en la que se agrupa el documento (vac\u00edo = sin carpeta)."
           }
         }
       },
       "default": []
+    },
+    "carpetas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Carpetas de documentos creadas expl\u00edcitamente en la obra (para que existan aunque est\u00e9n vac\u00edas)."
     },
     "fotos": {
       "type": "array",

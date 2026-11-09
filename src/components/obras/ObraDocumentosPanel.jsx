@@ -15,6 +15,7 @@ export default function ObraDocumentosPanel({
   uploadFile,        // async (file) => url
   onSaveDocumentos,  // (newDocumentosArray) => void
   onSaveFotos,       // (newFotosArray) => void
+  onSaveCarpetas,    // (newCarpetasArray) => void
 }) {
   const [carpetaActual, setCarpetaActual] = useState(null); // null = raíz (todas las carpetas + sin carpeta)
   const [nuevaCarpeta, setNuevaCarpeta] = useState('');
@@ -28,12 +29,12 @@ export default function ObraDocumentosPanel({
   const documentos = obra.documentos || [];
   const fotos = obra.fotos || [];
 
-  // Carpetas derivadas de los documentos
+  // Carpetas explícitas de la obra + las referenciadas por documentos (por si acaso)
   const carpetas = useMemo(() => {
-    const set = new Set();
+    const set = new Set(obra.carpetas || []);
     documentos.forEach(d => { if (d.carpeta) set.add(d.carpeta); });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [documentos]);
+  }, [obra.carpetas, documentos]);
 
   // Subir varios archivos (docs o fotos según esImagen)
   const subirArchivos = useCallback(async (files, esImagen = false) => {
@@ -86,6 +87,8 @@ export default function ObraDocumentosPanel({
       toast.error('Ya existe una carpeta con ese nombre');
       return;
     }
+    const nuevas = [...(obra.carpetas || []), nombre];
+    onSaveCarpetas(nuevas);
     setCreandoCarpeta(false);
     setNuevaCarpeta('');
     setCarpetaActual(nombre);
@@ -94,6 +97,8 @@ export default function ObraDocumentosPanel({
 
   const eliminarCarpeta = (nombre) => {
     if (!puedeEditar) return;
+    const nuevasCarpetas = (obra.carpetas || []).filter(c => c !== nombre);
+    onSaveCarpetas(nuevasCarpetas);
     const nuevos = documentos.map(d => d.carpeta === nombre ? { ...d, carpeta: '' } : d);
     onSaveDocumentos(nuevos);
     if (carpetaActual === nombre) setCarpetaActual(null);

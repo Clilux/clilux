@@ -631,6 +631,7 @@ export default function ObraDetail() {
                 uploadFile={uploadFile}
                 onSaveDocumentos={(docs) => updateObra.mutate({ documentos: docs })}
                 onSaveFotos={(fotos) => updateObra.mutate({ fotos })}
+                onSaveCarpetas={(carpetas) => updateObra.mutate({ carpetas })}
               />
             </TabsContent>
           </Tabs>
