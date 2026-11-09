@@ -17,6 +17,7 @@ import ObraTareasPanel from '@/components/obras/ObraTareasPanel';
 import ObraObservacionesPanel from '@/components/obras/ObraObservacionesPanel';
 import CompartirButton from '@/components/compartir/CompartirButton';
 import ObraDocumentosPanel from '@/components/obras/ObraDocumentosPanel';
+import DeleteConfirmDialog from '@/components/ui/DeleteConfirmDialog';
 import { puedeVerEconomia, puedeVerCostesTrabajador, puedeEditarObra, estaAsignadoAObra } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
@@ -40,6 +41,7 @@ export default function ObraDetail() {
   const [showAlbaran, setShowAlbaran] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [editingEcon, setEditingEcon] = useState(false);
   const [econForm, setEconForm] = useState(null);
   const [newFactura, setNewFactura] = useState({ numero: '', fecha: format(new Date(), 'yyyy-MM-dd'), importe: '', estado: 'pendiente', notas: '' });
@@ -151,6 +153,33 @@ export default function ObraDetail() {
       return base44.entities.Obra.update(obraId, data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['obra', obraId] }); queryClient.invalidateQueries({ queryKey: ['obras'] }); },
+  });
+
+  // Solo gerencia / jefe de equipo / administración (vía proxy) o el creador / admin (vía directa) pueden eliminar.
+  const esEncargado = myTechRecord?.is_admin === true
+    || myTechRecord?.worker_type === 'jefe_equipo'
+    || myTechRecord?.worker_type === 'administracion';
+  const puedeEliminar = puedeEditar && (isAdmin || esEncargado || obra?.created_by_id === base44User?.id);
+
+  const deleteObra = useMutation({
+    mutationFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail, entity: 'obra_delete', record_id: obraId,
+        });
+        return true;
+      }
+      // Cascada: tareas y observaciones de la obra (igual que el proxy).
+      await base44.entities.ObraTarea.deleteMany({ obra_id: obraId });
+      await base44.entities.ObraObservacion.deleteMany({ obra_id: obraId });
+      return base44.entities.Obra.delete(obraId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      toast.success('Obra eliminada');
+      navigate('/ControlObras');
+    },
+    onError: () => toast.error('No se pudo eliminar la obra (sin permiso)'),
   });
 
   const saveEcon = () => {
@@ -304,6 +333,11 @@ export default function ObraDetail() {
                 {puedeEditar && (
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
                     <Pencil className="h-3.5 w-3.5" />Editar obra
+                  </Button>
+                )}
+                {puedeEliminar && (
+                  <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => setShowDelete(true)}>
+                    <Trash2 className="h-3.5 w-3.5" />Eliminar
                   </Button>
                 )}
                 <CompartirButton
@@ -673,6 +707,15 @@ export default function ObraDetail() {
           onClose={() => setShowTransfer(false)}
         />
       )}
+
+      <DeleteConfirmDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        title={`¿Eliminar la obra "${obra.nombre}"?`}
+        description="Se borrarán también todos sus trabajos, observaciones, partes y documentos. Esta acción no se puede deshacer."
+        onConfirm={() => deleteObra.mutate()}
+        isLoading={deleteObra.isPending}
+      />
     </div>
   );
 }
