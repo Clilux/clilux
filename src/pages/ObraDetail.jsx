@@ -16,6 +16,7 @@ import TransferirObraModal from '@/components/obras/TransferirObraModal';
 import ObraTareasPanel from '@/components/obras/ObraTareasPanel';
 import ObraObservacionesPanel from '@/components/obras/ObraObservacionesPanel';
 import CompartirButton from '@/components/compartir/CompartirButton';
+import ObraDocumentosPanel from '@/components/obras/ObraDocumentosPanel';
 import { puedeVerEconomia, puedeVerCostesTrabajador, puedeEditarObra, estaAsignadoAObra } from '@/lib/permisos-trabajador';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
@@ -42,8 +43,7 @@ export default function ObraDetail() {
   const [editingEcon, setEditingEcon] = useState(false);
   const [econForm, setEconForm] = useState(null);
   const [newFactura, setNewFactura] = useState({ numero: '', fecha: format(new Date(), 'yyyy-MM-dd'), importe: '', estado: 'pendiente', notas: '' });
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadingFoto, setUploadingFoto] = useState(false);
+
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
@@ -197,49 +197,9 @@ export default function ObraDetail() {
     return res.data.file_url;
   };
 
-  const uploadDoc = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingDoc(true);
-    try {
-      const file_url = isSessionTech
-        ? await uploadFileViaProxy(file)
-        : (await base44.integrations.Core.UploadPublicFile({ file })).file_url;
-      const documentos = [...(obra.documentos || []), { nombre: file.name, url: file_url, tipo: file.type, fecha: format(new Date(), 'yyyy-MM-dd') }];
-      updateObra.mutate({ documentos });
-      toast.success('Documento subido');
-    } catch (err) {
-      toast.error('Error al subir el documento');
-    } finally {
-      setUploadingDoc(false);
-    }
-  };
-
-  const uploadFoto = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingFoto(true);
-    try {
-      const file_url = isSessionTech
-        ? await uploadFileViaProxy(file)
-        : (await base44.integrations.Core.UploadPublicFile({ file })).file_url;
-      const fotos = [...(obra.fotos || []), file_url];
-      updateObra.mutate({ fotos });
-      toast.success('Foto añadida');
-    } catch (err) {
-      toast.error('Error al subir la foto');
-    } finally {
-      setUploadingFoto(false);
-    }
-  };
-
-  const removeDoc = (idx) => {
-    updateObra.mutate({ documentos: (obra.documentos || []).filter((_, i) => i !== idx) });
-  };
-
-  const removeFoto = (idx) => {
-    updateObra.mutate({ fotos: (obra.fotos || []).filter((_, i) => i !== idx) });
-  };
+  const uploadFile = async (file) => isSessionTech
+    ? uploadFileViaProxy(file)
+    : (await base44.integrations.Core.UploadPublicFile({ file })).file_url;
 
   const exportAlbaranPDF = (albaran) => {
     const doc = new jsPDF();
@@ -665,78 +625,13 @@ export default function ObraDetail() {
 
             {/* ── DOCS Y FOTOS ── */}
             <TabsContent value="docs">
-              {/* Documentos */}
-              <Card className="p-4 bg-white border-0 shadow-sm mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-600" />Documentos
-                  </h3>
-                  {puedeEditar && (
-                    <label className="cursor-pointer">
-                      <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" className="hidden" onChange={uploadDoc} />
-                      <Button size="sm" variant="outline" asChild>
-                        <span>{uploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Subir documento</span>
-                      </Button>
-                    </label>
-                  )}
-                </div>
-                {(obra.documentos || []).length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-4">Sin documentos</p>
-                ) : (
-                  <div className="space-y-2">
-                    {obra.documentos.map((d, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg text-sm">
-                        <FileText className="h-4 w-4 text-blue-400 shrink-0" />
-                        <span className="flex-1 truncate text-slate-700">{d.nombre}</span>
-                        <span className="text-xs text-slate-400 shrink-0">{d.fecha}</span>
-                        <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0">
-                          <Download className="h-4 w-4" />
-                        </a>
-                        {puedeEditar && (
-                          <button onClick={() => removeDoc(i)} className="text-red-300 hover:text-red-500 shrink-0">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              {/* Fotos */}
-              <Card className="p-4 bg-white border-0 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                    <Image className="h-4 w-4 text-purple-600" />Fotos ({(obra.fotos || []).length})
-                  </h3>
-                  {puedeEditar && (
-                    <label className="cursor-pointer">
-                      <input type="file" accept="image/*" className="hidden" onChange={uploadFoto} />
-                      <Button size="sm" variant="outline" asChild>
-                        <span>{uploadingFoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Añadir foto</span>
-                      </Button>
-                    </label>
-                  )}
-                </div>
-                {(obra.fotos || []).length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-4">Sin fotos</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {obra.fotos.map((url, i) => (
-                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-slate-100">
-                        <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
-                        {puedeEditar && (
-                          <button
-                            onClick={() => removeFoto(i)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+              <ObraDocumentosPanel
+                obra={obra}
+                puedeEditar={puedeEditar}
+                uploadFile={uploadFile}
+                onSaveDocumentos={(docs) => updateObra.mutate({ documentos: docs })}
+                onSaveFotos={(fotos) => updateObra.mutate({ fotos })}
+              />
             </TabsContent>
           </Tabs>
         </div>
