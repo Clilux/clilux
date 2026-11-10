@@ -1729,6 +1729,39 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    // ── Citas solicitadas por los clientes (gestión del técnico) ──
+    if (entity === 'citas_list') {
+      const all = await base44.asServiceRole.entities.Cita.list('-created_date');
+      const clientIds = await getCompanyClientIds();
+      let data = all.filter((c: any) => clientIds.has(c.client_id) || c.company_id === tech.company_id);
+      // Por defecto, el técnico ve las citas de los clientes que tiene asignados.
+      const soloMias = body.solo_mias !== false;
+      if (soloMias && !tech.is_admin) {
+        const miEmail = (tech.email || '').trim().toLowerCase();
+        data = data.filter((c: any) =>
+          (c.tecnico_email || '').toLowerCase() === miEmail ||
+          (Array.isArray(c.tecnicos_asignados) && c.tecnicos_asignados.some((a: any) => (a.technician_email || '').toLowerCase() === miEmail))
+        );
+      }
+      return Response.json({ data });
+    }
+    if (entity === 'cita_update') {
+      const { record_id, updates } = body;
+      if (!record_id || !updates) return Response.json({ error: 'record_id y updates requeridos' }, { status: 400 });
+      const list = await base44.asServiceRole.entities.Cita.filter({ id: record_id });
+      const cita = list[0];
+      if (!cita) return Response.json({ error: 'No encontrada' }, { status: 404 });
+      if (!(await assertCompanyClient(cita.client_id))) {
+        return Response.json({ error: 'La cita no pertenece a tu empresa' }, { status: 403 });
+      }
+      // Solo se permite cambiar estado y notas internas.
+      const safe: any = {};
+      if (updates.estado) safe.estado = updates.estado;
+      if (updates.notas_tecnico !== undefined) safe.notas_tecnico = updates.notas_tecnico;
+      const data = await base44.asServiceRole.entities.Cita.update(record_id, safe);
+      return Response.json({ data });
+    }
+
     // ── Técnicos de la empresa (solo admin de empresa) ────────────
     if (entity === 'technicians') {
       if (!tech.is_admin) return deny('admin');

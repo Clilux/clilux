@@ -1,0 +1,129 @@
+{
+  "name": "Cita",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente que solicita la cita"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa mantenedora"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha preferida para la cita"
+    },
+    "franja": {
+      "type": "string",
+      "enum": [
+        "ma\u00f1ana",
+        "tarde",
+        "indiferente"
+      ],
+      "default": "indiferente",
+      "description": "Franja horaria preferida"
+    },
+    "hora": {
+      "type": "string",
+      "description": "Hora preferida (opcional, texto libre)"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo o asunto de la cita"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "confirmada",
+        "cancelada",
+        "completada"
+      ],
+      "default": "pendiente",
+      "description": "Estado de la cita",
+      "enumColors": [
+        "yellow",
+        "green",
+        "red",
+        "blue"
+      ]
+    },
+    "tecnico_email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico asignado al cliente (principal)"
+    },
+    "tecnico_name": {
+      "type": "string"
+    },
+    "tecnicos_asignados": {
+      "type": "array",
+      "default": [],
+      "description": "Snapshot de los t\u00e9cnicos asignados al cliente en el momento de la solicitud.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "string"
+          },
+          "technician_name": {
+            "type": "string"
+          },
+          "technician_email": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notas_cliente": {
+      "type": "string",
+      "description": "Notas del cliente al solicitar"
+    },
+    "notas_tecnico": {
+      "type": "string",
+      "description": "Notas internas del t\u00e9cnico al gestionar"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Qui\u00e9n solicita (nombre del cliente / usuario)"
+    }
+  },
+  "required": [
+    "client_id",
+    "fecha",
+    "motivo"
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

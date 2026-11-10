@@ -114,6 +114,19 @@ Deno.serve(async (req) => {
             datos.title || 'Incidencia reportada',
             '/Incidents', companyId);
         }
+      } else if (tipo === 'cita_nueva') {
+        // Cita solicitada por un cliente: avisa a los técnicos asignados a ese cliente.
+        const emails = Array.isArray(datos.technician_emails)
+          ? datos.technician_emails
+          : (datos.technician_email ? [datos.technician_email] : []);
+        const fechaTxt = datos.fecha ? ` para el ${datos.fecha}` : '';
+        const franjaTxt = datos.franja && datos.franja !== 'indiferente' ? ` (${datos.franja})` : '';
+        for (const em of emails) {
+          await crear(em, 'trabajador',
+            `Nueva cita solicitada por ${datos.client_name || 'cliente'}`,
+            `${datos.client_name || 'Cliente'} solicita una cita${fechaTxt}${franjaTxt}. Motivo: ${datos.motivo || 'no especificado'}.`,
+            '/TecnicoCitas', datos.company_id);
+        }
       } else if (tipo === 'incidencia_estado') {
         let companyId = datos.company_id;
         if (!companyId && datos.client_id) {

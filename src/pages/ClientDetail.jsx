@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, Thermometer, Trash2, ToggleLeft, ToggleRight
+  User, FileText, Thermometer, Trash2, ToggleLeft, ToggleRight, Tag
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
@@ -18,9 +18,19 @@ import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
 import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
 import ClientPortalInvite from '../components/clients/ClientPortalInvite';
+import ClientTarifasEquipoTab from '../components/clients/ClientTarifasEquipoTab';
 import { toast } from 'sonner';
 import { getSessionToken } from '@/lib/passwordHash';
 import { mensajeDeError } from '@/lib/errores';
+
+const ESTADO_CRM_LABELS = { activo: 'Activo', pendiente: 'Pendiente', completado: 'Completado', cancelado: 'Cancelado' };
+const ESTADO_CRM_COLORS = {
+  activo: 'bg-emerald-100 text-emerald-700',
+  pendiente: 'bg-amber-100 text-amber-700',
+  completado: 'bg-blue-100 text-blue-700',
+  cancelado: 'bg-red-100 text-red-700',
+};
+const TIPO_LABELS = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial' };
 
 export default function ClientDetail() {
   const navigate = useNavigate();
@@ -170,6 +180,12 @@ export default function ClientDetail() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <StatusBadge status={client.status || 'active'} />
+              {client.tipo && (
+                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-medium capitalize">{client.tipo}</span>
+              )}
+              {client.estado_crm && client.estado_crm !== 'activo' && (
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${ESTADO_CRM_COLORS[client.estado_crm] || 'bg-slate-100 text-slate-600'}`}>{ESTADO_CRM_LABELS[client.estado_crm] || client.estado_crm}</span>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -290,6 +306,10 @@ export default function ClientDetail() {
                 <FileText className="h-4 w-4" />
                 Documentos
               </TabsTrigger>
+              <TabsTrigger value="tarifas" className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tarifas y Equipo
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Link to={createPageUrl(`EquipmentForm?client_id=${client.id}`)}>
@@ -371,6 +391,10 @@ export default function ClientDetail() {
 
           <TabsContent value="documents">
             <ClientDocumentsTab clientId={clientId} />
+          </TabsContent>
+
+          <TabsContent value="tarifas">
+            <ClientTarifasEquipoTab client={client} isSessionTech={isSessionTech} sessionTechEmail={sessionTechEmail} />
           </TabsContent>
         </Tabs>
 

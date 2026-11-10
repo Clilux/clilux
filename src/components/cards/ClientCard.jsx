@@ -15,9 +15,20 @@ export default function ClientCard({ client, buildingCount = 0 }) {
               <img src={client.photo_url} alt={client.name} className="h-12 w-12 rounded-lg object-contain flex-shrink-0 border border-slate-100 bg-slate-50" />
             )}
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <h3 className="font-semibold text-slate-800 text-lg">{client.name}</h3>
               <StatusBadge status={client.status || 'active'} />
+              {client.tipo && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium capitalize">{client.tipo}</span>
+              )}
+              {client.estado_crm && client.estado_crm !== 'activo' && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  client.estado_crm === 'pendiente' ? 'bg-amber-100 text-amber-700'
+                  : client.estado_crm === 'completado' ? 'bg-blue-100 text-blue-700'
+                  : client.estado_crm === 'cancelado' ? 'bg-red-100 text-red-700'
+                  : 'bg-slate-100 text-slate-600'
+                }`}>{client.estado_crm}</span>
+              )}
             </div>
             <p className="text-sm text-slate-500 mb-3">CIF: {client.cif}</p>
             

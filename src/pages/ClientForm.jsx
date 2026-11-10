@@ -54,6 +54,8 @@ export default function ClientForm() {
     contact_person: '',
     notes: '',
     status: 'active',
+    tipo: 'comercial',
+    estado_crm: 'activo',
     custom_fields: {},
   });
 
@@ -254,7 +256,7 @@ export default function ClientForm() {
               </div>
 
               <div>
-                <Label htmlFor="status">Estado</Label>
+                <Label htmlFor="status">Estado ficha</Label>
                 <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -262,6 +264,31 @@ export default function ClientForm() {
                   <SelectContent>
                     <SelectItem value="active">Activo</SelectItem>
                     <SelectItem value="inactive">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="tipo">Tipo de cliente</Label>
+                <Select value={formData.tipo || 'comercial'} onValueChange={(v) => handleChange('tipo', v)}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="residencial">Residencial</SelectItem>
+                    <SelectItem value="comercial">Comercial</SelectItem>
+                    <SelectItem value="industrial">Industrial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="estado_crm">Estado CRM</Label>
+                <Select value={formData.estado_crm || 'activo'} onValueChange={(v) => handleChange('estado_crm', v)}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="completado">Completado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -44,11 +44,91 @@
     },
     "assigned_technician": {
       "type": "string",
-      "description": "Email del t\u00e9cnico asignado"
+      "description": "Email del t\u00e9cnico asignado (t\u00e9cnico principal)"
     },
     "assigned_technician_name": {
       "type": "string",
       "description": "Nombre del t\u00e9cnico asignado"
+    },
+    "tecnicos_asignados": {
+      "type": "array",
+      "default": [],
+      "description": "Equipo de t\u00e9cnicos asignados a este cliente (pueden ser varios). El primero se considera t\u00e9cnico principal.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "technician_id": {
+            "type": "string"
+          },
+          "technician_name": {
+            "type": "string"
+          },
+          "technician_email": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "residencial",
+        "comercial",
+        "industrial"
+      ],
+      "default": "comercial",
+      "description": "Tipo de cliente: residencial, comercial o industrial.",
+      "enumColors": [
+        "blue",
+        "green",
+        "purple"
+      ]
+    },
+    "estado_crm": {
+      "type": "string",
+      "enum": [
+        "activo",
+        "pendiente",
+        "completado",
+        "cancelado"
+      ],
+      "default": "activo",
+      "description": "Estado del cliente en el ciclo CRM (independiente del estado activo/inactivo de la ficha).",
+      "enumColors": [
+        "green",
+        "yellow",
+        "blue",
+        "red"
+      ]
+    },
+    "tarifas": {
+      "type": "array",
+      "default": [],
+      "description": "Tarifas especiales acordadas con el cliente, visibles desde su portal.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "description": "Nombre de la tarifa (ej. 'Mantenimiento mensual', 'Hora t\u00e9cnica')"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "precio": {
+            "type": "number",
+            "description": "Precio acordado"
+          },
+          "unidad": {
+            "type": "string",
+            "default": "ud",
+            "description": "Unidad (ud, h, mes, kg, m...)"
+          },
+          "notas": {
+            "type": "string"
+          }
+        }
+      }
     },
     "created_by_name": {
       "type": "string",

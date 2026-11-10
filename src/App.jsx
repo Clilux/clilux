@@ -45,6 +45,8 @@ import AutomatizacionHome from './pages/AutomatizacionHome';
 import AutomatizacionLoxone from './pages/AutomatizacionLoxone';
 import AutomatizacionAirzone from './pages/AutomatizacionAirzone';
 import AutomatizacionScada from './pages/AutomatizacionScada';
+import ClientCitas from './pages/ClientCitas';
+import TecnicoCitas from './pages/TecnicoCitas';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -147,6 +149,8 @@ const AuthenticatedApp = () => {
       <Route path="/AutomatizacionLoxone" element={<LayoutWrapper currentPageName="AutomatizacionLoxone"><AutomatizacionLoxone /></LayoutWrapper>} />
       <Route path="/AutomatizacionAirzone" element={<LayoutWrapper currentPageName="AutomatizacionAirzone"><AutomatizacionAirzone /></LayoutWrapper>} />
       <Route path="/AutomatizacionScada" element={<LayoutWrapper currentPageName="AutomatizacionScada"><AutomatizacionScada /></LayoutWrapper>} />
+      <Route path="/ClientCitas" element={<PageTransition><ClientCitas /></PageTransition>} />
+      <Route path="/TecnicoCitas" element={<LayoutWrapper currentPageName="TecnicoCitas"><TecnicoCitas /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </AnimatePresence>

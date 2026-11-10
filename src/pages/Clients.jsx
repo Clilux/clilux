@@ -6,22 +6,49 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Building2, MapPin, Phone, Eye, EyeOff, Users } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone, Eye, EyeOff, Users, Filter, X, CalendarDays } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import ClientCard from '../components/cards/ClientCard';
 import ViewModeToggle from '../components/ui/ViewModeToggle';
 import StatusBadge from '../components/ui/StatusBadge';
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrentTechnician } from '@/hooks/useCurrentTechnician';
+
+const TIPOS = [
+  { value: 'residencial', label: 'Residencial' },
+  { value: 'comercial', label: 'Comercial' },
+  { value: 'industrial', label: 'Industrial' },
+];
+const ESTADOS_CRM = [
+  { value: 'activo', label: 'Activo' },
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'completado', label: 'Completado' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
+const ESTADO_CRM_COLORS = {
+  activo: 'bg-emerald-100 text-emerald-700',
+  pendiente: 'bg-amber-100 text-amber-700',
+  completado: 'bg-blue-100 text-blue-700',
+  cancelado: 'bg-red-100 text-red-700',
+};
 
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [filterTipo, setFilterTipo] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterId, setFilterId] = useState('');
+  const [soloAsignados, setSoloAsignados] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('clients_view') || 'list');
   const { technician, user } = useCurrentTechnician();
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
+  const myEmail = isSessionTech ? sessionTechEmail : user?.email;
+
+  const tieneFiltros = filterTipo !== 'todos' || filterEstado !== 'todos' || filterId.trim() !== '' || soloAsignados;
+  const limpiarFiltros = () => { setFilterTipo('todos'); setFilterEstado('todos'); setFilterId(''); setSoloAsignados(false); };
 
   const handleViewChange = (mode) => {
     setViewMode(mode);
@@ -62,12 +89,23 @@ export default function Clients() {
     return false;
   });
 
-  const filteredClients = visibleClients.filter(client =>
-    (showInactive || client.status !== 'inactive') &&
-    (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.cif?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.city?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredClients = visibleClients.filter(client => {
+    if (!showInactive && client.status === 'inactive') return false;
+    if (filterTipo !== 'todos' && client.tipo !== filterTipo) return false;
+    if (filterEstado !== 'todos' && client.estado_crm !== filterEstado) return false;
+    if (filterId.trim()) {
+      const q = filterId.trim().toLowerCase();
+      if (!(client.id?.toLowerCase().includes(q))) return false;
+    }
+    if (soloAsignados && myEmail) {
+      const esAsignado = client.assigned_technician?.toLowerCase() === myEmail.toLowerCase()
+        || (Array.isArray(client.tecnicos_asignados) && client.tecnicos_asignados.some(a => a.technician_email?.toLowerCase() === myEmail.toLowerCase()));
+      if (!esAsignado) return false;
+    }
+    const q = searchTerm.toLowerCase();
+    if (q && !(client.name?.toLowerCase().includes(q) || client.cif?.toLowerCase().includes(q) || client.city?.toLowerCase().includes(q))) return false;
+    return true;
+  });
 
   const getBuildingCount = (clientId) => {
     return buildings.filter(b => b.client_id === clientId).length;
@@ -126,6 +164,60 @@ export default function Clients() {
               Nuevo Cliente
             </Button>
           </Link>
+        </div>
+
+        {(isSessionTech || isAdmin) && (
+          <div className="mb-6">
+            <Link to={createPageUrl('TecnicoCitas')}>
+              <Button variant="outline" className="bg-white">
+                <CalendarDays className="h-4 w-4 mr-2" />
+                Citas de mis clientes
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Filtros avanzados */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <Filter className="h-3.5 w-3.5" />Filtros
+          </div>
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger className="w-[170px] bg-white h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tipos</SelectItem>
+              {TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterEstado} onValueChange={setFilterEstado}>
+            <SelectTrigger className="w-[170px] bg-white h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              {ESTADOS_CRM.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="ID de cliente..."
+            value={filterId}
+            onChange={(e) => setFilterId(e.target.value)}
+            className="w-[200px] bg-white h-9 text-sm"
+          />
+          {myEmail && (
+            <Button
+              variant={soloAsignados ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSoloAsignados(s => !s)}
+              className="h-9"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              {soloAsignados ? 'Asignados a mí' : 'Solo mis clientes'}
+            </Button>
+          )}
+          {tieneFiltros && (
+            <Button variant="ghost" size="sm" onClick={limpiarFiltros} className="h-9 text-slate-500">
+              <X className="h-4 w-4 mr-1" />Limpiar
+            </Button>
+          )}
         </div>
 
         {(isSessionTech ? !proxyData : isLoading) ? (

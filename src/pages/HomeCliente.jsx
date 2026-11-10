@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, Thermometer, ClipboardCheck,
-  LogOut, AlertCircle, Plus, FileText, Activity } from
+  LogOut, AlertCircle, Plus, FileText, Activity, CalendarDays } from
 'lucide-react';
 import BuzonBell from '@/components/buzon/BuzonBell';
 
@@ -169,6 +169,16 @@ export default function HomeCliente() {
                       <h2 className="text-lg font-semibold text-slate-800">Mis Documentos</h2>
                     </div>
                     <p className="text-sm text-slate-500">Certificados RITE y otros documentos de tu instalación</p>
+                  </Card>
+                </Link>
+
+                <Link to={createPageUrl('ClientCitas')}>
+                  <Card className="bg-white p-6 rounded-xl border shadow hover:shadow-md transition-all cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4">
+                      <CalendarDays className="h-8 w-8 text-blue-600" />
+                      <h2 className="text-lg font-semibold text-slate-800">Citas y Tarifas</h2>
+                    </div>
+                    <p className="text-sm text-slate-500">Pide una cita con tu técnico y consulta tus tarifas</p>
                   </Card>
                 </Link>
 
