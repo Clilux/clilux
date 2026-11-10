@@ -31,6 +31,8 @@ const VALID_ROUTES = new Set([
   'ControlLoxone','AdminPanel','ControlHorario','GestionAusencias','TechnicianProfile',
   'StelClientes','StelClientosTab','ClientScada','ImportEquipment','ControlObras',
   'ObraDetail','PanelEdificios','NfcReader','KioskoFichaje','GestionTrabajo','Buzon',
+  'TecnicoCitas','ClientCitas','MisVacaciones','PartesTrabajo','Configuracion',
+  'Integraciones','AutomatizacionHome','ErpHome',
 ]);
 
 export default function Buzon() {
