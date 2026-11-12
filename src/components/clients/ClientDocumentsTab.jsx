@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Download, Trash2, Eye, Calendar, User, Building2 } from 'lucide-react';
+import { FileText, Download, Trash2, Eye, Calendar, User, Building2, Upload } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,6 +31,32 @@ export default function ClientDocumentsTab({ clientId }) {
     },
   });
 
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadType, setUploadType] = useState('otro');
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadTitle.trim()) { toast.error('Indica un título y un archivo'); return; }
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFile });
+      await base44.entities.ClientDocument.create({
+        client_id: clientId,
+        title: uploadTitle.trim(),
+        document_type: uploadType,
+        file_url,
+      });
+      queryClient.invalidateQueries({ queryKey: ['client-documents', clientId] });
+      toast.success('Documento añadido');
+      setUploadOpen(false); setUploadFile(null); setUploadTitle(''); setUploadType('otro');
+    } catch (e) {
+      toast.error('No se pudo subir el documento');
+    }
+    setUploading(false);
+  };
+
   if (isLoading) {
     return <div className="p-4 text-slate-500 text-sm">Cargando documentos...</div>;
   }
@@ -42,10 +71,15 @@ export default function ClientDocumentsTab({ clientId }) {
     );
   }
 
-  const typeLabel = { certificado_rite: 'Certificado RITE', otro: 'Otro' };
+  const typeLabel = { certificado_rite: 'Certificado RITE', contrato: 'Contrato', otro: 'Otro' };
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setUploadOpen(true)}>
+          <Upload className="h-3.5 w-3.5" />Subir documento
+        </Button>
+      </div>
       {documents.map(doc => (
         <Card key={doc.id} className="p-4 bg-white border-0 shadow-sm">
           <div className="flex items-start justify-between gap-4">
@@ -196,6 +230,41 @@ export default function ClientDocumentsTab({ clientId }) {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Subir documento */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Subir documento al cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Título *</Label>
+              <Input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} className="mt-1" placeholder="Ej. Póliza de seguro" />
+            </div>
+            <div>
+              <Label className="text-xs">Tipo</Label>
+              <Select value={uploadType} onValueChange={setUploadType}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="otro">Otro</SelectItem>
+                  <SelectItem value="certificado_rite">Certificado RITE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Archivo *</Label>
+              <Input type="file" onChange={e => setUploadFile(e.target.files[0] || null)} className="mt-1" />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={() => setUploadOpen(false)}>Cancelar</Button>
+              <Button size="sm" onClick={handleUpload} disabled={uploading} className="bg-blue-600 hover:bg-blue-700">
+                {uploading ? 'Subiendo...' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "avisos_caducidad_contratos",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "avisar": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "avisosCaducidadContratos"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Avisar contratos pr\u00f3ximos a caducar",
+            "description": "Notifica a los gerentes los contratos que vencen en 30 d\u00edas o menos"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Revisa diariamente los contratos pr\u00f3ximos a caducar (no auto-renovables) y avisa a los gerentes en el buz\u00f3n.",
+  "name": "Avisos caducidad contratos"
+}

@@ -36,6 +36,10 @@
       "type": "string",
       "description": "ID del cliente en el sistema (si es cliente existente)"
     },
+    "company_id": {
+      "type": "string",
+      "description": "ID de la empresa mantenedora (para avisos de caducidad y filtrado multi-empresa)"
+    },
     "fecha_inicio": {
       "type": "string",
       "format": "date",
@@ -45,6 +49,25 @@
       "type": "string",
       "format": "date",
       "description": "Fecha de fin del contrato"
+    },
+    "duracion_meses": {
+      "type": "number",
+      "default": 12,
+      "description": "Duraci\u00f3n del contrato en meses"
+    },
+    "renovacion_automatica": {
+      "type": "string",
+      "enum": [
+        "si",
+        "no"
+      ],
+      "default": "si",
+      "description": "Si el contrato se renueva autom\u00e1ticamente al llegar a su fin. Si es 'no', el sistema avisa de la caducidad pr\u00f3xima."
+    },
+    "avisado_caducidad": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca interna: el sistema ya emiti\u00f3 el aviso de caducidad para este contrato (evita avisos duplicados)."
     },
     "precio_anual": {
       "type": "number",

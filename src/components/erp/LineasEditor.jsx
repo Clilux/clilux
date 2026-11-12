@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, Tag } from 'lucide-react';
 import ArticuloPicker from '@/components/erp/ArticuloPicker';
+import TarifasPicker from '@/components/erp/TarifasPicker';
 import { calcTotales, euros, IVA_DEFECTO } from '@/lib/erp-config';
 
 /** Editor de líneas de un documento ERP (concepto, unidad, cantidad, precio, descuento). */
-export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO, articulos = [], familias = [] }) {
+export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO, articulos = [], familias = [], clienteTarifas = [] }) {
   const [picker, setPicker] = useState(false);
+  const [tarifasPicker, setTarifasPicker] = useState(false);
 
   const set = (i, campo, valor) => {
     onChange(lineas.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)));
@@ -27,6 +29,18 @@ export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO,
     setPicker(false);
   };
 
+  const añadirTarifa = (t) => {
+    onChange([...lineas, {
+      codigo: '',
+      concepto: t.nombre || '',
+      unidad: t.unidad || 'ud',
+      cantidad: 1,
+      precio_unitario: Number(t.precio) || 0,
+      descuento: 0,
+    }]);
+    setTarifasPicker(false);
+  };
+
   const t = calcTotales(lineas, iva);
 
   return (
@@ -37,6 +51,11 @@ export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO,
           <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setPicker(true)}>
             <Package className="h-3.5 w-3.5" />Del catálogo
           </Button>
+          {clienteTarifas.length > 0 && (
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50" onClick={() => setTarifasPicker(true)}>
+              <Tag className="h-3.5 w-3.5" />Tarifas del cliente
+            </Button>
+          )}
           <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => onChange([...lineas, { codigo: '', concepto: '', unidad: 'ud', cantidad: 1, precio_unitario: 0, descuento: 0 }])}>
             <Plus className="h-3.5 w-3.5" />Añadir
           </Button>
@@ -87,6 +106,7 @@ export default function LineasEditor({ lineas = [], onChange, iva = IVA_DEFECTO,
       </div>
 
       <ArticuloPicker open={picker} onClose={() => setPicker(false)} articulos={articulos} familias={familias} onPick={añadirDelCatalogo} />
+      <TarifasPicker open={tarifasPicker} onClose={() => setTarifasPicker(false)} tarifas={clienteTarifas} onPick={añadirTarifa} />
     </div>
   );
 }

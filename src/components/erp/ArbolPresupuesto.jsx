@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download, FileSpreadsheet, AlertTriangle, Info, FolderTree, FileText, Package } from 'lucide-react';
+import { Plus, Upload, Download, FileSpreadsheet, AlertTriangle, Info, FolderTree, FileText, Package, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import NodoArbol from '@/components/erp/NodoArbol';
 import NodoForm from '@/components/erp/NodoForm';
 import ArticuloPicker from '@/components/erp/ArticuloPicker';
+import TarifasPicker from '@/components/erp/TarifasPicker';
 import { descargarBC3, parseBC3, presupuestoToBC3 } from '@/lib/bc3';
 import { descargarPresupuestoExcel } from '@/lib/presupuesto-excel';
 import {
@@ -28,6 +29,7 @@ import { euros, precioCompra, precioVenta } from '@/lib/erp-config';
 export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, cliente, meta = {}, empresa, onTitulo, articulos = [], familias = [] }) {
   const [editor, setEditor] = useState({ open: false, nodo: null, tipo: 'capitulo', padreId: null, codigo: '' });
   const [picker, setPicker] = useState({ open: false, padreId: null });
+  const [tarifasPicker, setTarifasPicker] = useState(false);
   const fileRef = useRef(null);
 
   const avisos = validarArbol(arbol);
@@ -73,6 +75,21 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
     };
     onChange(insertarNodo(arbol, picker.padreId, nodo));
     setPicker({ open: false, padreId: null });
+    toast.success(`«${nodo.resumen}» añadido al presupuesto`);
+  };
+
+  // Una tarifa especial del cliente entra como partida suelta
+  const anadirTarifa = (t) => {
+    const nodo = {
+      ...nuevoNodo('partida', codigoUnico('', null)),
+      resumen: t.nombre || '',
+      texto: t.descripcion || '',
+      unidad: t.unidad || 'ud',
+      precio: Number(t.precio) || 0,
+      coste: 0,
+    };
+    onChange(insertarNodo(arbol, null, nodo));
+    setTarifasPicker(false);
     toast.success(`«${nodo.resumen}» añadido al presupuesto`);
   };
 
@@ -143,6 +160,11 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
           {raizPermite('partida') && (
             <Button type="button" size="sm" className="gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => abrirCatalogo(null)}>
               <Package className="h-3.5 w-3.5" />Del catálogo
+            </Button>
+          )}
+          {raizPermite('partida') && Array.isArray(cliente?.tarifas) && cliente.tarifas.length > 0 && (
+            <Button type="button" size="sm" variant="outline" className="gap-1.5 text-emerald-600 border-emerald-300 hover:bg-emerald-50" onClick={() => setTarifasPicker(true)}>
+              <Tag className="h-3.5 w-3.5" />Tarifas del cliente
             </Button>
           )}
           <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => fileRef.current?.click()}>
@@ -234,6 +256,12 @@ export default function ArbolPresupuesto({ arbol = [], onChange, iva = 21, clien
         articulos={articulos}
         familias={familias}
         onPick={anadirDelCatalogo}
+      />
+      <TarifasPicker
+        open={tarifasPicker}
+        onClose={() => setTarifasPicker(false)}
+        tarifas={Array.isArray(cliente?.tarifas) ? cliente.tarifas : []}
+        onPick={anadirTarifa}
       />
     </div>
   );

@@ -202,6 +202,7 @@ export default function ContratoMantenimiento() {
     setSaveMsg('');
     try {
       const fechaFin = form.fecha_fin || calcFechaFin(form.fecha_inicio, form.duracion_meses);
+      const selectedClient = clients.find(c => c.id === selectedClientId);
       const contratoData = {
         numero_contrato: form.numero_contrato,
         tipo_contrato: tipoContrato,
@@ -209,8 +210,11 @@ export default function ContratoMantenimiento() {
         cliente_nombre: form.cliente_nombre,
         cliente_cif: form.cliente_cif,
         cliente_id: selectedClientId || '',
+        company_id: selectedClient?.company_id || '',
         fecha_inicio: form.fecha_inicio,
         fecha_fin: fechaFin,
+        duracion_meses: Number(form.duracion_meses) || 12,
+        renovacion_automatica: form.renovacion_automatica || 'si',
         precio_anual: form.precio_anual ? Number(form.precio_anual) : null,
         forma_pago: form.forma_pago,
         form_data: { ...form, tipoContrato },
@@ -452,6 +456,7 @@ export default function ContratoMantenimiento() {
         console.error('Error subiendo el PDF del contrato:', e);
       }
 
+      const selectedClient = clients.find(c => c.id === selectedClientId);
       const existing = await base44.entities.Contrato.filter({ numero_contrato: form.numero_contrato });
       const fechaFin = form.fecha_fin || calcFechaFin(form.fecha_inicio, form.duracion_meses);
       const contratoData = {
@@ -461,17 +466,43 @@ export default function ContratoMantenimiento() {
         cliente_nombre: form.cliente_nombre,
         cliente_cif: form.cliente_cif,
         cliente_id: selectedClientId || '',
+        company_id: selectedClient?.company_id || '',
         fecha_inicio: form.fecha_inicio,
         fecha_fin: fechaFin,
+        duracion_meses: Number(form.duracion_meses) || 12,
+        renovacion_automatica: form.renovacion_automatica || 'si',
         precio_anual: form.precio_anual ? Number(form.precio_anual) : null,
         forma_pago: form.forma_pago,
         form_data: { ...form, tipoContrato },
         ...(pdf_url ? { pdf_url } : {}),
       };
+      let contratoId = existing[0]?.id;
       if (existing.length > 0) {
-        await base44.entities.Contrato.update(existing[0].id, contratoData);
+        await base44.entities.Contrato.update(contratoId, contratoData);
       } else {
-        await base44.entities.Contrato.create(contratoData);
+        const created = await base44.entities.Contrato.create(contratoData);
+        contratoId = created.id;
+      }
+      // Vincular el contrato a los documentos del cliente para verlo desde su ficha
+      if (selectedClientId && pdf_url && contratoId) {
+        try {
+          const docs = await base44.entities.ClientDocument.filter({ contrato_id: contratoId });
+          const docData = {
+            client_id: selectedClientId,
+            title: `Contrato ${form.numero_contrato}`,
+            document_type: 'contrato',
+            file_url: pdf_url,
+            num_certificado: form.numero_contrato,
+            observaciones: `${tipoContrato === 'instalaciones' ? 'Instalación' : 'Mantenimiento'}${fechaFin ? ' · vence ' + fechaFin : ''}${form.renovacion_automatica === 'si' ? ' · auto-renovable' : ''}`,
+          };
+          if (docs.length > 0) {
+            await base44.entities.ClientDocument.update(docs[0].id, { ...docData, contrato_id: contratoId });
+          } else {
+            await base44.entities.ClientDocument.create({ ...docData, contrato_id: contratoId });
+          }
+        } catch (e) {
+          console.error('Error vinculando contrato al cliente:', e);
+        }
       }
     } catch (e) {
       console.error('Error guardando contrato:', e);

@@ -14,18 +14,23 @@
       "type": "string",
       "enum": [
         "certificado_rite",
+        "contrato",
         "otro"
       ],
-      "default": "certificado_rite",
-      "description": "Tipo de documento"
+      "default": "otro",
+      "description": "Tipo de documento: certificado RITE, contrato vinculado o documento subido a mano"
     },
     "file_url": {
       "type": "string",
       "description": "URL del archivo PDF guardado"
     },
+    "contrato_id": {
+      "type": "string",
+      "description": "ID del contrato vinculado (si el documento proviene de un contrato generado)"
+    },
     "num_certificado": {
       "type": "string",
-      "description": "N\u00famero de certificado"
+      "description": "N\u00famero de certificado o n\u00famero de contrato"
     },
     "building_name": {
       "type": "string",

@@ -219,6 +219,7 @@ export default function DocumentoErpForm({ tipo, open, onClose, registro, numero
               iva={form.iva}
               articulos={articulos}
               familias={familias}
+              clienteTarifas={Array.isArray(partido?.tarifas) ? partido.tarifas : []}
             />
           )}
 

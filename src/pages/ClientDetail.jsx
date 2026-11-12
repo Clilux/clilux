@@ -9,13 +9,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, Thermometer, Trash2, ToggleLeft, ToggleRight, Tag
+  User, FileText, FileSignature, Thermometer, Trash2, ToggleLeft, ToggleRight, Tag
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
+import ClientContratosTab from '../components/clients/ClientContratosTab';
 import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
 import ClientPortalInvite from '../components/clients/ClientPortalInvite';
 import ClientTarifasEquipoTab from '../components/clients/ClientTarifasEquipoTab';
@@ -306,6 +307,10 @@ export default function ClientDetail() {
                 <FileText className="h-4 w-4" />
                 Documentos
               </TabsTrigger>
+              <TabsTrigger value="contratos" className="flex items-center gap-2">
+                <FileSignature className="h-4 w-4" />
+                Contratos
+              </TabsTrigger>
               <TabsTrigger value="tarifas" className="flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Tarifas y Equipo
@@ -391,6 +396,10 @@ export default function ClientDetail() {
 
           <TabsContent value="documents">
             <ClientDocumentsTab clientId={clientId} />
+          </TabsContent>
+
+          <TabsContent value="contratos">
+            <ClientContratosTab clientId={clientId} isSessionTech={isSessionTech} sessionTechEmail={sessionTechEmail} />
           </TabsContent>
 
           <TabsContent value="tarifas">
