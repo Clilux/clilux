@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, Plus, Building2, MapPin, Phone, Mail, 
-  User, FileText, FileSignature, Thermometer, Trash2, ToggleLeft, ToggleRight, Tag
+  User, FileText, FileSignature, Thermometer, Trash2, ToggleLeft, ToggleRight, Tag, Wallet
 } from 'lucide-react';
 import NavHeader from '../components/navigation/NavHeader';
 import BuildingCard from '../components/cards/BuildingCard';
@@ -17,6 +17,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import DeleteConfirmDialog from '../components/ui/DeleteConfirmDialog';
 import ClientDocumentsTab from '../components/clients/ClientDocumentsTab';
 import ClientContratosTab from '../components/clients/ClientContratosTab';
+import ClientEconomicTab from '../components/clients/ClientEconomicTab';
 import ScadaAccessPanel from '../components/clients/ScadaAccessPanel';
 import ClientPortalInvite from '../components/clients/ClientPortalInvite';
 import ClientTarifasEquipoTab from '../components/clients/ClientTarifasEquipoTab';
@@ -315,6 +316,10 @@ export default function ClientDetail() {
                 <Tag className="h-4 w-4" />
                 Tarifas y Equipo
               </TabsTrigger>
+              <TabsTrigger value="economia" className="flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Economía
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Link to={createPageUrl(`EquipmentForm?client_id=${client.id}`)}>
@@ -404,6 +409,10 @@ export default function ClientDetail() {
 
           <TabsContent value="tarifas">
             <ClientTarifasEquipoTab client={client} isSessionTech={isSessionTech} sessionTechEmail={sessionTechEmail} />
+          </TabsContent>
+
+          <TabsContent value="economia">
+            <ClientEconomicTab clientId={clientId} clientName={client.name} isSessionTech={isSessionTech} sessionTechEmail={sessionTechEmail} />
           </TabsContent>
         </Tabs>
 

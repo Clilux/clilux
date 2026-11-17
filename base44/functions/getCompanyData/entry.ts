@@ -308,6 +308,12 @@ Deno.serve(async (req) => {
       const all = await base44.asServiceRole.entities.Contrato.list();
       return Response.json({ data: all.filter(c => clientIds.has(c.cliente_id)) });
     }
+    if (entity === 'facturas') {
+      if (!verEconomia) return deny('ver_economia');
+      const clientIds = await getCompanyClientIds();
+      const all = await base44.asServiceRole.entities.Factura.list('-fecha', 3000);
+      return Response.json({ data: all.filter(f => clientIds.has(f.client_id)) });
+    }
     if (entity === 'settings') {
       const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'main' });
       return Response.json({ data: settings[0] || null });
