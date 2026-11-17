@@ -19,7 +19,7 @@ function minToHM(min) {
   return `${h}:${String(mm).padStart(2, '0')}`;
 }
 
-export default function ResumenMensualCalendario({ technicians, myTechRecord }) {
+export default function ResumenMensualCalendario({ technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
   const [viewMonth, setViewMonth] = useState(new Date());
   const [view, setView] = useState('calendario');
@@ -39,8 +39,17 @@ export default function ResumenMensualCalendario({ technicians, myTechRecord }) 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: registros = [], isLoading } = useQuery({
-    queryKey: ['resumen-mensual', monthStr, myTechRecord?.company_id],
+    queryKey: ['resumen-mensual', monthStr, myTechRecord?.company_id, isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', {
+          technician_email: effectiveEmail,
+          entity: 'registro_horario_admin_list',
+          start: format(startOfMonth(viewMonth), 'yyyy-MM-dd'),
+          end: format(endOfMonth(viewMonth), 'yyyy-MM-dd'),
+        });
+        return res.data?.data || [];
+      }
       const all = await base44.entities.RegistroHorario.list('-fecha', 3000);
       return all.filter(r => r.fecha?.startsWith(monthStr) && techEmails.has(r.technician_email));
     },
@@ -48,11 +57,17 @@ export default function ResumenMensualCalendario({ technicians, myTechRecord }) 
   });
 
   const { data: ausencias = [] } = useQuery({
-    queryKey: ['resumen-mensual-ausencias', monthStr, myTechRecord?.company_id],
+    queryKey: ['resumen-mensual-ausencias', monthStr, myTechRecord?.company_id, isSessionTech ? 'proxy' : 'direct', effectiveEmail],
     queryFn: async () => {
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 1000);
       const mStart = format(startOfMonth(viewMonth), 'yyyy-MM-dd');
       const mEnd = format(endOfMonth(viewMonth), 'yyyy-MM-dd');
+      if (isSessionTech && effectiveEmail) {
+        const res = await base44.functions.invoke('getCompanyData', { technician_email: effectiveEmail, entity: 'ausencias_admin_list' });
+        const all = res.data?.data || [];
+        return all.filter(a => a.estado === 'aprobada' && techEmails.has(a.technician_email) &&
+          a.fecha_inicio && a.fecha_fin && !(a.fecha_fin < mStart || a.fecha_inicio > mEnd));
+      }
+      const all = await base44.entities.Ausencia.list('-fecha_inicio', 1000);
       return all.filter(a => a.estado === 'aprobada' && techEmails.has(a.technician_email) &&
         a.fecha_inicio && a.fecha_fin && !(a.fecha_fin < mStart || a.fecha_inicio > mEnd));
     },
@@ -300,7 +315,7 @@ export default function ResumenMensualCalendario({ technicians, myTechRecord }) 
                 </tr>
               </thead>
               <tbody>
-                {visibleTechs.map(({ tech: t, name, dias, normal, extra, total }) => {
+                {resumen.filter(r => !hidden.has(r.tech.id)).map(({ tech: t, name, dias, normal, extra, total }) => {
                   const email = t.email || t.user_email;
                   const target = matrix[email]?.target || 0;
                   return (

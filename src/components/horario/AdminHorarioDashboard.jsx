@@ -311,7 +311,7 @@ export default function AdminHorarioDashboard({ currentUser, technicians, myTech
       )}
 
       {mainTab === 'mensual' && (
-        <ResumenMensualCalendario technicians={technicians} myTechRecord={myTechRecord} />
+        <ResumenMensualCalendario technicians={technicians} myTechRecord={myTechRecord} isSessionTech={isSessionTech} effectiveEmail={effectiveEmail} />
       )}
 
       {mainTab === 'vacaciones' && (
