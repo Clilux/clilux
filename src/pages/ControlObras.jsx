@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
-import { Plus, Search, HardHat, ChevronRight, Loader2, Building2, User, Euro } from 'lucide-react';
+import { Plus, Search, HardHat, ChevronRight, Loader2, Building2, User, Euro, ArrowLeft } from 'lucide-react';
 import { puedeVerEconomia } from '@/lib/permisos-trabajador';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -190,19 +190,27 @@ export default function ControlObras() {
         <div className="max-w-[1800px] mx-auto">
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                <HardHat className="h-5 w-5 text-orange-600" />
+          <div className="bg-gradient-to-r from-teal-600 to-teal-700 -mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-6 px-4 md:px-6 py-4 border-b border-teal-800 shadow-sm">
+            <div className="max-w-[1800px] mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link to={createPageUrl('HomeTecnico')}>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-1">
+                    <ArrowLeft className="h-4 w-4" /> Volver
+                  </Button>
+                </Link>
+                <div className="w-px h-8 bg-white/20" />
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <HardHat className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-white text-lg font-bold">Control de Obras</h1>
+                  <p className="text-teal-100 text-xs">{obras.length} obras registradas</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">Control de Obras</h1>
-                <p className="text-xs text-slate-400">{obras.length} obras registradas</p>
-              </div>
+              <Button onClick={() => setShowNew(true)} className="bg-white text-teal-700 hover:bg-teal-50 gap-2">
+                <Plus className="h-4 w-4" />Nueva obra
+              </Button>
             </div>
-            <Button onClick={() => setShowNew(true)} className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
-              <Plus className="h-4 w-4" />Nueva obra
-            </Button>
           </div>
 
           {/* Filtros */}

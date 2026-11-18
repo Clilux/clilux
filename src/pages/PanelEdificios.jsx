@@ -205,7 +205,7 @@ export default function PanelEdificios() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-800 shadow-sm">
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 border-b border-emerald-800 shadow-sm">
           <div className="max-w-[1800px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to={createPageUrl('HomeTecnico')}>
@@ -218,8 +218,8 @@ export default function PanelEdificios() {
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-white text-lg font-bold">Mantenimiento</h1>
-                <p className="text-blue-100 text-xs">Estado global de instalaciones · Pulsa (?) para ver la ayuda</p>
+                <h1 className="text-white text-lg font-bold">Edificios</h1>
+                <p className="text-emerald-100 text-xs">Estado global de instalaciones · Pulsa (?) para ver la ayuda</p>
               </div>
             </div>
             <p className="text-white text-sm font-medium hidden sm:block">

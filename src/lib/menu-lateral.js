@@ -22,7 +22,8 @@ export function construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdm
   const servicios = [
     { label: 'Partes de trabajo', to: '/PartesTrabajo', icon: ClipboardList },
     campo && { label: 'Obras', to: '/ControlObras', icon: HardHat },
-    campo && { label: 'Mantenimiento', to: '/PanelEdificios', icon: Building2 },
+    campo && { label: 'Edificios', to: '/PanelEdificios', icon: Building2 },
+    campo && { label: 'Mantenimientos', to: '/PanelMantenimientos', icon: Wrench },
     { label: 'Incidencias', to: '/Incidents', icon: AlertTriangle },
     campo && { label: 'Agenda', to: '/Calendar', icon: Calendar },
   ].filter(Boolean);
