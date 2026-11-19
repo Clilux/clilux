@@ -1,122 +1,214 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useQuery } from '@tanstack/react-query';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import EdificioStatusCard from '@/components/dashboard/EdificioStatusCard';
 import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
-import RevisionEditDialog from '@/components/revisions/RevisionEditDialog';
 import {
-  Building2, Wrench, Search, CalendarClock, Pencil, Power, ChevronRight,
+  Building2, AlertTriangle, Wrench, ClipboardCheck, Search,
+  Filter, ArrowLeft,
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { format, parseISO, isBefore } from 'date-fns';
+import { format, parseISO, isBefore, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calcularNivelEdificio, equipoNecesitaRevision, tienePlanMantenimientoActivo } from '@/lib/edificio-nivel';
 
-const TYPE_LABELS = {
-  monthly: 'Mensual', quarterly: 'Trimestral',
-  biannual: 'Semestral', annual: 'Anual', unified: 'Unificada',
-};
+// Mantenimientos: mismo formato que Edificios (tarjetas de estado, cabecera
+// verde, KPIs y filtros), pero SOLO los edificios que tienen mantenimiento
+// activo (equipos con plan de mantenimiento o revisiones programadas activas).
+const FILTERS = [
+  { id: 'all',         label: 'Todos' },
+  { id: 'critical',    label: 'Críticos' },
+  { id: 'warning',     label: 'Atención' },
+  { id: 'maintenance', label: 'Mantenimiento' },
+  { id: 'ok',          label: 'Operativos' },
+];
 
-const fechaCorta = (v) => String(v || '').slice(0, 10);
-
-// Mantenimientos: solo edificios con revisiones programadas activas.
-// Cabecera verde azulado (teal). Permite editar cada mantenimiento
-// (fecha, descripción) y activarlo/desactivarlo.
 export default function PanelMantenimientos() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState(null);
+  const [filter, setFilter] = useState('all');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
   const isSessionTech = !!sessionTechEmail;
 
-  const proxyFetch = (entity) => base44.functions.invoke('getCompanyData', {
-    technician_email: sessionTechEmail, entity,
-  }).then((r) => r.data?.data || []);
-
-  const { data: revisions = [], isLoading: loadingRev } = useQuery({
-    queryKey: ['scheduled-revisions', isSessionTech ? 'proxy' : 'direct'],
-    queryFn: () => isSessionTech ? proxyFetch('revisions') : base44.entities.ScheduledRevision.list(),
-  });
-  const { data: buildings = [], isLoading: loadingBld } = useQuery({
-    queryKey: ['buildings', isSessionTech ? 'proxy-mant' : 'direct-mant'],
-    queryFn: () => isSessionTech ? proxyFetch('buildings') : base44.entities.Building.list(),
-  });
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients', isSessionTech ? 'proxy-mant' : 'direct-mant'],
-    queryFn: () => isSessionTech ? proxyFetch('clients') : base44.entities.Client.list(),
-  });
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment', isSessionTech ? 'proxy-mant' : 'direct-mant'],
-    queryFn: () => isSessionTech ? proxyFetch('equipment') : base44.entities.Equipment.list(),
+  // Carga unificada para técnicos (proxy) o directa para admins
+  const { data: proxyData, isLoading: proxyLoading } = useQuery({
+    queryKey: ['proxy-all-mant', sessionTechEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'all' });
+      return res.data || {};
+    },
+    enabled: isSessionTech,
+    staleTime: 30000,
   });
 
-  const isLoading = loadingRev || loadingBld;
+  const { data: directBuildings = [], isLoading: loadingB } = useQuery({
+    queryKey: ['buildings', 'mant-direct'],
+    queryFn: () => base44.entities.Building.list(),
+    enabled: !isSessionTech,
+    staleTime: 60000,
+  });
+  const { data: directClients = [] } = useQuery({
+    queryKey: ['clients', 'mant-direct'],
+    queryFn: () => base44.entities.Client.list(),
+    enabled: !isSessionTech,
+    staleTime: 60000,
+  });
+  const { data: directEquipment = [] } = useQuery({
+    queryKey: ['equipment', 'mant-direct'],
+    queryFn: () => base44.entities.Equipment.list(),
+    enabled: !isSessionTech,
+    staleTime: 60000,
+  });
+  const { data: directIncidents = [] } = useQuery({
+    queryKey: ['incidents', 'mant-direct'],
+    queryFn: () => base44.entities.Incident.list('-created_date'),
+    enabled: !isSessionTech,
+    staleTime: 60000,
+  });
+  const { data: directRevisions = [] } = useQuery({
+    queryKey: ['scheduledRevisions', 'mant-direct'],
+    queryFn: () => base44.entities.ScheduledRevision.list(),
+    enabled: !isSessionTech,
+    staleTime: 60000,
+  });
+
+  const isLoading = isSessionTech ? proxyLoading : loadingB;
+
+  const buildings  = isSessionTech ? (proxyData?.buildings ?? []) : directBuildings;
+  const clients    = isSessionTech ? (proxyData?.clients   ?? []) : directClients;
+  const equipment  = isSessionTech ? (proxyData?.equipment ?? []) : directEquipment;
+  const incidents  = isSessionTech ? (proxyData?.incidents ?? []) : directIncidents;
+  const revisions  = isSessionTech ? (proxyData?.revisions ?? []) : directRevisions;
+
   const today = new Date();
 
-  // Equipos inactivos y clientes inactivos fuera
-  const activeBuildings = useMemo(() => buildings.filter((b) => {
+  // Edificios activos (clientes inactivos también fuera)
+  const activeBuildings = useMemo(() => buildings.filter(b => {
     if (b.status === 'inactive') return false;
-    const client = clients.find((c) => c.id === b.client_id);
+    const client = clients.find(c => c.id === b.client_id);
     return client?.status !== 'inactive';
   }), [buildings, clients]);
 
-  // Solo revisiones activas (no canceladas) para mostrar en la lista.
-  const activeRevisions = useMemo(
-    () => revisions.filter((r) => r.status !== 'cancelled'),
-    [revisions],
+  const openIncidentEquipmentIds = useMemo(() => {
+    const s = new Set();
+    incidents
+      .filter(i => i.status === 'pending' || i.status === 'in_progress')
+      .forEach(i => { if (i.equipment_id) s.add(i.equipment_id); });
+    return s;
+  }, [incidents]);
+
+  const equipmentNeedingReviewMap = useMemo(() => {
+    const map = {};
+    equipment.forEach(eq => {
+      if (equipoNecesitaRevision(eq, openIncidentEquipmentIds, today)) {
+        if (!map[eq.building_id]) map[eq.building_id] = [];
+        map[eq.building_id].push(eq);
+      }
+    });
+    return map;
+  }, [equipment, openIncidentEquipmentIds]);
+
+  const pendingIncidentsMap = useMemo(() => {
+    const map = {};
+    incidents
+      .filter(i => i.status === 'pending' || i.status === 'in_progress')
+      .forEach(i => {
+        if (!i.building_id) return;
+        if (!map[i.building_id]) map[i.building_id] = [];
+        map[i.building_id].push(i);
+      });
+    return map;
+  }, [incidents]);
+
+  const pendingRevisionsMap = useMemo(() => {
+    const next30 = addDays(today, 30);
+    const map = {};
+    revisions
+      .filter(r => r.status === 'pending')
+      .filter(r => isBefore(parseISO(r.scheduled_date), next30))
+      .forEach(r => {
+        if (!r.building_id) return;
+        if (!map[r.building_id]) map[r.building_id] = [];
+        map[r.building_id].push(r);
+      });
+    return map;
+  }, [revisions]);
+
+  // Edificios con mantenimiento activo: equipos con plan O revisiones activas
+  const hasPlanByBuilding = useMemo(() => {
+    const map = {};
+    equipment.forEach(eq => {
+      if (!map[eq.building_id]) map[eq.building_id] = tienePlanMantenimientoActivo(eq);
+    });
+    return map;
+  }, [equipment]);
+
+  const buildingsWithActiveRevisions = useMemo(() => {
+    const s = new Set();
+    revisions.forEach(r => {
+      if (r.status !== 'cancelled' && r.building_id) s.add(r.building_id);
+    });
+    return s;
+  }, [revisions]);
+
+  const buildingsWithMaintenance = useMemo(() => {
+    const s = new Set();
+    activeBuildings.forEach(b => {
+      if (hasPlanByBuilding[b.id] || buildingsWithActiveRevisions.has(b.id)) s.add(b.id);
+    });
+    return s;
+  }, [activeBuildings, hasPlanByBuilding, buildingsWithActiveRevisions]);
+
+  // Filtrar a solo los que tienen mantenimiento
+  const maintainedBuildings = useMemo(
+    () => activeBuildings.filter(b => buildingsWithMaintenance.has(b.id)),
+    [activeBuildings, buildingsWithMaintenance],
   );
 
-  const equipName = (id) => {
-    const eq = equipment.find((e) => e.id === id);
-    return eq ? `${eq.brand || ''} ${eq.model || ''}`.trim() || eq.reference_name || '' : '';
-  };
-
-  // Agrupar revisiones activas por edificio
-  const buildingGroups = useMemo(() => {
-    const map = new Map();
-    activeRevisions.forEach((rev) => {
-      if (!map.has(rev.building_id)) map.set(rev.building_id, []);
-      map.get(rev.building_id).push(rev);
+  const buildingSummaries = useMemo(() => {
+    return maintainedBuildings.map(b => {
+      const incs = pendingIncidentsMap[b.id] || [];
+      const eqs  = equipmentNeedingReviewMap[b.id] || [];
+      const revs = pendingRevisionsMap[b.id] || [];
+      const { level } = calcularNivelEdificio({ incidents: incs, equipment: eqs, revisions: revs, today });
+      return { building: b, level, incs, eqs, revs, hasPlan: !!hasPlanByBuilding[b.id] };
     });
-    const groups = activeBuildings
-      .filter((b) => map.has(b.id))
-      .map((b) => {
-        const revs = (map.get(b.id) || [])
-          .sort((a, c) => fechaCorta(a.scheduled_date).localeCompare(fechaCorta(c.scheduled_date)));
-        const pending = revs.filter((r) => r.status === 'pending');
-        const vencidas = pending.filter((r) => isBefore(parseISO(fechaCorta(r.scheduled_date)), today)).length;
-        return { building: b, client: clients.find((c) => c.id === b.client_id), revisions: revs, pendingCount: pending.length, vencidas };
-      });
-    return groups;
-  }, [activeBuildings, activeRevisions, clients]);
+  }, [maintainedBuildings, pendingIncidentsMap, equipmentNeedingReviewMap, pendingRevisionsMap, hasPlanByBuilding]);
 
-  const filtered = buildingGroups.filter((g) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      g.building.name?.toLowerCase().includes(q) ||
-      g.client?.name?.toLowerCase().includes(q)
-    );
-  });
+  const totalBuildings = maintainedBuildings.length;
+  const totalIncidents = buildingSummaries.reduce((s, x) => s + x.incs.length, 0);
+  const totalEqReview  = buildingSummaries.reduce((s, x) => s + x.eqs.length, 0);
+  const totalRevisions = buildingSummaries.reduce((s, x) => s + x.revs.length, 0);
 
-  const totalPendientes = buildingGroups.reduce((s, g) => s + g.pendingCount, 0);
-  const totalVencidas = buildingGroups.reduce((s, g) => s + g.vencidas, 0);
-
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['scheduled-revisions'] });
-    queryClient.invalidateQueries({ queryKey: ['buildings'] });
-    queryClient.invalidateQueries({ queryKey: ['equipment'] });
-  };
+  const filtered = buildingSummaries
+    .filter(s => filter === 'all' || s.level === filter)
+    .filter(s => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      const client = clients.find(c => c.id === s.building.client_id);
+      return (
+        s.building.name?.toLowerCase().includes(q) ||
+        s.building.address?.toLowerCase().includes(q) ||
+        s.building.city?.toLowerCase().includes(q) ||
+        client?.name?.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const order = { critical: 0, warning: 1, maintenance: 2, ok: 3 };
+      if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level];
+      return (b.incs.length + b.eqs.length) - (a.incs.length + a.eqs.length);
+    });
 
   const kpis = [
-    { label: 'Edificios con mantenimiento', value: buildingGroups.length, icon: Building2, color: 'bg-teal-50 border-teal-200', iconBg: 'bg-teal-100', iconCls: 'text-teal-600' },
-    { label: 'Mantenimientos activos', value: totalPendientes, icon: Wrench, color: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100', iconCls: 'text-blue-600' },
-    { label: 'Vencidos', value: totalVencidas, icon: CalendarClock, color: totalVencidas > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200', iconBg: totalVencidas > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: totalVencidas > 0 ? 'text-red-500' : 'text-slate-400' },
+    { label: 'Con mantenimiento', value: totalBuildings, icon: Building2,      color: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100', iconCls: 'text-emerald-600' },
+    { label: 'Alertas activas',  value: totalIncidents, icon: AlertTriangle,  color: totalIncidents > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200', iconBg: totalIncidents > 0 ? 'bg-red-100' : 'bg-slate-100', iconCls: totalIncidents > 0 ? 'text-red-500' : 'text-slate-400' },
+    { label: 'Equipos a revisar',value: totalEqReview,  icon: Wrench,         color: totalEqReview > 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200', iconBg: totalEqReview > 0 ? 'bg-blue-100' : 'bg-slate-100', iconCls: totalEqReview > 0 ? 'text-blue-500' : 'text-slate-400' },
+    { label: 'Revisiones 30d',   value: totalRevisions, icon: ClipboardCheck, color: totalRevisions > 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200', iconBg: totalRevisions > 0 ? 'bg-amber-100' : 'bg-slate-100', iconCls: totalRevisions > 0 ? 'text-amber-500' : 'text-slate-400' },
   ];
 
   return (
@@ -124,13 +216,13 @@ export default function PanelMantenimientos() {
       <TechnicianSidebar isSessionTech={isSessionTech} isAdmin={!isSessionTech} isLoading={false} onLogout={() => {}} techEmail={sessionTechEmail} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Cabecera verde azulado */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 border-b border-teal-800 shadow-sm">
+        {/* Cabecera verde (mismo formato que Edificios) */}
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 border-b border-emerald-800 shadow-sm">
           <div className="max-w-[1800px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to={createPageUrl('HomeTecnico')}>
                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 gap-1">
-                  ← Volver
+                  <ArrowLeft className="h-4 w-4" /> Volver
                 </Button>
               </Link>
               <div className="w-px h-8 bg-white/20" />
@@ -139,7 +231,7 @@ export default function PanelMantenimientos() {
               </div>
               <div>
                 <h1 className="text-white text-lg font-bold">Mantenimientos</h1>
-                <p className="text-teal-100 text-xs">Revisiones programadas por edificio</p>
+                <p className="text-emerald-100 text-xs">Solo edificios con mantenimiento activo</p>
               </div>
             </div>
             <p className="text-white text-sm font-medium hidden sm:block">
@@ -151,7 +243,7 @@ export default function PanelMantenimientos() {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-[1800px] mx-auto space-y-6">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {kpis.map(({ label, value, icon: Icon, color, iconBg, iconCls }) => (
                 <Card key={label} className={`${color} border p-4 shadow-sm`}>
                   <div className="flex items-center gap-3">
@@ -167,105 +259,65 @@ export default function PanelMantenimientos() {
               ))}
             </div>
 
-            {/* Búsqueda */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por edificio o cliente..."
-                className="pl-10 bg-white border-slate-200"
-              />
+            {/* Búsqueda + filtros */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar por edificio, cliente o ciudad…"
+                  className="pl-10 bg-white border-slate-200"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
+                <Filter className="h-4 w-4 text-slate-400 mx-1.5 shrink-0" />
+                {FILTERS.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      filter === f.id ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Lista de edificios con sus mantenimientos */}
+            {/* Grid de edificios con mantenimiento */}
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}
               </div>
             ) : filtered.length === 0 ? (
               <Card className="border-slate-200 p-12 text-center bg-white">
                 <Wrench className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500 font-medium">No hay edificios con mantenimientos activos</p>
-                <p className="text-slate-400 text-sm mt-1">Las revisiones programadas aparecerán aquí agrupadas por edificio</p>
+                <p className="text-slate-500 font-medium">No hay edificios con mantenimiento activo</p>
+                <p className="text-slate-400 text-sm mt-1">Asigna un plan de mantenimiento a algún equipo para verlo aquí</p>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filtered.map(({ building, client, revisions: revs, pendingCount, vencidas }) => (
-                  <Card key={building.id} className="border-slate-200 bg-white p-4 shadow-sm flex flex-col">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-slate-800 truncate">{building.name}</h3>
-                        <p className="text-xs text-slate-500 truncate">{client?.name || 'Sin cliente'}</p>
-                      </div>
-                      <Link to={`/BuildingDetail?id=${building.id}`} className="shrink-0">
-                        <Button size="sm" variant="ghost" className="text-teal-600 hover:bg-teal-50 h-8 px-2">
-                          <Building2 className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-
-                    <div className="flex gap-2 mb-3">
-                      <Badge className="bg-teal-50 text-teal-700 border-0">{pendingCount} pendientes</Badge>
-                      {vencidas > 0 && <Badge className="bg-red-50 text-red-600 border-0">{vencidas} vencidas</Badge>}
-                    </div>
-
-                    <div className="space-y-2 flex-1">
-                      {revs.slice(0, 5).map((rev) => {
-                        const vencida = rev.status === 'pending' && isBefore(parseISO(fechaCorta(rev.scheduled_date)), today);
-                        const inactiva = rev.status === 'cancelled';
-                        return (
-                          <div
-                            key={rev.id}
-                            className={`flex items-center gap-2 rounded-lg border p-2.5 ${
-                              inactiva ? 'bg-slate-50 border-slate-200 opacity-60' : vencida ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-700">
-                                  {TYPE_LABELS[rev.revision_type] || rev.revision_type}
-                                </span>
-                                {vencida && <Badge className="bg-red-100 text-red-600 border-0 text-[10px]">Vencida</Badge>}
-                                {inactiva && <Badge className="bg-slate-200 text-slate-500 border-0 text-[10px]">Inactivo</Badge>}
-                              </div>
-                              <p className="text-xs text-slate-500 truncate">
-                                {format(parseISO(fechaCorta(rev.scheduled_date)), 'd MMM yyyy', { locale: es })}
-                                {rev.equipment_id && <span> · {equipName(rev.equipment_id)}</span>}
-                              </p>
-                              {rev.notes && <p className="text-xs text-slate-400 truncate mt-0.5">{rev.notes}</p>}
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-slate-500 hover:bg-slate-200"
-                                onClick={() => setEditing({ ...rev, equipment_name: rev.equipment_id ? equipName(rev.equipment_id) : '' })}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {revs.length > 5 && (
-                        <p className="text-xs text-slate-400 text-center pt-1">+{revs.length - 5} más...</p>
-                      )}
-                    </div>
-                  </Card>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filtered.map(({ building, level, incs, eqs, revs, hasPlan }) => {
+                  const client = clients.find(c => c.id === building.client_id);
+                  return (
+                    <EdificioStatusCard
+                      key={building.id}
+                      building={building}
+                      client={client}
+                      incidents={incs}
+                      equipmentNeedingReview={eqs}
+                      pendingRevisions={revs}
+                      hasPlan={hasPlan}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      <RevisionEditDialog
-        revision={editing}
-        open={!!editing}
-        onOpenChange={(o) => !o && setEditing(null)}
-        onSaved={refresh}
-      />
     </div>
   );
 }

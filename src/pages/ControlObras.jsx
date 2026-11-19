@@ -190,7 +190,7 @@ export default function ControlObras() {
         <div className="max-w-[1800px] mx-auto">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-700 -mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-6 px-4 md:px-6 py-4 border-b border-teal-800 shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 -mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-6 px-4 md:px-6 py-4 border-b border-emerald-800 shadow-sm">
             <div className="max-w-[1800px] mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link to={createPageUrl('HomeTecnico')}>
