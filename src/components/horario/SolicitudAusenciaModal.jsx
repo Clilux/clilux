@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { notificar } from '@/lib/buzon';
 import { getSessionToken } from '@/lib/passwordHash';
 import SelectorDias from '@/components/vacaciones/SelectorDias';
-import { diasLaborablesDe, diasComprometidos, rangoDeDias, iso } from '@/lib/vacaciones-utils';
+import { diasLaborablesDe, diasComprometidos, rangoDeDias } from '@/lib/vacaciones-utils';
 
 const TIPOS = {
   vacaciones: 'Vacaciones',
@@ -107,7 +107,6 @@ export default function SolicitudAusenciaModal({ currentUser, techRecord, ausenc
               onChange={dias => setForm(p => ({ ...p, dias }))}
               diasLaborables={diasLaborables}
               diasOcupados={diasOcupados}
-              minDate={iso(new Date())}
             />
           </div>
 
