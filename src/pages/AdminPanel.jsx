@@ -16,9 +16,10 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserCheck, UserPlus, Building2,
   Shield, Loader2, Trash2, RefreshCw, Link2, CheckCircle, XCircle, Clock, Settings, Send,
-  Eye, EyeOff, Key, Lock, Save
+  Eye, EyeOff, Key, Lock, Save, BarChart3
 } from 'lucide-react';
 import PermisosTecnicoPanel from '@/components/settings/PermisosTecnicoPanel';
+import ResumenTrabajadorDialog from '@/components/admin/ResumenTrabajadorDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function AdminPanel() {
@@ -38,6 +39,7 @@ export default function AdminPanel() {
   const [linkData, setLinkData] = useState({ techId: '', companyName: '', companyId: '' });
   const [sending, setSending] = useState(false);
   const [permisosLocal, setPermisosLocal] = useState({});
+  const [resumenTech, setResumenTech] = useState(null);
   const [tab, setTab] = useState(!!sessionStorage.getItem('technician_email') ? 'tecnicos' : 'clientes');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -665,7 +667,7 @@ export default function AdminPanel() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="font-semibold text-slate-800 text-sm">{tech.name}</p>
+                              <button onClick={() => setResumenTech(tech)} className="font-semibold text-slate-800 text-sm hover:text-emerald-600 hover:underline text-left">{tech.name}</button>
                               {tech.is_admin && <Badge className="bg-amber-100 text-amber-700 border-0 text-xs px-1.5 py-0"><Shield className="h-2.5 w-2.5 mr-0.5" />Gerente</Badge>}
                             </div>
                             <p className="text-xs text-slate-500">{tech.email}</p>
@@ -684,6 +686,16 @@ export default function AdminPanel() {
                             </Badge>
                           )}
                           <div className="flex gap-1 mt-1 flex-wrap justify-end">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             className="h-7 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                             title="Resumen del trabajador (vacaciones y horas)"
+                             onClick={() => setResumenTech(tech)}
+                           >
+                             <BarChart3 className="h-3 w-3 mr-1" />
+                             Resumen
+                           </Button>
                            <Button
                              variant="outline"
                              size="sm"
@@ -1022,6 +1034,15 @@ export default function AdminPanel() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {resumenTech && (
+        <ResumenTrabajadorDialog
+          tech={resumenTech}
+          isSessionTech={isSessionTech}
+          sessionTechEmail={sessionTechEmail}
+          onClose={() => setResumenTech(null)}
+        />
+      )}
 
       {/* Invite / Create technician dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
