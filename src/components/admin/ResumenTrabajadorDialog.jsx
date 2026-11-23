@@ -24,10 +24,12 @@ export default function ResumenTrabajadorDialog({ tech, isSessionTech, sessionTe
     queryFn: async () => {
       if (isSessionTech && sessionTechEmail) {
         const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'ausencias_admin_list' });
-        return (res.data || []).filter(a => (a.technician_email || '').trim().toLowerCase() === email);
+        const arr = res.data?.data || [];
+        return arr.filter(a => (a.technician_email || '').trim().toLowerCase() === email);
       }
-      const all = await base44.entities.Ausencia.list('-fecha_inicio', 500);
-      return all.filter(a => (a.technician_email || '').trim().toLowerCase() === email);
+      const page = await base44.entities.Ausencia.list('-fecha_inicio', 500);
+      const arr = Array.isArray(page) ? page : (page.items || []);
+      return arr.filter(a => (a.technician_email || '').trim().toLowerCase() === email);
     },
     enabled: !!tech,
   });
@@ -37,10 +39,12 @@ export default function ResumenTrabajadorDialog({ tech, isSessionTech, sessionTe
     queryFn: async () => {
       if (isSessionTech && sessionTechEmail) {
         const res = await base44.functions.invoke('getCompanyData', { technician_email: sessionTechEmail, entity: 'registro_horario_admin_list' });
-        return (res.data || []).filter(r => (r.technician_email || '').trim().toLowerCase() === email);
+        const arr = res.data?.data || [];
+        return arr.filter(r => (r.technician_email || '').trim().toLowerCase() === email);
       }
-      const all = await base44.entities.RegistroHorario.list('-fecha', 3000);
-      return all.filter(r => (r.technician_email || '').trim().toLowerCase() === email);
+      const page = await base44.entities.RegistroHorario.list('-fecha', 3000);
+      const arr = Array.isArray(page) ? page : (page.items || []);
+      return arr.filter(r => (r.technician_email || '').trim().toLowerCase() === email);
     },
     enabled: !!tech,
   });
