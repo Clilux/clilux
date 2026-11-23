@@ -27,6 +27,17 @@ export default function TechnicianSidebar({ isSessionTech, isAdmin, isPlatformAd
     const g = menu.grupos.find((x) => x.id === id);
     if (!g) return null;
     const Icon = g.icon;
+    // Si el grupo tiene ruta propia (p.ej. Laboral → resumen gráfico), navega directamente
+    if (g.to) {
+      return (
+        <Link key={id} to={g.to} onClick={() => setSheet(null)}>
+          <button className="flex flex-col items-center gap-1 text-white/80 hover:text-white px-2 py-1 shrink-0">
+            <Icon className="h-6 w-6" />
+            <span className="text-[10px]">{g.label}</span>
+          </button>
+        </Link>
+      );
+    }
     return (
       <button
         key={id}

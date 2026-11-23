@@ -9,6 +9,7 @@ import TechnicianSidebar from '@/components/horario/TechnicianSidebar';
 import CalendarioResumen from '@/components/resumen/CalendarioResumen';
 import GraficoVacaciones from '@/components/resumen/GraficoVacaciones';
 import GraficoHorario from '@/components/resumen/GraficoHorario';
+import DisfrutadasDialog from '@/components/resumen/DisfrutadasDialog';
 import { Card } from '@/components/ui/card';
 import { CalendarDays, CheckCircle2, Timer, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
@@ -21,6 +22,7 @@ const DIAS_VACACIONES_DEFECTO = 22;
 export default function MiResumen() {
   const navigate = useNavigate();
   const [viewMonth, setViewMonth] = useState(new Date());
+  const [showDisfrutadas, setShowDisfrutadas] = useState(false);
   const monthStr = format(viewMonth, 'yyyy-MM');
 
   const sessionTechEmail = sessionStorage.getItem('technician_email');
@@ -102,7 +104,7 @@ export default function MiResumen() {
 
   const kpis = [
     { label: 'Vac. disponibles', value: `${diasDisponibles}d`, icon: CalendarDays, cls: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Vac. disfrutadas', value: `${diasDisfrutados}d`, icon: CheckCircle2, cls: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Vac. disfrutadas', value: `${diasDisfrutados}d`, icon: CheckCircle2, cls: 'text-blue-600', bg: 'bg-blue-50', onClick: () => setShowDisfrutadas(true) },
     { label: 'Horas del mes', value: formatHoras(totalNormal + totalExtra), icon: Timer, cls: 'text-brand-600', bg: 'bg-brand-50' },
     { label: 'Días trabajados', value: diasTrabajados, icon: Briefcase, cls: 'text-slate-700', bg: 'bg-slate-100' },
   ];
@@ -126,15 +128,24 @@ export default function MiResumen() {
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {kpis.map(({ label, value, icon: Icon, cls, bg }) => (
-                  <Card key={label} className="p-4 bg-white border-0 shadow-sm">
-                    <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-2`}>
-                      <Icon className={`h-5 w-5 ${cls}`} />
-                    </div>
-                    <p className={`text-xl font-bold ${cls}`}>{value}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-                  </Card>
-                ))}
+                {kpis.map(({ label, value, icon: Icon, cls, bg, onClick }) => {
+                  const inner = (
+                    <>
+                      <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-2`}>
+                        <Icon className={`h-5 w-5 ${cls}`} />
+                      </div>
+                      <p className={`text-xl font-bold ${cls}`}>{value}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                    </>
+                  );
+                  return onClick ? (
+                    <button key={label} onClick={onClick} className="text-left">
+                      <Card className="p-4 bg-white border-0 shadow-sm hover:shadow-md transition-shadow h-full">{inner}</Card>
+                    </button>
+                  ) : (
+                    <Card key={label} className="p-4 bg-white border-0 shadow-sm">{inner}</Card>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -142,6 +153,7 @@ export default function MiResumen() {
                   diasDisfrutados={diasDisfrutados}
                   diasPendientes={diasPendientes}
                   diasDisponibles={diasDisponibles}
+                  onDisfrutadasClick={() => setShowDisfrutadas(true)}
                 />
                 <GraficoHorario registros={registros} mesLabel={mesLabel} />
               </div>
@@ -162,6 +174,7 @@ export default function MiResumen() {
               </div>
             </>
           )}
+          <DisfrutadasDialog open={showDisfrutadas} onOpenChange={setShowDisfrutadas} ausencias={ausencias} />
         </div>
       </div>
     </div>

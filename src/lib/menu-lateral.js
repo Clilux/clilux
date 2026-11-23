@@ -1,7 +1,7 @@
 import {
   Home, ClipboardList, HardHat, Building2, AlertTriangle, Calendar,
   Clock, Users, CalendarDays, BookOpen, Building, User, Wrench,
-  Briefcase, Cpu, Settings, BarChart3,
+  Briefcase, Cpu, Settings,
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { modulosActivos } from '@/lib/modulos';
@@ -29,7 +29,6 @@ export function construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdm
   ].filter(Boolean);
 
   const laboral = [
-    campo && { label: 'Mi resumen', to: '/MiResumen', icon: BarChart3 },
     campo && { label: 'Fichajes', to: '/ControlHorario', icon: Clock },
     gestion && { label: 'Trabajadores', to: '/AdminPanel', icon: Users },
     { label: 'Vacaciones', to: gestion ? '/GestionAusencias' : '/MisVacaciones', icon: CalendarDays },
@@ -54,7 +53,7 @@ export function construirMenu({ isSessionTech, isPlatformAdmin, isGerente, isAdm
 
   const grupos = [
     { id: 'servicios', label: 'Servicios', icon: Wrench, items: servicios },
-    { id: 'laboral', label: 'Laboral', icon: Clock, items: laboral },
+    { id: 'laboral', label: 'Laboral', icon: Clock, to: '/MiResumen', items: laboral },
     { id: 'clientes', label: 'Clientes', icon: Users, items: clientes },
     { id: 'empresa', label: 'Mi empresa', icon: Building, items: empresa },
     ...(modulosItems.length > 0

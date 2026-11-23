@@ -2,13 +2,19 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card } from '@/components/ui/card';
 
-/** Donut de vacaciones del año: disfrutadas, pendientes y disponibles. */
-export default function GraficoVacaciones({ diasDisfrutados = 0, diasPendientes = 0, diasDisponibles = 0 }) {
+/** Donut de vacaciones del año: disfrutadas, pendientes y disponibles.
+ *  Pulsar "Disfrutados" abre el detalle de fechas (lo gestiona la página padre). */
+export default function GraficoVacaciones({ diasDisfrutados = 0, diasPendientes = 0, diasDisponibles = 0, onDisfrutadasClick }) {
   const data = [
     { name: 'Disfrutados', value: diasDisfrutados, color: '#059669' },
     { name: 'Pendientes', value: diasPendientes, color: '#f59e0b' },
     { name: 'Disponibles', value: diasDisponibles, color: '#e2e8f0' },
   ].filter(d => d.value > 0);
+
+  const handleClick = (entry) => {
+    const name = entry && (entry.name || entry.value);
+    if (name === 'Disfrutados' && onDisfrutadasClick) onDisfrutadasClick();
+  };
 
   return (
     <Card className="p-4 bg-white border-0 shadow-sm">
@@ -22,14 +28,26 @@ export default function GraficoVacaciones({ diasDisfrutados = 0, diasPendientes 
         <div style={{ width: '100%', height: 210 }}>
           <ResponsiveContainer>
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" innerRadius={50} outerRadius={78} paddingAngle={2}>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={78}
+                paddingAngle={2}
+                onClick={handleClick}
+                style={{ cursor: 'pointer' }}
+              >
                 {data.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <Tooltip formatter={(v) => `${v} días`} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} onClick={handleClick} />
             </PieChart>
           </ResponsiveContainer>
         </div>
+      )}
+      {diasDisfrutados > 0 && (
+        <p className="text-[11px] text-brand-600 text-center mt-1">Pulsa en "Disfrutados" para ver las fechas</p>
       )}
     </Card>
   );
