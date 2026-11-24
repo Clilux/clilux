@@ -6,7 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { listarNotificaciones, marcarNotificacionLeida, marcarTodasLeidas } from '@/lib/buzon';
+import { listarNotificaciones, marcarNotificacionLeida, marcarTodasLeidas, linkPorTipo } from '@/lib/buzon';
 
 // Rutas internas válidas: evita "Page not Found" al abrir notificaciones con links obsoletos
 const VALID_ROUTES = new Set([
@@ -21,7 +21,9 @@ const VALID_ROUTES = new Set([
   'VetaCatalogo','ContratoMantenimiento','CarpetaContratos','ControlClimatizacion',
   'ControlLoxone','AdminPanel','ControlHorario','GestionAusencias','TechnicianProfile',
   'StelClientes','StelClientosTab','ClientScada','ImportEquipment','ControlObras',
-  'ObraDetail','PanelEdificios','NfcReader','KioskoFichaje','GestionTrabajo',
+  'ObraDetail','PanelEdificios','NfcReader','KioskoFichaje','GestionTrabajo','Buzon',
+  'TecnicoCitas','ClientCitas','MisVacaciones','PartesTrabajo','Configuracion',
+  'Integraciones','AutomatizacionHome','ErpHome',
 ]);
 
 export default function BuzonBell({ email, className, iconClassName, label }) {
@@ -43,9 +45,10 @@ export default function BuzonBell({ email, className, iconClassName, label }) {
     if (!n.leida) await marcarNotificacionLeida(email, n.id);
     queryClient.invalidateQueries({ queryKey: ['buzon', email] });
     setOpen(false);
-    if (n.link) {
-      const base = n.link.replace(/^\/+/, '').split('?')[0].split('/')[0];
-      navigate(VALID_ROUTES.has(base) ? n.link : '/ControlHorario');
+    const destino = linkPorTipo(n);
+    if (destino) {
+      const base = destino.replace(/^\/+/, '').split('?')[0].split('/')[0];
+      navigate(VALID_ROUTES.has(base) ? destino : '/ControlHorario');
     }
   };
 

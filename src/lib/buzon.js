@@ -44,3 +44,23 @@ export async function notificar(tipo, datos) {
     await base44.functions.invoke('buzonNotificaciones', { action: 'notificar', tipo, datos });
   } catch {}
 }
+
+/**
+ * Destino interno de una notificación. Usa el link guardado; si no existe
+ * (registros antiguos), lo deriva del tipo de evento.
+ */
+export function linkPorTipo(n) {
+  if (n?.link) return n.link;
+  const id = n?.datos?.incident_id || '';
+  const map = {
+    vacacion_solicitud: '/ControlHorario?tab=vacaciones',
+    vacacion_resuelta: '/MisVacaciones',
+    incidencia_nueva: '/Incidents',
+    incidencia_estado: '/ClientIncidents',
+    incidencia_asignacion: `/IncidentDetail?id=${id}`,
+    incidencia_modificacion: `/IncidentDetail?id=${id}`,
+    cita_nueva: '/TecnicoCitas',
+    amonestacion_fichaje_tardio: '/ControlHorario',
+  };
+  return map[n?.tipo] || '';
+}

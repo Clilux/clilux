@@ -16,6 +16,7 @@ import {
   marcarTodasLeidas,
   archivarNotificacion,
   eliminarNotificacion,
+  linkPorTipo,
 } from '@/lib/buzon';
 
 const VALID_ROUTES = new Set([
@@ -65,9 +66,10 @@ export default function Buzon() {
   const abrir = async (n) => {
     if (!n.leida) await marcarNotificacionLeida(email, n.id);
     queryClient.invalidateQueries({ queryKey: ['buzon', email] });
-    if (n.link) {
-      const base = n.link.replace(/^\/+/, '').split('?')[0].split('/')[0];
-      navigate(VALID_ROUTES.has(base) ? n.link : '/ControlHorario');
+    const destino = linkPorTipo(n);
+    if (destino) {
+      const base = destino.replace(/^\/+/, '').split('?')[0].split('/')[0];
+      navigate(VALID_ROUTES.has(base) ? destino : '/ControlHorario');
     }
   };
 
