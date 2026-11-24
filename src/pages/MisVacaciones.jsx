@@ -12,6 +12,7 @@ import SolicitudAusenciaModal from '@/components/horario/SolicitudAusenciaModal'
 import VacacionesResumen from '@/components/vacaciones/VacacionesResumen';
 import MisAusenciasLista from '@/components/vacaciones/MisAusenciasLista';
 import CalendarioVacaciones from '@/components/vacaciones/CalendarioVacaciones';
+import { diasLaborablesDe, diasDeAusencia } from '@/lib/vacaciones-utils';
 
 const DIAS_VACACIONES_DEFECTO = 22;
 
@@ -69,10 +70,11 @@ export default function MisVacaciones() {
   const yearStr = String(new Date().getFullYear());
   const diasAnuales = tech?.vacaciones_anuales ?? DIAS_VACACIONES_DEFECTO;
   const diasAnteriores = tech?.vacaciones_dias_usados_anteriores ?? 0;
+  const diasLaborables = diasLaborablesDe(tech);
 
   const diasVacaciones = (estado) => ausencias
     .filter(a => a.tipo === 'vacaciones' && a.estado === estado && (a.fecha_inicio || '').startsWith(yearStr))
-    .reduce((sum, a) => sum + (a.dias_totales || 0), 0);
+    .reduce((sum, a) => sum + diasDeAusencia(a, diasLaborables).length, 0);
 
   const diasDisfrutados = diasVacaciones('aprobada');
   const diasPendientes = diasVacaciones('pendiente');

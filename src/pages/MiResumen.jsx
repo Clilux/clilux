@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { CalendarDays, CheckCircle2, Timer, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { diasLaborablesDe } from '@/lib/vacaciones-utils';
+import { diasLaborablesDe, diasDeAusencia } from '@/lib/vacaciones-utils';
 import { formatHoras } from '@/lib/horario-utils';
 
 const DIAS_VACACIONES_DEFECTO = 22;
@@ -83,7 +83,7 @@ export default function MiResumen() {
 
   const diasVac = (estado) => ausencias
     .filter(a => a.tipo === 'vacaciones' && a.estado === estado && (a.fecha_inicio || '').startsWith(yearStr))
-    .reduce((s, a) => s + (a.dias_totales || 0), 0);
+    .reduce((s, a) => s + diasDeAusencia(a, diasLaborables).length, 0);
   const diasDisfrutados = diasVac('aprobada');
   const diasPendientes = diasVac('pendiente');
   const diasDisponibles = Math.max(0, diasAnuales - diasAnteriores - diasDisfrutados);
