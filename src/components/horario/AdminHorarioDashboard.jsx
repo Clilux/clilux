@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
@@ -24,8 +25,13 @@ import { formatHoras } from '@/lib/horario-utils';
 
 export default function AdminHorarioDashboard({ currentUser, technicians, myTechRecord, isSessionTech, effectiveEmail }) {
   const queryClient = useQueryClient();
-  // Permite abrir directamente una pestaña concreta (p.ej. desde una notificación)
-  const [mainTab, setMainTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'estado');
+  // Pestaña activa vinculada a la URL (?tab=...): así abrir una notificación
+  // desde la campana (misma ruta /ControlHorario) actualiza el tab sin remontar.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mainTab = searchParams.get('tab') || 'estado';
+  const setMainTab = (tab) => {
+    setSearchParams(tab && tab !== 'estado' ? { tab } : {}, { replace: true });
+  };
   const [period, setPeriod] = useState('month');
   const [refDate, setRefDate] = useState(new Date());
   const [selectedTech, setSelectedTech] = useState('all');
